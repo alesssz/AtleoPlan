@@ -171,13 +171,15 @@ Laravel records which migrations have run, in the `migrations` table, and `make 
 
 ```php
 Schema::create('plans', function (Blueprint $table) {
-    $table->id();                                  // bigint auto-increment primary key "id"
+    $table->uuid('id')->primary();                 // primary key "id", a UUID created on the device (6.2)
     $table->foreignId('user_id')->constrained();   // must point to an existing users.id
     $table->string('name');                        // varchar(255), required
     $table->text('notes')->nullable();             // may be empty (NULL)
     $table->timestamps();                          // created_at and updated_at, filled by Laravel
 });
 ```
+
+Tables with a number as their id use `$table->id()`, a `bigint` that grows by itself. Which table uses which, and every table's columns, is in [6. Data model](06-data-model.md).
 
 - **A migration that has run is never edited.** A change is a new migration (`make artisan c="make:migration add_x_to_plans_table"`). Editing an old one would leave databases that already ran it out of step.
 - **The file name starts with a date and time,** and that decides the order.
@@ -199,7 +201,7 @@ $plan->days;                                 // a relation: the plan's days (ano
 - **`#[Fillable([...])]`** lists the columns that may be filled from a request's data in one go (`User::create($data)`). Any other column is ignored, so a request cannot set `is_admin`. This is protection against "mass assignment".
 - **`#[Hidden([...])]`** lists the columns never included when the model is turned into JSON, such as `password`.
 - **`casts()`** converts columns when they are read or written: `'email_verified_at' => 'datetime'` gives a date object, and `'password' => 'hashed'` hashes the password when it is set.
-- **Relations** are methods returning `hasMany`, `belongsTo` and so on. They come with the first tables of DATA-2.
+- **Relations** are methods returning `hasMany`, `belongsTo` and so on. They come with the first tables of [6. Data model](06-data-model.md).
 
 **Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data, such as a test user or the public exercise library (DATA-1). `make fresh` runs them.
 
@@ -347,4 +349,4 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 
 ---
 
-← [4. Frontend](04-frontend.md) · [Contents](../README.md#documentation)
+← [4. Frontend](04-frontend.md) · [Contents](../README.md#documentation) · [6. Data model](06-data-model.md) →

@@ -8,7 +8,7 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 
 **Done:**
 
-- **Design docs:** UI ([1](01-ui-design.md)), decisions ([2](02-decisions.md)), conventions ([3](03-conventions.md)), [backlog](backlog.md).
+- **Design docs:** UI ([1](01-ui-design.md)), decisions ([2](02-decisions.md)), conventions ([3](03-conventions.md)), data model ([6](06-data-model.md)), [backlog](backlog.md).
 - **Git:** repository on GitHub (`alesssz/AtleoPlan`) with the personal GitHub identity, and a hook that refuses any other email ([0.3](#03-git-identity)).
 - **Docker stack for development:** [`Dockerfile`](../Dockerfile), [`compose.yaml`](../compose.yaml), [`docker/php/dev.ini`](../docker/php/dev.ini). Four services:
 
@@ -25,7 +25,7 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([0.6](#06-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
 
-**Not yet:** the app's features, in the order of the [backlog](backlog.md) (data model, sign-in, exercise library, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([4.11](04-frontend.md#411-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)).
+**Not yet:** the app's features, in the order of the [backlog](backlog.md) (sign-in, exercise library, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([4.11](04-frontend.md#411-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 

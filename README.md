@@ -46,5 +46,6 @@ Everything lives in [`docs/`](docs/), one file per section. Sections keep their 
 | [3. Conventions](docs/03-conventions.md) | Git, code and comments, documentation, backlog |
 | [4. Frontend](docs/04-frontend.md) | The React app, for a reader new to React: its pieces, folders, start-up, React from scratch, routing, server data, translations, styles and theme, recipes, tests, JavaScript and TypeScript syntax |
 | [5. Backend](docs/05-backend.md) | The Laravel app, for a reader new to PHP and Laravel: its pieces, PHP syntax, folders, the life of a request, routes and controllers, database, sign-in, admin panel, queues, configuration, tests, recipes, commands |
+| [6. Data model](docs/06-data-model.md) | Every table of the MVP, for a reader new to databases: the basic ideas, columns, relations and the Laravel code, ids, what happens on delete, what is computed, one week of training step by step, traps to avoid |
 
 Outside the numbered sections, **[Backlog](docs/backlog.md)** lists the work known and waiting, one entry per point with options and a recommendation; an entry is deleted when its work is done.

@@ -129,10 +129,10 @@ Free tiers change often: they are checked again when the app is first deployed.
 
 ## 2.7 Offline and sync
 
-- **Sessions and logged sets get a UUID created on the device.** A workout logged offline is sent later, and sending it twice changes nothing (the server recognises the UUID): no duplicates, no conflicts.
+- **Plans, sessions and logged sets get a UUID created on the device** ([6.2](06-data-model.md#62-rules-for-every-table)). A workout logged offline is sent later, and sending it twice changes nothing (the server recognises the UUID): no duplicates, no conflicts.
 - Plans and exercises already opened are kept on the device (TanStack Query's persisted cache in IndexedDB); the photos of the active plan's exercises are downloaded ahead by the service worker.
 - Changes made offline wait in a queue and are sent in order when the network comes back; `SyncIndicator` shows their state ([1.6](01-ui-design.md#16-states-and-edge-cases)).
-- For plans, the last change wins, with a warning when the plan was changed elsewhere in the meantime.
+- For plans, the last change wins, with a warning when the plan was changed elsewhere in the meantime ([6.5](06-data-model.md#65-plans)).
 
 ---
 

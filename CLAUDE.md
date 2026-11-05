@@ -10,6 +10,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 | Git, code style, comments, docs rules | [docs/03-conventions.md](docs/03-conventions.md) |
 | How the React app is built, recipes for pages, endpoints, translations | [docs/04-frontend.md](docs/04-frontend.md) |
 | How the Laravel app is built, recipes for tables, endpoints, jobs, admin screens | [docs/05-backend.md](docs/05-backend.md) |
+| Every table: columns, relations, ids, what happens on delete | [docs/06-data-model.md](docs/06-data-model.md) |
 | What to work on next | [docs/backlog.md](docs/backlog.md) |
 
 ## Running things
