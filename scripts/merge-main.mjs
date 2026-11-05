@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Merges the current branch into main, then cleans up. Ported from
- * Chronovault's script of the same name; runs with the Mac's Node (.nvmrc).
+ * Chronovault's script of the same name; runs with this computer's Node (.nvmrc).
  *
  *   make merge                      asks for confirmation before merging
  *   make merge yes=1                no confirmation

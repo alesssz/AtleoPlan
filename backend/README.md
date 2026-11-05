@@ -6,7 +6,7 @@ The Laravel application behind AtleoPlan. It serves:
 - the admin panel (Filament, `/admin`);
 - the background jobs (the `queue` container).
 
-It runs only in Docker: PHP and Composer are not installed on the Mac.
+It runs only in Docker: PHP and Composer on your computer are neither needed nor used.
 
 **The guide is [docs/05-backend.md](../docs/05-backend.md),** written for someone new to PHP and Laravel. It covers:
 - the pieces of the stack;

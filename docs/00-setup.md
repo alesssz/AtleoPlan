@@ -9,7 +9,7 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 **Done:**
 
 - **Design docs:** UI ([1](01-ui-design.md)), decisions ([2](02-decisions.md)), conventions ([3](03-conventions.md)), [backlog](backlog.md).
-- **Git:** local repository on `main` with the personal GitHub identity, and a hook that refuses any other email ([0.3](#03-git-identity)). Not on GitHub yet.
+- **Git:** repository on GitHub (`alesssz/AtleoPlan`) with the personal GitHub identity, and a hook that refuses any other email ([0.3](#03-git-identity)).
 - **Docker stack for development:** [`Dockerfile`](../Dockerfile), [`compose.yaml`](../compose.yaml), [`docker/php/dev.ini`](../docker/php/dev.ini). Four services:
 
 | Service | What it is |
@@ -33,9 +33,14 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 
 | Tool | Why | Check |
 |---|---|---|
-| **Docker Desktop** | Runs PHP, Composer, Postgres and Mailpit: **no PHP or Composer on the Mac** | `docker --version` |
-| **Node 24** with npm (the version in `.nvmrc`) | Runs the React app and Vite on the Mac | `node --version` |
+| **Docker Desktop** | Runs PHP, Composer, Postgres and Mailpit: **no PHP or Composer needed on your computer** | `docker --version` |
+| **Node 24** with npm (the version in `.nvmrc`) | Runs the React app and Vite on your computer | `node --version` |
 | **Git** | | `git --version` |
+| **Make** | Runs the shortcuts of [0.8](#08-everyday-commands). Already on a Mac; on Windows it is a separate install, for example `choco install make` | `make --version` |
+
+**On Windows, run every command from Git Bash** (it comes with Git; in VS Code, the arrow next to the terminal's **+**). The recipes of the `Makefile` need `bash`, `grep` and `cp`: from the Command Prompt or PowerShell, `make` stops with `"grep" is not recognized`, and `cp` may not exist either. A PHP or Composer already installed on the computer is simply not used: the project's PHP is the one in the container.
+
+Git for Windows may check files out with Windows line endings (CRLF, `core.autocrlf`). It is harmless: the repository keeps LF, and the hook and every check of `make check` pass.
 
 Docker Desktop needs free space on its virtual disk: when it is full, builds fail with misleading errors ([0.10](#010-troubleshooting)). `docker system df` shows the usage.
 
@@ -43,7 +48,7 @@ Docker Desktop needs free space on its virtual disk: when it is full, builds fai
 
 ## 0.3 Git identity
 
-This Mac's global Git identity is the work one. In this repository every commit uses the **personal GitHub identity** (the same as Chronovault) with GitHub's **noreply address**, so no real email ever enters the history and the repository can become public as it is ([3.1](03-conventions.md#31-git)).
+A computer's global Git identity may be another one (on the work Mac it is the work identity). In this repository every commit uses the **personal GitHub identity** (the same as Chronovault) with GitHub's **noreply address**, so no real email ever enters the history and the repository can become public as it is ([3.1](03-conventions.md#31-git)).
 
 On a **new clone**, before the first commit:
 
@@ -61,16 +66,16 @@ On GitHub, **Settings → Emails → "Block command line pushes that expose my e
 
 ## 0.4 Ports
 
-**Rule: on the Mac, each service uses its standard port + 500.** Standard ports are often taken by other projects (Chronovault adds 100); + 500 is kept for AtleoPlan. Inside the containers the standard ports stay.
+**Rule: on your computer, each service uses its standard port + 500.** Standard ports are often taken by other projects (Chronovault adds 100); + 500 is kept for AtleoPlan. Inside the containers the standard ports stay.
 
-| Service | Standard | On the Mac | Variable to change it |
+| Service | Standard | On your computer | Variable to change it |
 |---|---|---|---|
 | Laravel (API, Filament admin) | 8000 | **8500** | `APP_PORT` |
 | Postgres | 5432 | **5932** | `DB_FORWARD_PORT` |
 | Mailpit (web page) | 8025 | **8525** | `MAIL_UI_PORT` |
 | Vite (React dev server) | 5173 | **5673** | `server.port` in `frontend/vite.config.ts` |
 
-Mailpit's SMTP port (1025) is used by Laravel inside Docker only and is not opened on the Mac. Every port is bound to `127.0.0.1`: reachable from this Mac, not from the network.
+Mailpit's SMTP port (1025) is used by Laravel inside Docker only and is not opened on your computer. Every port is bound to `127.0.0.1`: reachable from your computer, not from the network.
 
 A new service follows the same rule. To use another port once: `APP_PORT=8600 docker compose up -d`.
 
@@ -78,7 +83,18 @@ A new service follows the same rule. To use another port once: `APP_PORT=8600 do
 
 ## 0.5 First start: the Docker stack
 
-From the project folder:
+**On a new clone of the project as it is now, one command does everything:** set the Git identity ([0.3](#03-git-identity)), then run `make setup` and `make doctor`. In order, `make setup`:
+
+1. turns on the Git hook;
+2. creates `backend/.env` from `backend/.env.example`, if missing: without it Laravel believes it is in production and `migrate` stops to ask for confirmation;
+3. builds the image;
+4. installs the Composer packages, before the stack starts: without `vendor/` the queue worker crashes and keeps restarting until they arrive;
+5. generates Laravel's key, only if it is empty: replacing it would invalidate existing sessions;
+6. starts the containers, installs the npm packages, creates the test database and runs the migrations.
+
+It can be run again safely: what is already in place stays as it is.
+
+The rest of this section and [0.6](#06-creating-the-laravel-backend) are how the project was created the first time, kept for reference. From the project folder:
 
 ```sh
 docker compose build            # builds the backend image (a few minutes the first time)
@@ -94,10 +110,10 @@ The `backend` and `queue` services start only once the Laravel app exists ([0.6]
 
 How the backend works once created, for a reader new to PHP and Laravel: [5. Backend](05-backend.md).
 
-**How it works.** There is no need to go inside the container: commands are typed in the Mac's terminal, from the project folder, and Docker runs them in the container. The container is a computer with PHP and Composer installed, working on the Mac's `backend/` folder:
+**How it works.** There is no need to go inside the container: commands are typed in your computer's terminal, from the project folder, and Docker runs them in the container. The container is a computer with PHP and Composer installed, working on your computer's `backend/` folder:
 
 1. `docker compose run --rm backend <command>` starts a container from the `backend` image and runs the command in it.
-2. Inside the container, `/app` **is** the Mac's `./backend` folder (a bind mount in `compose.yaml`): what the command writes there appears on the Mac at once, and what is edited in VS Code on the Mac is seen at once by the container.
+2. Inside the container, `/app` **is** your computer's `./backend` folder (a bind mount in `compose.yaml`): what the command writes there appears on your computer at once, and what is edited in VS Code is seen at once by the container.
 3. `--rm` deletes the container when the command ends; the files stay.
 
 `run --rm` is for when the stack is stopped (as now, before Laravel exists); once it runs, `docker compose exec backend <command>` uses the container already started, which is faster ([0.8](#08-everyday-commands)).
@@ -161,11 +177,11 @@ docker compose exec backend php artisan migrate
 
 ## 0.7 Creating the React frontend
 
-**No Docker here.** Unlike the backend, the frontend runs directly on the Mac with its own Node and npm ([0.2](#02-prerequisites)), so the usual npm commands are used, with no `docker compose` in front. Why ([2.2](02-decisions.md#22-stack)):
+**No Docker here.** Unlike the backend, the frontend runs directly on your computer with its own Node and npm ([0.2](#02-prerequisites)), so the usual npm commands are used, with no `docker compose` in front. Why ([2.2](02-decisions.md#22-stack)):
 
-- npm needs nothing that the Mac lacks, only Node, whose version is pinned in [`.nvmrc`](../.nvmrc) (`nvm use` picks it up).
-- VS Code's TypeScript and ESLint read the types from `frontend/node_modules`, which must therefore be on the Mac.
-- Vite reloads pages faster when it reads the files from the Mac's own disk.
+- npm needs only Node, whose version is pinned in [`.nvmrc`](../.nvmrc) (`nvm use` picks it up).
+- VS Code's TypeScript and ESLint read the types from `frontend/node_modules`, which must therefore be on your computer.
+- Vite reloads pages faster when it reads the files from your computer's own disk.
 
 Day to day this means two terminals: `docker compose up -d` for the backend, `npm run dev` in `frontend/` for React.
 
@@ -273,7 +289,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | What | Command |
 |---|---|
 | Is everything in order? Docker and its disk, Node, npm cache, Git identity and hook, packages, ports, test database; prints the fix for each problem | `make doctor` |
-| New clone: hook, image, packages, test database, migrations | `make setup` |
+| New clone: hook, `backend/.env` and its key, image, packages, test database, migrations ([0.5](#05-first-start-the-docker-stack)) | `make setup` |
 | Start everything (stack, then React) / only the stack / stop | `make start` / `make up` / `make down` |
 | The local addresses | `make urls` |
 | Any artisan or Composer command | `make artisan c="route:list"`, `make composer c="require vendor/package"` |
@@ -337,12 +353,14 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | Symptom | Cause and fix |
 |---|---|
 | A build fails in `apt-get update` with **"At least one invalid signature was encountered"** | Docker Desktop's disk is full, not a signature problem. `docker system df` shows it; `docker builder prune -af` (build cache) and `docker image prune -af` (unused images) free space without touching data. |
-| **"port is already allocated"** | Another project uses that port. Check with `lsof -nP -iTCP:8500 -sTCP:LISTEN`; change it once with the variable of [0.4](#04-ports). |
+| **"port is already allocated"** | Another project uses that port. Check with `lsof -nP -iTCP:8500 -sTCP:LISTEN` (on Windows, `netstat -ano \| grep :8500`); change it once with the variable of [0.4](#04-ports). |
+| `make` stops with **`"grep" is not recognized`**, or **`cp`** is not recognized | The terminal is the Command Prompt or PowerShell: on Windows, use Git Bash ([0.2](#02-prerequisites)). |
+| `migrate` says **"APPLICATION IN PRODUCTION"** on a new clone | `backend/.env` is missing, so Laravel assumes production. `make setup` creates it ([0.5](#05-first-start-the-docker-stack)). |
 | `backend` or `queue` stops at once: **"Could not open input file: artisan"** | The Laravel app does not exist yet: [0.6](#06-creating-the-laravel-backend). |
 | `create-project` says the **directory is not empty** | `./backend` must be empty: remove what is in it, hidden files included. |
 | `composer require` fails with **"… is locked to version … and an update of this package was not requested"** | The new package needs other versions of packages already in `composer.lock`. Add `-W` (`--with-all-dependencies`) so Composer may update them too; try first with `--dry-run` to see what would change. |
 | `queue` shows **unhealthy** | Fixed in `compose.yaml` (the image's healthcheck asks Caddy, which the worker does not run); recreate it with `docker compose up -d queue`. Whether the worker works is in `docker compose logs queue`. |
-| `npm install` fails with **EACCES** and "Your cache folder contains root-owned files" | An npm command once run with `sudo` left files in `~/.npm` owned by root. Give them back to the user: `sudo chown -R $(id -u):$(id -g) ~/.npm`. Never run npm with `sudo`. |
+| `npm install` fails with **EACCES** and "Your cache folder contains root-owned files" (macOS, Linux) | An npm command once run with `sudo` left files in `~/.npm` owned by root. Give them back to the user: `sudo chown -R $(id -u):$(id -g) ~/.npm`. Never run npm with `sudo`. |
 | Tests fail with **database "atleoplan_test" does not exist** | The Postgres volume predates the init script: `make test-db` creates it ([0.6](#06-creating-the-laravel-backend)). |
 | Something odd, cause unknown | `make doctor` checks the usual suspects above and prints the fix for each. |
 | A commit is **refused by pre-commit** | The identity is not the noreply one: [0.3](#03-git-identity). |

@@ -25,7 +25,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 /**
- * Laravel on the Mac: standard port 8000 + 500, or APP_PORT as in compose.yaml.
+ * Laravel on this computer: standard port 8000 + 500, or APP_PORT as in compose.yaml.
  * A template literal (backticks) inserts the value of ${…}; `a ?? b` is a,
  * or b when a is missing (null or undefined).
  */

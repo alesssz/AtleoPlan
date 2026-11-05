@@ -14,9 +14,10 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 
 ## Running things
 
-- **PHP and Composer exist only in Docker.** Never install PHP, Composer or Laravel Boost on the Mac (it is a work computer). Run backend commands from the repository root through the container:
+- **The project is developed on a Mac (a work computer) and on a Windows PC.** On Windows, run commands from Git Bash, not the Command Prompt or PowerShell: the `Makefile` needs `bash`, `grep` and `cp` (docs/00-setup.md 0.2).
+- **PHP and Composer are used only through Docker.** Never install PHP, Composer or Laravel Boost for this project, and do not use a copy already on the computer. Run backend commands from the repository root through the container:
   `docker compose exec backend php artisan …`, `docker compose exec backend composer …` (`run --rm` instead of `exec` when the stack is stopped).
-- **The frontend runs on the Mac**, Node 24 (`.nvmrc`): `npm …` inside `frontend/`, no Docker. Never `npm audit fix --force`, never `sudo npm`.
+- **The frontend runs directly on the computer**, Node 24 (`.nvmrc`): `npm …` inside `frontend/`, no Docker. Never `npm audit fix --force`, never `sudo npm`.
 - Host ports are standard + 500: Laravel 8500, Postgres 5932, Mailpit 8525, Vite 5673.
 - The `Makefile` wraps all of this (`make help`); `make check` runs every check (Pint, tests, lint, types) and must pass before a merge.
 - Tests: `make test` (`docker compose exec backend php artisan test`). They run on the `atleoplan_test` database; `tests/Feature/TestDatabaseTest.php` guards it. Never weaken the `<server>` / `<env force>` overrides in `backend/phpunit.xml`.
@@ -33,7 +34,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 
 ## Git identity
 
-Commits use the personal GitHub noreply address set in this repository's `.git/config`; the Mac's global identity is the work one and must never appear. The hook in `.githooks/` refuses any other email. Never add a `Co-Authored-By` trailer or any Claude attribution to commits or pull requests.
+Commits use the personal GitHub noreply address set in this repository's `.git/config`; a computer's global identity (on the Mac, the work one) must never appear. The hook in `.githooks/` refuses any other email. Never add a `Co-Authored-By` trailer or any Claude attribution to commits or pull requests.
 
 **At the end of every task, give a ready-to-paste commit message** for the work done, following [3.1](docs/03-conventions.md#31-git): English, imperative one-line subject, a body when the why is not obvious, backlog IDs or doc sections when relevant, no attribution line. **Never commit, push or merge yourself: the user does it by hand.** Leave the changes in the working tree and say which branch they are on.
 

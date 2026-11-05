@@ -7,12 +7,14 @@
  * of .nvmrc) and npm's cache, the Git identity and hook, the dependencies of
  * both apps, the backend's .env (only that it exists: it holds secrets), the
  * ports, and the test database. The problems met while setting the project
- * up are among them: docs/00-setup.md 0.10.
+ * up are among them: docs/00-setup.md 0.10. Works on macOS, Linux and Windows;
+ * the npm cache check does not apply to Windows and is skipped there.
  *
  * Exit code 1 when at least one check fails, 0 otherwise (warnings included).
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
+import { connect } from 'node:net'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,6 +39,49 @@ function run(command, args, options = {}) {
   catch {
     return null
   }
+}
+
+/**
+ * Tells whether a program accepts connections on a port of this computer.
+ * Connecting works the same on macOS, Linux and Windows, unlike `lsof`, which
+ * Windows lacks. Both local addresses are tried: Docker publishes the stack on
+ * 127.0.0.1, while Vite may listen on ::1 only.
+ */
+async function isListening(port) {
+  for (const host of ['127.0.0.1', '::1']) {
+    // Whether this address answered; a refused connection is an error, so a free port gives false
+    const answered = await new Promise((resolve) => {
+      // The connection attempt, given up after a second
+      const socket = connect({ port, host, timeout: 1000 })
+      /** Closes the socket and gives the attempt's result. */
+      const finish = (result) => {
+        socket.destroy()
+        resolve(result)
+      }
+      socket.once('connect', () => finish(true))
+      socket.once('timeout', () => finish(false))
+      socket.once('error', () => finish(false))
+    })
+    if (answered) return true
+  }
+  return false
+}
+
+/** Tells whether the program on a port is Vite: only Vite serves its own client script. */
+async function isVite(port) {
+  try {
+    return (await fetch(`http://localhost:${port}/@vite/client`, { signal: AbortSignal.timeout(2000) })).ok
+  }
+  catch {
+    return false
+  }
+}
+
+/** The command that shows which program holds a port: Windows has no lsof. */
+function portOwnerCommand(port) {
+  return process.platform === 'win32'
+    ? `netstat -ano | grep :${port}`
+    : `lsof -nP -iTCP:${port} -sTCP:LISTEN`
 }
 
 /** Prints a passed check. */
@@ -97,14 +142,18 @@ if (actualNode === wantedNode) {
 else {
   fail(`Node ${process.versions.node}, the project wants ${wantedNode} (.nvmrc)`, 'nvm use (or install Node ' + wantedNode + ')')
 }
-// A file in npm's cache owned by another user (root, after a `sudo npm`) breaks every install
-const npmCache = join(homedir(), '.npm')
-const foreignFile = existsSync(npmCache) ? run('find', [npmCache, '!', '-user', String(process.getuid()), '-print', '-quit']) : ''
-if (foreignFile) {
-  fail('npm\'s cache has files owned by another user (EACCES on install)', 'sudo chown -R $(id -u):$(id -g) ~/.npm')
-}
-else {
-  ok('npm cache owned by you')
+// A file in npm's cache owned by another user (root, after a `sudo npm`) breaks every install.
+// macOS and Linux only: Windows has no sudo and no process.getuid().
+if (process.platform !== 'win32') {
+  // npm's cache folder, and the first file in it that belongs to someone else, if any
+  const npmCache = join(homedir(), '.npm')
+  const foreignFile = existsSync(npmCache) ? run('find', [npmCache, '!', '-user', String(process.getuid()), '-print', '-quit']) : ''
+  if (foreignFile) {
+    fail('npm\'s cache has files owned by another user (EACCES on install)', 'sudo chown -R $(id -u):$(id -g) ~/.npm')
+  }
+  else {
+    ok('npm cache owned by you')
+  }
 }
 
 // --- Git ---------------------------------------------------------------------------
@@ -146,12 +195,10 @@ console.log('Ports')
 const ownPorts = new Set((run('docker', ['compose', 'ps', '--format', '{{.Ports}}']) ?? '')
   .match(/:(\d+)->/g)?.map(match => match.slice(1, -2)) ?? [])
 for (const [port, service] of Object.entries(PORTS)) {
-  // The program listening on the port, if any
-  const listener = run('lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-Fc'])
-  if (!listener) ok(`${port} (${service}) free`)
+  if (!await isListening(Number(port))) ok(`${port} (${service}) free`)
   else if (ownPorts.has(port)) ok(`${port} (${service}) in use by AtleoPlan`)
-  else if (port === '5673' && listener.includes('node')) ok(`${port} (${service}) in use by Node, probably make dev`)
-  else warn(`${port} (${service}) taken by another program`, `lsof -nP -iTCP:${port} -sTCP:LISTEN; or change the port (docs/00-setup.md 0.4)`)
+  else if (port === '5673' && await isVite(port)) ok(`${port} (${service}) in use by Vite, probably make dev`)
+  else warn(`${port} (${service}) taken by another program`, `${portOwnerCommand(port)}; or change the port (docs/00-setup.md 0.4)`)
 }
 
 // The test database, when Postgres runs (docs/00-setup.md 0.6)
