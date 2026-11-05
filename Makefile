@@ -2,7 +2,8 @@
 # AtleoPlan — project commands
 # Usage: make <command>     (make help for the full list)
 # Backend commands run in the Docker containers (compose.yaml); frontend
-# commands run with the Mac's Node in frontend/. Ports: docs/00-setup.md 0.4.
+# commands run with this computer's Node in frontend/. Ports: docs/00-setup.md 0.4.
+# On Windows, run make from Git Bash: the recipes need bash, grep and cp (0.2).
 # Commands that take a value get it as a variable, because Make reads anything
 # after the target as more targets: make artisan c="route:list".
 # =============================================================================
@@ -33,11 +34,20 @@ help: ## Show this list
 doctor: ## Check this computer and clone (Docker, disk, Node, npm cache, Git identity, ports…) and print the fixes
 	node scripts/doctor.mjs
 
-setup: ## New clone: Git hook, image, containers, Composer and npm packages, test database, migrations
+# The order matters on a new clone (docs/00-setup.md 0.5):
+# - backend/.env comes first: without it Laravel believes it is in production
+#   and `migrate` stops to ask for confirmation.
+# - Composer runs before the stack starts: without vendor/ the queue worker
+#   crashes and keeps restarting until the packages arrive.
+# - The key is generated only when empty, because replacing it would invalidate
+#   existing sessions. grep -q tests the file and prints nothing: it holds secrets.
+setup: ## New clone: Git hook, backend/.env and its key, image, Composer and npm packages, containers, test database, migrations
 	git config core.hooksPath .githooks
+	test -f backend/.env || cp backend/.env.example backend/.env
 	$(DC) build
+	$(DC) run --rm backend composer install
+	grep -q '^APP_KEY=.' backend/.env || $(DC) run --rm backend php artisan key:generate
 	$(DC) up -d --wait
-	$(DC) exec backend composer install
 	$(NPM) install
 	$(MAKE) --no-print-directory test-db
 	$(ARTISAN) migrate

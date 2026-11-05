@@ -14,7 +14,7 @@ It works on phones and desktop as a PWA, offline during workouts, in Italian, En
 
 Needs Docker and Node only: PHP and Composer run inside the backend container (`Dockerfile`, `compose.yaml`).
 
-Ports on the Mac are each service's standard port + 500, so they never clash with other projects:
+Ports on your computer are each service's standard port + 500, so they never clash with other projects. On Windows, run the commands from Git Bash ([0.2](docs/00-setup.md#02-prerequisites)).
 
 | Service | Address |
 |---|---|

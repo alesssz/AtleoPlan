@@ -1,6 +1,6 @@
 # AtleoPlan — frontend
 
-The React app: React 19, TypeScript, Vite, React Router, TanStack Query, i18next (it, en, es, de), Tailwind CSS and shadcn/ui. It runs on the Mac with Node 24 (`.nvmrc`), not in Docker, and talks to the Laravel backend through Vite's proxy.
+The React app: React 19, TypeScript, Vite, React Router, TanStack Query, i18next (it, en, es, de), Tailwind CSS and shadcn/ui. It runs directly on your computer with Node 24 (`.nvmrc`), not in Docker, and talks to the Laravel backend through Vite's proxy.
 
 **The guide is [docs/04-frontend.md](../docs/04-frontend.md):** how the pieces fit, the folder structure, what happens when the app opens, React for a Vue developer, routing, server data, translations, styles and theme, recipes, tests. Every source file starts with a comment saying what it does.
 

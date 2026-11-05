@@ -1,14 +1,14 @@
 # AtleoPlan — local development stack.
 #
 # Runs here: the Laravel backend (FrankenPHP, see the Dockerfile), its queue
-# worker, Postgres and Mailpit. The React frontend runs on the Mac with
+# worker, Postgres and Mailpit. The React frontend runs on the computer with
 # `npm run dev` (Vite), which forwards /api and /sanctum to the backend, so the
 # browser sees a single address, as it will in production (docs/02-decisions.md 2.6).
 #
-# Ports on the Mac are each service's standard port + 500, so they never clash
+# Ports on the computer are each service's standard port + 500, so they never clash
 # with other projects that use the standard ones (Chronovault uses + 100):
 #   Laravel 8000 → 8500 · Postgres 5432 → 5932 · Mailpit 8025 → 8525
-#   (Vite, on the Mac: 5173 → 5673)
+#   (Vite, on the computer: 5173 → 5673)
 # Inside the containers the standard ports stay. Each can still be changed
 # with a variable, e.g. `APP_PORT=8600 docker compose up -d`.
 #
@@ -26,7 +26,7 @@ x-backend: &backend
     target: dev
   image: atleoplan-backend:dev
   volumes:
-    # The Laravel code, live: edits on the Mac are seen at once in the container.
+    # The Laravel code, live: edits on the computer are seen at once in the container.
     - ./backend:/app
     # Composer's download cache, kept between containers (COMPOSER_CACHE_DIR).
     - composer-cache:/composer-cache
@@ -78,7 +78,7 @@ services:
       disable: true
     restart: unless-stopped
 
-  # The database. Reachable from the Mac (TablePlus, DBeaver…) at
+  # The database. Reachable from the computer (TablePlus, DBeaver…) at
   # localhost:5932, user, password and database all `atleoplan`.
   postgres:
     image: postgres:18-alpine
@@ -87,7 +87,7 @@ services:
       POSTGRES_USER: atleoplan
       POSTGRES_PASSWORD: atleoplan
     ports:
-      # Bound to 127.0.0.1: reachable from this Mac only, not from the network.
+      # Bound to 127.0.0.1: reachable from this computer only, not from the network.
       - "127.0.0.1:${DB_FORWARD_PORT:-5932}:5432"
     volumes:
       # The data survives `docker compose down`; `down -v` deletes it.
@@ -104,8 +104,8 @@ services:
     restart: unless-stopped
 
   # Catches every email the app sends and shows it at http://localhost:8525.
-  # Nothing ever leaves the Mac. Its SMTP port (1025) is used by Laravel inside
-  # Docker only, so it is not opened on the Mac.
+  # Nothing ever leaves the computer. Its SMTP port (1025) is used by Laravel inside
+  # Docker only, so it is not opened on the computer.
   mailpit:
     image: axllent/mailpit:latest
     ports:
