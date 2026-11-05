@@ -1,75 +1,16 @@
-# React + TypeScript + Vite
+# AtleoPlan — frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The React app: React 19, TypeScript, Vite, React Router, TanStack Query, i18next (it, en, es, de), Tailwind CSS and shadcn/ui. It runs on the Mac with Node 24 (`.nvmrc`), not in Docker, and talks to the Laravel backend through Vite's proxy.
 
-Currently, two official plugins are available:
+**The guide is [docs/04-frontend.md](../docs/04-frontend.md):** how the pieces fit, the folder structure, what happens when the app opens, React for a Vue developer, routing, server data, translations, styles and theme, recipes, tests. Every source file starts with a comment saying what it does.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```sh
+npm install          # once, and after package.json changes (make fe-install)
+npm run dev          # http://localhost:5673 (make dev); the backend must be up (make up)
+npm test             # tests once (make fe-test); npm run test:watch reruns on save
+npm run lint         # ESLint; add -- --fix to fix the style (make fix)
+npm run typecheck    # TypeScript (make typecheck)
+npm run build        # production build in dist/ (make fe-build)
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+From the repository root, `make check` runs everything, backend included.

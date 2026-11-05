@@ -1,13 +1,49 @@
 <!doctype html>
-<html lang="en">
+<!--
+  The only HTML page of the app (a Single Page Application): the browser
+  loads it once, then React draws every screen inside <div id="root">, and
+  React Router changes the screen without asking the server for new pages.
+  Vite serves this file in development and copies it, with the final script
+  and style paths, into dist/ for production. docs/04-frontend.md 4.3.
+-->
+<!-- class="dark": the dark theme from the very first paint, the default
+     (docs/01-ui-design.md 1.1); the script below corrects it at once -->
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <!-- viewport-fit=cover: the app may draw under the iPhone's notch and
+         home bar, and keeps its controls clear of them with
+         env(safe-area-inset-*) (docs/01-ui-design.md 1.7) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="AtleoPlan: workout plans, sets and progress." />
+    <!-- Colour of the phone's status bar: the dark theme's background
+         (changed with the theme by src/theme/theme.ts) -->
+    <meta name="theme-color" content="#0B0B0F" />
+    <title>AtleoPlan</title>
+    <!--
+      Applies the saved theme before anything is drawn. React loads a moment
+      later; without this, a light-theme user would see a dark flash on every
+      start. Must match src/theme/theme.ts (same storage key and values).
+      Plain, old-style JavaScript (var, no types), run as is by the browser:
+      read the saved choice ('dark' when none), work out whether that means
+      dark, and put or remove the `dark` class on <html>. try/catch: if
+      localStorage is blocked, nothing happens and the default stays.
+    -->
+    <script>
+      try {
+        var theme = localStorage.getItem('atleoplan.theme') || 'dark'
+        var dark = theme === 'dark' || (theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.toggle('dark', dark)
+      }
+      catch (e) {}
+    </script>
   </head>
   <body>
+    <!-- React draws the whole app in here (src/main.tsx) -->
     <div id="root"></div>
+    <!-- The app's entry point. type="module" lets it use `import`; Vite
+         turns the .tsx into JavaScript before the browser gets it -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

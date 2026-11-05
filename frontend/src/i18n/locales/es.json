@@ -1,0 +1,67 @@
+{
+  "app": {
+    "name": "AtleoPlan",
+    "tagline": "Tus rutinas, tu progreso"
+  },
+  "nav": {
+    "label": "Navegación principal",
+    "home": "Inicio",
+    "plans": "Rutinas",
+    "exercises": "Ejercicios",
+    "progress": "Progreso",
+    "profile": "Perfil",
+    "skipToContent": "Saltar al contenido"
+  },
+  "pages": {
+    "home": {
+      "title": "Inicio",
+      "description": "Tu rutina activa, el día sugerido y los entrenamientos de esta semana."
+    },
+    "plans": {
+      "title": "Rutinas",
+      "description": "Tus rutinas de entrenamiento, con sus días y ejercicios."
+    },
+    "exercises": {
+      "title": "Ejercicios",
+      "description": "La biblioteca de ejercicios: los públicos y los tuyos."
+    },
+    "progress": {
+      "title": "Progreso",
+      "description": "Gráficos, récords personales y tu historial de entrenamientos."
+    },
+    "profile": {
+      "title": "Perfil",
+      "description": "Tu cuenta y cómo se ve y funciona la aplicación."
+    }
+  },
+  "placeholder": {
+    "title": "Todavía no está lista",
+    "text": "Esta pantalla está descrita en los documentos de diseño (sección {{section}}) y aún no se ha construido."
+  },
+  "preferences": {
+    "title": "Preferencias",
+    "language": "Idioma",
+    "theme": "Tema",
+    "numberExample": "Los números en este idioma: {{weight}}"
+  },
+  "theme": {
+    "dark": "Oscuro",
+    "light": "Claro",
+    "system": "Como el dispositivo"
+  },
+  "server": {
+    "title": "Servidor",
+    "checking": "Comprobando la conexión…",
+    "online": "Conectado",
+    "offline": "No disponible: ¿está en marcha Docker?",
+    "retry": "Reintentar"
+  },
+  "errors": {
+    "notFoundTitle": "Página no encontrada",
+    "notFoundText": "No hay nada en esta dirección.",
+    "backHome": "Volver al inicio",
+    "unexpectedTitle": "Algo ha salido mal",
+    "unexpectedText": "Un error inesperado ha detenido esta pantalla. Normalmente se soluciona recargando la página.",
+    "reload": "Recargar"
+  }
+}

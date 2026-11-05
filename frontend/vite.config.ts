@@ -1,22 +1,60 @@
 /*
- * Vite configuration of the React app: the plugins, and the development
- * server that puts the React app and the Laravel backend behind one address.
+ * Vite configuration of the React app: the plugins, the `@/` import alias,
+ * the development server that puts the React app and the Laravel backend
+ * behind one address, and the test runner (Vitest).
+ *
+ * Vite is the build tool: `npm run dev` starts its development server,
+ * which turns our TypeScript and JSX into JavaScript the browser can run,
+ * on the fly; `npm run build` makes the optimised files of production in
+ * dist/ (docs/04-frontend.md 4.1).
  *
  * In development the browser only ever talks to Vite (http://localhost:5673);
  * Vite answers with the React app and forwards Laravel's paths to the backend
  * container. One address means Sanctum's login cookies work without CORS, as
  * they will in production behind Caddy (docs/02-decisions.md 2.6).
- * Setup and ports: docs/00-setup.md 0.4 and 0.7.
+ * Setup and ports: docs/00-setup.md 0.4 and 0.7. How the app is built:
+ * docs/04-frontend.md.
  */
+// Named imports (in braces) take one export by name; default imports (no
+// braces, e.g. `react`) take the package's main export under a name we pick.
+// 'node:url' is one of Node's built-in modules: this file runs in Node,
+// not in the browser
+import { fileURLToPath } from 'node:url'
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
-/** Laravel on the Mac: standard port 8000 + 500, or APP_PORT as in compose.yaml. */
+/**
+ * Laravel on the Mac: standard port 8000 + 500, or APP_PORT as in compose.yaml.
+ * A template literal (backticks) inserts the value of ${…}; `a ?? b` is a,
+ * or b when a is missing (null or undefined).
+ */
 const backendUrl = `http://localhost:${process.env.APP_PORT ?? '8500'}`
 
 // https://vite.dev/config/
+// `export default`: the file's main export, which Vite reads. defineConfig()
+// only returns its argument, but gives it types, so the editor can check and
+// autocomplete the options (imported from vitest/config so that `test` is
+// known too).
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    // JSX, and Fast Refresh: an edited component updates in the page
+    // without losing its state
+    react(),
+    // Tailwind CSS v4: scans the code for class names and generates only
+    // the CSS actually used (configured in src/index.css, no config file)
+    tailwindcss(),
+  ],
+
+  resolve: {
+    // `import { Button } from '@/components/ui/button'` instead of long
+    // relative paths ('../../../components/…'); same alias in tsconfig.app.json.
+    // import.meta.url is this file's own address, so './src' is resolved
+    // next to it, whatever folder the command runs from
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
 
   server: {
     // Standard port 5173 + 500 (docs/00-setup.md 0.4); strictPort makes Vite
@@ -36,5 +74,16 @@ export default defineConfig({
       // Uploaded photos and videos served by Laravel
       '/storage': backendUrl,
     },
+  },
+
+  // Vitest, the test runner (`npm test`): reuses this file's plugins and
+  // alias. docs/04-frontend.md 4.10
+  test: {
+    // A simulated browser (jsdom), so components can be rendered in tests
+    environment: 'jsdom',
+    // Runs before every test file: adds matchers such as toBeInTheDocument()
+    setupFiles: ['./src/test/setup.ts'],
+    // Tests live next to the code they test: Thing.tsx → Thing.test.tsx
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })

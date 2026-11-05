@@ -1,0 +1,67 @@
+{
+  "app": {
+    "name": "AtleoPlan",
+    "tagline": "Le tue schede, i tuoi progressi"
+  },
+  "nav": {
+    "label": "Navigazione principale",
+    "home": "Home",
+    "plans": "Schede",
+    "exercises": "Esercizi",
+    "progress": "Progressi",
+    "profile": "Profilo",
+    "skipToContent": "Vai al contenuto"
+  },
+  "pages": {
+    "home": {
+      "title": "Home",
+      "description": "La tua scheda attiva, il giorno consigliato e gli allenamenti della settimana."
+    },
+    "plans": {
+      "title": "Schede",
+      "description": "Le tue schede di allenamento, con i loro giorni ed esercizi."
+    },
+    "exercises": {
+      "title": "Esercizi",
+      "description": "La libreria degli esercizi: quelli pubblici e i tuoi."
+    },
+    "progress": {
+      "title": "Progressi",
+      "description": "Grafici, record personali e lo storico dei tuoi allenamenti."
+    },
+    "profile": {
+      "title": "Profilo",
+      "description": "Il tuo account e come l'app appare e funziona."
+    }
+  },
+  "placeholder": {
+    "title": "Non ancora pronta",
+    "text": "Questa schermata è descritta nei documenti di design (sezione {{section}}) e deve ancora essere costruita."
+  },
+  "preferences": {
+    "title": "Preferenze",
+    "language": "Lingua",
+    "theme": "Tema",
+    "numberExample": "I numeri in questa lingua: {{weight}}"
+  },
+  "theme": {
+    "dark": "Scuro",
+    "light": "Chiaro",
+    "system": "Come il dispositivo"
+  },
+  "server": {
+    "title": "Server",
+    "checking": "Verifica della connessione…",
+    "online": "Connesso",
+    "offline": "Non raggiungibile: lo stack Docker è avviato?",
+    "retry": "Riprova"
+  },
+  "errors": {
+    "notFoundTitle": "Pagina non trovata",
+    "notFoundText": "A questo indirizzo non c'è niente.",
+    "backHome": "Torna alla Home",
+    "unexpectedTitle": "Qualcosa è andato storto",
+    "unexpectedText": "Un errore imprevisto ha bloccato questa schermata. Di solito ricaricare la pagina risolve.",
+    "reload": "Ricarica"
+  }
+}

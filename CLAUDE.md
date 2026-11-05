@@ -8,6 +8,8 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 | How screens look and behave | [docs/01-ui-design.md](docs/01-ui-design.md) |
 | Why the stack, storage, hosting, offline rules are what they are | [docs/02-decisions.md](docs/02-decisions.md) |
 | Git, code style, comments, docs rules | [docs/03-conventions.md](docs/03-conventions.md) |
+| How the React app is built, recipes for pages, endpoints, translations | [docs/04-frontend.md](docs/04-frontend.md) |
+| How the Laravel app is built, recipes for tables, endpoints, jobs, admin screens | [docs/05-backend.md](docs/05-backend.md) |
 | What to work on next | [docs/backlog.md](docs/backlog.md) |
 
 ## Running things
@@ -24,7 +26,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 ## Working rules (summary of docs/03-conventions.md)
 
 - Everything in the repository is in English: code, comments, docs, commit messages. The user talks to you in Italian; answer in Italian.
-- **Comments in depth**: a header on every file, PHPDoc / TSDoc on every class, function, component, prop and field, a line on each local variable, labelled JSX blocks, commented migrations.
+- **Comments in depth, for a reader new to Laravel, PHP and React**: the user reads the code to learn the stack. A header on every file, PHPDoc / TSDoc on every class, function, component, prop and field, a line on each local variable, labelled JSX blocks, commented migrations; and the framework concept behind a line explained the first time it appears in a file, with a pointer to docs/04-frontend.md or docs/05-backend.md. The guides are equally in-depth and updated in the same change.
 - **A change updates the docs section it touches in the same commit.** Sections are numbered and cited as "see 2.5", also in code comments.
 - Backlog: one entry per point, IDs never reused, the entry is deleted by the commit that finishes it.
 - One branch per task from `main` (`feat/…`, `fix/…`, `docs/…`, `chore/…`), pushed with `make push` and merged with `make merge` (checks, `--no-ff`, push, branch deleted).

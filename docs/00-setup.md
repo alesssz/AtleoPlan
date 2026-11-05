@@ -20,17 +20,12 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 | `mailpit` | Catches every email the app sends and shows it in a web page |
 
 - **Laravel app** in `backend/` ([0.6](#06-creating-the-laravel-backend)): Laravel 13 on Postgres, Sanctum (`install:api`), Filament 5 with its admin panel at `/admin`, spatie/laravel-medialibrary, laravel-query-builder and laravel-translatable, Pest 4. The default migrations have run and the two example tests pass.
-- **React app** in `frontend/` ([0.7](#07-creating-the-react-frontend)): React 19, TypeScript 6, Vite 8 on port 5673 with the proxy to Laravel, ESLint 10. Node 24 pinned in `.nvmrc`.
+- **React app** in `frontend/` ([0.7](#07-creating-the-react-frontend), guide in [4](04-frontend.md)): React 19, TypeScript 6, Vite 8 on port 5673 with the proxy to Laravel; React Router, TanStack Query, i18next in four languages, Tailwind and shadcn/ui with the design system's colours, a dark / light theme; the app's frame (tab bar on phones, sidebar wider), placeholder pages, a working Profile page; Vitest and ESLint with the code style. Node 24 pinned in `.nvmrc`.
 
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([0.6](#06-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
 
-**Not yet** (the rest of [OPS-1](backlog.md#ops-1-finish-the-project-skeleton)):
-
-- The frontend libraries of [2.2](02-decisions.md#22-stack): TanStack Query, React Router, Tailwind and shadcn/ui, react-i18next, forms, dnd-kit, Recharts, PWA, Vitest ([0.7](#07-creating-the-react-frontend)).
-- Pushing the repository to GitHub.
-
-Deployment is postponed: everything runs locally for now ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)).
+**Not yet:** the app's features, in the order of the [backlog](backlog.md) (data model, sign-in, exercise library, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([4.11](04-frontend.md#411-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 
@@ -96,6 +91,8 @@ The `backend` and `queue` services start only once the Laravel app exists ([0.6]
 ---
 
 ## 0.6 Creating the Laravel backend
+
+How the backend works once created, for a reader new to PHP and Laravel: [5. Backend](05-backend.md).
 
 **How it works.** There is no need to go inside the container: commands are typed in the Mac's terminal, from the project folder, and Docker runs them in the container. The container is a computer with PHP and Composer installed, working on the Mac's `backend/` folder:
 
@@ -205,15 +202,24 @@ export default defineConfig({
 
 The Filament admin is opened directly at http://localhost:8500/admin.
 
-**The libraries of [2.2](02-decisions.md#22-stack):**
+**The base libraries,** as they were installed. `npm install` in `frontend/` restores them all on a new clone; this list is for reference only.
 
 ```sh
-npm install @tanstack/react-query react-router react-i18next i18next \
-  react-hook-form zod @dnd-kit/core @dnd-kit/sortable recharts
-npm install -D tailwindcss @tailwindcss/vite vite-plugin-pwa \
-  vitest @testing-library/react @testing-library/jest-dom
-npx shadcn@latest init        # after Tailwind; see the shadcn/ui Vite guide
+npm install tailwindcss @tailwindcss/vite @fontsource-variable/inter
+npx shadcn@latest init -t vite -b radix -p nova   # Radix base, Nova preset; needs the @/ alias first
+npx shadcn@latest add card select skeleton separator
+npm install react-router @tanstack/react-query i18next react-i18next i18next-browser-languagedetector
+npm install -D @tanstack/react-query-devtools vitest jsdom @testing-library/react \
+  @testing-library/jest-dom @testing-library/user-event @stylistic/eslint-plugin
 ```
+
+The others of [2.2](02-decisions.md#22-stack) come with the feature that needs them:
+- react-hook-form and zod with sign-in (FEAT-1);
+- dnd-kit with the plan editor (FEAT-2);
+- vite-plugin-pwa with workout mode (FEAT-3);
+- Recharts with the progress charts (phase 2).
+
+How the frontend is built and how to work on it: [4. Frontend](04-frontend.md).
 
 ---
 

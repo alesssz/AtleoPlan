@@ -23,7 +23,7 @@ Before buying a domain or opening store accounts, the name is checked against do
 | Frontend | **React + TypeScript**, Vite, as a PWA | New to learn after Vue; the most used; React Native (Expo) reuses the same knowledge for a store app | Svelte (no mobile path), Angular (heavy), Flutter (another language, weak on the web) |
 | Server data | **TanStack Query** | Cache, retries, offline mutations | Redux (more code for the same result) |
 | Routing | **React Router** | The most documented | TanStack Router (good, smaller community) |
-| UI | **Tailwind + shadcn/ui** | Components copied into the project, fully editable | Component libraries that can't be changed from inside |
+| UI | **Tailwind + shadcn/ui** (Radix base, Nova preset), **Lucide** icons, **Inter** served by the app | Components copied into the project, fully editable; the font bundled rather than from Google Fonts, so it works offline | Component libraries that can't be changed from inside |
 | Forms | **react-hook-form + zod** | Validation shared between forms and API types | — |
 | Drag and drop | **dnd-kit** | Touch and keyboard support | — |
 | Charts | **Recharts** | Simple line and bar charts | — |

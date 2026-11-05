@@ -30,21 +30,19 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 ---
 
+## Road to the MVP
+
+The order of work for phase 1 ([1.8](01-ui-design.md#18-release-phases-and-open-questions)); each step needs the ones before it.
+
+1. [DATA-2](#data-2-design-the-data-model) data model
+2. [FEAT-1](#feat-1-sign-in-and-accounts) sign-in
+3. [BE-1](#be-1-exercise-library-api-and-admin) exercise library API, then [DATA-1](#data-1-import-and-translate-free-exercise-db) its import
+4. [UI-1](#ui-1-exercise-library-screens) exercise library screens
+5. [FEAT-2](#feat-2-plans) plans
+6. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
+7. [FEAT-4](#feat-4-summary-and-history) summary and history
+
 ## OPS
-
-### OPS-1 Finish the project skeleton
-
-**Priority:** high · **Kind:** setup · **Found:** 2026-11-05
-
-The repository holds `backend/` (Laravel) and `frontend/` (React + Vite) with a Docker Compose for the local services; both apps are created ([0.1](00-setup.md#01-where-the-project-stands)).
-
-**What is missing.** The frontend libraries of [2.2](02-decisions.md#22-stack): TanStack Query, React Router, Tailwind and shadcn/ui, react-i18next, react-hook-form and zod, dnd-kit, Recharts, vite-plugin-pwa, Vitest and Testing Library ([0.7](00-setup.md#07-creating-the-react-frontend)).
-
-**Options.**
-- A) Install them all now.
-- B) Install each one with the first feature that needs it.
-
-**Recommended.** B for most, but Tailwind, shadcn/ui, React Router, TanStack Query and react-i18next together first: every screen uses them, and adding i18n after texts are written means rewriting them.
 
 ### OPS-2 Check that the AtleoPlan name is free
 
@@ -72,6 +70,18 @@ The repository holds `backend/` (Laravel) and `frontend/` (React + Vite) with a 
 
 ## DATA
 
+### DATA-2 Design the data model
+
+**Priority:** high · **Kind:** design · **Found:** 2026-11-05
+
+**What is missing.** The tables of the MVP are described nowhere as a whole; [2.3](02-decisions.md#23-exercise-library), [2.7](02-decisions.md#27-offline-and-sync) and [2.8](02-decisions.md#28-workout-rules) hold pieces. Needed: exercises (public and personal, translatable fields), muscles, equipment, plans, days, plan items (sets, reps, rest, set types, supersets), sessions and logged sets (UUIDs from the device), the active plan, user preferences.
+
+**Options.**
+- A) A new docs section, "5. Data model", with every MVP table, column and relation, reviewed before any migration.
+- B) Design each table with the feature that needs it.
+
+**Recommended.** A: migrations are expensive to change once data exists ([3.2](03-conventions.md#32-code)), and the tables lean on each other (a logged set points to an exercise and to a plan item).
+
 ### DATA-1 Import and translate free-exercise-db
 
 **Priority:** high · **Kind:** seed data · **Found:** 2026-11-05
@@ -83,3 +93,51 @@ The repository holds `backend/` (Laravel) and `frontend/` (React + Vite) with a 
 - B) A one-off SQL dump.
 
 **Recommended.** A: the command can run again on a fresh database, and translations get their **Machine translated** flag as they are written.
+
+## FEAT
+
+### FEAT-1 Sign-in and accounts
+
+**Priority:** high · **Kind:** feature · **Found:** 2026-11-05
+
+**What is missing.** Sign up, sign in, sign out, forgot and reset password (emails in Mailpit), the guard that sends visitors to `/login`, and language and theme saved on the account ([1.4.1](01-ui-design.md#141-sign-in-and-onboarding), [1.4.14](01-ui-design.md#1414-profile-and-settings)). Brings react-hook-form and zod for the forms, and the admin flag that opens Filament.
+
+**Options.**
+- A) Laravel Fortify: Laravel's headless authentication backend (routes, rate limiting, reset tokens), with the React screens written by us.
+- B) Hand-written controllers for each step.
+
+**Recommended.** A: the security-sensitive parts are Laravel's own and maintained; Sanctum's SPA mode is already set ([0.6](00-setup.md#06-creating-the-laravel-backend)).
+
+### FEAT-2 Plans
+
+**Priority:** high · **Kind:** feature · **Found:** 2026-11-05
+
+**What is missing.** Plan list, details and editor: days, exercises with sets, reps, rest, set types (W, D, F) and supersets, reordering by drag and drop (dnd-kit), the one active plan ([1.4.6](01-ui-design.md#146-plan-list)–[1.4.8](01-ui-design.md#148-plan-editor), [2.8](02-decisions.md#28-workout-rules)). Needs DATA-2, FEAT-1, BE-1.
+
+### FEAT-3 Workout mode and Home
+
+**Priority:** high · **Kind:** feature · **Found:** 2026-11-05
+
+**What is missing.** Home with the suggested day ([1.4.2](01-ui-design.md#142-home)); workout mode with the rest timer, last time's values and one-tap sets ([1.4.9](01-ui-design.md#149-workout-mode)); working offline: the PWA (vite-plugin-pwa), the persisted query cache, sessions and sets with UUIDs synced later ([2.7](02-decisions.md#27-offline-and-sync)). Needs FEAT-2.
+
+### FEAT-4 Summary and history
+
+**Priority:** medium · **Kind:** feature · **Found:** 2026-11-05
+
+**What is missing.** The summary at the end of a workout and the history of past sessions ([1.4.10](01-ui-design.md#1410-workout-summary), [1.4.11](01-ui-design.md#1411-history)). Needs FEAT-3. Charts and records are phase 2.
+
+## BE
+
+### BE-1 Exercise library: API and admin
+
+**Priority:** high · **Kind:** backend · **Found:** 2026-11-05
+
+**What is missing.** Migrations, models and policies for exercises (public, managed by admins; personal, owned by a user), with translatable fields and photos (medialibrary); the API to list with search and filters (laravel-query-builder), show, and create, edit and delete personal ones; the Filament resource for the public library ([1.4.15](01-ui-design.md#1415-admin-panel-filament)). Needs DATA-2 and FEAT-1; DATA-1 then fills it.
+
+## UI
+
+### UI-1 Exercise library screens
+
+**Priority:** high · **Kind:** missing screens · **Found:** 2026-11-05
+
+**What is missing.** The library with search and filters, the exercise details and the editor of personal exercises with photos ([1.4.3](01-ui-design.md#143-exercise-library)–[1.4.5](01-ui-design.md#145-exercise-editor)), replacing the placeholder at `/exercises`. Needs BE-1.

@@ -6,7 +6,7 @@ A workout app for building training plans out of a library of exercises, followi
 
 It works on phones and desktop as a PWA, offline during workouts, in Italian, English, Spanish and German. Backend in Laravel (API), frontend in React + TypeScript, hosted for free on a single server ([2.6](docs/02-decisions.md#26-hosting)).
 
-**Status:** skeleton. The Laravel and React apps are created and run locally; the next step is finishing the setup ([OPS-1](docs/backlog.md#ops-1-finish-the-project-skeleton)). Deploying comes later ([OPS-3](docs/backlog.md#ops-3-deploy-to-the-free-server)).
+**Status:** skeleton. The Laravel and React apps run locally, with the app's frame, four languages and the two themes; the features come next, in the order of the [road to the MVP](docs/backlog.md#road-to-the-mvp). Deploying comes later ([OPS-3](docs/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 
@@ -44,5 +44,7 @@ Everything lives in [`docs/`](docs/), one file per section. Sections keep their 
 | [1. UI design](docs/01-ui-design.md) | Users, design principles, user journeys, navigation and routes, every screen, design system, states (empty, loading, error, offline), responsive layout and accessibility, release phases |
 | [2. Decisions](docs/02-decisions.md) | Name, stack, exercise library and its import, languages, photo and video limits and storage, hosting, offline sync, workout rules |
 | [3. Conventions](docs/03-conventions.md) | Git, code and comments, documentation, backlog |
+| [4. Frontend](docs/04-frontend.md) | The React app, for a reader new to React: its pieces, folders, start-up, React from scratch, routing, server data, translations, styles and theme, recipes, tests, JavaScript and TypeScript syntax |
+| [5. Backend](docs/05-backend.md) | The Laravel app, for a reader new to PHP and Laravel: its pieces, PHP syntax, folders, the life of a request, routes and controllers, database, sign-in, admin panel, queues, configuration, tests, recipes, commands |
 
 Outside the numbered sections, **[Backlog](docs/backlog.md)** lists the work known and waiting, one entry per point with options and a recommendation; an entry is deleted when its work is done.

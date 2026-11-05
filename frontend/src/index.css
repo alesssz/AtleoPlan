@@ -1,111 +1,206 @@
+/*
+ * Global styles of the app: Tailwind CSS, the design system's colour tokens
+ * for the dark and light themes, the font, and a few base rules.
+ *
+ * How it works (docs/04-frontend.md 4.8):
+ * - Colours are CSS variables ("tokens") such as --primary. Components never
+ *   use a colour directly: they use Tailwind classes made from the tokens
+ *   (bg-primary, text-muted-foreground…). Switching theme only changes the
+ *   variables' values, here below, and every component follows.
+ * - The light values sit on :root; the dark values on .dark, a class put on
+ *   <html> by the theme code (src/theme/). Dark is the default
+ *   (docs/01-ui-design.md 1.1, principle 5).
+ * - The token names are shadcn/ui's, so its components work unchanged; the
+ *   values are AtleoPlan's (docs/01-ui-design.md 1.5).
+ */
+
+/* Tailwind itself: its reset ("preflight") and every utility class */
+@import "tailwindcss";
+/* Ready-made enter/leave animations used by shadcn/ui (menus, selects) */
+@import "tw-animate-css";
+/* shadcn/ui's own helper styles */
+@import "shadcn/tailwind.css";
+/* Inter, served from the app itself rather than Google Fonts, so it also
+   works offline (the PWA, docs/02-decisions.md 2.7) */
+@import "@fontsource-variable/inter";
+
+/* `dark:` classes apply inside an element with the .dark class (our <html>),
+   not following the operating system: the user picks the theme in Profile */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tokens → Tailwind. Each line makes a Tailwind colour out of a CSS variable:
+ * --color-primary: var(--primary) is what makes `bg-primary`, `text-primary`,
+ * `border-primary`… exist. `inline` means the class uses the variable itself,
+ * so it changes with the theme.
+ */
+@theme inline {
+  /* Fonts: Inter for everything */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+
+  /* shadcn/ui's tokens */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* AtleoPlan's own tokens (docs/01-ui-design.md 1.5): bg-timer, text-success… */
+  --color-timer: var(--timer);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  /* Corner radii, all derived from --radius (8 px): rounded-lg = 8 px for
+     buttons and inputs, rounded-xl ≈ 12 px for cards (1.5) */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* --- Light theme ------------------------------------------------------------ */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --radius: 0.5rem;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* App background and text */
+  --background: #FFFFFF;
+  --foreground: #0B0B0F;
+  /* "surface" in 1.5: cards, sheets, menus */
+  --card: #F4F4F6;
+  --card-foreground: #0B0B0F;
+  --popover: #FFFFFF;
+  --popover-foreground: #0B0B0F;
+  /* Main actions, completed set; a darker lime, readable on white */
+  --primary: #5A7A00;
+  --primary-foreground: #FFFFFF;
+  /* Secondary buttons */
+  --secondary: #E8E8EC;
+  --secondary-foreground: #0B0B0F;
+  /* "muted" in 1.5 is the secondary *text*; shadcn's --muted is a quiet
+     background, its text colour is --muted-foreground */
+  --muted: #EDEDF0;
+  --muted-foreground: #6B6B78;
+  /* shadcn's --accent is the background of hovered menu items, not the
+     rest-timer colour: that one is --timer below */
+  --accent: #E8E8EC;
+  --accent-foreground: #0B0B0F;
+  --destructive: #B91C1C;
+  /* Lines and form fields; the focus ring is the primary colour */
+  --border: #E2E2E8;
+  --input: #D4D4DC;
+  --ring: #5A7A00;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* AtleoPlan's own: rest timer, personal record, offline / sync pending */
+  --timer: #0284C7;
+  --success: #15803D;
+  --warning: #B45309;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+  /* Chart series (Progress): primary, timer, success, warning, a purple */
+  --chart-1: #5A7A00;
+  --chart-2: #0284C7;
+  --chart-3: #15803D;
+  --chart-4: #B45309;
+  --chart-5: #7C3AED;
+
+  /* The side navigation (tablet and desktop) */
+  --sidebar: #F4F4F6;
+  --sidebar-foreground: #0B0B0F;
+  --sidebar-primary: #5A7A00;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E8E8EC;
+  --sidebar-accent-foreground: #0B0B0F;
+  --sidebar-border: #E2E2E8;
+  --sidebar-ring: #5A7A00;
+}
+
+/* --- Dark theme (the default) ----------------------------------------------- */
+.dark {
+  --background: #0B0B0F;
+  --foreground: #EDEDF2;
+  --card: #16161D;
+  --card-foreground: #EDEDF2;
+  --popover: #16161D;
+  --popover-foreground: #EDEDF2;
+  /* The lime: on the near-black background, with near-black text on it */
+  --primary: #C6F432;
+  --primary-foreground: #0B0B0F;
+  --secondary: #22222B;
+  --secondary-foreground: #EDEDF2;
+  --muted: #1E1E26;
+  --muted-foreground: #8A8A99;
+  --accent: #22222B;
+  --accent-foreground: #EDEDF2;
+  --destructive: #EF4444;
+  --border: #2A2A35;
+  --input: #34343F;
+  --ring: #C6F432;
+
+  --timer: #38BDF8;
+  --success: #22C55E;
+  --warning: #F59E0B;
+
+  --chart-1: #C6F432;
+  --chart-2: #38BDF8;
+  --chart-3: #22C55E;
+  --chart-4: #F59E0B;
+  --chart-5: #A78BFA;
+
+  --sidebar: #16161D;
+  --sidebar-foreground: #EDEDF2;
+  --sidebar-primary: #C6F432;
+  --sidebar-primary-foreground: #0B0B0F;
+  --sidebar-accent: #22222B;
+  --sidebar-accent-foreground: #EDEDF2;
+  --sidebar-border: #2A2A35;
+  --sidebar-ring: #C6F432;
+}
+
+/* --- Base rules ---------------------------------------------------------------- */
+@layer base {
+  * {
+    /* Borders and focus outlines take the theme's colours by default */
+    @apply border-border outline-ring/50;
   }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  html {
+    @apply font-sans;
+    /* Tells the browser which theme is on, so scrollbars and form controls
+       it draws itself match it */
+    color-scheme: light;
   }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  html.dark {
+    color-scheme: dark;
   }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+  body {
+    @apply bg-background text-foreground antialiased;
   }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
 }
