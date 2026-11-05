@@ -63,7 +63,7 @@ i18n
       caches: ['localStorage'],
     },
     // Interpolation: filling {{name}} placeholders in a text with values,
-    // as in t('placeholder.text', { section: '1.4.6' })
+    // as in t('preferences.languageHint', { weight: '82,5 kg' })
     interpolation: {
       // React already escapes what it renders: escaping twice would show
       // "&amp;" instead of "&"

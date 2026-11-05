@@ -1,17 +1,21 @@
 /*
- * Profile (route `/profile`). The first working screen: language and theme
- * preferences, and the connection to the server. The account part comes
- * with sign-in (backlog FEAT-1). docs/01-ui-design.md 1.4.14.
+ * Profile (route `/profile`), docs/01-ui-design.md 1.4.14. The first
+ * working screen:
+ * - an account header (a guest for now: sign-in comes with FEAT-1);
+ * - the preferences, language and theme, as rows of a settings list;
+ * - the connection to the server.
  *
- * Built only from other components: two shadcn/ui Cards (src/components/ui/
- * card.tsx) holding the pickers and the server status.
+ * Built from small components: SettingRow for each row, LanguageSelect and
+ * ThemeSelect as controls, ServerStatus for the server.
  */
+import { Languages, Palette, Server, UserRound } from 'lucide-react'
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { ServerStatus } from '@/components/ServerStatus'
+import { SettingRow } from '@/components/SettingRow'
 import { ThemeSelect } from '@/components/ThemeSelect'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatWeight } from '@/lib/format'
 
 /** The weight shown as an example of the language's number format. */
@@ -21,42 +25,69 @@ const EXAMPLE_WEIGHT = 82.5
 export function ProfilePage() {
   // t translates; i18n.language is the current language, for formatWeight()
   const { t, i18n } = useTranslation()
+  // Two unique ids (React's useId hook), one per picker, linking each row's
+  // label to its control
+  const languageId = useId()
+  const themeId = useId()
 
   return (
     // A Fragment (<>…</>): siblings without a wrapping element
     <>
-      <PageHeader title={t('pages.profile.title')} description={t('pages.profile.description')} />
+      <PageHeader eyebrow={t('pages.profile.eyebrow')} title={t('pages.profile.title')} description={t('pages.profile.description')} />
 
-      {/* The two cards: stacked on phones and tablets, side by side from
-          1024 px (a CSS grid that gets two columns at `lg:`), 24 px apart */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Preferences: language and theme */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('preferences.title')}</CardTitle>
-          </CardHeader>
-          {/* The card's body: a column, 24 px between the controls */}
-          <CardContent className="flex flex-col gap-6">
-            <LanguageSelect />
-            {/* Changes with the language: "82,5 kg" ↔ "82.5 kg". Interpolation:
-                the translation's {{weight}} receives the formatted value.
-                tabular-nums gives every digit the same width (1.5) */}
-            <p className="text-sm text-muted-foreground tabular-nums">
-              {t('preferences.numberExample', { weight: formatWeight(EXAMPLE_WEIGHT, i18n.language) })}
-            </p>
-            <ThemeSelect />
-          </CardContent>
-        </Card>
+      {/* Three blocks, 24 px apart (flex column + gap) */}
+      <div className="flex flex-col gap-6">
+        {/* Account header: the gradient-bordered card, avatar + name + note.
+            `relative overflow-hidden`: the decorative glow inside is
+            positioned against the card and cut at its edges */}
+        <section className="border-glow relative flex items-center gap-5 overflow-hidden rounded-3xl p-6 sm:p-8">
+          {/* Decoration: a large blurred lime disc in the top-right corner */}
+          <div aria-hidden="true" className="absolute -top-16 -right-16 size-48 rounded-full bg-primary/15 blur-3xl" />
+          {/* The avatar: a circle with a lime-to-blue gradient ring (the
+              outer circle's gradient shows as a 2 px border around the
+              inner circle). bg-linear-to-br: a gradient towards the
+              bottom-right, from the primary colour to the timer colour */}
+          <div aria-hidden="true" className="relative grid size-16 shrink-0 place-items-center rounded-full bg-linear-to-br from-primary to-timer p-0.5 sm:size-20">
+            <div className="grid size-full place-items-center rounded-full bg-card">
+              <UserRound className="size-8 text-primary sm:size-9" strokeWidth={1.75} />
+            </div>
+          </div>
+          <div className="relative min-w-0">
+            <p className="font-heading text-xl font-extrabold tracking-tight sm:text-2xl">{t('profile.guest')}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t('profile.guestText')}</p>
+          </div>
+        </section>
 
-        {/* The backend's state, from GET /api/health */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('server.title')}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        {/* Preferences: a card holding a list of setting rows, a line
+            between each (divide-y draws a top border on every row but the
+            first). aria-labelledby names the section after its heading */}
+        <section aria-labelledby="prefs-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
+          <h2 id="prefs-title" className="font-heading text-lg font-extrabold tracking-tight">{t('preferences.title')}</h2>
+          <div className="divide-y divide-border">
+            {/* Language. The description shows the number format of the
+                current language, "82,5 kg" or "82.5 kg", through the
+                translation's {{weight}} placeholder */}
+            <SettingRow
+              icon={Languages}
+              label={t('preferences.language')}
+              description={t('preferences.languageHint', { weight: formatWeight(EXAMPLE_WEIGHT, i18n.language) })}
+              controlId={languageId}
+            >
+              <LanguageSelect id={languageId} />
+            </SettingRow>
+            <SettingRow icon={Palette} label={t('preferences.theme')} description={t('preferences.themeHint')} controlId={themeId}>
+              <ThemeSelect id={themeId} />
+            </SettingRow>
+          </div>
+        </section>
+
+        {/* About: the connection to the backend, from GET /api/health */}
+        <section aria-labelledby="about-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
+          <h2 id="about-title" className="font-heading text-lg font-extrabold tracking-tight">{t('profile.about')}</h2>
+          <SettingRow icon={Server} label={t('server.title')} description={t('server.hint')}>
             <ServerStatus />
-          </CardContent>
-        </Card>
+          </SettingRow>
+        </section>
       </div>
     </>
   )

@@ -140,4 +140,4 @@ The order of work for phase 1 ([1.8](01-ui-design.md#18-release-phases-and-open-
 
 **Priority:** high · **Kind:** missing screens · **Found:** 2026-11-05
 
-**What is missing.** The library with search and filters, the exercise details and the editor of personal exercises with photos ([1.4.3](01-ui-design.md#143-exercise-library)–[1.4.5](01-ui-design.md#145-exercise-editor)), replacing the placeholder at `/exercises`. Needs BE-1.
+**What is missing.** The library with search and filters, the exercise details and the editor of personal exercises with photos ([1.4.3](01-ui-design.md#143-exercise-library)–[1.4.5](01-ui-design.md#145-exercise-editor)), replacing the empty state at `/exercises`. Needs BE-1.

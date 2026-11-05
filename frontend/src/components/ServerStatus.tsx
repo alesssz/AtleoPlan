@@ -49,7 +49,13 @@ export function ServerStatus() {
       {/* Never colour alone (1.7): the dot is backed by the text next to it.
           cn() joins the classes and picks the colour with a ternary
           (condition ? a : b): green when online, red otherwise */}
-      <span aria-hidden="true" className={cn('size-3 rounded-full', online ? 'bg-success' : 'bg-destructive')} />
+      {/* When online, a second dot behind the first grows and fades in a
+          loop (animate-ping), like a heartbeat; skipped with reduced motion.
+          `relative` + `absolute inset-0` put the two dots on top of each other */}
+      <span aria-hidden="true" className="relative flex size-3">
+        {online && <span className="absolute inset-0 animate-ping rounded-full bg-success/60 motion-reduce:animate-none" />}
+        <span className={cn('relative size-3 rounded-full', online ? 'bg-success' : 'bg-destructive')} />
+      </span>
       <span className="text-sm">{online ? t('server.online') : t('server.offline')}</span>
       {!online && (
         // refetch() asks again; isFetching is true while it does, which

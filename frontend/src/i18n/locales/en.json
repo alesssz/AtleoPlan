@@ -15,34 +15,36 @@
   "pages": {
     "home": {
       "title": "Home",
-      "description": "Your active plan, the suggested day and this week's workouts."
+      "description": "Your active plan, the suggested day and this week's workouts.",
+      "eyebrow": "Today"
     },
     "plans": {
       "title": "Plans",
-      "description": "Your workout plans, their days and exercises."
+      "description": "Your workout plans, their days and exercises.",
+      "eyebrow": "Training"
     },
     "exercises": {
       "title": "Exercises",
-      "description": "The exercise library: public exercises and your own."
+      "description": "The exercise library: public exercises and your own.",
+      "eyebrow": "Library"
     },
     "progress": {
       "title": "Progress",
-      "description": "Charts, personal records and your workout history."
+      "description": "Charts, personal records and your workout history.",
+      "eyebrow": "Results"
     },
     "profile": {
       "title": "Profile",
-      "description": "Your account and how the app looks and works."
+      "description": "Your account and how the app looks and works.",
+      "eyebrow": "Account"
     }
-  },
-  "placeholder": {
-    "title": "Not built yet",
-    "text": "This screen is described in the design docs (section {{section}}) and is still to be built."
   },
   "preferences": {
     "title": "Preferences",
     "language": "Language",
     "theme": "Theme",
-    "numberExample": "Numbers in this language: {{weight}}"
+    "languageHint": "Texts, numbers and dates: {{weight}}",
+    "themeHint": "Dark is easier on the eyes at the gym."
   },
   "theme": {
     "dark": "Dark",
@@ -54,7 +56,8 @@
     "checking": "Checking the connection…",
     "online": "Connected",
     "offline": "Unreachable: is the Docker stack running?",
-    "retry": "Try again"
+    "retry": "Try again",
+    "hint": "The connection to the AtleoPlan server."
   },
   "errors": {
     "notFoundTitle": "Page not found",
@@ -63,5 +66,42 @@
     "unexpectedTitle": "Something went wrong",
     "unexpectedText": "An unexpected error stopped this screen. Reloading the page usually fixes it.",
     "reload": "Reload"
+  },
+  "common": {
+    "comingSoon": "Coming soon"
+  },
+  "home": {
+    "hero": "Ready to <hl>train</hl>?",
+    "tagline": "Your plans, your sets, your progress: all in one place.",
+    "noPlanTitle": "No active plan yet",
+    "noPlanText": "Create a plan and the suggested day will be waiting for you here, ready to start.",
+    "createPlan": "Create a plan",
+    "browseExercises": "Browse exercises",
+    "weekTitle": "This week",
+    "weekEmpty": "No workouts yet this week. The first one is the one that counts.",
+    "today": "today",
+    "statWorkouts": "Workouts",
+    "statSets": "Sets",
+    "statVolume": "Volume"
+  },
+  "plans": {
+    "emptyTitle": "Create your first plan",
+    "emptyText": "Build it from days and exercises, with sets, reps and rest. One plan is active at a time.",
+    "new": "New plan"
+  },
+  "exercises": {
+    "emptyTitle": "The library is on its way",
+    "emptyText": "Around 800 exercises with photos, in your language, plus the ones you create yourself.",
+    "new": "New exercise"
+  },
+  "progress": {
+    "emptyTitle": "Your progress starts with the first workout",
+    "emptyText": "Weights, reps and records will turn into charts as you train.",
+    "start": "Start a workout"
+  },
+  "profile": {
+    "guest": "Guest",
+    "guestText": "Sign-in is coming: your plans and preferences will follow you on every device.",
+    "about": "About"
   }
 }

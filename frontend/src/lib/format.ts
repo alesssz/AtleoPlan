@@ -62,3 +62,28 @@ export function formatWeight(value: number, language: string, unit: WeightUnit =
     maximumFractionDigits: 2,
   })
 }
+
+/**
+ * A date written out in full, as at the top of Home: "giovedì 5 novembre"
+ * (it), "Thursday, November 5" (en). Intl.DateTimeFormat knows each
+ * language's day and month names and their order.
+ * @param date the date
+ * @param language a language code such as 'it'
+ * @returns the weekday, the day and the month, without the year
+ */
+export function formatLongDate(date: Date, language: string): string {
+  return new Intl.DateTimeFormat(language, { weekday: 'long', day: 'numeric', month: 'long' }).format(date)
+}
+
+/**
+ * Parts of a date for compact displays, such as the week strip on Home:
+ * the short weekday ("lun", "Mon") and the day of the month ("5").
+ * @param date the date
+ * @param language a language code such as 'it'
+ */
+export function formatDayParts(date: Date, language: string): { weekday: string, day: string } {
+  return {
+    weekday: new Intl.DateTimeFormat(language, { weekday: 'short' }).format(date),
+    day: new Intl.DateTimeFormat(language, { day: 'numeric' }).format(date),
+  }
+}

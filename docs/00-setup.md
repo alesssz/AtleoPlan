@@ -20,7 +20,7 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 | `mailpit` | Catches every email the app sends and shows it in a web page |
 
 - **Laravel app** in `backend/` ([0.6](#06-creating-the-laravel-backend)): Laravel 13 on Postgres, Sanctum (`install:api`), Filament 5 with its admin panel at `/admin`, spatie/laravel-medialibrary, laravel-query-builder and laravel-translatable, Pest 4. The default migrations have run and the two example tests pass.
-- **React app** in `frontend/` ([0.7](#07-creating-the-react-frontend), guide in [4](04-frontend.md)): React 19, TypeScript 6, Vite 8 on port 5673 with the proxy to Laravel; React Router, TanStack Query, i18next in four languages, Tailwind and shadcn/ui with the design system's colours, a dark / light theme; the app's frame (tab bar on phones, sidebar wider), placeholder pages, a working Profile page; Vitest and ESLint with the code style. Node 24 pinned in `.nvmrc`.
+- **React app** in `frontend/` ([0.7](#07-creating-the-react-frontend), guide in [4](04-frontend.md)): React 19, TypeScript 6, Vite 8 on port 5673 with the proxy to Laravel; React Router, TanStack Query, i18next in four languages, Tailwind and shadcn/ui with the design system's colours, a dark / light theme; the app's frame (tab bar on phones, sidebar wider) in the energetic style of 1.5, empty states on the pages not built yet, a working Profile page; Vitest and ESLint with the code style. Node 24 pinned in `.nvmrc`.
 
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([0.6](#06-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.

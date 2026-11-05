@@ -82,6 +82,12 @@ const buttonVariants = cva(
         'sm': 'h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*=\'size-\'])]:size-3.5',
         // 36 px tall
         'lg': 'h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',
+        // Ours, not shadcn's: 48 px tall, the touch-friendly size of the main
+        // actions (tap targets of at least 48 px, docs/01-ui-design.md 1.5),
+        // bold text and 20 px icons. The default (lime) variant also glows a
+        // little, through glow-primary (src/index.css), but only while it can
+        // be clicked (`not-disabled:`): a disabled button must not look inviting.
+        'xl': 'h-12 gap-2 rounded-xl px-6 text-base font-bold data-[variant=default]:not-disabled:glow-primary [&_svg:not([class*=\'size-\'])]:size-5',
         // Square, icon only (32 px); give it an aria-label, it has no text
         'icon': 'size-8',
         // Square icon buttons, 24, 28 and 36 px

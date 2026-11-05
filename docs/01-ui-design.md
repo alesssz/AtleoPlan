@@ -328,7 +328,20 @@ Built on shadcn/ui over Tailwind: colours are CSS variables (tokens), so the dar
 | `ProgressChart` | Progress, exercise details | Line over time, period filters |
 | `ShareSheet` | Plan details | Link, QR code, native share |
 | `SyncIndicator` | Top bar | Offline state and pending changes |
-| `EmptyState` | Every list | Illustration, one sentence, main action |
+| `EmptyState` | Every list | Illustration, one sentence, main action; a "Coming soon" badge and a disabled action while the feature is missing |
+
+**Visual style: energetic**
+
+The look of a sports app, chosen over a minimal or a "glass" style: the lime is the star, on a near-black background. The ingredients, and where they live in `frontend/src` ([4.8](04-frontend.md#48-styles-and-theme)):
+
+- **Glow.** Soft colour fading into the background behind every page: lime from the top, the timer's blue from the top right (`body` in `index.css`). Lime halos around what matters: the logo, the main button, the current tab (`glow-primary`).
+- **Gradient borders.** The important cards have a 1 px border that is lime at the top-left and fades out (`border-glow`), with 24 px corners.
+- **Heavy type.** Titles are extra-bold or black, with tight letter spacing. Above each page title sits an **eyebrow**: one or two words in small lime capitals with wide spacing ("TRAINING", or today's date on Home). One word of Home's greeting is painted with a lime gradient (`text-gradient-primary`).
+- **Big numbers.** Counters are black-weight with same-width digits (`tabular-nums`).
+- **Brand.** A stylised "A" on a lime tile and the wordmark Atleo**Plan** (`components/brand/Brand.tsx`), until a real logo exists (open question in [1.8](#18-release-phases-and-open-questions)). The logo sits in the sidebar, or at the top of the page on phones.
+- **Navigation.** The current tab sits in a lime "pill" (phones); the current sidebar link has a glowing lime bar on its left edge.
+- **Motion, short and optional.** Each page fades in while rising 8 px (300 ms); the server's "connected" dot pulses. Both are switched off with the device's reduced-motion setting ([1.7](#17-responsive-layout-and-accessibility)).
+- **Main actions** are 48 px tall, bold, and glow when enabled (`Button size="xl"`).
 
 ---
 

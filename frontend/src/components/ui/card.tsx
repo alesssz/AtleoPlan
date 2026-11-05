@@ -1,6 +1,7 @@
 /*
  * Card: shadcn/ui's card, a rounded panel that groups related content
- * (Profile's "Preferences" and "Server" boxes, PagePlaceholder).
+ * (no screen uses it at the moment: the pages draw their cards with Tailwind
+ * and the border-glow utility of src/index.css; kept for the screens to come).
  *
  * shadcn/ui copies each component's source into src/components/ui/ (its
  * CLI, configured by components.json), so this file is ours to read; it is

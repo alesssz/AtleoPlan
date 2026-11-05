@@ -54,14 +54,16 @@ frontend/
     ├── components/
     │   ├── ui/               shadcn/ui components (generated, then ours to edit)
     │   ├── layout/           the frame: AppLayout, SideNav, BottomTabBar, nav-items
-    │   └── *.tsx             components shared by several pages
+    │   ├── brand/            the logo: BrandMark and Wordmark
+    │   ├── home/             pieces of Home: WeekStrip, WeekStats
+    │   └── *.tsx             shared by several pages: PageHeader, EmptyState, SettingRow, the pickers…
     ├── pages/              one component per screen (HomePage, ProfilePage…)
     ├── i18n/
     │   ├── index.ts          i18next setup and language detection
     │   ├── languages.ts      the supported languages and their names
     │   ├── i18next.d.ts      makes translation keys type-checked
     │   └── locales/          it.json, en.json, es.json, de.json
-    ├── lib/                plain helpers, no React: http (fetch wrapper), query-client, format, utils (cn)
+    ├── lib/                plain helpers, no React: http (fetch wrapper), query-client, format (numbers, dates), week, utils (cn)
     ├── theme/              dark / light theme: logic, context, provider, hook
     └── test/setup.ts       runs before every test file
 ```
@@ -244,7 +246,7 @@ const health = useQuery({ queryKey: ['health'], queryFn: ({ signal }) => fetchHe
 ```tsx
 const { t, i18n } = useTranslation()
 t('nav.plans')                          // "Schede" in Italian
-t('placeholder.text', { section: '1.4.6' })   // fills {{section}} in the text
+t('preferences.languageHint', { weight })      // fills {{weight}} in the text
 i18n.changeLanguage('de')               // switches every text at once
 ```
 
@@ -255,7 +257,8 @@ i18n.changeLanguage('de')               // switches every text at once
 | `app` | name, tagline |
 | `nav` | navigation labels |
 | `pages.<page>` | each page's `title` and `description` |
-| `placeholder`, `preferences`, `theme`, `server` | texts of shared components |
+| `home`, `plans`, `exercises`, `progress`, `profile` | each screen's own texts (empty states, greeting…) |
+| `common`, `preferences`, `theme`, `server` | texts shared by several components ("Coming soon"…) |
 | `errors` | not-found and crash pages |
 
 New screens add their own group (`plans.editor.*`, …).
@@ -267,7 +270,9 @@ New screens add their own group (`plans.editor.*`, …).
 
 **Adding a text:** add the key to all four files, English first, then `make fe-test`. A machine translation is fine for Spanish and German until someone checks them (the same rule as the exercise library, [2.3](02-decisions.md#23-exercise-library)).
 
-**Numbers and dates** follow the language through `Intl`, never string concatenation. Use `src/lib/format.ts`: `formatWeight(82.5, i18n.language)` gives "82,5 kg" in Italian, Spanish and German, and "82.5 kg" in English. Add more helpers there, such as dates and durations, as screens need them.
+**Numbers and dates** follow the language through `Intl`, never string concatenation. Use `src/lib/format.ts`: `formatWeight(82.5, i18n.language)` gives "82,5 kg" in Italian, Spanish and German, and "82.5 kg" in English. `formatLongDate` and `formatDayParts` do the same for dates ("giovedì 5 novembre"); add more there, such as durations, as screens need them.
+
+**Markup inside a translation,** such as one highlighted word, uses `<Trans>`: the text holds a tag of our own (`"Ready to <hl>train</hl>?"`) and the component says what it becomes: `<Trans i18nKey="home.hero" components={{ hl: <span className="text-gradient-primary" /> }} />`. Each language places the tag on its own word.
 
 **Plurals,** when a screen needs them, use i18next's suffixes: `"sets_one": "{{count}} set"` and `"sets_other": "{{count}} sets"`, called with `t('sets', { count })`.
 
@@ -310,9 +315,26 @@ New screens add their own group (`plans.editor.*`, …).
 **shadcn/ui.** These are not a library imported from `node_modules`. They are source files copied into `src/components/ui/`, and they are ours to change.
 
 - **Adding one:** `npx shadcn@latest add dialog` (from `frontend/`), then `make fix` to bring the generated file to our code style (single quotes, no semicolons).
-- **Their default sizes are for mouse use** (a button is 32 px tall). On touch screens use `size="lg"` or set the height yourself: tap targets are at least 48 px, and 56 px in workout mode ([1.5](01-ui-design.md#15-design-system)).
+- **Their default sizes are for mouse use** (a button is 32 px tall). On touch screens use our `size="xl"` (48 px) or set the height yourself: tap targets are at least 48 px, and 56 px in workout mode ([1.5](01-ui-design.md#15-design-system)).
 - **`cn()`** (`@/lib/utils`) joins class names, drops false ones, and resolves Tailwind conflicts: `cn('px-2', big && 'px-4')`.
 - **`asChild`** lends a component's look to its child: `<Button asChild><Link to="/">…</Link></Button>` is a real link that looks like a button.
+
+**Our own style tools.** The energetic style of [1.5](01-ui-design.md#15-design-system) ("Visual style") is built from a few pieces, to reuse rather than reinvent:
+
+| Tool | What it does | Example |
+|---|---|---|
+| `text-gradient-primary` (utility, `index.css`) | Paints text with the lime gradient | the highlighted word on Home |
+| `glow-primary` (utility) | A soft lime halo around an element | the logo, the current tab |
+| `border-glow` (utility) | A card background with a 1 px lime-to-transparent border | `EmptyState`, Home's week card, Profile's header |
+| `Button size="xl"` | The 48 px main action, glowing when enabled | every call to action |
+| `PageHeader eyebrow="…"` | The lime capitals above a page title | every page but Home |
+| `EmptyState` | Illustration, title, sentence, actions; `comingSoon` adds the badge | Plans, Exercises, Progress, Home |
+| `SettingRow` | One settings row: icon tile, label, hint, control | Profile |
+| `BrandMark`, `Wordmark` | The logo | sidebar, phone header |
+
+Utilities like these are written in `index.css` with `@utility name { … }` and then work like Tailwind's own classes, prefixes included (`lg:border-glow`, `group-aria-[current=page]:glow-primary`).
+
+**Seeing the result.** Screen size changes the layout: test every change at phone width (the browser's device toolbar, about 390 px wide) and on a wide screen, in both themes (Profile → Theme).
 
 **Icons** come from Lucide: `import { Dumbbell } from 'lucide-react'`, used as `<Dumbbell aria-hidden="true" className="size-5" />`.
 
@@ -325,7 +347,7 @@ New screens add their own group (`plans.editor.*`, …).
 
 **A new page:**
 
-1. `src/pages/ThingPage.tsx`, exporting `ThingPage`, with a `PageHeader` and its content.
+1. `src/pages/ThingPage.tsx`, exporting `ThingPage`, with a `PageHeader` (with its `eyebrow`) and its content; while there is no data, an `EmptyState`.
 2. Its texts under `pages.thing` in the four locale files.
 3. A route in `src/router.tsx`, inside the frame's `children`.
 4. If it is a main section: an entry in `components/layout/nav-items.ts`. Both navigations update.
@@ -358,7 +380,8 @@ New screens add their own group (`plans.editor.*`, …).
 | File | What it checks |
 |---|---|
 | `i18n/locales.test.ts` | the four languages have the same keys and placeholders, none empty |
-| `lib/format.test.ts` | weights and numbers in each language's format |
+| `lib/format.test.ts` | weights, numbers and dates in each language's format |
+| `lib/week.test.ts` | the Monday-to-Sunday week, across months and years |
 | `components/layout/BottomTabBar.test.tsx` | five tabs, the current one marked, labels translated (the model of a component test) |
 
 **Commands:**

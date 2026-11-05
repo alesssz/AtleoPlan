@@ -15,34 +15,36 @@
   "pages": {
     "home": {
       "title": "Inicio",
-      "description": "Tu rutina activa, el día sugerido y los entrenamientos de esta semana."
+      "description": "Tu rutina activa, el día sugerido y los entrenamientos de esta semana.",
+      "eyebrow": "Hoy"
     },
     "plans": {
       "title": "Rutinas",
-      "description": "Tus rutinas de entrenamiento, con sus días y ejercicios."
+      "description": "Tus rutinas de entrenamiento, con sus días y ejercicios.",
+      "eyebrow": "Entrenamiento"
     },
     "exercises": {
       "title": "Ejercicios",
-      "description": "La biblioteca de ejercicios: los públicos y los tuyos."
+      "description": "La biblioteca de ejercicios: los públicos y los tuyos.",
+      "eyebrow": "Biblioteca"
     },
     "progress": {
       "title": "Progreso",
-      "description": "Gráficos, récords personales y tu historial de entrenamientos."
+      "description": "Gráficos, récords personales y tu historial de entrenamientos.",
+      "eyebrow": "Resultados"
     },
     "profile": {
       "title": "Perfil",
-      "description": "Tu cuenta y cómo se ve y funciona la aplicación."
+      "description": "Tu cuenta y cómo se ve y funciona la aplicación.",
+      "eyebrow": "Cuenta"
     }
-  },
-  "placeholder": {
-    "title": "Todavía no está lista",
-    "text": "Esta pantalla está descrita en los documentos de diseño (sección {{section}}) y aún no se ha construido."
   },
   "preferences": {
     "title": "Preferencias",
     "language": "Idioma",
     "theme": "Tema",
-    "numberExample": "Los números en este idioma: {{weight}}"
+    "languageHint": "Textos, números y fechas: {{weight}}",
+    "themeHint": "El oscuro cansa menos la vista en el gimnasio."
   },
   "theme": {
     "dark": "Oscuro",
@@ -54,7 +56,8 @@
     "checking": "Comprobando la conexión…",
     "online": "Conectado",
     "offline": "No disponible: ¿está en marcha Docker?",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "hint": "La conexión con el servidor de AtleoPlan."
   },
   "errors": {
     "notFoundTitle": "Página no encontrada",
@@ -63,5 +66,42 @@
     "unexpectedTitle": "Algo ha salido mal",
     "unexpectedText": "Un error inesperado ha detenido esta pantalla. Normalmente se soluciona recargando la página.",
     "reload": "Recargar"
+  },
+  "common": {
+    "comingSoon": "Próximamente"
+  },
+  "home": {
+    "hero": "¿Listo para <hl>entrenar</hl>?",
+    "tagline": "Tus rutinas, tus series, tu progreso: todo en un solo lugar.",
+    "noPlanTitle": "Ninguna rutina activa",
+    "noPlanText": "Crea una rutina y aquí te esperará el día sugerido, listo para empezar.",
+    "createPlan": "Crear una rutina",
+    "browseExercises": "Ver ejercicios",
+    "weekTitle": "Esta semana",
+    "weekEmpty": "Aún no hay entrenamientos esta semana. El primero es el que cuenta.",
+    "today": "hoy",
+    "statWorkouts": "Entrenos",
+    "statSets": "Series",
+    "statVolume": "Volumen"
+  },
+  "plans": {
+    "emptyTitle": "Crea tu primera rutina",
+    "emptyText": "Hazla con días y ejercicios, con series, repeticiones y descanso. Solo una rutina está activa a la vez.",
+    "new": "Nueva rutina"
+  },
+  "exercises": {
+    "emptyTitle": "La biblioteca está en camino",
+    "emptyText": "Unos 800 ejercicios con fotos, en tu idioma, más los que crees tú.",
+    "new": "Nuevo ejercicio"
+  },
+  "progress": {
+    "emptyTitle": "Tu progreso empieza con el primer entrenamiento",
+    "emptyText": "Pesos, repeticiones y récords se convertirán en gráficos mientras entrenas.",
+    "start": "Empezar un entrenamiento"
+  },
+  "profile": {
+    "guest": "Invitado",
+    "guestText": "El inicio de sesión está en camino: tus rutinas y preferencias te seguirán en todos tus dispositivos.",
+    "about": "Información"
   }
 }

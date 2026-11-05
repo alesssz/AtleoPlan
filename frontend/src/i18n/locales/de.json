@@ -15,34 +15,36 @@
   "pages": {
     "home": {
       "title": "Start",
-      "description": "Dein aktiver Plan, der vorgeschlagene Tag und die Trainings dieser Woche."
+      "description": "Dein aktiver Plan, der vorgeschlagene Tag und die Trainings dieser Woche.",
+      "eyebrow": "Heute"
     },
     "plans": {
       "title": "Pläne",
-      "description": "Deine Trainingspläne mit ihren Tagen und Übungen."
+      "description": "Deine Trainingspläne mit ihren Tagen und Übungen.",
+      "eyebrow": "Training"
     },
     "exercises": {
       "title": "Übungen",
-      "description": "Die Übungsbibliothek: öffentliche Übungen und deine eigenen."
+      "description": "Die Übungsbibliothek: öffentliche Übungen und deine eigenen.",
+      "eyebrow": "Bibliothek"
     },
     "progress": {
       "title": "Fortschritt",
-      "description": "Diagramme, persönliche Rekorde und dein Trainingsverlauf."
+      "description": "Diagramme, persönliche Rekorde und dein Trainingsverlauf.",
+      "eyebrow": "Ergebnisse"
     },
     "profile": {
       "title": "Profil",
-      "description": "Dein Konto und wie die App aussieht und funktioniert."
+      "description": "Dein Konto und wie die App aussieht und funktioniert.",
+      "eyebrow": "Konto"
     }
-  },
-  "placeholder": {
-    "title": "Noch nicht fertig",
-    "text": "Dieser Bildschirm ist in den Designdokumenten beschrieben (Abschnitt {{section}}) und muss noch gebaut werden."
   },
   "preferences": {
     "title": "Einstellungen",
     "language": "Sprache",
     "theme": "Design",
-    "numberExample": "Zahlen in dieser Sprache: {{weight}}"
+    "languageHint": "Texte, Zahlen und Daten: {{weight}}",
+    "themeHint": "Dunkel schont im Studio die Augen."
   },
   "theme": {
     "dark": "Dunkel",
@@ -54,7 +56,8 @@
     "checking": "Verbindung wird geprüft…",
     "online": "Verbunden",
     "offline": "Nicht erreichbar: Läuft Docker?",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "hint": "Die Verbindung zum AtleoPlan-Server."
   },
   "errors": {
     "notFoundTitle": "Seite nicht gefunden",
@@ -63,5 +66,42 @@
     "unexpectedTitle": "Etwas ist schiefgelaufen",
     "unexpectedText": "Ein unerwarteter Fehler hat diesen Bildschirm angehalten. Neu laden hilft meistens.",
     "reload": "Neu laden"
+  },
+  "common": {
+    "comingSoon": "Demnächst"
+  },
+  "home": {
+    "hero": "Bereit fürs <hl>Training</hl>?",
+    "tagline": "Deine Pläne, deine Sätze, dein Fortschritt: alles an einem Ort.",
+    "noPlanTitle": "Noch kein aktiver Plan",
+    "noPlanText": "Erstelle einen Plan, und hier wartet der vorgeschlagene Tag auf dich, startklar.",
+    "createPlan": "Plan erstellen",
+    "browseExercises": "Übungen ansehen",
+    "weekTitle": "Diese Woche",
+    "weekEmpty": "Diese Woche noch kein Training. Das erste zählt am meisten.",
+    "today": "heute",
+    "statWorkouts": "Trainings",
+    "statSets": "Sätze",
+    "statVolume": "Volumen"
+  },
+  "plans": {
+    "emptyTitle": "Erstelle deinen ersten Plan",
+    "emptyText": "Baue ihn aus Tagen und Übungen, mit Sätzen, Wiederholungen und Pausen. Es ist immer nur ein Plan aktiv.",
+    "new": "Neuer Plan"
+  },
+  "exercises": {
+    "emptyTitle": "Die Bibliothek ist unterwegs",
+    "emptyText": "Rund 800 Übungen mit Fotos, in deiner Sprache, dazu deine eigenen.",
+    "new": "Neue Übung"
+  },
+  "progress": {
+    "emptyTitle": "Dein Fortschritt beginnt mit dem ersten Training",
+    "emptyText": "Gewichte, Wiederholungen und Rekorde werden beim Trainieren zu Diagrammen.",
+    "start": "Training starten"
+  },
+  "profile": {
+    "guest": "Gast",
+    "guestText": "Die Anmeldung kommt bald: Deine Pläne und Einstellungen folgen dir auf jedes Gerät.",
+    "about": "Info"
   }
 }

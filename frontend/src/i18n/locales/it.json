@@ -15,34 +15,36 @@
   "pages": {
     "home": {
       "title": "Home",
-      "description": "La tua scheda attiva, il giorno consigliato e gli allenamenti della settimana."
+      "description": "La tua scheda attiva, il giorno consigliato e gli allenamenti della settimana.",
+      "eyebrow": "Oggi"
     },
     "plans": {
       "title": "Schede",
-      "description": "Le tue schede di allenamento, con i loro giorni ed esercizi."
+      "description": "Le tue schede di allenamento, con i loro giorni ed esercizi.",
+      "eyebrow": "Allenamento"
     },
     "exercises": {
       "title": "Esercizi",
-      "description": "La libreria degli esercizi: quelli pubblici e i tuoi."
+      "description": "La libreria degli esercizi: quelli pubblici e i tuoi.",
+      "eyebrow": "Libreria"
     },
     "progress": {
       "title": "Progressi",
-      "description": "Grafici, record personali e lo storico dei tuoi allenamenti."
+      "description": "Grafici, record personali e lo storico dei tuoi allenamenti.",
+      "eyebrow": "Risultati"
     },
     "profile": {
       "title": "Profilo",
-      "description": "Il tuo account e come l'app appare e funziona."
+      "description": "Il tuo account e come l'app appare e funziona.",
+      "eyebrow": "Account"
     }
-  },
-  "placeholder": {
-    "title": "Non ancora pronta",
-    "text": "Questa schermata è descritta nei documenti di design (sezione {{section}}) e deve ancora essere costruita."
   },
   "preferences": {
     "title": "Preferenze",
     "language": "Lingua",
     "theme": "Tema",
-    "numberExample": "I numeri in questa lingua: {{weight}}"
+    "languageHint": "Testi, numeri e date: {{weight}}",
+    "themeHint": "Lo scuro affatica meno gli occhi in palestra."
   },
   "theme": {
     "dark": "Scuro",
@@ -54,7 +56,8 @@
     "checking": "Verifica della connessione…",
     "online": "Connesso",
     "offline": "Non raggiungibile: lo stack Docker è avviato?",
-    "retry": "Riprova"
+    "retry": "Riprova",
+    "hint": "La connessione al server di AtleoPlan."
   },
   "errors": {
     "notFoundTitle": "Pagina non trovata",
@@ -63,5 +66,42 @@
     "unexpectedTitle": "Qualcosa è andato storto",
     "unexpectedText": "Un errore imprevisto ha bloccato questa schermata. Di solito ricaricare la pagina risolve.",
     "reload": "Ricarica"
+  },
+  "common": {
+    "comingSoon": "In arrivo"
+  },
+  "home": {
+    "hero": "Pronto ad <hl>allenarti</hl>?",
+    "tagline": "Le tue schede, le tue serie, i tuoi progressi: tutto in un posto.",
+    "noPlanTitle": "Nessuna scheda attiva",
+    "noPlanText": "Crea una scheda e qui troverai il giorno consigliato, pronto per partire.",
+    "createPlan": "Crea una scheda",
+    "browseExercises": "Sfoglia gli esercizi",
+    "weekTitle": "Questa settimana",
+    "weekEmpty": "Ancora nessun allenamento questa settimana. Il primo è quello che conta.",
+    "today": "oggi",
+    "statWorkouts": "Allenamenti",
+    "statSets": "Serie",
+    "statVolume": "Volume"
+  },
+  "plans": {
+    "emptyTitle": "Crea la tua prima scheda",
+    "emptyText": "Componila con giorni ed esercizi, con serie, ripetizioni e recupero. Una sola scheda è attiva alla volta.",
+    "new": "Nuova scheda"
+  },
+  "exercises": {
+    "emptyTitle": "La libreria sta arrivando",
+    "emptyText": "Circa 800 esercizi con foto, nella tua lingua, più quelli che crei tu.",
+    "new": "Nuovo esercizio"
+  },
+  "progress": {
+    "emptyTitle": "I tuoi progressi iniziano dal primo allenamento",
+    "emptyText": "Pesi, ripetizioni e record diventeranno grafici mentre ti alleni.",
+    "start": "Inizia un allenamento"
+  },
+  "profile": {
+    "guest": "Ospite",
+    "guestText": "L'accesso sta arrivando: schede e preferenze ti seguiranno su ogni dispositivo.",
+    "about": "Informazioni"
   }
 }

@@ -1,25 +1,27 @@
 /*
  * The frame around every signed-in screen: the navigation (SideNav or
- * BottomTabBar, depending on the width) and the space where the current
- * page is drawn. In the route table (src/router.tsx) it is the parent of
- * the pages; React Router draws the matching page where <Outlet /> is.
- * Workout mode will live outside this frame, full screen
- * (docs/01-ui-design.md 1.3). Routing: docs/04-frontend.md 4.5; the
- * responsive layout and Tailwind: 4.8.
+ * BottomTabBar, depending on the width), the logo at the top on phones, and
+ * the space where the current page is drawn. In the route table
+ * (src/router.tsx) it is the parent of the pages; React Router draws the
+ * matching page where <Outlet /> is. Workout mode will live outside this
+ * frame, full screen (docs/01-ui-design.md 1.3). Routing:
+ * docs/04-frontend.md 4.5; the responsive layout and Tailwind: 4.8.
  *
  * Both navigations are always in the page; Tailwind's responsive classes
  * show one and hide the other depending on the screen width.
  */
 import { useTranslation } from 'react-i18next'
-import { Outlet, ScrollRestoration } from 'react-router'
+import { Outlet, ScrollRestoration, useLocation } from 'react-router'
+import { BrandMark, Wordmark } from '@/components/brand/Brand'
 import { BottomTabBar } from './BottomTabBar'
 import { SideNav } from './SideNav'
 
 /** The app's frame: skip link, side navigation, page, tab bar. */
 export function AppLayout() {
-  // useTranslation() is react-i18next's hook; `const { t } = …` takes the
-  // translate function t out of the object it returns (destructuring)
   const { t } = useTranslation()
+  // The current address (React Router's hook): its `pathname` ('/plans')
+  // changes on every page change, which restarts the page's entrance below
+  const location = useLocation()
 
   return (
     // A row (flex): sidebar on the left, page on the right.
@@ -44,18 +46,33 @@ export function AppLayout() {
           below its content's width instead of overflowing). Side padding
           grows with the screen (sm:, lg:). The values in square brackets
           are Tailwind's arbitrary values, raw CSS: the top padding is at
-          least 1.5rem or the phone's notch area, whichever is larger
+          least 1rem or the phone's notch area, whichever is larger
           (env(safe-area-inset-top)); bottom padding on phones leaves room
-          for the tab bar (56 px plus the iPhone's home bar); from 640 px
+          for the tab bar (64 px plus the iPhone's home bar); from 640 px
           there is no tab bar, so less. */}
       <main
         id="main"
-        className="min-w-0 flex-1 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-10 lg:px-10"
+        className="min-w-0 flex-1 px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-8 sm:pt-10 sm:pb-12 lg:px-12"
       >
         {/* Centred column, at most 64rem (1024 px) wide on large screens */}
         <div className="mx-auto w-full max-w-5xl">
-          {/* The current page, chosen by the router */}
-          <Outlet />
+          {/* Phones only (sm:hidden): the logo at the top, since the
+              sidebar that carries it on wider screens is hidden */}
+          <div className="mb-6 flex items-center gap-2.5 sm:hidden">
+            <BrandMark className="size-7" />
+            <Wordmark className="text-base" />
+          </div>
+
+          {/* The current page, chosen by the router. `key` is special: when
+              it changes, React throws the element away and creates a new one,
+              so the entrance animation runs again on every page change.
+              animate-in fade-in slide-in-from-bottom-2 (from tw-animate-css):
+              fade in while rising 8 px, in 300 ms. motion-reduce:animate-none
+              skips it for users who asked their device for less motion
+              (docs/01-ui-design.md 1.7). */}
+          <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none">
+            <Outlet />
+          </div>
         </div>
       </main>
 

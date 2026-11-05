@@ -202,5 +202,50 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /*
+     * The energetic look (docs/01-ui-design.md 1.5, "Visual style"): two soft
+     * glows of colour fading into the background, lime from the top centre
+     * and the timer's blue from the top right. Each radial-gradient() is an
+     * ellipse of colour that turns transparent towards its edge.
+     * color-mix(in oklab, X 14%, transparent) is "colour X at 14% strength",
+     * so the glow follows the theme: bright lime on dark, a faint olive on
+     * light. `fixed`: the glow stays put while the page scrolls (browsers
+     * that ignore it, such as iOS Safari, simply scroll it with the page).
+     */
+    background-image:
+      radial-gradient(ellipse 90% 55% at 50% -12%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%),
+      radial-gradient(ellipse 55% 40% at 100% 0%, color-mix(in oklab, var(--timer) 9%, transparent), transparent 65%);
+    background-attachment: fixed;
   }
+}
+
+/*
+ * Our own Tailwind utilities. `@utility name { … }` creates a class that
+ * works like Tailwind's built-in ones (also with prefixes: `lg:text-gradient-primary`).
+ * docs/04-frontend.md 4.8.
+ */
+
+/* Text painted with a lime gradient, for the highlighted word of a big
+   heading: the gradient is the element's background, cut to the shape of
+   the letters (background-clip: text) and shown through transparent text */
+@utility text-gradient-primary {
+  background-image: linear-gradient(100deg, var(--primary) 0%, color-mix(in oklab, var(--primary) 55%, var(--timer)) 100%);
+  background-clip: text;
+  color: transparent;
+}
+
+/* A soft lime halo around an element (logo, illustration, active tab) */
+@utility glow-primary {
+  box-shadow: 0 0 32px -6px color-mix(in oklab, var(--primary) 55%, transparent);
+}
+
+/* A card with a 1 px gradient border, lime at the top-left fading out:
+   the gradient is painted under a padding of 1 px, and the card's own
+   background covers everything inside it (the first layer, clipped to the
+   padding box). Used for the cards that matter most (Home's plan card). */
+@utility border-glow {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(135deg, color-mix(in oklab, var(--primary) 70%, transparent), color-mix(in oklab, var(--primary) 8%, transparent) 45%, color-mix(in oklab, var(--foreground) 8%, transparent)) border-box;
 }
