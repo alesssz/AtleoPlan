@@ -22,10 +22,11 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - **Laravel app** in `backend/` ([0.6](#06-creating-the-laravel-backend)): Laravel 13 on Postgres, Sanctum (`install:api`), Filament 5 with its admin panel at `/admin`, spatie/laravel-medialibrary, laravel-query-builder and laravel-translatable, Pest 4. The default migrations have run and the two example tests pass.
 - **React app** in `frontend/` ([0.7](#07-creating-the-react-frontend), guide in [4](04-frontend.md)): React 19, TypeScript 6, Vite 8 on port 5673 with the proxy to Laravel; React Router, TanStack Query, i18next in four languages, Tailwind and shadcn/ui with the design system's colours, a dark / light theme; the app's frame (tab bar on phones, sidebar wider) in the energetic style of 1.5, empty states on the pages not built yet, a working Profile page; Vitest and ESLint with the code style. Node 24 pinned in `.nvmrc`.
 
+- **Signing in:** sign up, in and out, and resetting a password, with Fortify and four React screens; route guards; language and theme saved on the account; only admins open `/admin` ([5.7](05-backend.md#57-signing-in-sanctum), [4.13](04-frontend.md#413-signing-in-and-forms)).
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([0.6](#06-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
 
-**Not yet:** the app's features, in the order of the [backlog](backlog.md) (sign-in, exercise library, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([4.11](04-frontend.md#411-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)).
+**Not yet:** the app's features, in the order of the [backlog](backlog.md) (exercise library, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([4.11](04-frontend.md#411-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 
@@ -93,6 +94,8 @@ A new service follows the same rule. To use another port once: `APP_PORT=8600 do
 6. starts the containers, installs the npm packages, creates the test database and runs the migrations.
 
 It can be run again safely: what is already in place stays as it is.
+
+**The first account.** The database starts empty: create an account at http://localhost:5673/register, after `make dev`. For an admin, which also opens `/admin`, run `make artisan c="db:seed"`: it creates `test@example.com`, password `password` ([5.8](05-backend.md#58-admin-panel-filament)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
 
 The rest of this section and [0.6](#06-creating-the-laravel-backend) are how the project was created the first time, kept for reference. From the project folder:
 
@@ -167,6 +170,19 @@ docker compose exec backend php artisan migrate
 - in `backend/bootstrap/app.php`, inside `withMiddleware`: `$middleware->statefulApi();`
 - `SANCTUM_STATEFUL_DOMAINS=localhost:5673`, set in `compose.yaml` with the other environment variables.
 
+**Signing in with Fortify** ([5.7](05-backend.md#57-signing-in-sanctum)):
+
+```sh
+docker compose exec backend composer require laravel/fortify
+docker compose exec backend php artisan fortify:install
+```
+
+`fortify:install` publishes `config/fortify.php`, `app/Providers/FortifyServiceProvider.php`, the actions and two migrations. Then:
+
+- in `config/fortify.php`: `prefix` to `api/auth`, `views` to `false`, `features` down to registration and password resets;
+- the migrations for two-factor and passkeys, and the actions for changing profile and password, are deleted, as their features are off;
+- `FRONTEND_URL`, for the links in emails, goes in `compose.yaml` and `.env.example`.
+
 **A separate database for the tests.** Tests run on `atleoplan_test`, in the same Postgres container, so `RefreshDatabase` never empties the development data:
 
 - `docker/postgres/init/01-test-database.sql` creates it when the Postgres volume is new; on a volume that already exists, create it once by hand: `docker compose exec postgres psql -U atleoplan -c "CREATE DATABASE atleoplan_test OWNER atleoplan;"`
@@ -227,10 +243,11 @@ npx shadcn@latest add card select skeleton separator
 npm install react-router @tanstack/react-query i18next react-i18next i18next-browser-languagedetector
 npm install -D @tanstack/react-query-devtools vitest jsdom @testing-library/react \
   @testing-library/jest-dom @testing-library/user-event @stylistic/eslint-plugin
+npm install react-hook-form zod @hookform/resolvers      # forms, with signing in
+npx shadcn@latest add input label
 ```
 
 The others of [2.2](02-decisions.md#22-stack) come with the feature that needs them:
-- react-hook-form and zod with sign-in (FEAT-1);
 - dnd-kit with the plan editor (FEAT-2);
 - vite-plugin-pwa with workout mode (FEAT-3);
 - Recharts with the progress charts (phase 2).
@@ -329,6 +346,9 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 |---|---|
 | Laravel | https://laravel.com/docs |
 | Sanctum, SPA authentication | https://laravel.com/docs/sanctum#spa-authentication |
+| Fortify | https://laravel.com/docs/fortify |
+| React Hook Form | https://react-hook-form.com |
+| Zod | https://zod.dev |
 | Filament | https://filamentphp.com/docs |
 | spatie/laravel-medialibrary | https://spatie.be/docs/laravel-medialibrary |
 | spatie/laravel-query-builder | https://spatie.be/docs/laravel-query-builder |
@@ -366,6 +386,10 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | A commit is **refused by pre-commit** | The identity is not the noreply one: [0.3](#03-git-identity). |
 | A change to `dev.ini` or the `Dockerfile` has no effect | The image must be rebuilt: `docker compose build && docker compose up -d`. |
 | The React app gets **401 / CSRF token mismatch** | The browser is not on `localhost:5673`, or Sanctum's SPA settings are missing: [0.6](#06-creating-the-laravel-backend). |
+| **`/admin` answers 403** | The account is not an admin: [5.8](05-backend.md#58-admin-panel-filament). |
+| The app shows **"Can't reach the server"** | The Docker stack is not running, or the server has an error: `make up`, then `make logs`. |
+| **"Too many attempts"** when signing in | Five tries a minute for one email: wait a minute ([5.7.4](05-backend.md#574-slowing-down-password-guessing)). |
+| A reset email's **link opens the wrong address** | `FRONTEND_URL` in `compose.yaml`; after changing it, `docker compose up -d`. |
 
 ---
 

@@ -100,8 +100,62 @@
     "start": "Empezar un entrenamiento"
   },
   "profile": {
-    "guest": "Invitado",
-    "guestText": "El inicio de sesión está en camino: tus rutinas y preferencias te seguirán en todos tus dispositivos.",
+    "signOut": "Cerrar sesión",
     "about": "Información"
+  },
+  "auth": {
+    "checking": "Comprobando tu cuenta…",
+    "unreachableTitle": "No se puede conectar con el servidor",
+    "unreachableText": "Comprueba tu conexión e inténtalo de nuevo. Tu cuenta está a salvo.",
+    "otherOptions": "Otras opciones",
+    "backToSignIn": "Volver a iniciar sesión",
+    "fields": {
+      "name": "Nombre",
+      "email": "Correo",
+      "password": "Contraseña",
+      "newPassword": "Nueva contraseña",
+      "passwordConfirmation": "Repite la contraseña"
+    },
+    "errors": {
+      "required": "Este campo es obligatorio.",
+      "email": "Introduce un correo válido.",
+      "passwordLength": "Usa al menos {{count}} caracteres.",
+      "passwordMatch": "Las dos contraseñas no coinciden.",
+      "network": "Sin conexión con el servidor. Comprueba tu red e inténtalo de nuevo.",
+      "tooMany": "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
+      "unexpected": "Algo ha salido mal. Inténtalo de nuevo."
+    },
+    "signIn": {
+      "eyebrow": "Hola de nuevo",
+      "title": "Inicia sesión",
+      "description": "Tus rutinas y tu progreso te esperan.",
+      "submit": "Iniciar sesión",
+      "forgot": "¿Has olvidado tu contraseña?",
+      "noAccount": "¿Eres nuevo? Crea una cuenta"
+    },
+    "signUp": {
+      "eyebrow": "Empecemos",
+      "title": "Crea tu cuenta",
+      "description": "Crea tus rutinas y registra cada serie.",
+      "submit": "Crear cuenta",
+      "haveAccount": "¿Ya tienes cuenta? Inicia sesión"
+    },
+    "forgotPassword": {
+      "eyebrow": "No pasa nada",
+      "title": "¿Has olvidado tu contraseña?",
+      "description": "Introduce tu correo y te enviaremos un enlace para elegir una nueva.",
+      "submit": "Enviar el enlace",
+      "sent": "Hecho: busca el enlace en tu correo."
+    },
+    "resetPassword": {
+      "eyebrow": "Ya casi está",
+      "title": "Elige una nueva contraseña",
+      "description": "Para la cuenta {{email}}.",
+      "submit": "Guardar la contraseña",
+      "done": "Contraseña cambiada. Ya puedes iniciar sesión con la nueva.",
+      "invalidTitle": "Este enlace no funciona",
+      "invalidText": "Le falta algo. Pide uno nuevo y ábrelo desde el correo.",
+      "askAgain": "Pedir un nuevo enlace"
+    }
   }
 }

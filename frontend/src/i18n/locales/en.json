@@ -100,8 +100,62 @@
     "start": "Start a workout"
   },
   "profile": {
-    "guest": "Guest",
-    "guestText": "Sign-in is coming: your plans and preferences will follow you on every device.",
+    "signOut": "Sign out",
     "about": "About"
+  },
+  "auth": {
+    "checking": "Checking your account…",
+    "unreachableTitle": "Can't reach the server",
+    "unreachableText": "Check your connection and try again. Your account is safe.",
+    "otherOptions": "Other options",
+    "backToSignIn": "Back to sign in",
+    "fields": {
+      "name": "Name",
+      "email": "Email",
+      "password": "Password",
+      "newPassword": "New password",
+      "passwordConfirmation": "Repeat the password"
+    },
+    "errors": {
+      "required": "This field is required.",
+      "email": "Enter a valid email address.",
+      "passwordLength": "Use at least {{count}} characters.",
+      "passwordMatch": "The two passwords don't match.",
+      "network": "No connection to the server. Check your network and try again.",
+      "tooMany": "Too many attempts. Wait a minute and try again.",
+      "unexpected": "Something went wrong. Please try again."
+    },
+    "signIn": {
+      "eyebrow": "Welcome back",
+      "title": "Sign in",
+      "description": "Your plans and your progress are waiting.",
+      "submit": "Sign in",
+      "forgot": "Forgot your password?",
+      "noAccount": "New here? Create an account"
+    },
+    "signUp": {
+      "eyebrow": "Get started",
+      "title": "Create your account",
+      "description": "Build your plans and log every set.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account? Sign in"
+    },
+    "forgotPassword": {
+      "eyebrow": "No problem",
+      "title": "Forgot your password?",
+      "description": "Enter your email and we'll send you a link to choose a new one.",
+      "submit": "Send the link",
+      "sent": "Done: check your inbox for the link."
+    },
+    "resetPassword": {
+      "eyebrow": "Almost there",
+      "title": "Choose a new password",
+      "description": "For the account {{email}}.",
+      "submit": "Save the password",
+      "done": "Password changed. You can sign in with the new one.",
+      "invalidTitle": "This link doesn't work",
+      "invalidText": "Something is missing from it. Ask for a new one and open it from the email.",
+      "askAgain": "Ask for a new link"
+    }
   }
 }

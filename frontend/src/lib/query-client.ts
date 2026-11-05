@@ -11,7 +11,8 @@
  * Components never store server data in useState. src/api/health.ts is the
  * model.
  */
-import { QueryClient } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
+import { authKeys } from '@/api/auth'
 import { ApiError } from './http'
 
 /**
@@ -24,10 +25,27 @@ const STALE_TIME_MS = 30_000
 const MAX_RETRIES = 2
 
 /**
+ * Called after any failed request. A 401 means the session has ended, such as
+ * when it expired or was closed on another device: "who is signed in" becomes
+ * nobody, and the guards (src/routes/RequireAuth.tsx) go to /login, wherever
+ * the user was. No screen has to handle this by itself.
+ * @param error what the request threw
+ */
+function handleSignedOut(error: unknown) {
+  if (error instanceof ApiError && error.status === 401) {
+    queryClient.setQueryData(authKeys.user, null)
+  }
+}
+
+/**
  * The app's one query client, with the defaults of every query; a single
  * useQuery() can still override them (src/api/health.ts does).
+ * The two caches hold the requests that read and those that change data; each
+ * calls its onError on any failure of its kind.
  */
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: handleSignedOut }),
+  mutationCache: new MutationCache({ onError: handleSignedOut }),
   defaultOptions: {
     queries: {
       staleTime: STALE_TIME_MS,

@@ -33,10 +33,9 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  * app/Providers/AppServiceProvider.php), created by
  * `php artisan filament:install --panels` and listed in bootstrap/providers.php.
  *
- * Who may enter: any row of the `users` table can sign in on the panel's own
- * login page, but outside the `local` environment Filament refuses everyone
- * (403) until User implements Filament's FilamentUser interface with a
- * canAccessPanel() method, which will check the admin flag (FEAT-1).
+ * Who may enter: only admins. Any user can try the panel's own login page, but
+ * User::canAccessPanel() (app/Models/User.php) checks the admin flag, and
+ * Filament refuses everyone else, in every environment.
  */
 class AdminPanelProvider extends PanelProvider
 {

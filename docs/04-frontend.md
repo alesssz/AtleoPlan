@@ -1,6 +1,6 @@
 # 4. Frontend
 
-How the React app in `frontend/` is built, why, and how to work on it. It is written for someone who knows little React, TypeScript or modern JavaScript and wants to read the code and change it with confidence. Read [4.1](#41-the-pieces)–[4.4](#44-react-from-scratch) once, in order: the pieces, the folders, what happens when the app opens, and React's few core ideas. Keep [4.12](#412-javascript-and-typescript-you-will-meet) at hand for any syntax that looks strange, and [4.9](#49-recipes) while coding.
+How the React app in `frontend/` is built, why, and how to work on it. It is written for someone who knows little React, TypeScript or modern JavaScript and wants to read the code and change it with confidence. Read [4.1](#41-the-pieces)–[4.4](#44-react-from-scratch) once, in order: the pieces, the folders, what happens when the app opens, and React's few core ideas. Keep [4.12](#412-javascript-and-typescript-you-will-meet) at hand for any syntax that looks strange, and [4.9](#49-recipes) while coding. Signing in and forms have a section of their own, [4.13](#413-signing-in-and-forms).
 
 Every source file starts with a comment saying what it is for, and the code is commented line by line ([3.2](03-conventions.md#32-code)): the files are meant to be read next to this page. The decisions behind the choices are in [2.2](02-decisions.md#22-stack); the screens they serve in [1. UI design](01-ui-design.md); setup and commands in [0.7](00-setup.md#07-creating-the-react-frontend) and [0.8](00-setup.md#08-everyday-commands).
 
@@ -15,6 +15,7 @@ Every source file starts with a comment saying what it is for, and the code is c
 | **Vite 8** | Development server (instant reload) and production build | `vite.config.ts` |
 | **React Router 8** | Which screen each address shows, without reloading the page | `src/router.tsx` |
 | **TanStack Query 5** | Fetches server data, caches it, keeps it fresh | `src/lib/query-client.ts`, `src/api/` |
+| **react-hook-form + zod** | Forms: react-hook-form holds the fields, zod says what is valid ([4.13](#413-signing-in-and-forms)) | `src/pages/auth-schemas.ts`, `src/lib/form.ts` |
 | **i18next + react-i18next** | Every text in four languages | `src/i18n/` |
 | **Tailwind CSS 4** | Styling with utility classes in the markup | `src/index.css` |
 | **shadcn/ui** (Radix base, Nova preset) | Ready-made components (buttons, selects, cards) whose code lives in the project | `src/components/ui/` |
@@ -50,22 +51,24 @@ frontend/
     ├── router.tsx          the route table
     ├── index.css           Tailwind + the colour tokens of both themes
     ├── api/                one file per API resource: types, cache keys, hooks
-    │   └── health.ts         GET /api/health → useHealth()
+    │   ├── health.ts         GET /api/health → useHealth()
+    │   └── auth.ts           the account: useCurrentUser(), useSignIn(), useSignOut()… (4.13)
     ├── components/
     │   ├── ui/               shadcn/ui components (generated, then ours to edit)
-    │   ├── layout/           the frame: AppLayout, SideNav, BottomTabBar, nav-items
+    │   ├── layout/           the frames: AppLayout (navigation), AuthLayout (sign-in screens); SideNav, BottomTabBar, nav-items
     │   ├── brand/            the logo: BrandMark and Wordmark
     │   ├── home/             pieces of Home: WeekStrip, WeekStats
-    │   └── *.tsx             shared by several pages: PageHeader, EmptyState, SettingRow, the pickers…
-    ├── pages/              one component per screen (HomePage, ProfilePage…)
+    │   └── *.tsx             shared by several pages: PageHeader, EmptyState, SettingRow, FormField, FormBanner, the pickers…
+    ├── pages/              one component per screen (HomePage, LoginPage…), and auth-schemas.ts, the rules of the sign-in forms
+    ├── routes/             the guards: RequireAuth, RequireGuest, useAccountPreferences (4.13)
     ├── i18n/
     │   ├── index.ts          i18next setup and language detection
     │   ├── languages.ts      the supported languages and their names
     │   ├── i18next.d.ts      makes translation keys type-checked
     │   └── locales/          it.json, en.json, es.json, de.json
-    ├── lib/                plain helpers, no React: http (fetch wrapper), query-client, format (numbers, dates), week, utils (cn)
+    ├── lib/                plain helpers, no React: http (fetch wrapper), query-client, form (server errors on a form), format (numbers, dates), week, utils (cn)
     ├── theme/              dark / light theme: logic, context, provider, hook
-    └── test/setup.ts       runs before every test file
+    └── test/               setup.ts runs before every test file; auth-helpers.tsx: a fake API and full-page rendering (4.13)
 ```
 
 **Naming.**
@@ -86,9 +89,10 @@ frontend/
    - imports `src/i18n`, which sets up i18next and picks the language: saved choice, else the browser's, else English;
    - tells React to draw `<App />` inside `<div id="root">`.
 3. **`App.tsx`** wraps everything in the providers, from the outside in: `QueryClientProvider` (server-data cache), `ThemeProvider` (theme), `RouterProvider` (screens).
-4. The **router** reads the address. On `/profile` it matches the branch whose element is `AppLayout`, and its child `profile`.
-5. **`AppLayout`** draws the navigation and an `<Outlet />`; the router puts `ProfilePage` there.
-6. **`ProfilePage`** draws its cards. `ServerStatus` inside it calls `useHealth()`. TanStack Query starts `GET /api/health`, and the component shows its loading skeleton. When the answer arrives, the component draws itself again with "Connected".
+4. The **router** reads the address. On `/profile` it matches the branch whose element is the guard `RequireAuth`, then `AppLayout`, then the child `profile`.
+5. **`RequireAuth`** asks `GET /api/user` and shows grey shapes until the answer arrives. A visitor goes to `/login`; a signed-in user continues, with the account's language and theme applied ([4.13](#413-signing-in-and-forms)).
+6. **`AppLayout`** draws the navigation and an `<Outlet />`; the router puts `ProfilePage` there.
+7. **`ProfilePage`** draws its cards. `ServerStatus` inside it calls `useHealth()`. TanStack Query starts `GET /api/health`, and the component shows its loading skeleton. When the answer arrives, the component draws itself again with "Connected".
 
 **Moving around.** A click on a `NavLink` does not load a new page: the router changes the address with the browser's History API and swaps the component in the `<Outlet />`. The frame, the cache and the state stay where they are.
 
@@ -194,7 +198,7 @@ useEffect(() => {
 ## 4.5 Routing
 
 - **The table** is `src/router.tsx`, made with `createBrowserRouter([...])`. A route has a `path` and an `element`. `children` nest routes inside a parent, which draws them at its `<Outlet />`. `index: true` marks the parent's own address.
-- **The frame:** `AppLayout` is the parent of every signed-in page. Public pages (sign-in) and workout mode, both full screen, will be siblings of it, outside the frame. Comments in the file mark where.
+- **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([4.13](#413-signing-in-and-forms)). Workout mode and the public shared plan, both full screen, will be siblings of these branches. Comments in the file mark where.
 - **Links:** use `<Link to="/plans">`. Use `<NavLink>` in navigation: it knows whether it is the current page and then gets `aria-current="page"`. Use `useNavigate()` to move in code, for example after saving.
 - **Parameters:** a route `plans/:id` gives the page `const { id } = useParams()`.
 - **Not found and crashes:** the last child, `path: '*'`, catches unknown addresses (`NotFoundPage`, inside the frame). `errorElement` (`RouteErrorPage`) replaces a screen that throws while rendering.
@@ -206,8 +210,9 @@ useEffect(() => {
 
 **`src/lib/http.ts`: the only door to the API.** `request<T>(path, { method, body, signal })` wraps `fetch` and:
 
-- sends `Accept: application/json`, so Laravel answers errors as JSON;
+- sends `Accept: application/json`, so Laravel answers errors as JSON, and `Accept-Language`, so it answers in the user's language;
 - for `POST`, `PUT`, `PATCH` and `DELETE`, makes sure Sanctum's `XSRF-TOKEN` cookie exists (calling `/sanctum/csrf-cookie` if not) and sends it back in the `X-XSRF-TOKEN` header. That is Sanctum's CSRF protection;
+- tries once more with a fresh cookie when the token has expired (a 419);
 - turns every failure into an `ApiError`:
   - `status` is 0 when there was no answer (offline, server down), otherwise the HTTP status;
   - `fieldErrors` carries Laravel's validation messages for a 422, per field.
@@ -222,7 +227,8 @@ const health = useQuery({ queryKey: ['health'], queryFn: ({ signal }) => fetchHe
 - The **query key** names a piece of data in the cache. Every component that uses the same key shares one request and one copy.
 - **Freshness:** data younger than 30 seconds (`staleTime`, `query-client.ts`) is served from the cache without asking again. Older data is shown at once and refreshed in the background, also when the tab regains focus.
 - **Retries:** a failed request is retried twice, but only for network and 5xx errors. A 401, 403, 404 or 422 would fail the same way again.
-- **Changing data** (coming with the first forms) uses `useMutation`. On success it calls `queryClient.invalidateQueries({ queryKey })`, so the lists that show that data reload.
+- **Changing data** uses `useMutation`, as in `src/api/auth.ts`. On success it calls `queryClient.invalidateQueries({ queryKey })`, so the lists that show that data reload.
+- **A 401 on any request** means the session has ended: `src/lib/query-client.ts` marks the user as signed out, and the guards go to `/login` ([4.13](#413-signing-in-and-forms)).
 
 **The `src/api/` pattern.** One file per API resource, holding:
 
@@ -257,7 +263,7 @@ i18n.changeLanguage('de')               // switches every text at once
 | `app` | name, tagline |
 | `nav` | navigation labels |
 | `pages.<page>` | each page's `title` and `description` |
-| `home`, `plans`, `exercises`, `progress`, `profile` | each screen's own texts (empty states, greeting…) |
+| `home`, `plans`, `exercises`, `progress`, `profile`, `auth` | each screen's own texts (empty states, greeting, sign-in forms…) |
 | `common`, `preferences`, `theme`, `server` | texts shared by several components ("Coming soon"…) |
 | `errors` | not-found and crash pages |
 
@@ -309,8 +315,8 @@ New screens add their own group (`plans.editor.*`, …).
 **The theme.**
 
 - **How it is applied:** the `dark` class on `<html>` switches every token to its dark value. `index.html` sets it before React loads, and `ThemeProvider` keeps it in step with the user's choice. With "Same as the device" (`system`), it follows the operating system live.
-- **Where the choice is saved:** in this browser for now (`localStorage`, key `atleoplan.theme`). On the account with sign-in.
-- **To read or change it from a component:** `useTheme()`.
+- **Where the choice is saved:** on the account, so it follows the user, and in this browser (`localStorage`, key `atleoplan.theme`), so `index.html` can apply it before anything is drawn ([4.13.4](#4134-language-and-theme-on-the-account)).
+- **To read it from a component:** `useTheme()`. **To change it:** `useUpdatePreferences()` (`src/api/auth.ts`).
 
 **shadcn/ui.** These are not a library imported from `node_modules`. They are source files copied into `src/components/ui/`, and they are ours to change.
 
@@ -358,7 +364,13 @@ Utilities like these are written in `index.css` with `@utility name { … }` and
 2. **Frontend:** `src/api/thing.ts`, copying `health.ts`, with the type, the keys, `fetchThing`, and `useThing`.
 3. In the component, `const thing = useThing()`, handling `isPending`, `isError` and `data`.
 
-**A form that saves** (from FEAT-1 on): react-hook-form and zod for the fields, `useMutation` calling `request(path, { method: 'POST', body })`, `ApiError.fieldErrors` shown under each field, and `invalidateQueries` on success.
+**A form that saves,** copying `src/pages/LoginPage.tsx` ([4.13.3](#4133-a-form-step-by-step)):
+
+1. A zod schema for the rules, built by a function taking `t`, with its messages in the four locale files.
+2. `useForm` with `zodResolver`, and a `FormField` per field.
+3. `useMutation` in `src/api/`, calling `request(path, { method: 'POST', body })`, with `invalidateQueries` on success.
+4. `showRequestError` in `onError`, and a `FormBanner` for `errors.root`.
+5. A test with `fakeApi` and `userEvent`.
 
 **A new shared component:**
 
@@ -373,7 +385,8 @@ Utilities like these are written in `index.css` with `@utility name { … }` and
 
 - **Vitest** runs the tests. `jsdom` simulates a browser, so components can be rendered.
 - **Testing Library** looks at the result the way a user would: `screen.getByRole('link', { name: 'Plans' })`. Query by role and visible text, never by CSS class. The test then also checks accessibility: if a test cannot find a button by its name, a screen reader cannot either.
-- **Where they live:** next to the code (`*.test.ts(x)`). `src/test/setup.ts` runs first: it adds matchers such as `toBeInTheDocument()`, sets English, and cleans up after each test.
+- **Where they live:** next to the code (`*.test.ts(x)`). `src/test/setup.ts` runs first: it adds matchers such as `toBeInTheDocument()`, sets English, and cleans up after each test, including cookies, `localStorage` and a replaced `fetch`.
+- **Screens that call the API** use a fake one ([4.13.6](#4136-testing-a-screen-with-the-api)).
 
 **The tests so far:**
 
@@ -383,6 +396,11 @@ Utilities like these are written in `index.css` with `@utility name { … }` and
 | `lib/format.test.ts` | weights, numbers and dates in each language's format |
 | `lib/week.test.ts` | the Monday-to-Sunday week, across months and years |
 | `components/layout/BottomTabBar.test.tsx` | five tabs, the current one marked, labels translated (the model of a component test) |
+| `lib/http.test.ts` | what every request carries, how failures become an `ApiError`, the second try on an expired token |
+| `api/auth.test.tsx` | a visitor is not an error, and two preference changes close together both survive |
+| `routes/guards.test.tsx` | who is sent where, and a server that is down not being taken for signed out |
+| `pages/auth-pages.test.tsx` | the four sign-in screens, used as a person would (the model of a form's test) |
+| `pages/ProfilePage.test.tsx` | shows the account, signs out |
 
 **Commands:**
 
@@ -399,9 +417,8 @@ Utilities like these are written in `index.css` with `@utility name { … }` and
 ## 4.11 Known limits
 
 - **Bundle size.** The production build is one JavaScript file of about 560 kB (180 kB compressed), and Vite warns above 500 kB. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
+- **A preference changed with no connection is not saved.** It stays on screen until the page reloads, then the account's value returns. The offline queue will save it (FEAT-3).
 - **Not yet in place**, each with the feature that needs it:
-  - sign-in and route guards (FEAT-1);
-  - forms (FEAT-1);
   - drag and drop (FEAT-2);
   - the PWA and offline support (FEAT-3);
   - charts (phase 2).
@@ -455,6 +472,149 @@ The syntax used in the code, with where to see it. TypeScript is JavaScript plus
 | `.d.ts` file | Types only, no code; here it adds our types to a library's | `i18next.d.ts` |
 
 **Learning more:** React's own tutorial at https://react.dev/learn (start with *Describing the UI* and *Adding Interactivity*); TypeScript's handbook at https://www.typescriptlang.org/docs/handbook/intro.html; modern JavaScript at https://javascript.info.
+
+---
+
+## 4.13 Signing in and forms
+
+The React side of signing in. The server side, including the same steps written by hand, is in [5.7](05-backend.md#57-signing-in-sanctum). The screens are described in [1.4.1](01-ui-design.md#141-sign-in-and-onboarding).
+
+### 4.13.1 The one idea: who is signed in is server data
+
+The app never keeps a "signed in" flag of its own. **Who is signed in is one piece of server data, in the TanStack Query cache,** under the key `authKeys.user` (`src/api/auth.ts`):
+
+| Value in the cache | Means |
+|---|---|
+| `undefined` | Not known yet, or the server has not answered |
+| `null` | A visitor: `GET /api/user` answered 401 |
+| a `User` | Signed in |
+
+Everything follows from this one value, by itself:
+
+```
+signing in  ──▶ asks GET /api/user ──▶ cache holds the User ──▶ RequireGuest moves into the app
+signing out ──▶ cache holds null ─────────────────────────────▶ RequireAuth moves to /login
+any 401     ──▶ cache holds null ─────────────────────────────▶ RequireAuth moves to /login
+```
+
+So the forms never navigate after signing in, and no screen has to handle a session that has expired. The last line is in `src/lib/query-client.ts`: any request answered with 401 sets the value to `null`.
+
+**`fetchCurrentUser` treats errors differently, on purpose.** A 401 means "nobody", so it returns `null`. No connection, or a server error, stays an error: it says nothing about who is signed in, and must not send anyone to `/login`.
+
+### 4.13.2 The guards
+
+A **guard** is a parent route that decides whether its children may open (`src/routes/`). In `src/router.tsx`, nesting decides the order: guard, then frame, then page.
+
+**`RequireAuth`, around the signed-in app,** has four outcomes:
+
+| The cache says | It draws |
+|---|---|
+| Still waiting | Grey shapes ([1.6](01-ui-design.md#16-states-and-edge-cases)): drawing either the app or `/login` here would flash the wrong one |
+| `null` | `<Navigate to="/login" />`, remembering the address in the router's `state` |
+| Nothing, and the request failed | "Can't reach the server" and **Try again** |
+| A `User` | `<Outlet />`, the app |
+
+**`RequireGuest`, around the sign-in screens,** is the opposite: a signed-in user goes to the remembered address, or Home.
+
+**A guard is not security.** Anyone can change the code running in their own browser. The protection is on the server, where `auth:sanctum` refuses the data; the guard only decides what to show.
+
+### 4.13.3 A form, step by step
+
+Every form is built from the same four pieces. `src/pages/LoginPage.tsx` is the model:
+
+**1. The rules: a zod schema** (`src/pages/auth-schemas.ts`). It says what is valid and what to say otherwise. A function taking `t` gives messages in the current language, and the type of the values is derived from it, so the two cannot drift apart:
+
+```ts
+export function signInSchema(t: TFunction) {
+  return z.object({
+    email: z.email({ error: t('auth.errors.email') }),
+    password: z.string().min(1, { error: t('auth.errors.required') }),
+  })
+}
+export type SignInValues = z.infer<ReturnType<typeof signInSchema>>
+```
+
+**2. The fields: react-hook-form.** It holds the values and the errors, and checks the schema on submit:
+
+```tsx
+const form = useForm<SignInValues>({
+  resolver: zodResolver(signInSchema(t)),
+  defaultValues: { email: '', password: '' },
+})
+
+<form onSubmit={form.handleSubmit(onSubmit)} noValidate>
+  <FormField label={t('auth.fields.email')} type="email"
+    error={form.formState.errors.email?.message} {...form.register('email')} />
+</form>
+```
+
+- `register('email')` returns what connects a field to the form (`name`, `ref`, `onChange`, `onBlur`), and the spread hands it all over.
+- `handleSubmit` calls `onSubmit` only when the fields are valid.
+- `noValidate` turns off the browser's own bubbles, which would appear in the browser's language.
+
+**3. The request: a mutation** (`src/api/auth.ts`), TanStack Query's tool for requests that change something. It runs when `mutate` is called, and reports `isPending`, which disables the button:
+
+```tsx
+function onSubmit(values: SignInValues) {
+  signIn.mutate(values, {
+    onError: error => showRequestError(error, form.setError, ['email', 'password'], t),
+  })
+}
+```
+
+**4. What the server refuses: `showRequestError`** (`src/lib/form.ts`). A message about a field on the screen goes under it. Any other goes at the top of the form (`errors.root`, shown with `FormBanner`): no connection, too many tries, or an error on a field that is not visible, such as the email in the reset link.
+
+**Why validate twice.** The browser's check is for speed and comfort, in the user's language. The server's is the real one, because a browser can be made to send anything. Keep their rules the same: `PASSWORD_MIN_LENGTH` here matches `Password::default()` there.
+
+`FormField` (`src/components/FormField.tsx`) draws the label, the 48 px input and the error, linked for screen readers through `htmlFor`, `aria-invalid` and `aria-describedby`.
+
+### 4.13.4 Language and theme on the account
+
+A choice made on the phone follows the user to the computer ([1.4.14](01-ui-design.md#1414-profile-and-settings)). The data flows one way, around a circle:
+
+```
+LanguageSelect, ThemeSelect ──▶ useUpdatePreferences ──▶ the cache (at once) and the server
+                                                              │
+        i18next, ThemeProvider ◀── useAccountPreferences ◀────┘
+```
+
+The pickers only change the account, and `useAccountPreferences`, called by `RequireAuth`, applies the account to the page. A device with no saved choice therefore gets the account's as soon as it signs in. A visitor uses the browser's language, and whatever this browser last saved.
+
+**An example of a real race, and how it was found.** Each save is a request, and two can be in flight together. The first version wrote each answer into the cache:
+
+| Step | Language request | Theme request | Cache |
+|---|---|---|---|
+| 1. The user picks Italian, then Dark | sent | sent | `it`, dark |
+| 2. The theme's request is handled first | not saved yet | answers: `de`, dark | **`de`**, dark |
+| 3. The screen jumps back to German | | | |
+
+The tests passed, because the fake API answered in order. A test in a real browser caught it. The fix follows TanStack Query's recommended pattern (`useUpdatePreferences`):
+
+- the answer is never written into the cache, so the endpoint answers 204;
+- `onMutate` cancels any read in flight, which could hold old values;
+- `onSettled` reads from the server again, only when the last request has finished.
+
+`src/api/auth.test.tsx` reproduces it, with one request held back. **The lesson for any optimistic update:** an answer can describe the past.
+
+### 4.13.5 Details that are easy to miss
+
+- **`remember: true` is always sent.** A session lasts two hours, and a phone at the gym must not ask for a password. So there is no checkbox.
+- **An expired CSRF token gets a second try** (`request()` in `src/lib/http.ts`): a 419 fetches a fresh cookie and sends the request once more, so a sign-in page left open for hours still works.
+- **`Accept-Language`** on every request makes Laravel answer in the user's language ([5.7.7](05-backend.md#577-messages-in-the-users-language)).
+- **Signing out empties the cache,** except who is signed in, which becomes `null`: the next user on this device must not see this one's data.
+- **`autoComplete`** on the fields (`username`, `current-password`, `new-password`) is what makes password managers work.
+
+### 4.13.6 Testing a screen with the API
+
+Tests never call a real server. `src/test/auth-helpers.tsx` gives them:
+
+- **`fakeApi({ 'POST /api/auth/login': { status: 200, body: {} } })`** replaces `fetch` with a table of answers; a function as a value gives an answer that changes between calls. `'network'` fails as with no connection.
+- **`renderRoutes(routes, '/login')`** draws routes with everything the app has around them, and a fresh cache each time.
+- **`sentBody(fake, path)`** tells what was sent.
+
+`src/pages/auth-pages.test.tsx` uses them with `userEvent`, typing and clicking as a person would. Prefer `findBy…`, which waits, when the element appears after an answer.
+
+**What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers. Before calling a feature done, try it in a browser against the real stack, as [4.13.4](#4134-language-and-theme-on-the-account) shows.
 
 ---
 

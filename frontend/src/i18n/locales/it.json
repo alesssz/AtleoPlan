@@ -100,8 +100,62 @@
     "start": "Inizia un allenamento"
   },
   "profile": {
-    "guest": "Ospite",
-    "guestText": "L'accesso sta arrivando: schede e preferenze ti seguiranno su ogni dispositivo.",
+    "signOut": "Esci",
     "about": "Informazioni"
+  },
+  "auth": {
+    "checking": "Controllo il tuo account…",
+    "unreachableTitle": "Server non raggiungibile",
+    "unreachableText": "Controlla la connessione e riprova. Il tuo account è al sicuro.",
+    "otherOptions": "Altre opzioni",
+    "backToSignIn": "Torna all'accesso",
+    "fields": {
+      "name": "Nome",
+      "email": "Email",
+      "password": "Password",
+      "newPassword": "Nuova password",
+      "passwordConfirmation": "Ripeti la password"
+    },
+    "errors": {
+      "required": "Questo campo è obbligatorio.",
+      "email": "Inserisci un indirizzo email valido.",
+      "passwordLength": "Usa almeno {{count}} caratteri.",
+      "passwordMatch": "Le due password non coincidono.",
+      "network": "Nessuna connessione al server. Controlla la rete e riprova.",
+      "tooMany": "Troppi tentativi. Aspetta un minuto e riprova.",
+      "unexpected": "Qualcosa è andato storto. Riprova."
+    },
+    "signIn": {
+      "eyebrow": "Bentornato",
+      "title": "Accedi",
+      "description": "Le tue schede e i tuoi progressi ti aspettano.",
+      "submit": "Accedi",
+      "forgot": "Password dimenticata?",
+      "noAccount": "Sei nuovo? Crea un account"
+    },
+    "signUp": {
+      "eyebrow": "Si comincia",
+      "title": "Crea il tuo account",
+      "description": "Costruisci le tue schede e registra ogni serie.",
+      "submit": "Crea l'account",
+      "haveAccount": "Hai già un account? Accedi"
+    },
+    "forgotPassword": {
+      "eyebrow": "Nessun problema",
+      "title": "Password dimenticata?",
+      "description": "Inserisci la tua email e ti invieremo un link per sceglierne una nuova.",
+      "submit": "Invia il link",
+      "sent": "Fatto: controlla la posta per trovare il link."
+    },
+    "resetPassword": {
+      "eyebrow": "Ci siamo quasi",
+      "title": "Scegli una nuova password",
+      "description": "Per l'account {{email}}.",
+      "submit": "Salva la password",
+      "done": "Password cambiata. Puoi accedere con quella nuova.",
+      "invalidTitle": "Questo link non funziona",
+      "invalidText": "Manca qualcosa. Richiedine uno nuovo e aprilo dall'email.",
+      "askAgain": "Richiedi un nuovo link"
+    }
   }
 }

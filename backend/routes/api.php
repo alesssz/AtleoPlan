@@ -13,11 +13,13 @@
  * cookie (SPA mode, bootstrap/app.php; docs/05-backend.md 5.7); a route under
  * `auth:sanctum` answers 401 to a visitor who is not signed in.
  *
- * For now the routes answer with inline functions; real endpoints will use
- * controllers in app/Http/Controllers (docs/03-conventions.md 3.2).
+ * One-line answers use an inline function; anything longer uses a controller
+ * in app/Http/Controllers (docs/03-conventions.md 3.2). Signing in, up and out
+ * and resetting a password are not here: Fortify registers them under
+ * /api/auth (config/fortify.php, docs/05-backend.md 5.7).
  */
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\CurrentUserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,11 +36,11 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('/health', fn () => response()->json(['status' => 'ok']))->name('health');
 
-// The signed-in user (installed by `install:api`); used by sign-in (FEAT-1).
-// Laravel sees the `Request $request` parameter and passes in the current
-// request (the service container fills parameters by their type). Returning
-// a model sends it as JSON, without the columns User marks as hidden.
-// middleware('auth:sanctum') lets only signed-in users through (401 otherwise).
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Everything inside this group needs a signed-in user: 401 otherwise.
+// `[Controller::class, 'method']` names the method that answers the route.
+Route::middleware('auth:sanctum')->group(function () {
+    // Who is signed in; the React app asks at start-up
+    Route::get('/user', [CurrentUserController::class, 'show']);
+    // Saves the language or the theme on the account
+    Route::patch('/user/preferences', [CurrentUserController::class, 'updatePreferences']);
+});
