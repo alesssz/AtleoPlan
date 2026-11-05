@@ -160,7 +160,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (1.4.9
 ### 1.4.4 Exercise details
 
 - **Media at the top:** carousel of photos and videos; videos play muted and looping, a tap opens them full screen.
-- Step-by-step instructions, muscles worked (main and secondary), equipment, tips and common mistakes.
+- Step-by-step instructions, muscles worked (main and secondary), equipment. Tips and common mistakes come later, when there is content for them ([6.4](06-data-model.md#64-exercise-library)).
 - **My history** tab: last sessions, best set, estimated one-rep max.
 - Actions: **Add to plan**, **Edit** (only for my own exercises), **Duplicate as mine** (for public ones, to customise them).
 
@@ -385,7 +385,7 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 | Error | Red dot, tap for details | The server refused a change |
 
 - **Works offline:** all of workout mode; plans and exercises already opened; cached history; the photos of the active plan's exercises (downloaded ahead).
-- **Does not work offline** (buttons disabled, with the reason): uploading media, creating share links, searching the public library beyond the cache.
+- **Does not work offline** (buttons disabled, with the reason): creating or editing exercises ([6.2](06-data-model.md#62-rules-for-every-table)), uploading media, creating share links, searching the public library beyond the cache.
 - **Conflicts:** sessions never conflict (each has a UUID created on the device, [2.7](02-decisions.md#27-offline-and-sync)). For a plan edited on two devices the last change wins, with a warning: "This plan was changed somewhere else".
 
 ---
