@@ -6,7 +6,7 @@ How work is done in this repository: Git, code, comments, documentation and the 
 
 ## 3.1 Git
 
-- **One branch per task** from `main`, with a short English name and a type prefix: `feat/plan-editor`, `fix/rest-timer`, `docs/ui-design`, `chore/docker`.
+- **One branch per task** from `main`, with a short English name and a type prefix: `feat/plan-editor`, `fix/rest-timer`, `docs/ui-design`, `chore/docker`. `make branch name=feat/plan-editor` creates it from an up-to-date `main`.
 - **Commit messages** in English, imperative, one subject line (`Add the rest timer to workout mode`), a body when the why is not obvious.
 - **Identity:** commits use the same personal GitHub identity as Chronovault, set in this repository's own `.git/config`; the global Git configuration of this computer is for work and is never used here.
 - **No real email in the history:** author and committer are always the GitHub noreply address, so the repository can become public as it is. The `pre-commit` hook in `.githooks/` refuses any other identity; a new clone turns it on with `git config core.hooksPath .githooks` ([0.3](00-setup.md#03-git-identity)).

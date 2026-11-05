@@ -32,3 +32,5 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 ## Git identity
 
 Commits use the personal GitHub noreply address set in this repository's `.git/config`; the Mac's global identity is the work one and must never appear. The hook in `.githooks/` refuses any other email. Never add a `Co-Authored-By` trailer or any Claude attribution to commits or pull requests.
+
+**At the end of every task, give a ready-to-paste commit message** for the work done, following [3.1](docs/03-conventions.md#31-git): English, imperative one-line subject, a body when the why is not obvious, backlog IDs or doc sections when relevant, no attribution line. **Never commit, push or merge yourself: the user does it by hand.** Leave the changes in the working tree and say which branch they are on.
