@@ -266,15 +266,25 @@ Run from the project folder. `exec` runs in the container already started (fast)
 
 | What | Command |
 |---|---|
-| Start / stop the stack | `make up` / `make down` |
+| Is everything in order? Docker and its disk, Node, npm cache, Git identity and hook, packages, ports, test database; prints the fix for each problem | `make doctor` |
+| New clone: hook, image, packages, test database, migrations | `make setup` |
+| Start everything (stack, then React) / only the stack / stop | `make start` / `make up` / `make down` |
+| The local addresses | `make urls` |
 | Any artisan or Composer command | `make artisan c="route:list"`, `make composer c="require vendor/package"` |
 | Migrations / empty and rebuild the database | `make migrate` / `make fresh` |
+| Save / restore the development database | `make db-dump` (to `backups/`, not committed) / `make db-restore f=backups/<file>.sql` |
+| Create the tests' database on an old volume | `make test-db` |
+| A change seems ignored (config, routes cached) | `make clear` |
 | Logs | `make logs` (backend), `make logs s=queue` |
 | React dev server | `make dev` |
+| Tests, all or some | `make test`, `make test f=TestDatabase` |
+| Fix PHP format and ESLint problems automatically | `make fix` |
 | Every check before a merge: Pint, tests, lint, types | `make check` (needs the stack up) |
+| Known vulnerabilities in the packages (report only) | `make audit` |
+| New branch from an up-to-date `main` | `make branch name=feat/plan-editor` |
+| Back to `main`, up to date with GitHub | `make sync` |
 | Push the current branch | `make push` |
 | Merge the current branch into `main` | `make merge` ([3.1](03-conventions.md#31-git)) |
-| New clone: hook, image, packages, migrations | `make setup` |
 
 Values go in variables (`c=`, `s=`), because Make reads anything after the target as more targets.
 
@@ -327,7 +337,8 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | `composer require` fails with **"… is locked to version … and an update of this package was not requested"** | The new package needs other versions of packages already in `composer.lock`. Add `-W` (`--with-all-dependencies`) so Composer may update them too; try first with `--dry-run` to see what would change. |
 | `queue` shows **unhealthy** | Fixed in `compose.yaml` (the image's healthcheck asks Caddy, which the worker does not run); recreate it with `docker compose up -d queue`. Whether the worker works is in `docker compose logs queue`. |
 | `npm install` fails with **EACCES** and "Your cache folder contains root-owned files" | An npm command once run with `sudo` left files in `~/.npm` owned by root. Give them back to the user: `sudo chown -R $(id -u):$(id -g) ~/.npm`. Never run npm with `sudo`. |
-| Tests fail with **database "atleoplan_test" does not exist** | The Postgres volume predates the init script: create it once ([0.6](#06-creating-the-laravel-backend)). |
+| Tests fail with **database "atleoplan_test" does not exist** | The Postgres volume predates the init script: `make test-db` creates it ([0.6](#06-creating-the-laravel-backend)). |
+| Something odd, cause unknown | `make doctor` checks the usual suspects above and prints the fix for each. |
 | A commit is **refused by pre-commit** | The identity is not the noreply one: [0.3](#03-git-identity). |
 | A change to `dev.ini` or the `Dockerfile` has no effect | The image must be rebuilt: `docker compose build && docker compose up -d`. |
 | The React app gets **401 / CSRF token mismatch** | The browser is not on `localhost:5673`, or Sanctum's SPA settings are missing: [0.6](#06-creating-the-laravel-backend). |

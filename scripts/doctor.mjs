@@ -1,0 +1,164 @@
+#!/usr/bin/env node
+/**
+ * Checks that this computer and this clone are ready for AtleoPlan, and prints
+ * the fix for whatever is not. Changes nothing. Run with `make doctor`.
+ *
+ * Checks, in order: Docker (installed, running, disk space), Node (the major
+ * of .nvmrc) and npm's cache, the Git identity and hook, the dependencies of
+ * both apps, the backend's .env (only that it exists: it holds secrets), the
+ * ports, and the test database. The problems met while setting the project
+ * up are among them: docs/00-setup.md 0.10.
+ *
+ * Exit code 1 when at least one check fails, 0 otherwise (warnings included).
+ */
+import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/** The repository root (this file is in scripts/). */
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+/** The only email allowed in commits (docs/00-setup.md 0.3). */
+const NOREPLY = '32982604+alesssz@users.noreply.github.com'
+/** Host ports of the stack, standard + 500 (docs/00-setup.md 0.4), with what owns them. */
+const PORTS = { 8500: 'Laravel', 5932: 'Postgres', 8525: 'Mailpit', 5673: 'Vite' }
+/** Below this many free GB on Docker's disk, builds start failing in odd ways. */
+const MIN_DOCKER_FREE_GB = 5
+
+/** Count of failed checks, for the exit code. */
+let failures = 0
+
+/** Runs a command and returns its trimmed output, or null when it fails. */
+function run(command, args, options = {}) {
+  try {
+    return execFileSync(command, args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], ...options }).trim()
+  }
+  catch {
+    return null
+  }
+}
+
+/** Prints a passed check. */
+function ok(message) {
+  console.log(`  ✔ ${message}`)
+}
+
+/** Prints a warning: worth fixing, not blocking. */
+function warn(message, fix) {
+  console.log(`  ⚠ ${message}${fix ? `\n      → ${fix}` : ''}`)
+}
+
+/** Prints a failed check with its fix, and counts it. */
+function fail(message, fix) {
+  failures++
+  console.log(`  ✖ ${message}${fix ? `\n      → ${fix}` : ''}`)
+}
+
+// --- Docker ------------------------------------------------------------------------
+console.log('Docker')
+/** Docker's server version; null when the CLI is missing or the daemon is down. */
+const dockerVersion = run('docker', ['info', '--format', '{{.ServerVersion}}'])
+if (!run('docker', ['--version'])) {
+  fail('Docker is not installed', 'install Docker Desktop')
+}
+else if (!dockerVersion) {
+  fail('Docker is installed but not running', 'start Docker Desktop')
+}
+else {
+  ok(`Docker ${dockerVersion} running`)
+  // Free space on Docker's virtual disk, in GB, measured from a throwaway container
+  // already on this computer (the backend image, if built)
+  const freeKb = run('docker', ['run', '--rm', '--entrypoint', 'sh', 'atleoplan-backend:dev', '-c', "df -k / | tail -1 | awk '{print $4}'"])
+  if (freeKb === null) {
+    warn('backend image not built yet, Docker disk space not checked', 'make build')
+  }
+  else {
+    // Kilobytes to gigabytes, one decimal
+    const freeGb = Math.round(Number(freeKb) / 1024 / 1024 * 10) / 10
+    if (freeGb < MIN_DOCKER_FREE_GB) {
+      fail(`only ${freeGb} GB free on Docker's disk`, 'docker builder prune -af; docker image prune -af (docs/00-setup.md 0.10)')
+    }
+    else {
+      ok(`${freeGb} GB free on Docker's disk`)
+    }
+  }
+}
+
+// --- Node and npm ------------------------------------------------------------------
+console.log('Node')
+/** The Node major the project expects (.nvmrc). */
+const wantedNode = readFileSync(join(ROOT, '.nvmrc'), 'utf8').trim()
+/** The Node major running this script. */
+const actualNode = process.versions.node.split('.')[0]
+if (actualNode === wantedNode) {
+  ok(`Node ${process.versions.node}`)
+}
+else {
+  fail(`Node ${process.versions.node}, the project wants ${wantedNode} (.nvmrc)`, 'nvm use (or install Node ' + wantedNode + ')')
+}
+// A file in npm's cache owned by another user (root, after a `sudo npm`) breaks every install
+const npmCache = join(homedir(), '.npm')
+const foreignFile = existsSync(npmCache) ? run('find', [npmCache, '!', '-user', String(process.getuid()), '-print', '-quit']) : ''
+if (foreignFile) {
+  fail('npm\'s cache has files owned by another user (EACCES on install)', 'sudo chown -R $(id -u):$(id -g) ~/.npm')
+}
+else {
+  ok('npm cache owned by you')
+}
+
+// --- Git ---------------------------------------------------------------------------
+console.log('Git')
+/** The email this repository commits with. */
+const email = run('git', ['config', 'user.email'])
+if (email === NOREPLY) {
+  ok(`commits as ${email}`)
+}
+else {
+  fail(`commits would use ${email ?? 'no email'}`, `git config user.email "${NOREPLY}" (docs/00-setup.md 0.3)`)
+}
+if (run('git', ['config', 'core.hooksPath']) === '.githooks') {
+  ok('email-guard hook active')
+}
+else {
+  fail('the email-guard hook is off', 'git config core.hooksPath .githooks')
+}
+if (run('git', ['remote', 'get-url', 'origin'])) {
+  ok('GitHub remote set')
+}
+else {
+  warn('no GitHub remote', 'git remote add origin https://github.com/alesssz/AtleoPlan.git')
+}
+
+// --- The apps ----------------------------------------------------------------------
+console.log('Apps')
+if (existsSync(join(ROOT, 'backend/vendor'))) ok('backend packages installed')
+else fail('backend packages missing', 'make composer c=install')
+// Existence only: the file holds secrets and is never read here
+if (existsSync(join(ROOT, 'backend/.env'))) ok('backend/.env present')
+else fail('backend/.env missing', 'cp backend/.env.example backend/.env && make artisan c="key:generate"')
+if (existsSync(join(ROOT, 'frontend/node_modules'))) ok('frontend packages installed')
+else fail('frontend packages missing', 'make fe-install')
+
+// --- Ports and services ------------------------------------------------------------
+console.log('Ports')
+/** Host ports published by this project's running containers. */
+const ownPorts = new Set((run('docker', ['compose', 'ps', '--format', '{{.Ports}}']) ?? '')
+  .match(/:(\d+)->/g)?.map(match => match.slice(1, -2)) ?? [])
+for (const [port, service] of Object.entries(PORTS)) {
+  // The program listening on the port, if any
+  const listener = run('lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-Fc'])
+  if (!listener) ok(`${port} (${service}) free`)
+  else if (ownPorts.has(port)) ok(`${port} (${service}) in use by AtleoPlan`)
+  else if (port === '5673' && listener.includes('node')) ok(`${port} (${service}) in use by Node, probably make dev`)
+  else warn(`${port} (${service}) taken by another program`, `lsof -nP -iTCP:${port} -sTCP:LISTEN; or change the port (docs/00-setup.md 0.4)`)
+}
+
+// The test database, when Postgres runs (docs/00-setup.md 0.6)
+const testDb = run('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', 'atleoplan', '-tAc', "select 1 from pg_database where datname = 'atleoplan_test'"])
+if (testDb === null) warn('Postgres not running, test database not checked', 'make up')
+else if (testDb === '1') ok('test database atleoplan_test exists')
+else fail('test database atleoplan_test missing', 'make test-db')
+
+console.log(failures ? `\n✖ ${failures} problem(s) to fix.` : '\n✔ All good.')
+process.exitCode = failures ? 1 : 0

@@ -9,11 +9,11 @@
 
 SHELL := bash
 .DEFAULT_GOAL := help
-.PHONY: help setup up down down-v build restart ps logs shell \
-        artisan composer migrate fresh tinker routes psql \
+.PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
+        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore \
         dev fe-install fe-build \
-        test pint pint-check lint typecheck check \
-        push merge
+        test pint pint-check lint lint-fix typecheck fix check audit \
+        branch sync push merge
 
 # docker compose, and the two ways into the backend container
 DC      := docker compose
@@ -28,20 +28,33 @@ help: ## Show this list
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-# --- First run ----------------------------------------------------------------
+# --- First run and status -------------------------------------------------------
 
-setup: ## New clone: Git hook, image, containers, Composer and npm packages, migrations
+doctor: ## Check this computer and clone (Docker, disk, Node, npm cache, Git identity, ports…) and print the fixes
+	node scripts/doctor.mjs
+
+setup: ## New clone: Git hook, image, containers, Composer and npm packages, test database, migrations
 	git config core.hooksPath .githooks
 	$(DC) build
 	$(DC) up -d --wait
 	$(DC) exec backend composer install
 	$(NPM) install
+	$(MAKE) --no-print-directory test-db
 	$(ARTISAN) migrate
 	@echo ""
 	@echo "✔ Ready. Laravel: http://localhost:8500 · React: make dev (http://localhost:5673)"
-	@echo "  Set the Git identity once if not done: docs/00-setup.md 0.3"
+	@echo "  Set the Git identity once if not done: docs/00-setup.md 0.3 · then: make doctor"
+
+urls: ## The local addresses
+	@echo "Laravel          http://localhost:8500"
+	@echo "Filament admin   http://localhost:8500/admin"
+	@echo "React (make dev) http://localhost:5673"
+	@echo "Mailpit          http://localhost:8525"
+	@echo "Postgres         localhost:5932  (user, password, database: atleoplan)"
 
 # --- Docker stack ---------------------------------------------------------------
+
+start: up dev ## Start everything: the Docker stack, then the React dev server (Ctrl+C stops React only)
 
 up: ## Start backend, worker, Postgres and Mailpit
 	$(DC) up -d
@@ -90,8 +103,28 @@ tinker: ## Interactive PHP console of the app
 routes: ## List the routes
 	$(ARTISAN) route:list
 
+clear: ## Clear Laravel's caches (config, routes, views, events): when a change seems ignored
+	$(ARTISAN) optimize:clear
+
+# --- Database -------------------------------------------------------------------
+
 psql: ## SQL console on the development database
 	$(DC) exec postgres psql -U atleoplan
+
+test-db: ## Create the tests' database atleoplan_test if missing (a Postgres volume from before its init script)
+	@$(DC) exec -T postgres psql -U atleoplan -tAc "select 1 from pg_database where datname = 'atleoplan_test'" | grep -q 1 \
+		&& echo "✔ atleoplan_test already exists" \
+		|| $(DC) exec -T postgres psql -U atleoplan -c "CREATE DATABASE atleoplan_test OWNER atleoplan;"
+
+db-dump: ## Save the development database to backups/atleoplan-<date>.sql (before make fresh, say)
+	@mkdir -p backups
+	$(DC) exec -T postgres pg_dump -U atleoplan --clean --if-exists atleoplan > backups/atleoplan-$$(date +%Y%m%d-%H%M%S).sql
+	@ls -t backups/*.sql | head -1
+
+db-restore: ## Replace the development database with a dump: make db-restore f=backups/<file>.sql
+	@test -f "$(f)" || { echo 'Usage: make db-restore f=backups/<file>.sql'; exit 1; }
+	$(DC) exec -T postgres psql -U atleoplan -q -v ON_ERROR_STOP=1 atleoplan < $(f) > /dev/null
+	@echo "✔ Restored $(f)"
 
 # --- Frontend -----------------------------------------------------------------
 
@@ -106,8 +139,8 @@ fe-build: ## Production build of the React app
 
 # --- Quality and tests --------------------------------------------------------
 
-test: ## Backend tests (Pest, on the atleoplan_test database)
-	$(ARTISAN) test
+test: ## Backend tests (Pest, on atleoplan_test); only some: make test f=TestDatabase
+	$(ARTISAN) test $(if $(f),--filter=$(f))
 
 pint: ## Format the PHP code
 	$(DC) exec backend vendor/bin/pint
@@ -118,12 +151,33 @@ pint-check: ## Check the PHP format without changing files
 lint: ## ESLint on the frontend
 	$(NPM) run lint
 
+lint-fix: ## ESLint with automatic fixes
+	$(NPM) run lint -- --fix
+
 typecheck: ## TypeScript check of the frontend
 	$(NPM) run typecheck
 
+fix: pint lint-fix ## Fix what can be fixed automatically: PHP format and ESLint
+
 check: pint-check test lint typecheck ## Everything before a merge (needs the stack up)
 
+# The leading "-" lets the second audit run when the first finds something.
+audit: ## Known vulnerabilities in the Composer and npm packages (report only, changes nothing)
+	-$(DC) exec backend composer audit
+	-$(NPM) audit
+
 # --- Git ----------------------------------------------------------------------
+
+branch: ## New branch from an up-to-date main: make branch name=feat/plan-editor
+	@test -n "$(name)" || { echo 'Usage: make branch name=feat/<short-name>'; exit 1; }
+	git switch main
+	git pull --ff-only origin main
+	git switch -c $(name)
+
+sync: ## Go to main and bring it up to date with GitHub (and forget deleted branches)
+	git switch main
+	git pull --ff-only origin main
+	git fetch --prune origin
 
 push: ## Push the current branch to GitHub (sets the upstream the first time)
 	git push -u origin $(BRANCH)
