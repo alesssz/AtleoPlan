@@ -16,7 +16,8 @@ Every PHP file starts with a comment saying what it is and points to the section
 | **Artisan** | Laravel's command-line tool (`php artisan …`). It generates files, runs migrations, opens a console, lists routes. | `make artisan c="route:list"` ([5.13](#513-artisan-and-composer-commands)) |
 | **FrankenPHP** | The web server: it receives HTTP requests and hands them to PHP. It is the Caddy web server with PHP built in. | The `backend` container, port 8500 on your computer |
 | **PostgreSQL** | The database where everything is stored. | The `postgres` container. Development data lives in `atleoplan`, tests in `atleoplan_test`. |
-| **Sanctum** | Laravel's authentication for single-page apps (cookies) and mobile apps (tokens). | [5.7](#57-signing-in-sanctum) |
+| **Sanctum** | Laravel's authentication for single-page apps (cookies) and mobile apps (tokens): recognises the signed-in user on every request. | [5.7](#57-signing-in-sanctum) |
+| **Fortify** | Laravel's sign-in backend: the routes and logic of signing up, in and out and resetting a password, with no screens. | `config/fortify.php`, [5.7](#57-signing-in-sanctum) |
 | **Filament** | A package that builds an admin panel out of PHP classes, with no frontend code to write. | http://localhost:8500/admin ([5.8](#58-admin-panel-filament)) |
 | **Pest** | The testing tool: small files that call the app and check the answers. | `make test` ([5.11](#511-tests-with-pest)) |
 
@@ -66,12 +67,17 @@ PHP syntax as it appears in this project. A line in the code that looks strange 
 ```
 backend/
 ├── app/                    the application's own code (namespace App\)
-│   ├── Http/Controllers/     controllers: receive a request, return an answer (5.5)
+│   ├── Actions/Fortify/      what Fortify leaves to us: creating a user, setting a new password (5.7)
+│   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit (6.2.4)
+│   ├── Http/
+│   │   ├── Controllers/        receive a request, return an answer (5.5)
+│   │   ├── Middleware/         steps every request crosses: SetLocaleFromRequest (5.7.7)
+│   │   ├── Requests/           Form Requests: the validation of an endpoint (5.5)
+│   │   └── Resources/          API Resources: the JSON shape of a model (5.5)
 │   ├── Models/               Eloquent models, one class per table (5.6)
 │   └── Providers/            service providers: set things up when the app starts
 │       └── Filament/           the admin panel's configuration (5.8)
-│   (to come: Http/Requests validation, Http/Resources JSON shapes, Policies
-│    permissions, Jobs background work, Filament/Resources admin screens)
+│   (to come: Policies permissions, Jobs background work, Filament/Resources admin screens)
 ├── bootstrap/
 │   ├── app.php               builds the application: routes, middleware, error handling (5.4)
 │   └── providers.php         the list of service providers to load
@@ -80,6 +86,7 @@ backend/
 │   ├── migrations/           the history of the database's structure (5.6)
 │   ├── factories/            fake records for tests and seeders
 │   └── seeders/              code that fills the database with starting data
+├── lang/                   messages in each language: validation, sign-in, emails (5.7.7)
 ├── public/                 the only folder the web server exposes
 │   └── index.php             every request enters here (5.4)
 ├── resources/views/        Blade HTML templates: only Laravel's welcome page (React draws the app)
@@ -157,7 +164,7 @@ Our rule for an endpoint ([3.2](03-conventions.md#32-code)): **the controller st
 2. lets a **Form Request** validate the input, which answers 422 with one message per invalid field when the input is not valid;
 3. calls the code that does the work and returns an **API Resource**, a class that decides the JSON shape of a model.
 
-The rules themselves live in services or actions, tested without HTTP. These pieces arrive with the first real endpoints (BE-1); [5.12](#512-recipes) has the recipe.
+The rules themselves live in services or actions, tested without HTTP. The smallest real example is `CurrentUserController`, with `UpdatePreferencesRequest` and `UserResource`: it needs no policy, because it only touches the user asking. Policies arrive with BE-1; [5.12](#512-recipes) has the recipe.
 
 ---
 
@@ -214,16 +221,307 @@ $plan->days;                                 // a relation: the plan's days (ano
 
 ## 5.7 Signing in: Sanctum
 
-Sanctum authenticates two kinds of clients:
+Signing in is built from two packages that do different jobs. **Fortify** handles the moments that change who is signed in: signing up, in and out, resetting a password. **Sanctum** recognises the signed-in user on every request after that.
 
-- **The React app (SPA mode), now.** The browser keeps a **session cookie**, as with a classic website:
-  1. The React app calls `GET /sanctum/csrf-cookie`. Laravel sets the `XSRF-TOKEN` cookie.
-  2. It sends `POST /login` with email and password, plus the `X-XSRF-TOKEN` header copied from that cookie (`frontend/src/lib/http.ts`). The login endpoint comes with FEAT-1.
-  3. Laravel checks the password and starts a session. The `laravel_session` cookie, which JavaScript cannot read, travels with every following request.
-  4. On every `/api` request, the middleware turned on by `statefulApi()` in `bootstrap/app.php` recognises the browser. It must come from an address listed in `SANCTUM_STATEFUL_DOMAINS`, which is `localhost:5673`, set in `compose.yaml`. The middleware then reads the session, and `auth:sanctum` lets the request through. `$request->user()` returns the user.
-- **The mobile app (phase 3), later.** It uses **API tokens** sent in a header (`Authorization: Bearer …`). It will need the `HasApiTokens` trait on the `User` model; the table for the tokens, `personal_access_tokens`, already exists.
+This section explains each step twice: **how this app does it with Fortify, and how the same step looks written by hand.** The app uses Fortify ([5.7.6](#576-fortify-or-by-hand) says why), so the by-hand code is not in the repository; it is here because it shows what Fortify does for us. It was run against the same scenarios as our tests, and it passes them. The React side is in [4.13](04-frontend.md#413-signing-in-and-forms).
 
-**Why cookies and not tokens for the web app:** the session cookie is `HttpOnly`, so JavaScript cannot read it, and neither can malicious code injected into the page. The CSRF token stops other websites from sending requests on the user's behalf. Both work because the React app and the API share one address ([2.6](02-decisions.md#26-hosting)).
+### 5.7.1 How a session works
+
+HTTP has no memory: each request arrives knowing nothing about the one before. A **session** adds the memory:
+
+1. When a user signs in, Laravel creates a row in the `sessions` table, with a long random id, and writes the user's id in it.
+2. It sends that random id to the browser in a **cookie**, here named `atleoplan-session`.
+3. The browser sends the cookie back with every request, by itself.
+4. Laravel finds the session from the cookie, and from it the user: `$request->user()`.
+
+**The password is never stored.** What is stored is a **hash**: the result of a one-way calculation, which cannot be turned back into the password. To check a password, Laravel hashes what was typed and compares the two results. `Hash::make()` makes a hash, and `Hash::check()` compares.
+
+**Three protections work together:**
+
+| What | Stops | How |
+|---|---|---|
+| **`HttpOnly` cookie** | Malicious code injected in the page stealing the session | JavaScript cannot read this cookie |
+| **CSRF token** | Another website making the user's browser send a request | Cookies travel by themselves, even for a request started by another site. So each request that changes something must also carry a token in a header. The token is in the `XSRF-TOKEN` cookie, which only pages on our own address can read |
+| **Rate limit** | Guessing passwords | [5.7.4](#574-slowing-down-password-guessing) |
+
+**What Sanctum does.** On every `/api` request, the middleware turned on by `statefulApi()` in `bootstrap/app.php` checks that the browser is on an address listed in `SANCTUM_STATEFUL_DOMAINS` (`localhost:5673`, set in `compose.yaml`). It then starts the session, checks the CSRF token, and `auth:sanctum` lets the request through, or answers 401.
+
+**The whole journey of signing in:**
+
+```
+Browser (localhost:5673)                        Laravel, through Vite's proxy
+  │
+  ├─ GET /sanctum/csrf-cookie ───────────────▶  sets the XSRF-TOKEN cookie
+  │
+  ├─ POST /api/auth/login ───────────────────▶  checks the CSRF token, the rate limit,
+  │    { email, password, remember }            the password; starts the session
+  │    X-XSRF-TOKEN: …                     ◀──  200, sets atleoplan-session
+  │
+  └─ GET /api/user ──────────────────────────▶  auth:sanctum reads the session
+                                           ◀──  { "data": { "name": "Ann", … } }
+```
+
+**Why cookies and not tokens for the web app:** a token kept in JavaScript can be stolen by injected code, and an `HttpOnly` cookie cannot. It all works because the React app and the API share one address ([2.6](02-decisions.md#26-hosting)).
+
+**The mobile app (phase 3)** will use **API tokens** sent in a header (`Authorization: Bearer …`) instead, with the `HasApiTokens` trait on the `User` model; their table, `personal_access_tokens`, already exists.
+
+**Where the routes are.** Fortify's are under `/api/auth`, set by `prefix` in `config/fortify.php`. Not plain `/login`, for two reasons: `/login` is a React page, and Vite and Caddy forward only `/api` to Laravel ([4.1](04-frontend.md#41-the-pieces)).
+
+| Method and path | What it does | Answers |
+|---|---|---|
+| `POST /api/auth/register` | Signs up, then signs in | 201 |
+| `POST /api/auth/login` | Signs in | 200; 422 if refused; 429 after too many tries |
+| `POST /api/auth/logout` | Signs out | 204 |
+| `POST /api/auth/forgot-password` | Sends the email | 200; 422 if the email is unknown |
+| `POST /api/auth/reset-password` | Sets the new password | 200; 422 if the token is wrong |
+| `GET /api/user` (ours) | Who is signed in | 200; 401 for a visitor |
+| `PATCH /api/user/preferences` (ours) | Saves the language or theme | 204; 422 if not valid |
+
+### 5.7.2 Signing in and out
+
+**With Fortify.** The route and the controller are Fortify's. We add one piece, in `app/Providers/FortifyServiceProvider.php`: how to check the password, because this app also refuses disabled accounts.
+
+```php
+Fortify::authenticateUsing(function (Request $request) {
+    $user = User::where('email', $request->input('email'))->first();
+
+    if (! $user || ! Hash::check((string) $request->input('password'), $user->password)) {
+        return null;                       // Fortify answers 422 with auth.failed
+    }
+
+    // Only someone who knows the password learns that the account is disabled
+    if ($user->disabled_at !== null) {
+        throw ValidationException::withMessages(['email' => __('auth.disabled')]);
+    }
+
+    return $user;                          // Fortify signs this user in
+});
+```
+
+**By hand:**
+
+```php
+// routes: the web middleware gives the session, cookies and CSRF protection
+Route::middleware('web')->prefix('api/auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
+});
+
+// in AuthController
+public function login(Request $request): Response
+{
+    $credentials = $request->validate([
+        'email' => ['required', 'string', 'email'],
+        'password' => ['required', 'string'],
+    ]);
+    // Postgres compares text exactly: ANN@x.com would not find ann@x.com
+    $credentials['email'] = Str::lower($credentials['email']);
+
+    // Finds the user, checks the hash and starts the session, all in one call.
+    // The second argument is "remember me": a long-lived cookie
+    if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        throw ValidationException::withMessages(['email' => __('auth.failed')]);
+    }
+
+    if (Auth::user()->disabled_at !== null) {
+        Auth::logout();
+        throw ValidationException::withMessages(['email' => __('auth.disabled')]);
+    }
+
+    // A new session id, so one planted before signing in becomes useless
+    // ("session fixation"). Easy to forget, and nothing visibly breaks without it
+    $request->session()->regenerate();
+
+    return response()->noContent();
+}
+
+public function logout(Request $request): Response
+{
+    Auth::guard('web')->logout();              // forgets the user
+    $request->session()->invalidate();         // empties the session
+    $request->session()->regenerateToken();    // a new CSRF token
+
+    return response()->noContent();
+}
+```
+
+**A detail worth noticing in both:** a wrong password and an unknown email get the same message. A different one would let anyone find out who has an account.
+
+### 5.7.3 Signing up
+
+**With Fortify.** We write only what is specific to this app, in `app/Actions/Fortify/CreateNewUser.php`: which fields are required, and how to create the user. Fortify calls it, signs the new user in, and answers 201.
+
+```php
+public function create(array $input): User
+{
+    Validator::make($input, [
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
+        'password' => $this->passwordRules(),
+        'locale' => ['sometimes', Rule::enum(Locale::class)],
+    ])->validate();
+
+    return User::create([
+        'name' => $input['name'],
+        'email' => $input['email'],
+        'password' => Hash::make($input['password']),
+        'locale' => $input['locale'] ?? app()->getLocale(),
+    ]);
+}
+```
+
+**By hand,** the same rules, plus what Fortify does around them:
+
+```php
+public function register(Request $request): Response
+{
+    // Before validating, so `unique` compares the lowercase form
+    $request->merge(['email' => Str::lower((string) $request->input('email'))]);
+
+    $data = $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+        // confirmed: a password_confirmation field must match
+        'password' => ['required', 'string', Password::default(), 'confirmed'],
+    ]);
+
+    // Only fields in the model's #[Fillable] are written, so is_admin cannot be
+    // slipped in. The `hashed` cast on the model hashes the password
+    $user = User::create($data);
+
+    Auth::login($user);
+    $request->session()->regenerate();
+
+    return response()->noContent(201);
+}
+```
+
+### 5.7.4 Slowing down password guessing
+
+A **rate limiter** counts requests and answers 429 above a limit. Ours allows 5 attempts a minute for one email from one address.
+
+**With Fortify,** it is defined in `FortifyServiceProvider`, and `config/fortify.php` names it, so Fortify puts it on its login route:
+
+```php
+RateLimiter::for('login', function (Request $request) {
+    $throttleKey = Str::transliterate(Str::lower((string) $request->input('email')).'|'.$request->ip());
+
+    return Limit::perMinute(5)->by($throttleKey);
+});
+```
+
+**By hand,** the same definition, and `->middleware('throttle:login')` on the route, as in [5.7.2](#572-signing-in-and-out).
+
+The key counts the email *and* the address, so an attacker cannot lock someone out from elsewhere by trying their email on purpose.
+
+### 5.7.5 Forgot password
+
+There are two requests, joined by an email:
+
+1. **Asking.** Laravel creates a random **token**, stores its hash in `password_reset_tokens`, and emails a link holding the token.
+2. **Setting.** The link opens the React screen `/reset-password`. It sends the token, the email and the new password. Laravel checks the token, saves the password and deletes the token, so the link works once. A token expires after 60 minutes (`config/auth.php`).
+
+**With Fortify,** both controllers are Fortify's. We provide two things:
+
+- **What to do with the new password,** in `app/Actions/Fortify/ResetUserPassword.php`.
+- **Where the link points.** By default Laravel links to a page of its own, which we do not have, and the email would fail with "route not found". In `FortifyServiceProvider`:
+
+```php
+ResetPassword::createUrlUsing(fn (User $user, string $token): string => sprintf(
+    '%s/reset-password?token=%s&email=%s',
+    config('app.frontend_url'),            // FRONTEND_URL (5.10)
+    $token,
+    urlencode($user->email),               // keeps a + in an address intact
+));
+```
+
+**By hand,** that same link setting, and the **password broker**, Laravel's tool for tokens:
+
+```php
+public function sendResetLink(Request $request): JsonResponse
+{
+    $request->validate(['email' => ['required', 'email']]);
+
+    // Creates the token and sends the email; answers with a status, not an exception
+    $status = Password::sendResetLink(['email' => Str::lower($request->input('email'))]);
+
+    if ($status !== Password::RESET_LINK_SENT) {
+        throw ValidationException::withMessages(['email' => __($status)]);
+    }
+
+    return response()->json(['message' => __($status)]);
+}
+
+public function resetPassword(Request $request): JsonResponse
+{
+    $data = $request->validate([
+        'token' => ['required'],
+        'email' => ['required', 'email'],
+        'password' => ['required', 'string', Password::default(), 'confirmed'],
+    ]);
+    $data['email'] = Str::lower($data['email']);
+
+    // Checks the token, then calls this function, then deletes the token
+    $status = Password::reset($data, function (User $user, string $password) {
+        $user->forceFill([
+            'password' => Hash::make($password),
+            // Signs out any device holding the old "remember me" cookie
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        event(new PasswordReset($user));
+    });
+
+    if ($status !== Password::PASSWORD_RESET) {
+        throw ValidationException::withMessages(['email' => __($status)]);
+    }
+
+    return response()->json(['message' => __($status)]);
+}
+```
+
+The password facade here is `Illuminate\Support\Facades\Password`, while in the validation rules `Password::default()` is `Illuminate\Validation\Rules\Password`. They share a name, so a real file would import one under another name, with `as`.
+
+**Known limit:** an unknown email gets a 422, so this form reveals who has an account, as signing up also does. It is noted in [BE-3](backlog.md#be-3-harden-the-public-sign-in-routes), to deal with before the app opens to the public.
+
+### 5.7.6 Fortify or by hand
+
+Both work, and the by-hand code above is not long. The difference is in who answers for the details:
+
+| | With Fortify | By hand |
+|---|---|---|
+| **We write** | `CreateNewUser`, `ResetUserPassword`, the password check, the rate limit, the reset link | All of the above, the five controller methods and their routes |
+| **Session id renewed after signing in** | Done | One line to remember |
+| **Emails in lowercase, everywhere** | One setting | In each of the four methods; forgetting one means a user who cannot sign in |
+| **"Remember me" tokens, reset events** | Done | Written and maintained by us |
+| **Security fixes** | Arrive with `composer update` | Ours to notice and apply |
+| **Later: two-factor, email verification** | One line in `features` | A project of its own |
+| **Seeing the code** | In `vendor/laravel/fortify`, one more thing to read | All in our files |
+| **Changing the behaviour** | Limited to what it offers, though `authenticateUsing` and response classes cover a lot | Anything |
+
+**Why Fortify here:** these are the parts where a small mistake is a security hole, and nothing about them is specific to a workout app. What is specific, the disabled accounts, the language and the link to React, fits in the places Fortify leaves open. By hand would be the better choice if signing in had to work in an unusual way, such as signing in with a code from a club's card.
+
+**Set aside:** Laravel Breeze and Jetstream, which generate screens of their own (Blade, Inertia); our screens are in React. Laravel Passport, an OAuth server, is more than this needs ([2.2](02-decisions.md#22-stack)).
+
+**What `fortify:install` generated, and what was removed.** It publishes migrations and actions for every feature. The migrations for two-factor and passkeys and the actions for changing profile and password were deleted, with those features off in `config/fortify.php`: no empty columns or unused code. Each comes back with its feature.
+
+### 5.7.7 Messages in the user's language
+
+Laravel's messages are read with `__('auth.failed')`, from the files in `lang/`. Our languages ([2.4](02-decisions.md#24-languages)):
+
+| File | Holds |
+|---|---|
+| `lang/{it,es,de}/auth.php`, `passwords.php` | Signing in and resetting a password |
+| `lang/{it,es,de}/validation.php` | Validation errors, for the rules the app uses so far, and the names of the fields |
+| `lang/{it,es,de}.json` | The sentences of the password email, whose keys are the English text |
+| `lang/en/auth.php` | Only what we added. English comes with Laravel, and our files are merged over its own |
+
+**Which language each message uses:**
+
+- **A message answering a request** uses the language the request asks for. The React app sets `Accept-Language` on every call, and the middleware `app/Http/Middleware/SetLocaleFromRequest.php` applies it.
+- **An email** uses the language of the account, because it may be read much later, on another device. `User` implements `HasLocalePreference`, and Laravel asks it before writing the email.
+
+**A new validation rule** in a Form Request adds its message to the three `validation.php` files; `tests/Feature/Auth/LanguageTest.php` lists the keys it checks. A rule without a translation shows its English message.
 
 ---
 
@@ -233,7 +531,9 @@ Filament builds the admin panel from PHP classes. You describe a table's columns
 
 - **The panel** is configured in `app/Providers/Filament/AdminPanelProvider.php`: path `/admin`, login page, colours, and where to look for resources. Open http://localhost:8500/admin. It is served directly by Laravel, not through the React app.
 - **A resource** is the admin screen for one model: its list, its form and its pages. `make artisan c="make:filament-resource Exercise --generate"` creates one from the table's columns. The public exercise library is the first (BE-1, [1.4.15](01-ui-design.md#1415-admin-panel-filament)).
-- **There is no user yet.** `make artisan c="make:filament-user"` asks for a name, email and password and creates one. In local development any signed-in user may open the panel. Before deploying, the `User` model must say who is an admin, by implementing `FilamentUser::canAccessPanel()`; that comes with FEAT-1.
+- **Only admins enter,** in every environment. The `User` model implements `FilamentUser`, and its `canAccessPanel()` checks `is_admin` and that the account is not disabled. Anyone else gets a 403 ([6.3](06-data-model.md#63-users-and-preferences)).
+- **Getting an admin in development.** `make artisan c="db:seed"` creates `test@example.com`, password `password`, an admin. To make an existing account an admin: `make tinker`, then `User::where('email', 'you@example.com')->update(['is_admin' => true]);`. `make artisan c="make:filament-user"` creates a user, but not an admin, so it needs the same step.
+- **The session is shared with the React app:** both use the `web` guard, and cookies are per host, whatever the port. Signing in on one signs in on the other.
 
 ---
 
@@ -255,7 +555,7 @@ Some work is too slow to do while the user waits, such as converting a video wit
 
 - **`config/*.php`** hold every setting, grouped by area (`database.php`, `mail.php`, `queue.php`…). Each value reads an environment variable with a default: `'default' => env('QUEUE_CONNECTION', 'database')`. Code reads settings with `config('queue.default')`, never with `env()`, because `env()` returns nothing once the configuration is cached.
 - **`backend/.env`** sets the variables for this computer. It holds secrets, so it is never committed and never shown (an assistant must not read it). **`.env.example`** lists every variable with harmless values, and it is committed. A new variable goes in both files.
-- **Variables from `compose.yaml` win over `.env`.** The database, mail, queue and Sanctum settings for Docker are set there (`x-backend.environment`), and Laravel never overwrites a variable that is already set. That is why `.env` may still mention SQLite without effect.
+- **Variables from `compose.yaml` win over `.env`.** The app's name, the frontend's address (`FRONTEND_URL`, for links in emails) and the database, mail, queue and Sanctum settings for Docker are set there (`x-backend.environment`), and Laravel never overwrites a variable that is already set. That is why `.env` may still mention SQLite without effect.
 - **`APP_KEY`** in `.env` encrypts cookies and sessions. `create-project` generated it; changing it signs everyone out.
 - **Useful commands:**
   - `make artisan c="config:show database"` shows the values actually in use;
@@ -283,6 +583,10 @@ it('answers ok without signing in', function () {        // the scenario, in wor
 - **`expect($value)->toBe(…)`** is Pest's way to check a value; there are many matchers (`toBeTrue`, `toHaveCount`…).
 - **Signing in inside a test:** `$this->actingAs(User::factory()->create())`.
 - **The database:** tests run on `atleoplan_test`, never on the development data ([0.6](00-setup.md#06-creating-the-laravel-backend)). A test that writes to the database adds `uses(RefreshDatabase::class);` at the top of its file. Every test then starts from empty tables.
+- **Datasets** run one test with several inputs: `it(…)->with([…])`, as in `tests/Feature/Auth/RegistrationTest.php`.
+- **Emails:** `Notification::fake()` records them instead of sending, and `Notification::assertSentTo()` checks them. To see the real text, `tests/Feature/Auth/LanguageTest.php` reads what the `array` mailer received.
+
+`tests/Feature/Auth/` is the model of an area's tests: signing in, signing up, resetting a password, the current user, languages and who may open the admin panel.
 
 **Running them:**
 - `make test` runs them all;
@@ -342,7 +646,7 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 | Logs | `make logs`; the file `backend/storage/logs/laravel.log` |
 
 **Official documentation**, worth reading next to this page:
-- Laravel: https://laravel.com/docs. The pages *Routing*, *Eloquent*, *Migrations*, *Validation*, *Authorization*, *Queues* and *Sanctum* match the sections above.
+- Laravel: https://laravel.com/docs. The pages *Routing*, *Eloquent*, *Migrations*, *Validation*, *Authorization*, *Queues*, *Sanctum* and *Fortify* match the sections above; *Authentication* and *Resetting Passwords* cover the by-hand way of [5.7](#57-signing-in-sanctum).
 - Filament: https://filamentphp.com/docs.
 - Pest: https://pestphp.com/docs.
 - PHP itself: https://www.php.net/manual.

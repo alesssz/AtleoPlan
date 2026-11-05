@@ -5,9 +5,14 @@
  *
  * Same shape as LanguageSelect: a shadcn/ui Select whose label is drawn by
  * the parent (SettingRow), linked through the `id` prop.
+ *
+ * The choice is saved on the account, so it follows the user to other devices.
+ * This picker only changes the account; useAccountPreferences (src/routes/)
+ * applies the account to the page.
  */
 import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useUpdatePreferences } from '@/api/auth'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { THEMES, type Theme } from '@/theme/theme'
 import { useTheme } from '@/theme/useTheme'
@@ -32,15 +37,17 @@ interface ThemeSelectProps {
 export function ThemeSelect({ id }: ThemeSelectProps) {
   // The translate function, taken out of useTranslation()'s result (destructuring)
   const { t } = useTranslation()
-  // The current theme and the function to change it, from the theme context
-  // (src/theme/useTheme.ts), destructured the same way
-  const { theme, setTheme } = useTheme()
+  // The current theme, from the theme context (src/theme/useTheme.ts),
+  // destructured the same way
+  const { theme } = useTheme()
+  // The request that saves it on the account (src/api/auth.ts)
+  const updatePreferences = useUpdatePreferences()
 
   return (
-    // A controlled Select: value from the context, changes sent back to it.
+    // A controlled Select: value from the context, changes sent to the account.
     // The Select hands back a plain string: `as Theme` tells TypeScript it
     // is one of ours, which holds because only THEMES are offered
-    <Select value={theme} onValueChange={value => setTheme(value as Theme)}>
+    <Select value={theme} onValueChange={value => updatePreferences.mutate({ theme: value as Theme })}>
       {/* 44 px tall, rounded, full width on phones, 224 px from 640 px up */}
       <SelectTrigger id={id} className="h-11 w-full rounded-xl sm:w-56">
         <SelectValue />

@@ -34,6 +34,10 @@ x-backend: &backend
     # These win over backend/.env: in Laravel a real environment variable is
     # never overwritten by the .env file. They point the app at the services
     # below, whatever a fresh .env says (a new Laravel app defaults to SQLite).
+    # The app's name, shown in the emails it sends.
+    APP_NAME: AtleoPlan
+    # Where the React app is, for the links in emails (Vite, docs/00-setup.md 0.4).
+    FRONTEND_URL: http://localhost:5673
     DB_CONNECTION: pgsql
     DB_HOST: postgres
     DB_PORT: 5432

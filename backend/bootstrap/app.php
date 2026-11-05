@@ -13,6 +13,7 @@
  */
 
 // Imports: the classes used below, by their short names (docs/05-backend.md 5.2)
+use App\Http\Middleware\SetLocaleFromRequest;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -47,6 +48,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // mobile app, use API tokens (docs/02-decisions.md 2.2,
         // docs/05-backend.md 5.7).
         $middleware->statefulApi();
+
+        // Answers in the language the React app asks for. Both groups, because
+        // Fortify's sign-in routes are on `web` and the others on `api`
+        $middleware->web(append: [SetLocaleFromRequest::class]);
+        $middleware->api(append: [SetLocaleFromRequest::class]);
     })
     // How errors are turned into responses
     ->withExceptions(function (Exceptions $exceptions): void {

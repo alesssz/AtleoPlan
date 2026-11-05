@@ -34,12 +34,11 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 The order of work for phase 1 ([1.8](01-ui-design.md#18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [6. Data model](06-data-model.md).
 
-1. [FEAT-1](#feat-1-sign-in-and-accounts) sign-in
-2. [BE-1](#be-1-exercise-library-api-and-admin) exercise library API, then [DATA-1](#data-1-import-and-translate-free-exercise-db) its import
-3. [UI-1](#ui-1-exercise-library-screens) exercise library screens
-4. [FEAT-2](#feat-2-plans) plans
-5. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
-6. [FEAT-4](#feat-4-summary-and-history) summary and history
+1. [BE-1](#be-1-exercise-library-api-and-admin) exercise library API, then [DATA-1](#data-1-import-and-translate-free-exercise-db) its import
+2. [UI-1](#ui-1-exercise-library-screens) exercise library screens
+3. [FEAT-2](#feat-2-plans) plans
+4. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
+5. [FEAT-4](#feat-4-summary-and-history) summary and history
 
 ## OPS
 
@@ -83,23 +82,11 @@ The order of work for phase 1 ([1.8](01-ui-design.md#18-release-phases-and-open-
 
 ## FEAT
 
-### FEAT-1 Sign-in and accounts
-
-**Priority:** high · **Kind:** feature · **Found:** 2026-11-05
-
-**What is missing.** Sign up, sign in, sign out, forgot and reset password (emails in Mailpit), the guard that sends visitors to `/login`, and language and theme saved on the account ([1.4.1](01-ui-design.md#141-sign-in-and-onboarding), [1.4.14](01-ui-design.md#1414-profile-and-settings)). Brings react-hook-form and zod for the forms, and the columns of [6.3](06-data-model.md#63-users-and-preferences), the admin flag that opens Filament included.
-
-**Options.**
-- A) Laravel Fortify: Laravel's headless authentication backend (routes, rate limiting, reset tokens), with the React screens written by us.
-- B) Hand-written controllers for each step.
-
-**Recommended.** A: the security-sensitive parts are Laravel's own and maintained; Sanctum's SPA mode is already set ([0.6](00-setup.md#06-creating-the-laravel-backend)).
-
 ### FEAT-2 Plans
 
 **Priority:** high · **Kind:** feature · **Found:** 2026-11-05
 
-**What is missing.** Plan list, details and editor: days, exercises with sets, reps, rest, set types (W, D, F) and supersets, reordering by drag and drop (dnd-kit), the one active plan ([1.4.6](01-ui-design.md#146-plan-list)–[1.4.8](01-ui-design.md#148-plan-editor), [2.8](02-decisions.md#28-workout-rules)). Tables: [6.5](06-data-model.md#65-plans). Needs FEAT-1, BE-1.
+**What is missing.** Plan list, details and editor: days, exercises with sets, reps, rest, set types (W, D, F) and supersets, reordering by drag and drop (dnd-kit), the one active plan ([1.4.6](01-ui-design.md#146-plan-list)–[1.4.8](01-ui-design.md#148-plan-editor), [2.8](02-decisions.md#28-workout-rules)). Tables: [6.5](06-data-model.md#65-plans). Needs BE-1.
 
 ### FEAT-3 Workout mode and Home
 
@@ -119,7 +106,31 @@ The order of work for phase 1 ([1.8](01-ui-design.md#18-release-phases-and-open-
 
 **Priority:** high · **Kind:** backend · **Found:** 2026-11-05
 
-**What is missing.** Migrations, models and policies for exercises (public, managed by admins; personal, owned by a user), with translatable fields and photos (medialibrary); the API to list with search and filters (laravel-query-builder), show, and create, edit and delete personal ones; the Filament resource for the public library ([1.4.15](01-ui-design.md#1415-admin-panel-filament)). Tables: [6.4](06-data-model.md#64-exercise-library). Needs FEAT-1; DATA-1 then fills it.
+**What is missing.** Migrations, models and policies for exercises (public, managed by admins; personal, owned by a user), with translatable fields and photos (medialibrary); the API to list with search and filters (laravel-query-builder), show, and create, edit and delete personal ones; the Filament resource for the public library ([1.4.15](01-ui-design.md#1415-admin-panel-filament)). Tables: [6.4](06-data-model.md#64-exercise-library). DATA-1 then fills it.
+
+### BE-2 Manage users in the admin panel
+
+**Priority:** medium · **Kind:** missing screen · **Found:** 2026-11-05
+
+**What is missing.** The Users screen of [1.4.15](01-ui-design.md#1415-admin-panel-filament), to list users, change their role and disable them. The column exists and signing in already refuses a disabled account, but nothing sets it yet, and a user who is already signed in stays signed in until the session ends.
+
+**Options.**
+- A) A Filament resource, and a middleware on the `auth:sanctum` routes that signs out a disabled account.
+- B) Only the resource, with disabling taking effect at the next sign-in.
+
+**Recommended.** A: disabling an account is usually urgent, so it must act at once.
+
+### BE-3 Harden the public sign-in routes
+
+**Priority:** low until the app is public · **Kind:** security · **Found:** 2026-11-05
+
+**What is missing.** Signing in has a rate limit ([5.7.4](05-backend.md#574-slowing-down-password-guessing)). Signing up and asking for a reset email have none, beyond one email per address per minute. Both also reveal whether an address has an account, by their answers.
+
+**Options.**
+- A) Rate limits on both routes, and the same answer to a known and an unknown email when asking for a reset.
+- B) Leave as it is while the app is personal.
+
+**Recommended.** B for now and A before opening to other users (phase 2): with a single user nothing is at stake, and signing up will still need to say that an email is taken, unless it moves to verifying the address by email.
 
 ## UI
 

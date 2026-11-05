@@ -17,7 +17,7 @@ Before buying a domain or opening store accounts, the name is checked against do
 | Layer | Choice | Why | Set aside |
 |---|---|---|---|
 | Backend | **Laravel**, API only | Known stack; Sanctum, policies, queues, Pint and Pest out of the box | Inertia (ties the frontend to the server: no offline, no mobile app later) |
-| Auth | **Sanctum**: cookies for the web app, tokens for the future mobile app | Official, simple; cookie auth needs frontend and API on the same domain, which the hosting gives ([2.6](#26-hosting)) | Passport (OAuth server, more than needed) |
+| Auth | **Sanctum**: cookies for the web app, tokens for the future mobile app. **Fortify** for signing up, in and out and resetting a password, with the screens in React | Official, simple; cookie auth needs frontend and API on the same domain, which the hosting gives ([2.6](#26-hosting)). Fortify keeps the security-sensitive parts in Laravel's own maintained code ([5.7.6](05-backend.md#576-fortify-or-by-hand)) | Passport (OAuth server, more than needed); hand-written controllers (more of our own code to keep safe); Breeze and Jetstream (screens not in React) |
 | Database | **PostgreSQL** | JSON columns for translations, solid constraints | MySQL (works too; Postgres is the choice for its JSON and constraint support) |
 | Admin | **Filament** | Admin panel for the public library and the users without writing a back office in React ([1.4.15](01-ui-design.md#1415-admin-panel-filament)) | A React admin (weeks of work for an internal tool) |
 | Frontend | **React + TypeScript**, Vite, as a PWA | New to learn after Vue; the most used; React Native (Expo) reuses the same knowledge for a store app | Svelte (no mobile path), Angular (heavy), Flutter (another language, weak on the web) |
@@ -55,7 +55,7 @@ Before buying a domain or opening store accounts, the name is checked against do
 ## 2.4 Languages
 
 - **Italian, English, Spanish and German** from the start; English is the fallback when a text is missing in the user's language.
-- **Interface:** every text comes from translation files (react-i18next on the frontend, Laravel's language files for the API's messages, e.g. validation errors). No text is written directly in a component ([3.2](03-conventions.md#32-code)).
+- **Interface:** every text comes from translation files (react-i18next on the frontend, Laravel's language files for the API's messages, e.g. validation errors, and for emails: [5.7.7](05-backend.md#577-messages-in-the-users-language)). No text is written directly in a component ([3.2](03-conventions.md#32-code)).
 - **Content:** the translatable fields of public exercises (name, aliases, description, instructions) are JSON columns with one value per language (spatie/laravel-translatable). Personal exercises and plans are in their author's language only.
 - **Formats:** numbers, dates and units follow the language (`82,5 kg` in Italian, Spanish and German, `82.5 kg` in English), through `Intl.NumberFormat` and `Intl.DateTimeFormat`.
 - **Language choice:** preset from the browser, changeable in the settings ([1.4.14](01-ui-design.md#1414-profile-and-settings)) and saved on the account.

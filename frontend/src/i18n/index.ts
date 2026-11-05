@@ -9,7 +9,8 @@
  *   1. the choice saved in this browser (localStorage), made in Profile;
  *   2. the browser's own language (navigator.language), e.g. 'it-IT' → 'it';
  *   3. English, when neither is one of ours.
- * Saving the choice on the account comes with sign-in (FEAT-1).
+ * Once signed in, the account's language takes over, and is saved here too
+ * (src/routes/useAccountPreferences.ts, docs/04-frontend.md 4.13.4).
  *
  * Being called index.ts, the file is what `import … from './i18n'` (the
  * folder) loads.

@@ -113,7 +113,7 @@ Admin (admins only, Filament)
 
 | Route | Screen |
 |---|---|
-| `/login`, `/register`, `/forgot-password` | Sign-in ([1.4.1](#141-sign-in-and-onboarding)) |
+| `/login`, `/register`, `/forgot-password`, `/reset-password` | Sign-in ([1.4.1](#141-sign-in-and-onboarding)) |
 | `/s/:token` | Shared plan, public ([1.4.13](#1413-sharing)) |
 | `/onboarding` | Onboarding ([1.4.1](#141-sign-in-and-onboarding)) |
 | `/` | Home ([1.4.2](#142-home)) |
@@ -134,8 +134,11 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (1.4.9
 
 ### 1.4.1 Sign-in and onboarding
 
-- **Sign in / Sign up:** email and password; "Continue with Google" and "Continue with Apple" in phase 2 (Apple is required on the App Store once any social sign-in is offered).
-- **Forgot password** by email.
+- **Sign in / Sign up:** email and password; signing up also asks for a name and to repeat the password. "Continue with Google" and "Continue with Apple" in phase 2 (Apple is required on the App Store once any social sign-in is offered).
+- **Staying signed in:** always on, with no checkbox: a phone at the gym must not ask for a password.
+- **Forgot password** by email, in the language of the account: its link opens `/reset-password`, works once, and expires after 60 minutes.
+- **Coming back:** after signing in, the user lands on the page they were trying to open.
+- **Server unreachable:** "Can't reach the server" and **Try again**, never the sign-in form: the user may well be signed in.
 - **Onboarding**, three skippable steps: language (preset from the browser), units (kg/lb), goal (strength, hypertrophy, general fitness), then start from a template plan or from scratch.
 
 ### 1.4.2 Home
@@ -264,8 +267,8 @@ The estimated one-rep max uses the Epley formula, weight × (1 + reps / 30), on 
 
 ### 1.4.14 Profile and settings
 
-- Account details, profile picture, change password.
-- **Language:** Italian, English, Spanish, German. Numbers and dates follow it: `82,5 kg` in Italian, Spanish and German, `82.5 kg` in English.
+- Account details, **Sign out**. Profile picture and change password in phase 2.
+- **Language:** Italian, English, Spanish, German, saved on the account with the theme, so both follow the user to other devices. Numbers and dates follow it: `82,5 kg` in Italian, Spanish and German, `82.5 kg` in English.
 - Preferences: units kg/lb, default rest, stepper weight step, timer sound and vibration, theme (dark / light / system).
 - **Export my data** (JSON or CSV) and **Delete account**: required by the GDPR once the app is public.
 

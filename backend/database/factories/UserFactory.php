@@ -5,8 +5,11 @@ namespace Database\Factories;
 // The namespace above places the class in Database\Factories, which Composer's
 // autoloader maps to the database/factories folder (docs/05-backend.md 5.2, 5.3).
 
-// Imports: the model this factory builds, Laravel's base Factory, and two
-// helpers (Hash, Str) used below
+// Imports: the enums of the preferences, the model this factory builds,
+// Laravel's base Factory, and two helpers (Hash, Str) used below
+use App\Enums\Locale;
+use App\Enums\Theme;
+use App\Enums\WeightUnit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -65,7 +68,40 @@ class UserFactory extends Factory
             // call Laravel passes to its hasher object, bcrypt by default).
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // The same defaults as the columns (docs/06-data-model.md 6.3):
+            // a new model does not read the database's defaults back, so without
+            // these a test's user would have them empty until reloaded
+            'is_admin' => false,
+            'locale' => Locale::En,
+            'theme' => Theme::Dark,
+            'weight_unit' => WeightUnit::Kg,
+            'default_rest_seconds' => 90,
+            'weight_step' => 2.5,
+            'timer_sound' => true,
+            'timer_vibration' => true,
         ];
+    }
+
+    /**
+     * An admin, who may open the Filament panel:
+     * `User::factory()->admin()->create()`. A factory can set is_admin although
+     * the model does not list it as fillable: factories are trusted code.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_admin' => true,
+        ]);
+    }
+
+    /**
+     * An account disabled by an admin, which can no longer sign in.
+     */
+    public function disabled(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'disabled_at' => now(),
+        ]);
     }
 
     /**

@@ -30,7 +30,8 @@ class DatabaseSeeder extends Seeder
      * Seed the application's database.
      *
      * Creates the account to sign in with in development:
-     * test@example.com, password `password` (from UserFactory).
+     * test@example.com, password `password` (from UserFactory). It is an admin,
+     * so it opens the Filament panel too.
      */
     public function run(): void
     {
@@ -38,9 +39,10 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         // User::factory() (a static call: `::` calls a method of the class
-        // itself) gets the UserFactory; create() saves one user with these
-        // values, the other columns filled in by the factory
-        User::factory()->create([
+        // itself) gets the UserFactory; admin() is its state for an admin;
+        // create() saves one user with these values, the other columns filled
+        // in by the factory
+        User::factory()->admin()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);

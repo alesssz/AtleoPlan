@@ -1,21 +1,23 @@
 /*
  * Profile (route `/profile`), docs/01-ui-design.md 1.4.14. The first
  * working screen:
- * - an account header (a guest for now: sign-in comes with FEAT-1);
+ * - an account header: name, email and the button to sign out;
  * - the preferences, language and theme, as rows of a settings list;
  * - the connection to the server.
  *
  * Built from small components: SettingRow for each row, LanguageSelect and
  * ThemeSelect as controls, ServerStatus for the server.
  */
-import { Languages, Palette, Server, UserRound } from 'lucide-react'
+import { Languages, LogOut, Palette, Server, UserRound } from 'lucide-react'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useCurrentUser, useSignOut } from '@/api/auth'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { ServerStatus } from '@/components/ServerStatus'
 import { SettingRow } from '@/components/SettingRow'
 import { ThemeSelect } from '@/components/ThemeSelect'
+import { Button } from '@/components/ui/button'
 import { formatWeight } from '@/lib/format'
 
 /** The weight shown as an example of the language's number format. */
@@ -29,6 +31,11 @@ export function ProfilePage() {
   // label to its control
   const languageId = useId()
   const themeId = useId()
+  // Who is signed in. RequireAuth, around this page, has already waited for it,
+  // so `user` is there; `?.` below only reassures TypeScript
+  const { data: user } = useCurrentUser()
+  // The request that signs out. RequireAuth then goes to /login by itself
+  const signOut = useSignOut()
 
   return (
     // A Fragment (<>…</>): siblings without a wrapping element
@@ -37,10 +44,11 @@ export function ProfilePage() {
 
       {/* Three blocks, 24 px apart (flex column + gap) */}
       <div className="flex flex-col gap-6">
-        {/* Account header: the gradient-bordered card, avatar + name + note.
+        {/* Account header: the gradient-bordered card, avatar + name + email +
+            sign out. A column on phones, a row from 640 px up.
             `relative overflow-hidden`: the decorative glow inside is
             positioned against the card and cut at its edges */}
-        <section className="border-glow relative flex items-center gap-5 overflow-hidden rounded-3xl p-6 sm:p-8">
+        <section className="border-glow relative flex flex-col gap-5 overflow-hidden rounded-3xl p-6 sm:flex-row sm:items-center sm:p-8">
           {/* Decoration: a large blurred lime disc in the top-right corner */}
           <div aria-hidden="true" className="absolute -top-16 -right-16 size-48 rounded-full bg-primary/15 blur-3xl" />
           {/* The avatar: a circle with a lime-to-blue gradient ring (the
@@ -52,10 +60,19 @@ export function ProfilePage() {
               <UserRound className="size-8 text-primary sm:size-9" strokeWidth={1.75} />
             </div>
           </div>
-          <div className="relative min-w-0">
-            <p className="font-heading text-xl font-extrabold tracking-tight sm:text-2xl">{t('profile.guest')}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t('profile.guestText')}</p>
+          {/* flex-1: takes the free width, pushing the button to the right.
+              min-w-0 + truncate: a long email is cut with "…" rather than
+              overflowing the card */}
+          <div className="relative min-w-0 flex-1">
+            <p className="truncate font-heading text-xl font-extrabold tracking-tight sm:text-2xl">{user?.name}</p>
+            <p className="mt-1 truncate text-sm text-muted-foreground">{user?.email}</p>
           </div>
+          {/* mutate() takes the request's data; there is none, so it is called
+              through a function: onClick would otherwise pass it the click event */}
+          <Button variant="outline" size="xl" className="relative" onClick={() => signOut.mutate()} disabled={signOut.isPending}>
+            <LogOut aria-hidden="true" />
+            {t('profile.signOut')}
+          </Button>
         </section>
 
         {/* Preferences: a card holding a list of setting rows, a line

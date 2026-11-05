@@ -8,16 +8,26 @@
  * every one of them, and the page itself appears where AppLayout puts
  * <Outlet />. A child with `index: true` is the parent's own address ('/').
  * A `path` without a leading '/' is relative to the parent: 'plans' → /plans.
+ *
+ * The two branches are each wrapped in a guard, a parent route that decides
+ * whether its children may open (src/routes/, docs/04-frontend.md 4.13).
  */
 import { createBrowserRouter } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { AuthLayout } from '@/components/layout/AuthLayout'
 import { ExercisesPage } from '@/pages/ExercisesPage'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { HomePage } from '@/pages/HomePage'
+import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PlansPage } from '@/pages/PlansPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { ProgressPage } from '@/pages/ProgressPage'
+import { RegisterPage } from '@/pages/RegisterPage'
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { RouteErrorPage } from '@/pages/RouteErrorPage'
+import { RequireAuth } from '@/routes/RequireAuth'
+import { RequireGuest } from '@/routes/RequireGuest'
 
 /**
  * The router: reads the address bar, picks the matching route, and changes
@@ -30,29 +40,50 @@ import { RouteErrorPage } from '@/pages/RouteErrorPage'
  * `export const`: a constant (never reassigned) that other files can import.
  */
 export const router = createBrowserRouter([
-  // Public routes, without the app's frame, go here: /login, /register,
-  // /forgot-password (FEAT-1), the shared plan /s/:token (phase 2).
+  // The shared plan /s/:token (phase 2), public for everyone, goes here.
 
   {
-    // The signed-in app: every page inside the frame (navigation + content).
-    // A route with no `path` only adds its layout around its children.
-    // Sign-in will guard this branch (FEAT-1).
-    element: <AppLayout />,
+    // The sign-in screens: only for visitors, full screen, without the app's
+    // frame. A route with no `path` only adds its element around its children
+    element: <RequireGuest />,
+    errorElement: <RouteErrorPage />,
+    children: [
+      {
+        element: <AuthLayout />,
+        children: [
+          { path: 'login', element: <LoginPage /> },
+          { path: 'register', element: <RegisterPage /> },
+          { path: 'forgot-password', element: <ForgotPasswordPage /> },
+          { path: 'reset-password', element: <ResetPasswordPage /> },
+        ],
+      },
+    ],
+  },
+
+  {
+    // The signed-in app: only for signed-in users. Nesting decides the order:
+    // the guard first, then the frame (navigation + content), then the page
+    element: <RequireAuth />,
     // Drawn instead of a page that crashes while rendering
     errorElement: <RouteErrorPage />,
-    // The pages drawn inside AppLayout's <Outlet />
     children: [
-      { index: true, element: <HomePage /> },
-      // Each section's sub-pages (/plans/:id, /plans/:id/edit…) join here
-      // with their features (FEAT-2, UI-1, FEAT-4); ':id' is a parameter,
-      // read in the page with React Router's useParams()
-      { path: 'plans', element: <PlansPage /> },
-      { path: 'exercises', element: <ExercisesPage /> },
-      { path: 'progress', element: <ProgressPage /> },
-      { path: 'profile', element: <ProfilePage /> },
-      // Anything else ('*' matches every address): "page not found",
-      // still inside the frame
-      { path: '*', element: <NotFoundPage /> },
+      {
+        element: <AppLayout />,
+        // The pages drawn inside AppLayout's <Outlet />
+        children: [
+          { index: true, element: <HomePage /> },
+          // Each section's sub-pages (/plans/:id, /plans/:id/edit…) join here
+          // with their features (FEAT-2, UI-1, FEAT-4); ':id' is a parameter,
+          // read in the page with React Router's useParams()
+          { path: 'plans', element: <PlansPage /> },
+          { path: 'exercises', element: <ExercisesPage /> },
+          { path: 'progress', element: <ProgressPage /> },
+          { path: 'profile', element: <ProfilePage /> },
+          // Anything else ('*' matches every address): "page not found",
+          // still inside the frame
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 

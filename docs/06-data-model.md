@@ -2,7 +2,7 @@
 
 Every table of the MVP ([1.8](01-ui-design.md#18-release-phases-and-open-questions)): what it stands for, its columns, how it connects to the others, why it is built that way, and the Laravel code that creates it. The migrations are written from this page, so a change to the design updates it in the same commit ([3.3](03-conventions.md#33-documentation)).
 
-**None of these tables exists yet,** apart from `users`, which gets new columns. Each feature creates its own part when it is built ([6.1.4](#614-which-task-creates-what)).
+**Only `users` exists so far,** with the columns of [6.3](#63-users-and-preferences). Each feature creates its own part when it is built ([6.1.4](#614-which-task-creates-what)).
 
 **The code here has been run.** The migrations, relations and queries on this page ran on Postgres 18 and Laravel 13, inside a transaction that was then undone. Results shown next to the code are that run's real output. The real files will add the full comments of [3.2](03-conventions.md#32-code); here the comments explain what is new.
 
@@ -97,7 +97,7 @@ So a session copies nothing from the future: it records what happened, and it su
 
 | Tables | Created by |
 |---|---|
-| New columns on `users` | [FEAT-1](backlog.md#feat-1-sign-in-and-accounts), except `active_plan_id`, which needs `plans` and comes with FEAT-2 |
+| New columns on `users` | Done, except `active_plan_id`, which needs `plans` and comes with FEAT-2 |
 | `muscles`, `equipment`, `exercises`, `exercise_muscle` | [BE-1](backlog.md#be-1-exercise-library-api-and-admin), filled by [DATA-1](backlog.md#data-1-import-and-translate-free-exercise-db) |
 | `plans`, `plan_days`, `plan_items`, `plan_sets` | [FEAT-2](backlog.md#feat-2-plans) |
 | `workout_sessions`, `session_exercises`, `logged_sets` | [FEAT-3](backlog.md#feat-3-workout-mode-and-home) |

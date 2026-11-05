@@ -100,8 +100,62 @@
     "start": "Training starten"
   },
   "profile": {
-    "guest": "Gast",
-    "guestText": "Die Anmeldung kommt bald: Deine Pläne und Einstellungen folgen dir auf jedes Gerät.",
+    "signOut": "Abmelden",
     "about": "Info"
+  },
+  "auth": {
+    "checking": "Dein Konto wird geprüft…",
+    "unreachableTitle": "Server nicht erreichbar",
+    "unreachableText": "Prüfe deine Verbindung und versuche es erneut. Dein Konto ist sicher.",
+    "otherOptions": "Weitere Optionen",
+    "backToSignIn": "Zurück zur Anmeldung",
+    "fields": {
+      "name": "Name",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "newPassword": "Neues Passwort",
+      "passwordConfirmation": "Passwort wiederholen"
+    },
+    "errors": {
+      "required": "Dieses Feld ist erforderlich.",
+      "email": "Gib eine gültige E-Mail-Adresse ein.",
+      "passwordLength": "Verwende mindestens {{count}} Zeichen.",
+      "passwordMatch": "Die beiden Passwörter stimmen nicht überein.",
+      "network": "Keine Verbindung zum Server. Prüfe dein Netzwerk und versuche es erneut.",
+      "tooMany": "Zu viele Versuche. Warte eine Minute und versuche es erneut.",
+      "unexpected": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    },
+    "signIn": {
+      "eyebrow": "Willkommen zurück",
+      "title": "Anmelden",
+      "description": "Deine Pläne und Fortschritte warten auf dich.",
+      "submit": "Anmelden",
+      "forgot": "Passwort vergessen?",
+      "noAccount": "Neu hier? Konto erstellen"
+    },
+    "signUp": {
+      "eyebrow": "Los geht's",
+      "title": "Erstelle dein Konto",
+      "description": "Erstelle deine Pläne und erfasse jeden Satz.",
+      "submit": "Konto erstellen",
+      "haveAccount": "Schon ein Konto? Anmelden"
+    },
+    "forgotPassword": {
+      "eyebrow": "Kein Problem",
+      "title": "Passwort vergessen?",
+      "description": "Gib deine E-Mail-Adresse ein, und wir senden dir einen Link, um ein neues zu wählen.",
+      "submit": "Link senden",
+      "sent": "Erledigt: Den Link findest du in deinem Postfach."
+    },
+    "resetPassword": {
+      "eyebrow": "Fast geschafft",
+      "title": "Wähle ein neues Passwort",
+      "description": "Für das Konto {{email}}.",
+      "submit": "Passwort speichern",
+      "done": "Passwort geändert. Du kannst dich mit dem neuen anmelden.",
+      "invalidTitle": "Dieser Link funktioniert nicht",
+      "invalidText": "Etwas fehlt darin. Fordere einen neuen an und öffne ihn aus der E-Mail.",
+      "askAgain": "Neuen Link anfordern"
+    }
   }
 }

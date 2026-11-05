@@ -15,10 +15,14 @@
  *   so it cannot forge the header.
  * - Accept: application/json makes Laravel answer errors in JSON
  *   ({ message, errors }) instead of an HTML page or a redirect.
+ * - Accept-Language makes Laravel write its messages, such as validation
+ *   errors, in the user's language (backend SetLocaleFromRequest).
  *
  * No React here: plain TypeScript. The syntax met below (interfaces,
  * classes, async/await, generics) is summed up in docs/04-frontend.md 4.12.
  */
+import i18n from '@/i18n'
+import { FALLBACK_LANGUAGE } from '@/i18n/languages'
 
 /** The HTTP methods the app uses: a union type, one of these exact strings. */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -79,6 +83,12 @@ export class ApiError extends Error {
  */
 const UNSAFE_METHODS: ReadonlySet<HttpMethod> = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
+/**
+ * Laravel's status for an expired CSRF token: the session behind it is gone, as
+ * when a sign-in page stays open for hours. Not a real failure: see request().
+ */
+const CSRF_EXPIRED_STATUS = 419
+
 /** Reads a cookie of this site by name; undefined when it is not set. */
 function readCookie(name: string): string | undefined {
   // document.cookie is one string: "a=1; XSRF-TOKEN=abc; b=2".
@@ -93,7 +103,8 @@ function readCookie(name: string): string | undefined {
 
 /**
  * Asks Laravel for a fresh CSRF cookie (XSRF-TOKEN). Called before the first
- * request that changes data, and again by sign-in (FEAT-1), which renews it.
+ * request that changes data, when the token has expired, and by sign-in
+ * (src/api/auth.ts), which starts from a fresh one.
  *
  * An `async` function always returns a Promise: an object standing for a
  * result that arrives later (here, once the network answers). Inside,
@@ -102,6 +113,49 @@ function readCookie(name: string): string | undefined {
  */
 export async function ensureCsrfCookie(): Promise<void> {
   await fetch('/sanctum/csrf-cookie', { credentials: 'same-origin' })
+}
+
+/**
+ * Sends one request, with the headers it needs, and returns the raw answer.
+ * Reads the CSRF cookie each time, so a second try uses the fresh one.
+ * @param path the API path
+ * @param options method, body and cancel signal
+ * @returns a Promise of the server's answer
+ * @throws ApiError with status 0 when there is no answer
+ */
+async function send(path: string, options: RequestOptions): Promise<Response> {
+  // GET unless told otherwise. `a ?? b` (nullish coalescing): a, or b when
+  // a is null or undefined
+  const method = options.method ?? 'GET'
+  // Headers of every request; more are added below when needed
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+    'Accept-Language': i18n.resolvedLanguage ?? FALLBACK_LANGUAGE,
+  }
+
+  if (UNSAFE_METHODS.has(method)) {
+    // The first change of a session has no CSRF cookie yet: get one
+    if (!readCookie('XSRF-TOKEN')) await ensureCsrfCookie()
+    headers['X-XSRF-TOKEN'] = readCookie('XSRF-TOKEN') ?? ''
+  }
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json'
+
+  // try { … } catch (error) { … }: when anything inside `try` throws, the
+  // `catch` block runs with what was thrown, instead of the error escaping
+  try {
+    return await fetch(path, {
+      method,
+      headers,
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      credentials: 'same-origin',
+      signal: options.signal,
+    })
+  }
+  catch (error) {
+    // A cancelled request is not a failure: let TanStack Query see it as such
+    if (error instanceof DOMException && error.name === 'AbortError') throw error
+    throw new ApiError(0, 'Network error')
+  }
 }
 
 /**
@@ -120,37 +174,15 @@ export async function ensureCsrfCookie(): Promise<void> {
  * @example const health = await request<{ status: string }>('/api/health')
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  // GET unless told otherwise. `a ?? b` (nullish coalescing): a, or b when
-  // a is null or undefined
-  const method = options.method ?? 'GET'
-  // Headers of every request; more are added below when needed
-  const headers: Record<string, string> = { Accept: 'application/json' }
-
-  if (UNSAFE_METHODS.has(method)) {
-    // The first change of a session has no CSRF cookie yet: get one
-    if (!readCookie('XSRF-TOKEN')) await ensureCsrfCookie()
-    headers['X-XSRF-TOKEN'] = readCookie('XSRF-TOKEN') ?? ''
-  }
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json'
-
   // The server's answer; a network failure (offline, server down) throws here.
-  // `let`, not `const`: it is assigned inside the try block below.
-  let response: Response
-  // try { … } catch (error) { … }: when anything inside `try` throws, the
-  // `catch` block runs with what was thrown, instead of the error escaping
-  try {
-    response = await fetch(path, {
-      method,
-      headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
-      credentials: 'same-origin',
-      signal: options.signal,
-    })
-  }
-  catch (error) {
-    // A cancelled request is not a failure: let TanStack Query see it as such
-    if (error instanceof DOMException && error.name === 'AbortError') throw error
-    throw new ApiError(0, 'Network error')
+  // `let`, not `const`: it is replaced if the request has to be sent again.
+  let response = await send(path, options)
+
+  // An expired token: get a fresh one and try once more, so a page left open
+  // for hours still works. Once, because a second 419 would not be cured by a third
+  if (response.status === CSRF_EXPIRED_STATUS) {
+    await ensureCsrfCookie()
+    response = await send(path, options)
   }
 
   // 204 No Content: success with nothing to read. `as T` is a type
