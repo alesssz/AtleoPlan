@@ -6,7 +6,30 @@ A workout app for building training plans out of a library of exercises, followi
 
 It works on phones and desktop as a PWA, offline during workouts, in Italian, English, Spanish and German. Backend in Laravel (API), frontend in React + TypeScript, hosted for free on a single server ([2.6](docs/02-decisions.md#26-hosting)).
 
-**Status:** design. There is no code yet; the next step is the project skeleton ([OPS-1](docs/backlog.md#ops-1-create-the-project-skeleton)). Development runs locally; deploying comes later ([OPS-3](docs/backlog.md#ops-3-deploy-to-the-free-server)).
+**Status:** skeleton. The Laravel and React apps are created and run locally; the next step is finishing the setup ([OPS-1](docs/backlog.md#ops-1-finish-the-project-skeleton)). Deploying comes later ([OPS-3](docs/backlog.md#ops-3-deploy-to-the-free-server)).
+
+---
+
+## Local development
+
+Needs Docker and Node only: PHP and Composer run inside the backend container (`Dockerfile`, `compose.yaml`).
+
+Ports on the Mac are each service's standard port + 500, so they never clash with other projects:
+
+| Service | Address |
+|---|---|
+| Laravel (API, admin) | http://localhost:8500 |
+| Postgres | `localhost:5932`, user, password and database `atleoplan` |
+| Mailpit (caught emails) | http://localhost:8525 |
+| Vite (React, once it exists) | http://localhost:5673 |
+
+```sh
+docker compose up -d                                  # start everything
+docker compose exec backend php artisan <command>     # artisan, composer… in the container
+docker compose down                                   # stop (data is kept; -v deletes it)
+```
+
+First time on this computer, creating the apps, every command and known problems: [0. Setup](docs/00-setup.md).
 
 ---
 
@@ -16,6 +39,7 @@ Everything lives in [`docs/`](docs/), one file per section. Sections keep their 
 
 | Section | What it covers |
 |---|---|
+| [0. Setup](docs/00-setup.md) | Where the project stands, prerequisites, Git identity, the port rule, creating the Laravel and React apps, everyday commands, useful links, troubleshooting |
 | [1. UI design](docs/01-ui-design.md) | Users, design principles, user journeys, navigation and routes, every screen, design system, states (empty, loading, error, offline), responsive layout and accessibility, release phases |
 | [2. Decisions](docs/02-decisions.md) | Name, stack, exercise library and its import, languages, photo and video limits and storage, hosting, offline sync, workout rules |
 | [3. Conventions](docs/03-conventions.md) | Git, code and comments, documentation, backlog |

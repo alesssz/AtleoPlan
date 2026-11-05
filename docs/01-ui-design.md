@@ -441,4 +441,4 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 
 ---
 
-← [Contents](../README.md#documentation) · [2. Decisions](02-decisions.md) →
+← [0. Setup](00-setup.md) · [Contents](../README.md#documentation) · [2. Decisions](02-decisions.md) →

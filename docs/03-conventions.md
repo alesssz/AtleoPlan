@@ -9,7 +9,7 @@ How work is done in this repository: Git, code, comments, documentation and the 
 - **One branch per task** from `main`, with a short English name and a type prefix: `feat/plan-editor`, `fix/rest-timer`, `docs/ui-design`, `chore/docker`.
 - **Commit messages** in English, imperative, one subject line (`Add the rest timer to workout mode`), a body when the why is not obvious.
 - **Identity:** commits use the same personal GitHub identity as Chronovault, set in this repository's own `.git/config`; the global Git configuration of this computer is for work and is never used here.
-- **No real email in the history:** author and committer are always the GitHub noreply address, so the repository can become public as it is. A local `pre-commit` hook (`.git/hooks/pre-commit`, not versioned: set it up again on a new clone) refuses any other identity.
+- **No real email in the history:** author and committer are always the GitHub noreply address, so the repository can become public as it is. The `pre-commit` hook in `.githooks/` refuses any other identity; a new clone turns it on with `git config core.hooksPath .githooks` ([0.3](00-setup.md#03-git-identity)).
 - Merges into `main` keep a merge commit (`--no-ff`), so each branch stays readable in the history.
 
 ---
@@ -42,7 +42,8 @@ How work is done in this repository: Git, code, comments, documentation and the 
 - **A change updates the section it touches, in the same commit.** A change to how the project is installed or started also updates the setup section, once it exists.
 - **Headings keep their numbers**, and references give them ("see 1.4.9"), in the docs and in code comments: `// Warm-up sets are excluded (docs/02-decisions.md 2.8)`.
 - **A new section** is a new `docs/NN-name.md`, a row in the README's index, and the navigation lines at the bottom of the previous and next pages.
-- Sections still to come, as the code is written: setup, quick start, commands, architecture, project structure, data flows, data model and security, API reference, configuration, testing, deployment, troubleshooting.
+- **Setup** ([0](00-setup.md)) follows the project: a new service, port, command or prerequisite updates it in the same commit.
+- Sections still to come, as the code is written: architecture, project structure, data flows, data model and security, API reference, configuration, testing, deployment, troubleshooting.
 
 ---
 

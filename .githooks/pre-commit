@@ -1,0 +1,12 @@
+#!/bin/sh
+# Refuse any commit whose author or committer is not the personal GitHub
+# noreply address: this Mac's global Git identity is the work one, and a
+# public repository must never show a real email (docs/03-conventions.md 3.1).
+# Active once `git config core.hooksPath .githooks` is set (docs/00-setup.md 0.3).
+ALLOWED="32982604+alesssz@users.noreply.github.com"
+for ident in "$(git var GIT_AUTHOR_IDENT)" "$(git var GIT_COMMITTER_IDENT)"; do
+  case "$ident" in
+    *"<$ALLOWED>"*) ;;
+    *) echo "pre-commit: refused, identity is '$ident' (expected <$ALLOWED>)" >&2; exit 1 ;;
+  esac
+done
