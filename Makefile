@@ -12,7 +12,7 @@ SHELL := bash
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
         artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore \
         dev fe-install fe-build \
-        test pint pint-check lint lint-fix typecheck fix check audit \
+        test pint pint-check lint lint-fix typecheck fe-test fix check audit \
         branch sync push merge
 
 # docker compose, and the two ways into the backend container
@@ -157,9 +157,12 @@ lint-fix: ## ESLint with automatic fixes
 typecheck: ## TypeScript check of the frontend
 	$(NPM) run typecheck
 
+fe-test: ## Frontend tests (Vitest); while coding, npm --prefix frontend run test:watch reruns them on save
+	$(NPM) test
+
 fix: pint lint-fix ## Fix what can be fixed automatically: PHP format and ESLint
 
-check: pint-check test lint typecheck ## Everything before a merge (needs the stack up)
+check: pint-check test lint typecheck fe-test ## Everything before a merge (needs the stack up)
 
 # The leading "-" lets the second audit run when the first finds something.
 audit: ## Known vulnerabilities in the Composer and npm packages (report only, changes nothing)

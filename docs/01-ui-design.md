@@ -283,7 +283,7 @@ The admin area at `/admin`, served by Laravel with Filament, for admins only. It
 
 ## 1.5 Design system
 
-Built on shadcn/ui over Tailwind: colours are CSS variables (tokens), so the dark and light themes only change values. The values below are a starting point.
+Built on shadcn/ui over Tailwind: colours are CSS variables (tokens), so the dark and light themes only change values. The values below are a starting point; they live in `frontend/src/index.css`, and [4.8](04-frontend.md#48-styles-and-theme) maps each token to its Tailwind classes.
 
 **Colours (tokens)**
 
@@ -292,7 +292,7 @@ Built on shadcn/ui over Tailwind: colours are CSS variables (tokens), so the dar
 | `background` | App background | #0B0B0F | #FFFFFF |
 | `surface` | Cards, sheets | #16161D | #F4F4F6 |
 | `primary` | Main actions, completed set | #C6F432 (lime) | #5A7A00 |
-| `accent` | Rest timer | #38BDF8 | #0284C7 |
+| `timer` | Rest timer (named `timer`, not `accent`: shadcn/ui's `accent` is the background of hovered items) | #38BDF8 | #0284C7 |
 | `success` | Personal record | #22C55E | #15803D |
 | `warning` | Offline, sync pending | #F59E0B | #B45309 |
 | `destructive` | Delete | #EF4444 | #B91C1C |

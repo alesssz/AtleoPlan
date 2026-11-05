@@ -1,0 +1,67 @@
+{
+  "app": {
+    "name": "AtleoPlan",
+    "tagline": "Deine Pläne, dein Fortschritt"
+  },
+  "nav": {
+    "label": "Hauptnavigation",
+    "home": "Start",
+    "plans": "Pläne",
+    "exercises": "Übungen",
+    "progress": "Fortschritt",
+    "profile": "Profil",
+    "skipToContent": "Zum Inhalt springen"
+  },
+  "pages": {
+    "home": {
+      "title": "Start",
+      "description": "Dein aktiver Plan, der vorgeschlagene Tag und die Trainings dieser Woche."
+    },
+    "plans": {
+      "title": "Pläne",
+      "description": "Deine Trainingspläne mit ihren Tagen und Übungen."
+    },
+    "exercises": {
+      "title": "Übungen",
+      "description": "Die Übungsbibliothek: öffentliche Übungen und deine eigenen."
+    },
+    "progress": {
+      "title": "Fortschritt",
+      "description": "Diagramme, persönliche Rekorde und dein Trainingsverlauf."
+    },
+    "profile": {
+      "title": "Profil",
+      "description": "Dein Konto und wie die App aussieht und funktioniert."
+    }
+  },
+  "placeholder": {
+    "title": "Noch nicht fertig",
+    "text": "Dieser Bildschirm ist in den Designdokumenten beschrieben (Abschnitt {{section}}) und muss noch gebaut werden."
+  },
+  "preferences": {
+    "title": "Einstellungen",
+    "language": "Sprache",
+    "theme": "Design",
+    "numberExample": "Zahlen in dieser Sprache: {{weight}}"
+  },
+  "theme": {
+    "dark": "Dunkel",
+    "light": "Hell",
+    "system": "Wie das Gerät"
+  },
+  "server": {
+    "title": "Server",
+    "checking": "Verbindung wird geprüft…",
+    "online": "Verbunden",
+    "offline": "Nicht erreichbar: Läuft Docker?",
+    "retry": "Erneut versuchen"
+  },
+  "errors": {
+    "notFoundTitle": "Seite nicht gefunden",
+    "notFoundText": "Unter dieser Adresse gibt es nichts.",
+    "backHome": "Zurück zum Start",
+    "unexpectedTitle": "Etwas ist schiefgelaufen",
+    "unexpectedText": "Ein unerwarteter Fehler hat diesen Bildschirm angehalten. Neu laden hilft meistens.",
+    "reload": "Neu laden"
+  }
+}

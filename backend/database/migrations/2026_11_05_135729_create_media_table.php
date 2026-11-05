@@ -12,13 +12,31 @@ use Illuminate\Support\Facades\Schema;
  *
  * Published from the package (vendor:publish --tag=medialibrary-migrations),
  * with comments added; the columns are the package's own and must stay as
- * they are, since the package reads and writes them.
+ * they are, since the package reads and writes them. Already applied, too:
+ * a change to this table is a new migration. How migrations work (up(),
+ * Schema, Blueprint): see the header of
+ * 0001_01_01_000000_create_users_table.php and docs/05-backend.md 5.6.
+ *
+ * The file returns an object of an anonymous class (a class with no name)
+ * that extends Laravel's Migration, so two migrations never clash over a
+ * class name.
  */
 return new class extends Migration
 {
+    /**
+     * Creates the `media` table (`php artisan migrate`).
+     *
+     * Schema::create is a facade call: a static-looking call that Laravel
+     * passes to the database's schema builder. Each `$table->...()` adds a
+     * column to the Blueprint, the description of the new table.
+     *
+     * There is no down(): `php artisan migrate:rollback` skips this migration
+     * and leaves the table in place.
+     */
     public function up(): void
     {
         Schema::create('media', function (Blueprint $table) {
+            // Auto-incrementing big integer, the primary key
             $table->id();
 
             // The model the file belongs to: model_type (class) + model_id
@@ -45,6 +63,7 @@ return new class extends Migration
             // Position within the collection, for drag-and-drop ordering
             $table->unsignedInteger('order_column')->nullable()->index();
 
+            // created_at and updated_at, both allowed to be NULL
             $table->nullableTimestamps();
         });
     }

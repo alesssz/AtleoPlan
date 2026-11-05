@@ -1,7 +1,21 @@
 {
+  // Root TypeScript config: it only points at the two real ones.
+  // tsconfig.app.json checks the app (src/), tsconfig.node.json the build
+  // config (vite.config.ts): the two run in different places (the browser
+  // and Node), so they need different settings.
+  // `npm run typecheck` (tsc -b) builds both. tsconfig files are JSON that
+  // also accepts // comments. Checks: docs/04-frontend.md 4.10.
+  // No files of its own: the two referenced configs list theirs
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  // Repeated here (also in tsconfig.app.json) because the shadcn CLI reads
+  // the alias from this file to know where to write components.
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }
