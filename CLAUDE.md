@@ -16,7 +16,8 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
   `docker compose exec backend php artisan …`, `docker compose exec backend composer …` (`run --rm` instead of `exec` when the stack is stopped).
 - **The frontend runs on the Mac**, Node 24 (`.nvmrc`): `npm …` inside `frontend/`, no Docker. Never `npm audit fix --force`, never `sudo npm`.
 - Host ports are standard + 500: Laravel 8500, Postgres 5932, Mailpit 8525, Vite 5673.
-- Tests: `docker compose exec backend php artisan test`. They run on the `atleoplan_test` database; `tests/Feature/TestDatabaseTest.php` guards it. Never weaken the `<server>` / `<env force>` overrides in `backend/phpunit.xml`.
+- The `Makefile` wraps all of this (`make help`); `make check` runs every check (Pint, tests, lint, types) and must pass before a merge.
+- Tests: `make test` (`docker compose exec backend php artisan test`). They run on the `atleoplan_test` database; `tests/Feature/TestDatabaseTest.php` guards it. Never weaken the `<server>` / `<env force>` overrides in `backend/phpunit.xml`.
 - Style: `docker compose exec backend vendor/bin/pint`, `npm run lint` in `frontend/`.
 - `.env` files hold secrets: do not read or print them; new variables go in `.env.example` (or in `compose.yaml` when they are development settings).
 
@@ -26,7 +27,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 - **Comments in depth**: a header on every file, PHPDoc / TSDoc on every class, function, component, prop and field, a line on each local variable, labelled JSX blocks, commented migrations.
 - **A change updates the docs section it touches in the same commit.** Sections are numbered and cited as "see 2.5", also in code comments.
 - Backlog: one entry per point, IDs never reused, the entry is deleted by the commit that finishes it.
-- One branch per task from `main` (`feat/…`, `fix/…`, `docs/…`, `chore/…`), merged with `--no-ff`.
+- One branch per task from `main` (`feat/…`, `fix/…`, `docs/…`, `chore/…`), pushed with `make push` and merged with `make merge` (checks, `--no-ff`, push, branch deleted).
 
 ## Git identity
 

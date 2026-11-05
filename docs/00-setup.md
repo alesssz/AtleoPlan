@@ -262,11 +262,21 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Production build | `npm run build` |
 | Tests | `npx vitest` |
 
-**Shortcut.** Typing `docker compose exec backend php artisan` gets long; an alias in `~/.zshrc` shortens it:
+**Shortcuts: `make`.** The [`Makefile`](../Makefile) wraps the commands above, so they need not be typed in full; `make help` lists them all. The most used:
 
-```sh
-alias art='docker compose exec backend php artisan'   # then: art migrate
-```
+| What | Command |
+|---|---|
+| Start / stop the stack | `make up` / `make down` |
+| Any artisan or Composer command | `make artisan c="route:list"`, `make composer c="require vendor/package"` |
+| Migrations / empty and rebuild the database | `make migrate` / `make fresh` |
+| Logs | `make logs` (backend), `make logs s=queue` |
+| React dev server | `make dev` |
+| Every check before a merge: Pint, tests, lint, types | `make check` (needs the stack up) |
+| Push the current branch | `make push` |
+| Merge the current branch into `main` | `make merge` ([3.1](03-conventions.md#31-git)) |
+| New clone: hook, image, packages, migrations | `make setup` |
+
+Values go in variables (`c=`, `s=`), because Make reads anything after the target as more targets.
 
 ---
 

@@ -11,6 +11,7 @@ How work is done in this repository: Git, code, comments, documentation and the 
 - **Identity:** commits use the same personal GitHub identity as Chronovault, set in this repository's own `.git/config`; the global Git configuration of this computer is for work and is never used here.
 - **No real email in the history:** author and committer are always the GitHub noreply address, so the repository can become public as it is. The `pre-commit` hook in `.githooks/` refuses any other identity; a new clone turns it on with `git config core.hooksPath .githooks` ([0.3](00-setup.md#03-git-identity)).
 - Merges into `main` keep a merge commit (`--no-ff`), so each branch stays readable in the history.
+- **Merging is done with `make merge`** ([`scripts/merge-main.mjs`](../scripts/merge-main.mjs), the same as Chronovault's), from the branch, once it is pushed (`make push`). It stops if the branch is not ready (uncommitted or unpushed work, nothing new), runs `make check`, shows the commits and asks; then it updates `main`, merges with a message listing the branch's commits, pushes `main`, deletes the branch on GitHub and locally, and leaves you on `main` in sync. A conflict is aborted and you are back on the branch. `yes=1` skips the question, `checks=0` the checks (for a docs-only branch).
 
 ---
 

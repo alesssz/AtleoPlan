@@ -24,9 +24,10 @@ Ports on the Mac are each service's standard port + 500, so they never clash wit
 | Vite (React, once it exists) | http://localhost:5673 |
 
 ```sh
-docker compose up -d                                  # start everything
-docker compose exec backend php artisan <command>     # artisan, composer… in the container
-docker compose down                                   # stop (data is kept; -v deletes it)
+make setup        # first time on a new clone
+make up           # start the backend stack;  make dev  starts React
+make help         # every command
+make down         # stop (data is kept)
 ```
 
 First time on this computer, creating the apps, every command and known problems: [0. Setup](docs/00-setup.md).
