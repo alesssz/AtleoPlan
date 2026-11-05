@@ -1,0 +1,117 @@
+# AtleoPlan — local development stack.
+#
+# Runs here: the Laravel backend (FrankenPHP, see the Dockerfile), its queue
+# worker, Postgres and Mailpit. The React frontend runs on the Mac with
+# `npm run dev` (Vite), which forwards /api and /sanctum to the backend, so the
+# browser sees a single address, as it will in production (docs/02-decisions.md 2.6).
+#
+# Ports on the Mac are each service's standard port + 500, so they never clash
+# with other projects that use the standard ones (Chronovault uses + 100):
+#   Laravel 8000 → 8500 · Postgres 5432 → 5932 · Mailpit 8025 → 8525
+#   (Vite, on the Mac: 5173 → 5673)
+# Inside the containers the standard ports stay. Each can still be changed
+# with a variable, e.g. `APP_PORT=8600 docker compose up -d`.
+#
+# First start, while ./backend does not exist yet:
+#   docker compose build
+#   docker compose run --rm backend composer create-project laravel/laravel .
+#   docker compose up -d
+name: atleoplan
+
+# --- Shared settings of the backend and the queue worker ----------------------
+# Both run the same image on the same code; only their command differs.
+x-backend: &backend
+  build:
+    context: .
+    target: dev
+  image: atleoplan-backend:dev
+  volumes:
+    # The Laravel code, live: edits on the Mac are seen at once in the container.
+    - ./backend:/app
+    # Composer's download cache, kept between containers (COMPOSER_CACHE_DIR).
+    - composer-cache:/composer-cache
+  environment:
+    # These win over backend/.env: in Laravel a real environment variable is
+    # never overwritten by the .env file. They point the app at the services
+    # below, whatever a fresh .env says (a new Laravel app defaults to SQLite).
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: atleoplan
+    DB_USERNAME: atleoplan
+    DB_PASSWORD: atleoplan
+    # Every email (password reset, invitations) is caught by Mailpit.
+    MAIL_MAILER: smtp
+    MAIL_HOST: mailpit
+    MAIL_PORT: 1025
+    # Queued jobs are stored in a Postgres table: no Redis to run.
+    QUEUE_CONNECTION: database
+    # The React app's address in development (Vite, docs/00-setup.md 0.4):
+    # Sanctum logs its requests in with the session cookie instead of a token.
+    SANCTUM_STATEFUL_DOMAINS: localhost:5673
+  depends_on:
+    # Waits until Postgres accepts connections (its healthcheck), not just
+    # until its container has started.
+    postgres:
+      condition: service_healthy
+    mailpit:
+      condition: service_started
+
+services:
+  # Laravel: the API and the Filament admin panel, at http://localhost:8500.
+  backend:
+    <<: *backend
+    ports:
+      - "127.0.0.1:${APP_PORT:-8500}:8000"
+    restart: unless-stopped
+
+  # Runs the queued jobs: video conversion with ffmpeg, emails.
+  # `queue:listen` loads the code again for every job, so a change applies
+  # without a restart (slower than `queue:work`, which production will use).
+  # --timeout leaves five minutes for a video to be converted.
+  queue:
+    <<: *backend
+    command: ["php", "artisan", "queue:listen", "--tries=3", "--timeout=300"]
+    # The image's healthcheck asks the Caddy web server, which does not run in
+    # the worker: it would always report "unhealthy" although the worker is fine.
+    healthcheck:
+      disable: true
+    restart: unless-stopped
+
+  # The database. Reachable from the Mac (TablePlus, DBeaver…) at
+  # localhost:5932, user, password and database all `atleoplan`.
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: atleoplan
+      POSTGRES_USER: atleoplan
+      POSTGRES_PASSWORD: atleoplan
+    ports:
+      # Bound to 127.0.0.1: reachable from this Mac only, not from the network.
+      - "127.0.0.1:${DB_FORWARD_PORT:-5932}:5432"
+    volumes:
+      # The data survives `docker compose down`; `down -v` deletes it.
+      # Postgres 18 images keep their data under /var/lib/postgresql.
+      - postgres-data:/var/lib/postgresql
+      # Scripts run once, on an empty volume: they create the test database
+      # `atleoplan_test` next to the development one.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atleoplan -d atleoplan"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Catches every email the app sends and shows it at http://localhost:8525.
+  # Nothing ever leaves the Mac. Its SMTP port (1025) is used by Laravel inside
+  # Docker only, so it is not opened on the Mac.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:${MAIL_UI_PORT:-8525}:8025"
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  composer-cache:

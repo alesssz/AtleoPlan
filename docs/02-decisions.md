@@ -29,6 +29,7 @@ Before buying a domain or opening store accounts, the name is checked against do
 | Charts | **Recharts** | Simple line and bar charts | — |
 | Translations | **react-i18next** (frontend), Laravel language files and **spatie/laravel-translatable** (backend) | See [2.4](#24-languages) | — |
 | Tests | **Pest** (backend), **Vitest** + Testing Library (frontend), **Playwright** (end to end) | Same tools as Chronovault for the frontend | — |
+| Local development | **Backend in Docker**, **frontend on the Mac** with Node 24 (pinned in `.nvmrc`) ([0.7](00-setup.md#07-creating-the-react-frontend)) | The backend needs PHP, its extensions and ffmpeg, which the Mac lacks, and runs the same image as production. The frontend needs only Node; VS Code's TypeScript and ESLint read `frontend/node_modules` from the Mac; Vite's hot reload is faster on the Mac's own disk. In production the React app is static files served by Caddy, so the dev server has no production twin to match | Frontend in Docker: `node_modules` would live in a Docker volume, invisible to VS Code (or installed twice), and hot reload is slower through Docker's file sharing on macOS |
 
 ---
 

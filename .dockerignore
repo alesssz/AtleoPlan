@@ -1,0 +1,9 @@
+# Files Docker never sends to a build. The `dev` image copies only
+# docker/php/dev.ini; the list matters for the production image, which will
+# copy the code (docs/backlog.md OPS-3).
+.git
+**/.env
+**/node_modules
+backend/vendor
+backend/storage
+frontend/dist

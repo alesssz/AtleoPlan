@@ -32,17 +32,19 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 ## OPS
 
-### OPS-1 Create the project skeleton
+### OPS-1 Finish the project skeleton
 
 **Priority:** high · **Kind:** setup · **Found:** 2026-11-05
 
-**What is missing.** There is no code yet: no Laravel app, no React app, no local stack.
+The repository holds `backend/` (Laravel) and `frontend/` (React + Vite) with a Docker Compose for the local services; both apps are created ([0.1](00-setup.md#01-where-the-project-stands)).
+
+**What is missing.** The frontend libraries of [2.2](02-decisions.md#22-stack): TanStack Query, React Router, Tailwind and shadcn/ui, react-i18next, react-hook-form and zod, dnd-kit, Recharts, vite-plugin-pwa, Vitest and Testing Library ([0.7](00-setup.md#07-creating-the-react-frontend)).
 
 **Options.**
-- A) One repository with `backend/` (Laravel) and `frontend/` (React + Vite), and a Docker Compose for Postgres and the local services.
-- B) Two repositories, one per app.
+- A) Install them all now.
+- B) Install each one with the first feature that needs it.
 
-**Recommended.** A: one repository, one history, one place for the docs; the production stack is one Docker Compose anyway ([2.6](02-decisions.md#26-hosting)).
+**Recommended.** B for most, but Tailwind, shadcn/ui, React Router, TanStack Query and react-i18next together first: every screen uses them, and adding i18n after texts are written means rewriting them.
 
 ### OPS-2 Check that the AtleoPlan name is free
 

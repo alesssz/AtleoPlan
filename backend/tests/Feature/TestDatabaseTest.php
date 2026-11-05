@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * Guard for the test setup: tests must run on the `atleoplan_test` database,
+ * never on the development one.
+ *
+ * compose.yaml gives the containers the development database's settings, and
+ * phpunit.xml overrides them with force="true". If that override is ever lost,
+ * this test fails before RefreshDatabase in another test empties the
+ * development data (docs/00-setup.md 0.6).
+ */
+
+use Illuminate\Support\Facades\DB;
+
+it('runs on the Postgres test database', function () {
+    // The connection the tests actually use, as Laravel resolved it
+    $connection = DB::connection();
+
+    expect($connection->getDriverName())->toBe('pgsql')
+        ->and($connection->getDatabaseName())->toBe('atleoplan_test');
+});
