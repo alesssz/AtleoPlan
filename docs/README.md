@@ -76,5 +76,6 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 | Document | What it covers |
 |---|---|
 | [L1. Laravel course](learn/L1-laravel.md) | Standard Laravel in 24 lessons, each with where the project uses it, a tried example, a recap and an exercise: PHP, Artisan, the container, migrations, Eloquent, relations, queries, collections, factories, routes, controllers, validation, policies, resources, middleware, signing in, configuration, translations, tests; what the project adds on top. A running example, training notes, built and thrown away |
+| [L2. React course](learn/L2-react.md) | React and the libraries of the frontend in 23 lessons, each with where the app uses it, a tried example, a recap and an exercise: JavaScript and TypeScript, Vite, components, props, lists, state, effects, hooks, context, React Router, TanStack Query (reading and changing data), forms with react-hook-form and zod, translations, Tailwind, shadcn/ui, tests, the checks; what is React and what is a library or ours. A running example, a muscles page, built and thrown away |
 
-**Reading order the first time:** S1, then D1 to D3, then C1 or C2, depending on the side you work on. New to Laravel: L1 first, at your own pace, next to C2. Keep H1 to H4 at hand while working.
+**Reading order the first time:** S1, then D1 to D3, then C1 or C2, depending on the side you work on. New to Laravel or React: L1 or L2 first, at your own pace, next to C2 or C1. Keep H1 to H4 at hand while working.

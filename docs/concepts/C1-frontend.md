@@ -4,6 +4,8 @@ How the React app in `frontend/` is built, why, and how to work on it. It is wri
 
 Every source file starts with a comment saying what it is for, and the code is commented line by line ([P1.2](../project/P1-conventions.md#p12-code)): the files are meant to be read next to this page. The decisions behind the choices are in [D2.2](../design/D2-decisions.md#d22-stack); the screens they serve in [D1. UI design](../design/D1-ui.md); setup and commands in [S1.7](../start/S1-setup.md#s17-creating-the-react-frontend) and [S1.8](../start/S1-setup.md#s18-everyday-commands).
 
+**New to React itself?** [L2. React course](../learn/L2-react.md) teaches React and the libraries used here lesson by lesson, keeping apart what is React, what is a library and what this project adds; this page is about how the app is built with them.
+
 ## Contents
 
 - [C1.1 The pieces](#c11-the-pieces)

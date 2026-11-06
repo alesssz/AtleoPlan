@@ -16,6 +16,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 | Building pages, data hooks, forms in practice: files, tests, translations, browser tools, errors | [docs/how-to/H3-frontend.md](docs/how-to/H3-frontend.md) |
 | Opening the database: connection details, TablePlus, alternatives | [docs/how-to/H4-database-tools.md](docs/how-to/H4-database-tools.md) |
 | Learning standard Laravel lesson by lesson, with exercises | [docs/learn/L1-laravel.md](docs/learn/L1-laravel.md) |
+| Learning React and the frontend's libraries lesson by lesson, with exercises | [docs/learn/L2-react.md](docs/learn/L2-react.md) |
 | What to work on next | [docs/project/backlog.md](docs/project/backlog.md) |
 
 ## Running things

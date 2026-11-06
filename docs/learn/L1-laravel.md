@@ -1621,4 +1621,4 @@ The test database needs nothing: each test run rebuilds it from the migrations t
 
 ---
 
-← [P1. Conventions](../project/P1-conventions.md) · [Contents](../README.md)
+← [P1. Conventions](../project/P1-conventions.md) · [Contents](../README.md) · [L2. React course](L2-react.md) →
