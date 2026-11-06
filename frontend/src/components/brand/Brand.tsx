@@ -1,12 +1,12 @@
 /*
- * AtleoPlan's brand, until a real logo exists (docs/01-ui-design.md 1.8,
+ * AtleoPlan's brand, until a real logo exists (docs/design/D1-ui.md D1.8,
  * open questions): the mark (a stylised "A" on a lime tile) and the
  * wordmark ("Atleo" + "Plan" in lime). Used by the sidebar and by the
  * phone's top bar (src/components/layout/). The same "A" is the browser
  * tab's icon (public/favicon.svg).
  *
  * Two small components in one file: both export only components, so
- * React's Fast Refresh still works (docs/04-frontend.md 4.4).
+ * React's Fast Refresh still works (docs/concepts/C1-frontend.md C1.4).
  */
 import { useId } from 'react'
 import { cn } from '@/lib/utils'

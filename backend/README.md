@@ -8,13 +8,17 @@ The Laravel application behind AtleoPlan. It serves:
 
 It runs only in Docker: PHP and Composer on your computer are neither needed nor used.
 
-**The guide is [docs/05-backend.md](../docs/05-backend.md),** written for someone new to PHP and Laravel. It covers:
+**The guide is [docs/concepts/C2-backend.md](../docs/concepts/C2-backend.md),** written for someone new to PHP and Laravel. It covers:
 - the pieces of the stack;
 - PHP syntax as it appears here;
 - the folders;
 - the life of a request;
 - routes and controllers, the database, sign-in, the admin panel, queues, configuration and tests;
 - step-by-step recipes.
+
+**Doing things step by step**, with the real output of each command:
+- endpoints, permissions, tests, admin screens, jobs, settings, packages: [docs/how-to/H2-backend.md](../docs/how-to/H2-backend.md);
+- the database (migrations, models, factories, seeders, tinker): [docs/how-to/H1-database.md](../docs/how-to/H1-database.md).
 
 Every PHP file starts with a comment saying what it does and pointing to the right section.
 
@@ -31,4 +35,4 @@ make pint                        # format the PHP code
 make logs                        # follow the backend's logs (make logs s=queue for the worker)
 ```
 
-Setup, ports and troubleshooting: [docs/00-setup.md](../docs/00-setup.md).
+Setup, ports and troubleshooting: [docs/start/S1-setup.md](../docs/start/S1-setup.md).

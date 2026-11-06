@@ -1,6 +1,6 @@
 /*
  * EmptyState: what a list or a screen shows when it has nothing yet, as
- * the design asks (docs/01-ui-design.md 1.5 component list, and 1.6 "Empty
+ * the design asks (docs/design/D1-ui.md D1.5 component list, and D1.6 "Empty
  * states"): an illustration, a sentence and the main action, never a blank
  * page. While a feature is not built, its action is shown disabled with a
  * "Coming soon" badge (`comingSoon`), so the screen already looks the way it
@@ -8,7 +8,7 @@
  *
  * The illustration is drawn with CSS, no image file: the section's icon in a
  * lime-tinted circle, surrounded by two faint rings and a blurred glow.
- * Components, props and `children`: docs/04-frontend.md 4.4; styles: 4.8.
+ * Components, props and `children`: docs/concepts/C1-frontend.md C1.4; styles: C1.8.
  */
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'

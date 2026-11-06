@@ -5,14 +5,14 @@
  * and sessions. Shipped with Laravel; comments added.
  *
  * A migration is a versioned change to the database's structure, written in
- * PHP instead of SQL (docs/05-backend.md 5.6). `php artisan migrate` (or
+ * PHP instead of SQL (docs/concepts/C2-backend.md C2.6). `php artisan migrate` (or
  * `make migrate`) runs, in file-name order, the ones not run yet, and records
  * each in the `migrations` table. The 0001_01_01 prefix makes Laravel's own
  * migrations run before the app's, which carry their creation date.
  *
  * Once a migration has run anywhere, it is never edited: the change would not
  * reach the databases where it already ran. A change is a new migration
- * (docs/03-conventions.md 3.2).
+ * (docs/project/P1-conventions.md P1.2).
  */
 
 use Illuminate\Database\Migrations\Migration;
@@ -66,7 +66,7 @@ return new class extends Migration
 
         // Sign-in sessions, when the session is stored in the database (the
         // default driver): the React app (Sanctum SPA mode) and the Filament
-        // panel both keep the signed-in user here (docs/05-backend.md 5.7)
+        // panel both keep the signed-in user here (docs/concepts/C2-backend.md C2.7)
         Schema::create('sessions', function (Blueprint $table) {
             // The random session id, also the value of the session cookie
             $table->string('id')->primary();

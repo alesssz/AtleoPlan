@@ -10,7 +10,7 @@ use Illuminate\Validation\Rules\Password;
  * resetting a password (ResetUserPassword), so the two can never differ.
  *
  * A trait is a bundle of methods copied into every class that writes
- * `use PasswordValidationRules;` inside it (docs/05-backend.md 5.2).
+ * `use PasswordValidationRules;` inside it (docs/concepts/C2-backend.md C2.2).
  */
 trait PasswordValidationRules
 {

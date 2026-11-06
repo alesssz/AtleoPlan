@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Messages of resetting a password (docs/05-backend.md 5.7.5), keyed by the
+ * Messages of resetting a password (docs/concepts/C2-backend.md C2.7.5), keyed by the
  * status the password broker answers with.
  */
 return [

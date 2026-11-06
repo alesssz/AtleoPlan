@@ -1,5 +1,5 @@
 /*
- * Home (route `/`), docs/01-ui-design.md 1.4.2. Until plans and workouts
+ * Home (route `/`), docs/design/D1-ui.md D1.4.2. Until plans and workouts
  * exist (FEAT-2, FEAT-3) it shows what it can truthfully show:
  * - a greeting with today's date;
  * - the "no active plan" empty state, whose buttons lead to Plans and
@@ -9,7 +9,7 @@
  * the empty state's place.
  *
  * A page is an ordinary component that the route table (src/router.tsx)
- * draws inside AppLayout. Adding a page: docs/04-frontend.md 4.9.
+ * draws inside AppLayout. Adding a page: docs/concepts/C1-frontend.md C1.9.
  */
 import { ClipboardList, Dumbbell, Plus } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
@@ -54,7 +54,7 @@ export function HomePage() {
       <div className="grid gap-6 lg:grid-cols-5">
         {/* No active plan yet: the empty state, with real links.
             Button asChild + Link: a link that looks like a button
-            (docs/04-frontend.md 4.8) */}
+            (docs/concepts/C1-frontend.md C1.8) */}
         <EmptyState
           className="lg:col-span-3"
           icon={ClipboardList}

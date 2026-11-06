@@ -2,7 +2,7 @@
 
 namespace App\Providers\Filament;
 
-// The namespace above maps to the app/Providers/Filament folder (docs/05-backend.md 5.2).
+// The namespace above maps to the app/Providers/Filament folder (docs/concepts/C2-backend.md C2.2).
 
 // Imports: the Filament and Laravel classes used below, each by its short name
 use Filament\Http\Middleware\Authenticate;
@@ -24,8 +24,8 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
  * Sets up the Filament admin panel at /admin: the back office where admins
- * manage the users and the public exercise library (docs/02-decisions.md 2.2,
- * its resource comes with BE-1; docs/05-backend.md 5.8).
+ * manage the users and the public exercise library (docs/design/D2-decisions.md D2.2,
+ * its resource comes with BE-1; docs/concepts/C2-backend.md C2.8).
  *
  * Filament builds the panel's pages (login, dashboard, lists, forms) from PHP
  * classes, with no frontend code to write. A panel is declared by a service
@@ -85,7 +85,7 @@ class AdminPanelProvider extends PanelProvider
                 FilamentInfoWidget::class,
             ])
             // Middleware: steps every request to the panel passes through
-            // before reaching the page, in this order (docs/05-backend.md 5.4).
+            // before reaching the page, in this order (docs/concepts/C2-backend.md C2.4).
             // The Laravel ones are the usual "web" stack: encrypted cookies,
             // the session, error messages for forms, protection against forged
             // form posts (CSRF), and turning an {id} in the URL into the model

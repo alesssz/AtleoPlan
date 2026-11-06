@@ -9,7 +9,7 @@
  * already handle the hard parts (opening and closing, keyboard arrows and
  * typing to jump, focus, screen-reader roles); shadcn/ui only adds Tailwind
  * classes and a data-slot attribute naming each part. Styles:
- * docs/04-frontend.md 4.8.
+ * docs/concepts/C1-frontend.md C1.8.
  *
  * The parts fit together like this:
  *

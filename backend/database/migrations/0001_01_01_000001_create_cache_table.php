@@ -7,8 +7,8 @@
  * The cache keeps values that are slow to compute or fetch for a while, e.g.
  * `Cache::remember('key', 60, fn () => ...)`. With the `database` store
  * (the default of a new Laravel app) they are kept in these tables, so the
- * app needs no Redis (docs/05-backend.md 5.10). How migrations work: see the
- * header of 0001_01_01_000000_create_users_table.php and docs/05-backend.md 5.6.
+ * app needs no Redis (docs/concepts/C2-backend.md C2.10). How migrations work: see the
+ * header of 0001_01_01_000000_create_users_table.php and docs/concepts/C2-backend.md C2.6.
  */
 
 use Illuminate\Database\Migrations\Migration;

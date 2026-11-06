@@ -2,7 +2,7 @@
  * The rules of the sign-in forms, written with zod: what is valid, and what to
  * say when it is not. They catch mistakes before anything is sent, in the user's
  * language; the backend checks everything again, because a browser can be made to
- * send anything (backend app/Actions/Fortify/). docs/04-frontend.md 4.13.
+ * send anything (backend app/Actions/Fortify/). docs/concepts/C1-frontend.md C1.13.
  *
  * A zod schema describes the shape of some data. Given to react-hook-form
  * (zodResolver), it runs on submit. Each schema is built by a function taking

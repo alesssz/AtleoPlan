@@ -3,7 +3,7 @@
 # Runs here: the Laravel backend (FrankenPHP, see the Dockerfile), its queue
 # worker, Postgres and Mailpit. The React frontend runs on the computer with
 # `npm run dev` (Vite), which forwards /api and /sanctum to the backend, so the
-# browser sees a single address, as it will in production (docs/02-decisions.md 2.6).
+# browser sees a single address, as it will in production (docs/design/D2-decisions.md D2.6).
 #
 # Ports on the computer are each service's standard port + 500, so they never clash
 # with other projects that use the standard ones (Chronovault uses + 100):
@@ -36,7 +36,7 @@ x-backend: &backend
     # below, whatever a fresh .env says (a new Laravel app defaults to SQLite).
     # The app's name, shown in the emails it sends.
     APP_NAME: AtleoPlan
-    # Where the React app is, for the links in emails (Vite, docs/00-setup.md 0.4).
+    # Where the React app is, for the links in emails (Vite, docs/start/S1-setup.md S1.4).
     FRONTEND_URL: http://localhost:5673
     DB_CONNECTION: pgsql
     DB_HOST: postgres
@@ -50,7 +50,7 @@ x-backend: &backend
     MAIL_PORT: 1025
     # Queued jobs are stored in a Postgres table: no Redis to run.
     QUEUE_CONNECTION: database
-    # The React app's address in development (Vite, docs/00-setup.md 0.4):
+    # The React app's address in development (Vite, docs/start/S1-setup.md S1.4):
     # Sanctum logs its requests in with the session cookie instead of a token.
     SANCTUM_STATEFUL_DOMAINS: localhost:5673
   depends_on:

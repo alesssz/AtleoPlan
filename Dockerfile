@@ -5,12 +5,12 @@
 #
 # FrankenPHP is PHP built into the Caddy web server: one container answers HTTP
 # and runs PHP, with no Nginx + PHP-FPM pair to wire together
-# (docs/02-decisions.md 2.6).
+# (docs/design/D2-decisions.md D2.6).
 #
 # Targets:
 # - `dev`  development, used by compose.yaml; the code is not copied in but
 #          mounted from ./backend, so every change is live.
-# - `prod` not written yet: it comes with the deployment (docs/backlog.md OPS-3)
+# - `prod` not written yet: it comes with the deployment (docs/project/backlog.md OPS-3)
 #          and will also build the React app into the image.
 
 # FrankenPHP 1.x with PHP 8.4, on Debian bookworm.
@@ -22,7 +22,7 @@ FROM dunglas/frankenphp:${FRANKENPHP_VERSION}-php${PHP_VERSION}-bookworm AS base
 
 # System packages:
 # - ffmpeg      converts uploaded videos to 720p H.264 without audio and
-#               extracts their poster image (docs/02-decisions.md 2.5)
+#               extracts their poster image (docs/design/D2-decisions.md D2.5)
 # - git, unzip  Composer needs them to download and unpack packages
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg git unzip \

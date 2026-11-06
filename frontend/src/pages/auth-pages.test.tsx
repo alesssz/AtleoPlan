@@ -1,7 +1,7 @@
 /*
  * The sign-in screens, used the way a person would: typing, pressing the button,
  * reading what appears. They run with the real guards and router, and a fake API
- * (src/test/auth-helpers.tsx). docs/04-frontend.md 4.10 and 4.13.
+ * (src/test/auth-helpers.tsx). docs/concepts/C1-frontend.md C1.10 and C1.13.
  *
  * userEvent simulates real typing and clicks, as Testing Library recommends;
  * its calls are asynchronous, hence the `await`s.

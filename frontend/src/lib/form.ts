@@ -1,6 +1,6 @@
 /*
  * Shows a failed request's errors in a form made with react-hook-form
- * (docs/04-frontend.md 4.13). No React here: plain TypeScript.
+ * (docs/concepts/C1-frontend.md C1.13). No React here: plain TypeScript.
  *
  * Laravel answers an invalid form with one message per field. A message about a
  * field on the screen goes under that field; any other goes at the top of the

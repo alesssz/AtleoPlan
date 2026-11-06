@@ -6,7 +6,7 @@
  * props. Three steps: createContext() makes it (here), a provider component
  * puts a value in (ThemeProvider), and useContext() reads it from any
  * component below (useTheme). When the value changes, every reader
- * re-renders. Context explained: docs/04-frontend.md 4.4.
+ * re-renders. Context explained: docs/concepts/C1-frontend.md C1.4.
  *
  * Kept in its own file so ThemeProvider.tsx exports only a component
  * (Fast Refresh, see eslint.config.js).

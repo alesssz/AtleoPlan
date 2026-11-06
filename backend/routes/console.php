@@ -2,7 +2,7 @@
 
 /**
  * The app's own Artisan commands written as closures, and later its scheduled
- * tasks (docs/05-backend.md 5.13).
+ * tasks (docs/concepts/C2-backend.md C2.13).
  *
  * bootstrap/app.php loads this file (`commands:`) whenever Artisan runs.
  * Bigger commands get their own class (`php artisan make:command`) instead.

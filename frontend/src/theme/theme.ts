@@ -1,7 +1,7 @@
 /*
  * The theme's plain logic, without React: which themes exist, where the
  * choice is saved, and how it is applied to the page. The React side
- * (ThemeProvider, useTheme) builds on this. docs/04-frontend.md 4.8.
+ * (ThemeProvider, useTheme) builds on this. docs/concepts/C1-frontend.md C1.8.
  *
  * Applying a theme = putting or removing the `dark` class on <html>; the
  * colours follow from src/index.css, and Tailwind's `dark:` classes switch
@@ -24,7 +24,7 @@ export const THEMES = ['dark', 'light', 'system'] as const
  */
 export type Theme = (typeof THEMES)[number]
 
-/** Dark is the default (docs/01-ui-design.md 1.1, principle 5). */
+/** Dark is the default (docs/design/D1-ui.md D1.1, principle 5). */
 export const DEFAULT_THEME: Theme = 'dark'
 
 /** The localStorage entry holding the choice (also read by index.html). */

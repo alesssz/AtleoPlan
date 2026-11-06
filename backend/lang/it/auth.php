@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Messages of signing in (docs/05-backend.md 5.7.7). Read with __('auth.failed');
+ * Messages of signing in (docs/concepts/C2-backend.md C2.7.7). Read with __('auth.failed');
  * the language is set for each request by app/Http/Middleware/SetLocaleFromRequest.php.
  */
 return [

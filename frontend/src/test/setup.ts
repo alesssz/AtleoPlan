@@ -1,7 +1,7 @@
 /*
  * Runs before every test file (vite.config.ts → test.setupFiles): settings
  * shared by all the tests, so no test file has to repeat them.
- * Tests and checks: docs/04-frontend.md 4.10.
+ * Tests and checks: docs/concepts/C1-frontend.md C1.10.
  */
 // Adds DOM matchers to Vitest's expect(): toBeInTheDocument(),
 // toHaveAttribute()… (imported for its effect only, no names)

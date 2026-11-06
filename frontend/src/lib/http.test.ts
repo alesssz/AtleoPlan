@@ -1,6 +1,6 @@
 /*
  * The one door to the API: what every request carries, how failures become an
- * ApiError, and the second try on an expired CSRF token. docs/04-frontend.md 4.6.
+ * ApiError, and the second try on an expired CSRF token. docs/concepts/C1-frontend.md C1.6.
  */
 import { describe, expect, it } from 'vitest'
 import i18n from '@/i18n'

@@ -11,7 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * (frontend/src/api/auth.ts holds the matching TypeScript type).
  *
  * An API Resource decides which columns leave the server and how they are
- * named (docs/05-backend.md 5.5). Listing them one by one means a new column,
+ * named (docs/concepts/C2-backend.md C2.5). Listing them one by one means a new column,
  * such as a secret, stays private until someone adds it here. Laravel wraps the
  * answer in a `data` key: { "data": { "id": 1, … } }.
  *

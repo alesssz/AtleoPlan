@@ -3,7 +3,7 @@
  * password": the email's link opens this screen, with the token and the address
  * in the query string (?token=…&email=…). The backend builds that link in
  * app/Providers/FortifyServiceProvider.php. Built as LoginPage
- * (docs/04-frontend.md 4.13).
+ * (docs/concepts/C1-frontend.md C1.13).
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'

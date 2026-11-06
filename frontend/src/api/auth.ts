@@ -2,11 +2,11 @@
  * The account: who is signed in, signing in, up and out, resetting a password
  * and saving the preferences. Like every file in src/api/, it holds the types,
  * the cache keys, the functions that call the API and the hooks components use
- * (the pattern: docs/04-frontend.md 4.6; src/api/health.ts is the simplest case).
+ * (the pattern: docs/concepts/C1-frontend.md C1.6; src/api/health.ts is the simplest case).
  *
  * The backend's routes: /api/auth/* are Fortify's (backend config/fortify.php),
  * /api/user is ours (backend routes/api.php). How signing in works:
- * docs/05-backend.md 5.7; how this side fits together: docs/04-frontend.md 4.13.
+ * docs/concepts/C2-backend.md C2.7; how this side fits together: docs/concepts/C1-frontend.md C1.13.
  *
  * The one fact everything here turns on: "who is signed in" is one piece of
  * server data, in the cache under authKeys.user. It holds the user, or null
@@ -214,7 +214,7 @@ export function useResetPassword() {
  * Hook: saves the language or the theme on the account.
  *
  * The change is written into the cache at once ("optimistic update",
- * docs/01-ui-design.md 1.6), and useAccountPreferences (src/routes/) applies it
+ * docs/design/D1-ui.md D1.6), and useAccountPreferences (src/routes/) applies it
  * to the page, so the screen never waits for the network. A failed save is
  * not undone: the choice stays until the page reloads, then the account's value
  * returns. The offline queue will save it later (FEAT-3).
@@ -223,7 +223,7 @@ export function useResetPassword() {
  * changes close together, the answer to the second can be computed before the
  * first is saved, and so carry the old value of the first: writing it would undo
  * what the user just chose. Instead the cache is read again once the last change
- * has finished. Why this matters: docs/04-frontend.md 4.13.
+ * has finished. Why this matters: docs/concepts/C1-frontend.md C1.13.
  *
  * @example const update = useUpdatePreferences(); update.mutate({ theme: 'light' })
  */

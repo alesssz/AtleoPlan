@@ -1,7 +1,7 @@
 /*
  * Shown for any address that matches no route (the `*` route in
  * src/router.tsx), inside the normal frame so the navigation stays.
- * Routing and Link: docs/04-frontend.md 4.5.
+ * Routing and Link: docs/concepts/C1-frontend.md C1.5.
  */
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'

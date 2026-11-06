@@ -1,10 +1,10 @@
 /*
  * The languages of the app, in one place: which ones exist, how each is
  * called in its own language (for the language picker), and which one is
- * used when a text is missing. docs/02-decisions.md 2.4.
+ * used when a text is missing. docs/design/D2-decisions.md D2.4.
  *
  * Adding a language: add its code here, a src/i18n/locales/<code>.json with
- * every key, and import it in src/i18n/index.ts (docs/04-frontend.md 4.7).
+ * every key, and import it in src/i18n/index.ts (docs/concepts/C1-frontend.md C1.7).
  */
 
 /**
@@ -22,7 +22,7 @@ export const SUPPORTED_LANGUAGES = ['it', 'en', 'es', 'de'] as const
  */
 export type Language = (typeof SUPPORTED_LANGUAGES)[number]
 
-/** English fills in any text missing in the user's language (2.4). */
+/** English fills in any text missing in the user's language (D2.4). */
 export const FALLBACK_LANGUAGE: Language = 'en'
 
 /**

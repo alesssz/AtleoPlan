@@ -1,16 +1,16 @@
-# 0. Setup
+# S1. Setup
 
-How to get AtleoPlan running on a computer: what is already in place, what is needed, how the Laravel and React apps are created, the port rule, the commands for every day, useful links and known problems. The decisions behind these choices are in [2. Decisions](02-decisions.md); how work is done is in [3. Conventions](03-conventions.md).
+How to get AtleoPlan running on a computer: what is already in place, what is needed, how the Laravel and React apps are created, the port rule, the commands for every day, useful links and known problems. The decisions behind these choices are in [D2. Decisions](../design/D2-decisions.md); how work is done is in [P1. Conventions](../project/P1-conventions.md).
 
 ---
 
-## 0.1 Where the project stands
+## S1.1 Where the project stands
 
 **Done:**
 
-- **Design docs:** UI ([1](01-ui-design.md)), decisions ([2](02-decisions.md)), conventions ([3](03-conventions.md)), data model ([6](06-data-model.md)), [backlog](backlog.md).
-- **Git:** repository on GitHub (`alesssz/AtleoPlan`) with the personal GitHub identity, and a hook that refuses any other email ([0.3](#03-git-identity)).
-- **Docker stack for development:** [`Dockerfile`](../Dockerfile), [`compose.yaml`](../compose.yaml), [`docker/php/dev.ini`](../docker/php/dev.ini). Four services:
+- **Design docs:** UI ([D1](../design/D1-ui.md)), decisions ([D2](../design/D2-decisions.md)), conventions ([P1](../project/P1-conventions.md)), data model ([D3](../design/D3-data-model.md)), how-to guides for the database ([H1](../how-to/H1-database.md)), the backend ([H2](../how-to/H2-backend.md)) and the frontend ([H3](../how-to/H3-frontend.md)), [backlog](../project/backlog.md).
+- **Git:** repository on GitHub (`alesssz/AtleoPlan`) with the personal GitHub identity, and a hook that refuses any other email ([S1.3](#s13-git-identity)).
+- **Docker stack for development:** [`Dockerfile`](../../Dockerfile), [`compose.yaml`](../../compose.yaml), [`docker/php/dev.ini`](../../docker/php/dev.ini). Four services:
 
 | Service | What it is |
 |---|---|
@@ -19,37 +19,37 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 | `postgres` | PostgreSQL 18, data kept in the `postgres-data` volume |
 | `mailpit` | Catches every email the app sends and shows it in a web page |
 
-- **Laravel app** in `backend/` ([0.6](#06-creating-the-laravel-backend)): Laravel 13 on Postgres, Sanctum (`install:api`), Filament 5 with its admin panel at `/admin`, spatie/laravel-medialibrary, laravel-query-builder and laravel-translatable, Pest 4. The default migrations have run and the two example tests pass.
-- **React app** in `frontend/` ([0.7](#07-creating-the-react-frontend), guide in [4](04-frontend.md)): React 19, TypeScript 6, Vite 8 on port 5673 with the proxy to Laravel; React Router, TanStack Query, i18next in four languages, Tailwind and shadcn/ui with the design system's colours, a dark / light theme; the app's frame (tab bar on phones, sidebar wider) in the energetic style of 1.5, empty states on the pages not built yet, a working Profile page; Vitest and ESLint with the code style. Node 24 pinned in `.nvmrc`.
+- **Laravel app** in `backend/` ([S1.6](#s16-creating-the-laravel-backend)): Laravel 13 on Postgres, Sanctum (`install:api`), Filament 5 with its admin panel at `/admin`, spatie/laravel-medialibrary, laravel-query-builder and laravel-translatable, Pest 4. The default migrations have run and the two example tests pass.
+- **React app** in `frontend/` ([S1.7](#s17-creating-the-react-frontend), guide in [C1](../concepts/C1-frontend.md)): React 19, TypeScript 6, Vite 8 on port 5673 with the proxy to Laravel; React Router, TanStack Query, i18next in four languages, Tailwind and shadcn/ui with the design system's colours, a dark / light theme; the app's frame (tab bar on phones, sidebar wider) in the energetic style of D1.5, empty states on the pages not built yet, a working Profile page; Vitest and ESLint with the code style. Node 24 pinned in `.nvmrc`.
 
-- **Signing in:** sign up, in and out, and resetting a password, with Fortify and four React screens; route guards; language and theme saved on the account; only admins open `/admin` ([5.7](05-backend.md#57-signing-in-sanctum), [4.13](04-frontend.md#413-signing-in-and-forms)).
-- **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([0.6](#06-creating-the-laravel-backend)).
+- **Signing in:** sign up, in and out, and resetting a password, with Fortify and four React screens; route guards; language and theme saved on the account; only admins open `/admin` ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum), [C1.13](../concepts/C1-frontend.md#c113-signing-in-and-forms)).
+- **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([S1.6](#s16-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
 
-**Not yet:** the app's features, in the order of the [backlog](backlog.md) (exercise library, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([4.11](04-frontend.md#411-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)).
+**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (exercise library, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 
-## 0.2 Prerequisites
+## S1.2 Prerequisites
 
 | Tool | Why | Check |
 |---|---|---|
 | **Docker Desktop** | Runs PHP, Composer, Postgres and Mailpit: **no PHP or Composer needed on your computer** | `docker --version` |
 | **Node 24** with npm (the version in `.nvmrc`) | Runs the React app and Vite on your computer | `node --version` |
 | **Git** | | `git --version` |
-| **Make** | Runs the shortcuts of [0.8](#08-everyday-commands). Already on a Mac; on Windows it is a separate install, for example `choco install make` | `make --version` |
+| **Make** | Runs the shortcuts of [S1.8](#s18-everyday-commands). Already on a Mac; on Windows it is a separate install, for example `choco install make` | `make --version` |
 
 **On Windows, run every command from Git Bash** (it comes with Git; in VS Code, the arrow next to the terminal's **+**). The recipes of the `Makefile` need `bash`, `grep` and `cp`: from the Command Prompt or PowerShell, `make` stops with `"grep" is not recognized`, and `cp` may not exist either. A PHP or Composer already installed on the computer is simply not used: the project's PHP is the one in the container.
 
 Git for Windows may check files out with Windows line endings (CRLF, `core.autocrlf`). It is harmless: the repository keeps LF, and the hook and every check of `make check` pass.
 
-Docker Desktop needs free space on its virtual disk: when it is full, builds fail with misleading errors ([0.10](#010-troubleshooting)). `docker system df` shows the usage.
+Docker Desktop needs free space on its virtual disk: when it is full, builds fail with misleading errors ([S1.10](#s110-troubleshooting)). `docker system df` shows the usage.
 
 ---
 
-## 0.3 Git identity
+## S1.3 Git identity
 
-A computer's global Git identity may be another one (on the work Mac it is the work identity). In this repository every commit uses the **personal GitHub identity** (the same as Chronovault) with GitHub's **noreply address**, so no real email ever enters the history and the repository can become public as it is ([3.1](03-conventions.md#31-git)).
+A computer's global Git identity may be another one (on the work Mac it is the work identity). In this repository every commit uses the **personal GitHub identity** (the same as Chronovault) with GitHub's **noreply address**, so no real email ever enters the history and the repository can become public as it is ([P1.1](../project/P1-conventions.md#p11-git)).
 
 On a **new clone**, before the first commit:
 
@@ -59,13 +59,13 @@ git config user.email "32982604+alesssz@users.noreply.github.com"
 git config core.hooksPath .githooks   # turns on the hook below
 ```
 
-The hook [`.githooks/pre-commit`](../.githooks/pre-commit) refuses a commit whose author or committer has any other email. Check the identity in use with `git var GIT_AUTHOR_IDENT`.
+The hook [`.githooks/pre-commit`](../../.githooks/pre-commit) refuses a commit whose author or committer has any other email. Check the identity in use with `git var GIT_AUTHOR_IDENT`.
 
 On GitHub, **Settings → Emails → "Block command line pushes that expose my email"** adds a second guard on the server side.
 
 ---
 
-## 0.4 Ports
+## S1.4 Ports
 
 **Rule: on your computer, each service uses its standard port + 500.** Standard ports are often taken by other projects (Chronovault adds 100); + 500 is kept for AtleoPlan. Inside the containers the standard ports stay.
 
@@ -82,9 +82,9 @@ A new service follows the same rule. To use another port once: `APP_PORT=8600 do
 
 ---
 
-## 0.5 First start: the Docker stack
+## S1.5 First start: the Docker stack
 
-**On a new clone of the project as it is now, one command does everything:** set the Git identity ([0.3](#03-git-identity)), then run `make setup` and `make doctor`. In order, `make setup`:
+**On a new clone of the project as it is now, one command does everything:** set the Git identity ([S1.3](#s13-git-identity)), then run `make setup` and `make doctor`. In order, `make setup`:
 
 1. turns on the Git hook;
 2. creates `backend/.env` from `backend/.env.example`, if missing: without it Laravel believes it is in production and `migrate` stops to ask for confirmation;
@@ -95,9 +95,9 @@ A new service follows the same rule. To use another port once: `APP_PORT=8600 do
 
 It can be run again safely: what is already in place stays as it is.
 
-**The first account.** The database starts empty: create an account at http://localhost:5673/register, after `make dev`. For an admin, which also opens `/admin`, run `make artisan c="db:seed"`: it creates `test@example.com`, password `password` ([5.8](05-backend.md#58-admin-panel-filament)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
+**The first account.** The database starts empty: create an account at http://localhost:5673/register, after `make dev`. For an admin, which also opens `/admin`, run `make artisan c="db:seed"`: it creates `test@example.com`, password `password` ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
 
-The rest of this section and [0.6](#06-creating-the-laravel-backend) are how the project was created the first time, kept for reference. From the project folder:
+The rest of this section and [S1.6](#s16-creating-the-laravel-backend) are how the project was created the first time, kept for reference. From the project folder:
 
 ```sh
 docker compose build            # builds the backend image (a few minutes the first time)
@@ -105,13 +105,13 @@ docker compose up -d postgres mailpit
 docker compose ps               # both should say "healthy"
 ```
 
-The `backend` and `queue` services start only once the Laravel app exists ([0.6](#06-creating-the-laravel-backend)); before that they would stop at once, finding no `artisan` file.
+The `backend` and `queue` services start only once the Laravel app exists ([S1.6](#s16-creating-the-laravel-backend)); before that they would stop at once, finding no `artisan` file.
 
 ---
 
-## 0.6 Creating the Laravel backend
+## S1.6 Creating the Laravel backend
 
-How the backend works once created, for a reader new to PHP and Laravel: [5. Backend](05-backend.md).
+How the backend works once created, for a reader new to PHP and Laravel: [C2. Backend](../concepts/C2-backend.md).
 
 **How it works.** There is no need to go inside the container: commands are typed in your computer's terminal, from the project folder, and Docker runs them in the container. The container is a computer with PHP and Composer installed, working on your computer's `backend/` folder:
 
@@ -119,18 +119,18 @@ How the backend works once created, for a reader new to PHP and Laravel: [5. Bac
 2. Inside the container, `/app` **is** your computer's `./backend` folder (a bind mount in `compose.yaml`): what the command writes there appears on your computer at once, and what is edited in VS Code is seen at once by the container.
 3. `--rm` deletes the container when the command ends; the files stay.
 
-`run --rm` is for when the stack is stopped (as now, before Laravel exists); once it runs, `docker compose exec backend <command>` uses the container already started, which is faster ([0.8](#08-everyday-commands)).
+`run --rm` is for when the stack is stopped (as now, before Laravel exists); once it runs, `docker compose exec backend <command>` uses the container already started, which is faster ([S1.8](#s18-everyday-commands)).
 
 For `create-project`, `./backend` must be empty (or missing: Docker creates it).
 
 ```sh
-# 1. Create the Laravel app in ./backend
+# D1. Create the Laravel app in ./backend
 docker compose run --rm backend composer create-project laravel/laravel .
 
-# 2. Start everything: Laravel answers at http://localhost:8500
+# D2. Start everything: Laravel answers at http://localhost:8500
 docker compose up -d
 
-# 3. Add the API layer: Sanctum and routes/api.php
+# P1. Add the API layer: Sanctum and routes/api.php
 docker compose exec backend php artisan install:api
 ```
 
@@ -144,7 +144,7 @@ exit
 
 A new Laravel app's `.env` points at SQLite: it does not matter here, because `compose.yaml` passes the Postgres settings as environment variables, and in Laravel those win over `.env`.
 
-**The packages of [2.2](02-decisions.md#22-stack)**, each with its own install step (check the linked page for the current version):
+**The packages of [D2.2](../design/D2-decisions.md#d22-stack)**, each with its own install step (check the linked page for the current version):
 
 ```sh
 docker compose exec backend composer require filament/filament
@@ -157,7 +157,7 @@ docker compose exec backend composer require --dev pestphp/pest pestphp/pest-plu
 docker compose exec backend vendor/bin/pest --init     # tests/Pest.php, tests rewritten for Pest
 ```
 
-**The photo and video table** of spatie/laravel-medialibrary, published and then run (published migrations get comments like ours, [3.2](03-conventions.md#32-code)):
+**The photo and video table** of spatie/laravel-medialibrary, published and then run (published migrations get comments like ours, [P1.2](../project/P1-conventions.md#p12-code)):
 
 ```sh
 docker compose exec backend php artisan vendor:publish \
@@ -170,7 +170,7 @@ docker compose exec backend php artisan migrate
 - in `backend/bootstrap/app.php`, inside `withMiddleware`: `$middleware->statefulApi();`
 - `SANCTUM_STATEFUL_DOMAINS=localhost:5673`, set in `compose.yaml` with the other environment variables.
 
-**Signing in with Fortify** ([5.7](05-backend.md#57-signing-in-sanctum)):
+**Signing in with Fortify** ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)):
 
 ```sh
 docker compose exec backend composer require laravel/fortify
@@ -191,11 +191,11 @@ docker compose exec backend php artisan fortify:install
 
 ---
 
-## 0.7 Creating the React frontend
+## S1.7 Creating the React frontend
 
-**No Docker here.** Unlike the backend, the frontend runs directly on your computer with its own Node and npm ([0.2](#02-prerequisites)), so the usual npm commands are used, with no `docker compose` in front. Why ([2.2](02-decisions.md#22-stack)):
+**No Docker here.** Unlike the backend, the frontend runs directly on your computer with its own Node and npm ([S1.2](#s12-prerequisites)), so the usual npm commands are used, with no `docker compose` in front. Why ([D2.2](../design/D2-decisions.md#d22-stack)):
 
-- npm needs only Node, whose version is pinned in [`.nvmrc`](../.nvmrc) (`nvm use` picks it up).
+- npm needs only Node, whose version is pinned in [`.nvmrc`](../../.nvmrc) (`nvm use` picks it up).
 - VS Code's TypeScript and ESLint read the types from `frontend/node_modules`, which must therefore be on your computer.
 - Vite reloads pages faster when it reads the files from your computer's own disk.
 
@@ -204,22 +204,22 @@ Day to day this means two terminals: `docker compose up -d` for the backend, `np
 `npm create vite` asks a couple of questions: the proposed answers are fine.
 
 ```sh
-# 1. Create the app in ./frontend (React + TypeScript template)
+# D1. Create the app in ./frontend (React + TypeScript template)
 npm create vite@latest frontend -- --template react-ts
 
-# 2. Install and start it
+# D2. Install and start it
 cd frontend
 npm install
 npm run dev
 ```
 
-**Port and proxy.** In `frontend/vite.config.ts`, the dev server moves to 5673 ([0.4](#04-ports)) and forwards the backend's paths to Laravel. The browser then sees a single address, as it will in production behind Caddy ([2.6](02-decisions.md#26-hosting)), and Sanctum's cookies work without CORS:
+**Port and proxy.** In `frontend/vite.config.ts`, the dev server moves to 5673 ([S1.4](#s14-ports)) and forwards the backend's paths to Laravel. The browser then sees a single address, as it will in production behind Caddy ([D2.6](../design/D2-decisions.md#d26-hosting)), and Sanctum's cookies work without CORS:
 
 ```ts
 export default defineConfig({
   plugins: [react()],
   server: {
-    // Standard port + 500 (docs/00-setup.md 0.4); fail rather than pick another
+    // Standard port + 500 (docs/start/S1-setup.md S1.4); fail rather than pick another
     port: 5673,
     strictPort: true,
     // Laravel's paths go to the backend container; everything else is React
@@ -247,16 +247,16 @@ npm install react-hook-form zod @hookform/resolvers      # forms, with signing i
 npx shadcn@latest add input label
 ```
 
-The others of [2.2](02-decisions.md#22-stack) come with the feature that needs them:
+The others of [D2.2](../design/D2-decisions.md#d22-stack) come with the feature that needs them:
 - dnd-kit with the plan editor (FEAT-2);
 - vite-plugin-pwa with workout mode (FEAT-3);
 - Recharts with the progress charts (phase 2).
 
-How the frontend is built and how to work on it: [4. Frontend](04-frontend.md).
+How the frontend is built and how to work on it: [C1. Frontend](../concepts/C1-frontend.md).
 
 ---
 
-## 0.8 Everyday commands
+## S1.8 Everyday commands
 
 Run from the project folder. `exec` runs in the container already started (fast); `run --rm` starts a new one and removes it afterwards (works with the stack stopped).
 
@@ -301,12 +301,12 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Production build | `npm run build` |
 | Tests | `npx vitest` |
 
-**Shortcuts: `make`.** The [`Makefile`](../Makefile) wraps the commands above, so they need not be typed in full; `make help` lists them all. The most used:
+**Shortcuts: `make`.** The [`Makefile`](../../Makefile) wraps the commands above, so they need not be typed in full; `make help` lists them all. The most used:
 
 | What | Command |
 |---|---|
 | Is everything in order? Docker and its disk, Node, npm cache, Git identity and hook, packages, ports, test database; prints the fix for each problem | `make doctor` |
-| New clone: hook, `backend/.env` and its key, image, packages, test database, migrations ([0.5](#05-first-start-the-docker-stack)) | `make setup` |
+| New clone: hook, `backend/.env` and its key, image, packages, test database, migrations ([S1.5](#s15-first-start-the-docker-stack)) | `make setup` |
 | Start everything (stack, then React) / only the stack / stop | `make start` / `make up` / `make down` |
 | The local addresses | `make urls` |
 | Any artisan or Composer command | `make artisan c="route:list"`, `make composer c="require vendor/package"` |
@@ -323,13 +323,13 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | New branch from an up-to-date `main` | `make branch name=feat/plan-editor` |
 | Back to `main`, up to date with GitHub | `make sync` |
 | Push the current branch | `make push` |
-| Merge the current branch into `main` | `make merge` ([3.1](03-conventions.md#31-git)) |
+| Merge the current branch into `main` | `make merge` ([P1.1](../project/P1-conventions.md#p11-git)) |
 
 Values go in variables (`c=`, `s=`), because Make reads anything after the target as more targets.
 
 ---
 
-## 0.9 Useful links
+## S1.9 Useful links
 
 **Local**
 
@@ -364,33 +364,33 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | react-i18next | https://react.i18next.com |
 | vite-plugin-pwa | https://vite-pwa-org.netlify.app |
 | Mailpit | https://mailpit.axllent.org |
-| free-exercise-db (exercise data, [2.3](02-decisions.md#23-exercise-library)) | https://github.com/yuhonas/free-exercise-db |
+| free-exercise-db (exercise data, [D2.3](../design/D2-decisions.md#d23-exercise-library)) | https://github.com/yuhonas/free-exercise-db |
 
 ---
 
-## 0.10 Troubleshooting
+## S1.10 Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
 | A build fails in `apt-get update` with **"At least one invalid signature was encountered"** | Docker Desktop's disk is full, not a signature problem. `docker system df` shows it; `docker builder prune -af` (build cache) and `docker image prune -af` (unused images) free space without touching data. |
-| **"port is already allocated"** | Another project uses that port. Check with `lsof -nP -iTCP:8500 -sTCP:LISTEN` (on Windows, `netstat -ano \| grep :8500`); change it once with the variable of [0.4](#04-ports). |
-| `make` stops with **`"grep" is not recognized`**, or **`cp`** is not recognized | The terminal is the Command Prompt or PowerShell: on Windows, use Git Bash ([0.2](#02-prerequisites)). |
-| `migrate` says **"APPLICATION IN PRODUCTION"** on a new clone | `backend/.env` is missing, so Laravel assumes production. `make setup` creates it ([0.5](#05-first-start-the-docker-stack)). |
-| `backend` or `queue` stops at once: **"Could not open input file: artisan"** | The Laravel app does not exist yet: [0.6](#06-creating-the-laravel-backend). |
+| **"port is already allocated"** | Another project uses that port. Check with `lsof -nP -iTCP:8500 -sTCP:LISTEN` (on Windows, `netstat -ano \| grep :8500`); change it once with the variable of [S1.4](#s14-ports). |
+| `make` stops with **`"grep" is not recognized`**, or **`cp`** is not recognized | The terminal is the Command Prompt or PowerShell: on Windows, use Git Bash ([S1.2](#s12-prerequisites)). |
+| `migrate` says **"APPLICATION IN PRODUCTION"** on a new clone | `backend/.env` is missing, so Laravel assumes production. `make setup` creates it ([S1.5](#s15-first-start-the-docker-stack)). |
+| `backend` or `queue` stops at once: **"Could not open input file: artisan"** | The Laravel app does not exist yet: [S1.6](#s16-creating-the-laravel-backend). |
 | `create-project` says the **directory is not empty** | `./backend` must be empty: remove what is in it, hidden files included. |
 | `composer require` fails with **"… is locked to version … and an update of this package was not requested"** | The new package needs other versions of packages already in `composer.lock`. Add `-W` (`--with-all-dependencies`) so Composer may update them too; try first with `--dry-run` to see what would change. |
 | `queue` shows **unhealthy** | Fixed in `compose.yaml` (the image's healthcheck asks Caddy, which the worker does not run); recreate it with `docker compose up -d queue`. Whether the worker works is in `docker compose logs queue`. |
 | `npm install` fails with **EACCES** and "Your cache folder contains root-owned files" (macOS, Linux) | An npm command once run with `sudo` left files in `~/.npm` owned by root. Give them back to the user: `sudo chown -R $(id -u):$(id -g) ~/.npm`. Never run npm with `sudo`. |
-| Tests fail with **database "atleoplan_test" does not exist** | The Postgres volume predates the init script: `make test-db` creates it ([0.6](#06-creating-the-laravel-backend)). |
+| Tests fail with **database "atleoplan_test" does not exist** | The Postgres volume predates the init script: `make test-db` creates it ([S1.6](#s16-creating-the-laravel-backend)). |
 | Something odd, cause unknown | `make doctor` checks the usual suspects above and prints the fix for each. |
-| A commit is **refused by pre-commit** | The identity is not the noreply one: [0.3](#03-git-identity). |
+| A commit is **refused by pre-commit** | The identity is not the noreply one: [S1.3](#s13-git-identity). |
 | A change to `dev.ini` or the `Dockerfile` has no effect | The image must be rebuilt: `docker compose build && docker compose up -d`. |
-| The React app gets **401 / CSRF token mismatch** | The browser is not on `localhost:5673`, or Sanctum's SPA settings are missing: [0.6](#06-creating-the-laravel-backend). |
-| **`/admin` answers 403** | The account is not an admin: [5.8](05-backend.md#58-admin-panel-filament). |
+| The React app gets **401 / CSRF token mismatch** | The browser is not on `localhost:5673`, or Sanctum's SPA settings are missing: [S1.6](#s16-creating-the-laravel-backend). |
+| **`/admin` answers 403** | The account is not an admin: [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament). |
 | The app shows **"Can't reach the server"** | The Docker stack is not running, or the server has an error: `make up`, then `make logs`. |
-| **"Too many attempts"** when signing in | Five tries a minute for one email: wait a minute ([5.7.4](05-backend.md#574-slowing-down-password-guessing)). |
+| **"Too many attempts"** when signing in | Five tries a minute for one email: wait a minute ([C2.7.4](../concepts/C2-backend.md#c274-slowing-down-password-guessing)). |
 | A reset email's **link opens the wrong address** | `FRONTEND_URL` in `compose.yaml`; after changing it, `docker compose up -d`. |
 
 ---
 
-← [Contents](../README.md#documentation) · [1. UI design](01-ui-design.md) →
+[Contents](../README.md) · [D1. UI design](../design/D1-ui.md) →

@@ -2,7 +2,7 @@
  * Shows whether the Laravel backend answers, from GET /api/health. The
  * first component reading server data, and the example of the three states
  * every such component handles: loading, error, success
- * (docs/01-ui-design.md 1.6, docs/04-frontend.md 4.6).
+ * (docs/design/D1-ui.md D1.6, docs/concepts/C1-frontend.md C1.6).
  *
  * The data comes from a TanStack Query hook (src/api/health.ts): the
  * component never fetches by itself nor keeps the answer in its own state.
@@ -25,7 +25,7 @@ export function ServerStatus() {
   const health = useHealth()
 
   // 1. Loading: a grey placeholder shape (a "skeleton"), never a spinner
-  //    over the whole page (1.6). `role="status"` + the hidden text tell
+  //    over the whole page (D1.6). `role="status"` + the hidden text tell
   //    screen readers what is going on. A component may return early:
   //    nothing below runs on this render.
   if (health.isPending) {
@@ -46,7 +46,7 @@ export function ServerStatus() {
   return (
     // The same row, allowed to wrap onto a second line on narrow screens
     <div className="flex flex-wrap items-center gap-3">
-      {/* Never colour alone (1.7): the dot is backed by the text next to it.
+      {/* Never colour alone (D1.7): the dot is backed by the text next to it.
           cn() joins the classes and picks the colour with a ternary
           (condition ? a : b): green when online, red otherwise */}
       {/* When online, a second dot behind the first grows and fades in a

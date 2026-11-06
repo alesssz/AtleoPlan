@@ -1,6 +1,6 @@
 /*
- * Sign up (route `/register`), docs/01-ui-design.md 1.4.1. Built as LoginPage,
- * the model of a form (docs/04-frontend.md 4.13). The new account starts in the
+ * Sign up (route `/register`), docs/design/D1-ui.md D1.4.1. Built as LoginPage,
+ * the model of a form (docs/concepts/C1-frontend.md C1.13). The new account starts in the
  * language of this browser, and Fortify signs the user in at once, so
  * RequireGuest, around this page, moves into the app.
  */
@@ -35,7 +35,7 @@ export function RegisterPage() {
    * @param values the fields' values, already checked
    */
   function onSubmit(values: SignUpValues) {
-    // The language in use now (the browser's, 2.4). isLanguage() is a type guard
+    // The language in use now (the browser's, D2.4). isLanguage() is a type guard
     const locale = isLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : FALLBACK_LANGUAGE
     signUp.mutate({ ...values, locale }, {
       onError: error => showRequestError(error, form.setError, ['name', 'email', 'password', 'password_confirmation'], t),

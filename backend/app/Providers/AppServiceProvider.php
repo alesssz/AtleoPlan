@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 // The namespace above places the class in App\Providers, which Composer's
-// autoloader maps to the app/Providers folder (docs/05-backend.md 5.2).
+// autoloader maps to the app/Providers folder (docs/concepts/C2-backend.md C2.2).
 
 // Imports Laravel's base class, so the code below can write just ServiceProvider
 use Illuminate\Support\ServiceProvider;
@@ -18,7 +18,7 @@ use Illuminate\Support\ServiceProvider;
  * that lists a class among its parameters. Service providers fill that
  * registry and configure the framework; Laravel runs the ones listed in
  * bootstrap/providers.php, plus those of the installed packages, on every
- * request and Artisan command (docs/05-backend.md 5.4).
+ * request and Artisan command (docs/concepts/C2-backend.md C2.4).
  *
  * Both methods are empty for now; `extends ServiceProvider` means this class
  * inherits everything from Laravel's base class and only overrides these two.

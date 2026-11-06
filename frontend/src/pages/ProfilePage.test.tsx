@@ -1,6 +1,6 @@
 /*
  * Profile: shows the account, and signs out. The guards around it are the real
- * ones, so signing out really ends on the sign-in form (docs/04-frontend.md 4.13).
+ * ones, so signing out really ends on the sign-in form (docs/concepts/C1-frontend.md C1.13).
  */
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

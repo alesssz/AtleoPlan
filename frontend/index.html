@@ -4,17 +4,17 @@
   loads it once, then React draws every screen inside <div id="root">, and
   React Router changes the screen without asking the server for new pages.
   Vite serves this file in development and copies it, with the final script
-  and style paths, into dist/ for production. docs/04-frontend.md 4.3.
+  and style paths, into dist/ for production. docs/concepts/C1-frontend.md C1.3.
 -->
 <!-- class="dark": the dark theme from the very first paint, the default
-     (docs/01-ui-design.md 1.1); the script below corrects it at once -->
+     (docs/design/D1-ui.md D1.1); the script below corrects it at once -->
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- viewport-fit=cover: the app may draw under the iPhone's notch and
          home bar, and keeps its controls clear of them with
-         env(safe-area-inset-*) (docs/01-ui-design.md 1.7) -->
+         env(safe-area-inset-*) (docs/design/D1-ui.md D1.7) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="AtleoPlan: workout plans, sets and progress." />
     <!-- Colour of the phone's status bar: the dark theme's background

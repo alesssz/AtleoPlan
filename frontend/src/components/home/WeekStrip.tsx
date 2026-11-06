@@ -1,5 +1,5 @@
 /*
- * "This week" on Home (docs/01-ui-design.md 1.4.2): the seven days, Monday
+ * "This week" on Home (docs/design/D1-ui.md D1.4.2): the seven days, Monday
  * to Sunday, with today highlighted. Days trained will be marked when
  * workouts exist (FEAT-3); for now none is, which is also the truth.
  * Day names and numbers come from Intl in the user's language
@@ -54,7 +54,7 @@ export function WeekStrip({ today = new Date() }: WeekStripProps) {
             >
               {dayNumber}
             </span>
-            {/* Spoken only: "today", since colour alone must never carry meaning (1.7) */}
+            {/* Spoken only: "today", since colour alone must never carry meaning (D1.7) */}
             {isToday && <span className="sr-only">{t('home.today')}</span>}
           </li>
         )

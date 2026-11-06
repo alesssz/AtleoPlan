@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Placeholder icon until the logo exists (docs/01-ui-design.md 1.8):
+  <!-- Placeholder icon until the logo exists (docs/design/D1-ui.md D1.8):
        a lime "A" on the dark theme's background -->
   <rect width="64" height="64" rx="14" fill="#0B0B0F"/>
   <path d="M32 12 L50 52 H41 L37.5 43 H26.5 L23 52 H14 Z M29.3 36 H34.7 L32 29 Z" fill="#C6F432"/>

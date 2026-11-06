@@ -1,8 +1,8 @@
 /*
  * Tests of src/lib/format.ts: the number formats of each language
- * (docs/02-decisions.md 2.4), the decimal comma in Italian, Spanish and
+ * (docs/design/D2-decisions.md D2.4), the decimal comma in Italian, Spanish and
  * German, the point in English. Run with `npm test` (Vitest); how tests
- * are organised: docs/04-frontend.md 4.10.
+ * are organised: docs/concepts/C1-frontend.md C1.10.
  *
  * The three Vitest functions used everywhere:
  * - describe('name', fn): a group of related tests, shown together in the report;

@@ -1,8 +1,8 @@
 /*
- * The five main sections of the app (docs/01-ui-design.md 1.3), in the
+ * The five main sections of the app (docs/design/D1-ui.md D1.3), in the
  * order they appear. One list feeds both navigations: the tab bar at the
  * bottom on phones (BottomTabBar) and the sidebar on wider screens
- * (SideNav), so the two can never disagree. Routing: docs/04-frontend.md 4.5.
+ * (SideNav), so the two can never disagree. Routing: docs/concepts/C1-frontend.md C1.5.
  *
  * A .ts file, not .tsx: it holds data, no JSX.
  */

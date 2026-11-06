@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-// The namespace above maps to the database/seeders folder (docs/05-backend.md 5.2).
+// The namespace above maps to the database/seeders folder (docs/concepts/C2-backend.md C2.2).
 
 // Imports: the model to create, and Laravel's base Seeder with one of its traits
 use App\Models\User;
@@ -10,7 +10,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 /**
- * Fills the development database with starting data (docs/05-backend.md 5.6).
+ * Fills the development database with starting data (docs/concepts/C2-backend.md C2.6).
  *
  * A seeder is a class whose run() inserts rows. This one is the entry point:
  * `php artisan db:seed` runs it, and `make fresh` (`migrate:fresh --seed`)

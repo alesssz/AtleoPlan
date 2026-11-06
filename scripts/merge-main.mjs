@@ -24,7 +24,7 @@
  *
  * Nothing is left half-done: a merge conflict is aborted and you are taken
  * back to your branch; if pushing main fails, the branch is kept.
- * Conventions: docs/03-conventions.md 3.1.
+ * Conventions: docs/project/P1-conventions.md P1.1.
  */
 import { execFileSync, spawnSync } from 'node:child_process'
 import { createInterface } from 'node:readline/promises'

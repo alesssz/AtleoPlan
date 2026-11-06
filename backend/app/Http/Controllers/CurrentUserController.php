@@ -12,7 +12,7 @@ use Illuminate\Http\Response;
  *
  * Its routes are in routes/api.php, under `auth:sanctum`, so `$request->user()`
  * is never null here. It only ever touches the user asking, which is why no
- * policy is needed. A thin controller: docs/05-backend.md 5.5.
+ * policy is needed. A thin controller: docs/concepts/C2-backend.md C2.5.
  */
 class CurrentUserController extends Controller
 {
@@ -30,7 +30,7 @@ class CurrentUserController extends Controller
 
     /**
      * PATCH /api/user/preferences: saves the language or the theme on the
-     * account (docs/01-ui-design.md 1.4.14).
+     * account (docs/design/D1-ui.md D1.4.14).
      *
      * Having the Form Request as a parameter is what makes Laravel validate
      * first. validated() holds only the fields that passed its rules, so nothing
@@ -38,7 +38,7 @@ class CurrentUserController extends Controller
      *
      * It answers 204 with no body, rather than the updated user: with two changes
      * close together, that user could hold the old value of the other one, and
-     * the React app would show it (docs/04-frontend.md 4.13).
+     * the React app would show it (docs/concepts/C1-frontend.md C1.13).
      *
      * @param  UpdatePreferencesRequest  $request  the validated request
      * @return Response an empty answer

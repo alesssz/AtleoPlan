@@ -1,8 +1,8 @@
 #!/bin/sh
 # Refuse any commit whose author or committer is not the personal GitHub
 # noreply address: a computer's global Git identity may be another one, and a
-# public repository must never show a real email (docs/03-conventions.md 3.1).
-# Active once `git config core.hooksPath .githooks` is set (docs/00-setup.md 0.3).
+# public repository must never show a real email (docs/project/P1-conventions.md P1.1).
+# Active once `git config core.hooksPath .githooks` is set (docs/start/S1-setup.md S1.3).
 ALLOWED="32982604+alesssz@users.noreply.github.com"
 for ident in "$(git var GIT_AUTHOR_IDENT)" "$(git var GIT_COMMITTER_IDENT)"; do
   case "$ident" in

@@ -3,7 +3,7 @@
  * and a short explanation on the left, the control (a picker, a switch, a
  * status) on the right. On phones the control moves under the text.
  * The look of modern settings screens, in the energetic style
- * (docs/01-ui-design.md 1.5 "Visual style").
+ * (docs/design/D1-ui.md D1.5 "Visual style").
  */
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'

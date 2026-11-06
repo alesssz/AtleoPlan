@@ -1,29 +1,29 @@
-# 5. Backend
+# C2. Backend
 
-How the Laravel backend in `backend/` works, written for someone who knows little PHP or Laravel and wants to read the code and change it with confidence. Read [5.1](#51-the-pieces)–[5.4](#54-the-life-of-a-request) once, in order: they explain the pieces and the path a request takes. The other sections explain one topic each, and [5.12](#512-recipes) holds the step-by-step recipes to keep open while coding.
+How the Laravel backend in `backend/` works, written for someone who knows little PHP or Laravel and wants to read the code and change it with confidence. Read [C2.1](#c21-the-pieces)–[C2.4](#c24-the-life-of-a-request) once, in order: they explain the pieces and the path a request takes. The other sections explain one topic each, and [C2.12](#c212-recipes) holds the step-by-step recipes to keep open while coding.
 
-Every PHP file starts with a comment saying what it is and points to the section of this page that explains its concepts ([3.2](03-conventions.md#32-code)). The choices behind the stack are in [2.2](02-decisions.md#22-stack); the setup in [0.6](00-setup.md#06-creating-the-laravel-backend); the React side in [4. Frontend](04-frontend.md).
+Every PHP file starts with a comment saying what it is and points to the section of this page that explains its concepts ([P1.2](../project/P1-conventions.md#p12-code)). The choices behind the stack are in [D2.2](../design/D2-decisions.md#d22-stack); the setup in [S1.6](../start/S1-setup.md#s16-creating-the-laravel-backend); the React side in [C1. Frontend](C1-frontend.md).
 
 ---
 
-## 5.1 The pieces
+## C2.1 The pieces
 
 | Piece | What it is | In this project |
 |---|---|---|
-| **PHP 8.4** | The programming language. A PHP program runs once per web request: it reads the request, does its work, prints the answer and ends. | Runs inside the `backend` Docker container, never directly on your computer ([0.2](00-setup.md#02-prerequisites)). |
+| **PHP 8.4** | The programming language. A PHP program runs once per web request: it reads the request, does its work, prints the answer and ends. | Runs inside the `backend` Docker container, never directly on your computer ([S1.2](../start/S1-setup.md#s12-prerequisites)). |
 | **Composer** | PHP's package manager, like npm for JavaScript. It reads `composer.json`, downloads the packages into `vendor/`, and records the exact versions in `composer.lock`. | `make composer c="require vendor/package"` |
 | **Laravel 13** | A framework: the ready-made structure of a web application (routing, database, authentication, queues, emails, tests). You write the parts specific to the app; Laravel calls them at the right moment. | All of `backend/` |
-| **Artisan** | Laravel's command-line tool (`php artisan …`). It generates files, runs migrations, opens a console, lists routes. | `make artisan c="route:list"` ([5.13](#513-artisan-and-composer-commands)) |
+| **Artisan** | Laravel's command-line tool (`php artisan …`). It generates files, runs migrations, opens a console, lists routes. | `make artisan c="route:list"` ([C2.13](#c213-artisan-and-composer-commands)) |
 | **FrankenPHP** | The web server: it receives HTTP requests and hands them to PHP. It is the Caddy web server with PHP built in. | The `backend` container, port 8500 on your computer |
 | **PostgreSQL** | The database where everything is stored. | The `postgres` container. Development data lives in `atleoplan`, tests in `atleoplan_test`. |
-| **Sanctum** | Laravel's authentication for single-page apps (cookies) and mobile apps (tokens): recognises the signed-in user on every request. | [5.7](#57-signing-in-sanctum) |
-| **Fortify** | Laravel's sign-in backend: the routes and logic of signing up, in and out and resetting a password, with no screens. | `config/fortify.php`, [5.7](#57-signing-in-sanctum) |
-| **Filament** | A package that builds an admin panel out of PHP classes, with no frontend code to write. | http://localhost:8500/admin ([5.8](#58-admin-panel-filament)) |
-| **Pest** | The testing tool: small files that call the app and check the answers. | `make test` ([5.11](#511-tests-with-pest)) |
+| **Sanctum** | Laravel's authentication for single-page apps (cookies) and mobile apps (tokens): recognises the signed-in user on every request. | [C2.7](#c27-signing-in-sanctum) |
+| **Fortify** | Laravel's sign-in backend: the routes and logic of signing up, in and out and resetting a password, with no screens. | `config/fortify.php`, [C2.7](#c27-signing-in-sanctum) |
+| **Filament** | A package that builds an admin panel out of PHP classes, with no frontend code to write. | http://localhost:8500/admin ([C2.8](#c28-admin-panel-filament)) |
+| **Pest** | The testing tool: small files that call the app and check the answers. | `make test` ([C2.11](#c211-tests-with-pest)) |
 
 ---
 
-## 5.2 PHP you will meet
+## C2.2 PHP you will meet
 
 PHP syntax as it appears in this project. A line in the code that looks strange is probably in this table.
 
@@ -55,47 +55,47 @@ PHP syntax as it appears in this project. A line in the code that looks strange 
 
 **Laravel's global helpers** are functions available everywhere, with no import:
 - `response()->json([...])` builds a JSON answer;
-- `env('KEY')` reads `.env`, but only inside `config/` ([5.10](#510-configuration-and-env));
+- `env('KEY')` reads `.env`, but only inside `config/` ([C2.10](#c210-configuration-and-env));
 - `config('app.name')` reads a configuration value;
 - `now()` gives the current date and time;
 - `dd($x)` ("dump and die") prints a value and stops, useful while debugging.
 
 ---
 
-## 5.3 Folder structure
+## C2.3 Folder structure
 
 ```
 backend/
 ├── app/                    the application's own code (namespace App\)
-│   ├── Actions/Fortify/      what Fortify leaves to us: creating a user, setting a new password (5.7)
-│   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit (6.2.4)
+│   ├── Actions/Fortify/      what Fortify leaves to us: creating a user, setting a new password (C2.7)
+│   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit (D3.2.4)
 │   ├── Http/
-│   │   ├── Controllers/        receive a request, return an answer (5.5)
-│   │   ├── Middleware/         steps every request crosses: SetLocaleFromRequest (5.7.7)
-│   │   ├── Requests/           Form Requests: the validation of an endpoint (5.5)
-│   │   └── Resources/          API Resources: the JSON shape of a model (5.5)
-│   ├── Models/               Eloquent models, one class per table (5.6)
+│   │   ├── Controllers/        receive a request, return an answer (C2.5)
+│   │   ├── Middleware/         steps every request crosses: SetLocaleFromRequest (C2.7.7)
+│   │   ├── Requests/           Form Requests: the validation of an endpoint (C2.5)
+│   │   └── Resources/          API Resources: the JSON shape of a model (C2.5)
+│   ├── Models/               Eloquent models, one class per table (C2.6)
 │   └── Providers/            service providers: set things up when the app starts
-│       └── Filament/           the admin panel's configuration (5.8)
+│       └── Filament/           the admin panel's configuration (C2.8)
 │   (to come: Policies permissions, Jobs background work, Filament/Resources admin screens)
 ├── bootstrap/
-│   ├── app.php               builds the application: routes, middleware, error handling (5.4)
+│   ├── app.php               builds the application: routes, middleware, error handling (C2.4)
 │   └── providers.php         the list of service providers to load
-├── config/                 one PHP file per area (database, mail, queue…), reading .env (5.10)
+├── config/                 one PHP file per area (database, mail, queue…), reading .env (C2.10)
 ├── database/
-│   ├── migrations/           the history of the database's structure (5.6)
+│   ├── migrations/           the history of the database's structure (C2.6)
 │   ├── factories/            fake records for tests and seeders
 │   └── seeders/              code that fills the database with starting data
-├── lang/                   messages in each language: validation, sign-in, emails (5.7.7)
+├── lang/                   messages in each language: validation, sign-in, emails (C2.7.7)
 ├── public/                 the only folder the web server exposes
-│   └── index.php             every request enters here (5.4)
+│   └── index.php             every request enters here (C2.4)
 ├── resources/views/        Blade HTML templates: only Laravel's welcome page (React draws the app)
 ├── routes/
-│   ├── api.php               the JSON API for the React app, under /api (5.5)
+│   ├── api.php               the JSON API for the React app, under /api (C2.5)
 │   ├── web.php               HTML pages; only the welcome page at /
 │   └── console.php           scheduled tasks and small custom Artisan commands
 ├── storage/                files written while running: logs, uploads, caches (never committed)
-├── tests/                  Pest tests: Feature/ (through HTTP), Unit/ (single classes) (5.11)
+├── tests/                  Pest tests: Feature/ (through HTTP), Unit/ (single classes) (C2.11)
 ├── vendor/                 packages installed by Composer: never edited, never committed
 ├── artisan                 the Artisan command-line tool
 ├── composer.json / .lock   the PHP packages, like package.json / package-lock.json
@@ -114,11 +114,11 @@ Following the conventions means writing less configuration.
 
 ---
 
-## 5.4 The life of a request
+## C2.4 The life of a request
 
 What happens, step by step, when the React app calls `GET /api/health`:
 
-1. **The browser** sends the request to Vite (`localhost:5673`). Vite's proxy forwards it to the `backend` container ([4.1](04-frontend.md#41-the-pieces)). In production, Caddy does the same job.
+1. **The browser** sends the request to Vite (`localhost:5673`). Vite's proxy forwards it to the `backend` container ([C1.1](C1-frontend.md#c11-the-pieces)). In production, Caddy does the same job.
 2. **FrankenPHP**, the web server in the container, serves the `public/` folder. The path is not a real file, so it hands the request to **`public/index.php`**: every request goes through this one file (the "front controller").
 3. `index.php` loads Composer's **autoloader**: from then on, any class is loaded the moment it is first used. Then it loads **`bootstrap/app.php`**, which builds the Laravel **application**. Building it means:
    - telling it where the routes are (`withRouting`);
@@ -139,7 +139,7 @@ In development the whole sequence restarts from scratch on every request, so a c
 
 ---
 
-## 5.5 Routes and controllers
+## C2.5 Routes and controllers
 
 **A route** connects a method and a path to the code that answers:
 
@@ -150,7 +150,7 @@ Route::get('/health', fn () => response()->json(['status' => 'ok']));   // route
 - **Where:** routes in `routes/api.php` get the `/api` prefix and the API middleware. Those in `routes/web.php` are for HTML pages; we use them only for Laravel's welcome page and Filament.
 - **Methods:** `Route::get`, `post`, `put`, `patch`, `delete`. They follow REST: `GET` reads, `POST` creates, `PATCH` updates, `DELETE` removes.
 - **Parameters:** `Route::get('/plans/{plan}', …)` passes the `{plan}` part to the code. With a model in the function's signature (`function (Plan $plan)`), Laravel loads that record from the database and answers 404 if it does not exist. This is called "route model binding".
-- **Protection:** `->middleware('auth:sanctum')` answers 401 to visitors who are not signed in ([5.7](#57-signing-in-sanctum)).
+- **Protection:** `->middleware('auth:sanctum')` answers 401 to visitors who are not signed in ([C2.7](#c27-signing-in-sanctum)).
 - **Seeing them all:** `make routes`.
 
 **A controller** is a class that holds the code of related routes, used as soon as that code is more than one line:
@@ -159,16 +159,16 @@ Route::get('/health', fn () => response()->json(['status' => 'ok']));   // route
 Route::get('/exercises', [ExerciseController::class, 'index']);   // calls ExerciseController::index()
 ```
 
-Our rule for an endpoint ([3.2](03-conventions.md#32-code)): **the controller stays thin**. It does three things:
+Our rule for an endpoint ([P1.2](../project/P1-conventions.md#p12-code)): **the controller stays thin**. It does three things:
 1. asks a **policy** whether the user may act (`$this->authorize('update', $plan)`);
 2. lets a **Form Request** validate the input, which answers 422 with one message per invalid field when the input is not valid;
 3. calls the code that does the work and returns an **API Resource**, a class that decides the JSON shape of a model.
 
-The rules themselves live in services or actions, tested without HTTP. The smallest real example is `CurrentUserController`, with `UpdatePreferencesRequest` and `UserResource`: it needs no policy, because it only touches the user asking. Policies arrive with BE-1; [5.12](#512-recipes) has the recipe.
+The rules themselves live in services or actions, tested without HTTP. The smallest real example is `CurrentUserController`, with `UpdatePreferencesRequest` and `UserResource`: it needs no policy, because it only touches the user asking. Policies arrive with BE-1; [C2.12](#c212-recipes) has the recipe.
 
 ---
 
-## 5.6 Database: migrations, models, factories, seeders
+## C2.6 Database: migrations, models, factories, seeders
 
 **Migrations** describe the database's structure as code. Each file in `database/migrations/` does one step:
 - `up()` makes the change, such as creating a table;
@@ -178,7 +178,7 @@ Laravel records which migrations have run, in the `migrations` table, and `make 
 
 ```php
 Schema::create('plans', function (Blueprint $table) {
-    $table->uuid('id')->primary();                 // primary key "id", a UUID created on the device (6.2)
+    $table->uuid('id')->primary();                 // primary key "id", a UUID created on the device (D3.2)
     $table->foreignId('user_id')->constrained();   // must point to an existing users.id
     $table->string('name');                        // varchar(255), required
     $table->text('notes')->nullable();             // may be empty (NULL)
@@ -186,7 +186,7 @@ Schema::create('plans', function (Blueprint $table) {
 });
 ```
 
-Tables with a number as their id use `$table->id()`, a `bigint` that grows by itself. Which table uses which, and every table's columns, is in [6. Data model](06-data-model.md).
+Tables with a number as their id use `$table->id()`, a `bigint` that grows by itself. Which table uses which, and every table's columns, is in [D3. Data model](../design/D3-data-model.md).
 
 - **A migration that has run is never edited.** A change is a new migration (`make artisan c="make:migration add_x_to_plans_table"`). Editing an old one would leave databases that already ran it out of step.
 - **The file name starts with a date and time,** and that decides the order.
@@ -208,24 +208,26 @@ $plan->days;                                 // a relation: the plan's days (ano
 - **`#[Fillable([...])]`** lists the columns that may be filled from a request's data in one go (`User::create($data)`). Any other column is ignored, so a request cannot set `is_admin`. This is protection against "mass assignment".
 - **`#[Hidden([...])]`** lists the columns never included when the model is turned into JSON, such as `password`.
 - **`casts()`** converts columns when they are read or written: `'email_verified_at' => 'datetime'` gives a date object, and `'password' => 'hashed'` hashes the password when it is set.
-- **Relations** are methods returning `hasMany`, `belongsTo` and so on. They come with the first tables of [6. Data model](06-data-model.md).
+- **Relations** are methods returning `hasMany`, `belongsTo` and so on. They come with the first tables of [D3. Data model](../design/D3-data-model.md).
 
 **Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data, such as a test user or the public exercise library (DATA-1). `make fresh` runs them.
 
 **Seeing the data:**
 - `make psql` opens an SQL console;
 - `make tinker` opens a PHP console with the whole app loaded, where you can type `User::count()`;
-- any database program can connect at `localhost:5932` ([0.4](00-setup.md#04-ports)).
+- any database program can connect at `localhost:5932` ([S1.4](../start/S1-setup.md#s14-ports)).
+
+**Doing it in practice:** every command, what to write in each file, seeders, tinker and the common errors, on a real table followed from start to finish, are in [H1. Database: how to](../how-to/H1-database.md).
 
 ---
 
-## 5.7 Signing in: Sanctum
+## C2.7 Signing in: Sanctum
 
 Signing in is built from two packages that do different jobs. **Fortify** handles the moments that change who is signed in: signing up, in and out, resetting a password. **Sanctum** recognises the signed-in user on every request after that.
 
-This section explains each step twice: **how this app does it with Fortify, and how the same step looks written by hand.** The app uses Fortify ([5.7.6](#576-fortify-or-by-hand) says why), so the by-hand code is not in the repository; it is here because it shows what Fortify does for us. It was run against the same scenarios as our tests, and it passes them. The React side is in [4.13](04-frontend.md#413-signing-in-and-forms).
+This section explains each step twice: **how this app does it with Fortify, and how the same step looks written by hand.** The app uses Fortify ([C2.7.6](#c276-fortify-or-by-hand) says why), so the by-hand code is not in the repository; it is here because it shows what Fortify does for us. It was run against the same scenarios as our tests, and it passes them. The React side is in [C1.13](C1-frontend.md#c113-signing-in-and-forms).
 
-### 5.7.1 How a session works
+### C2.7.1 How a session works
 
 HTTP has no memory: each request arrives knowing nothing about the one before. A **session** adds the memory:
 
@@ -242,7 +244,7 @@ HTTP has no memory: each request arrives knowing nothing about the one before. A
 |---|---|---|
 | **`HttpOnly` cookie** | Malicious code injected in the page stealing the session | JavaScript cannot read this cookie |
 | **CSRF token** | Another website making the user's browser send a request | Cookies travel by themselves, even for a request started by another site. So each request that changes something must also carry a token in a header. The token is in the `XSRF-TOKEN` cookie, which only pages on our own address can read |
-| **Rate limit** | Guessing passwords | [5.7.4](#574-slowing-down-password-guessing) |
+| **Rate limit** | Guessing passwords | [C2.7.4](#c274-slowing-down-password-guessing) |
 
 **What Sanctum does.** On every `/api` request, the middleware turned on by `statefulApi()` in `bootstrap/app.php` checks that the browser is on an address listed in `SANCTUM_STATEFUL_DOMAINS` (`localhost:5673`, set in `compose.yaml`). It then starts the session, checks the CSRF token, and `auth:sanctum` lets the request through, or answers 401.
 
@@ -261,11 +263,11 @@ Browser (localhost:5673)                        Laravel, through Vite's proxy
                                            ◀──  { "data": { "name": "Ann", … } }
 ```
 
-**Why cookies and not tokens for the web app:** a token kept in JavaScript can be stolen by injected code, and an `HttpOnly` cookie cannot. It all works because the React app and the API share one address ([2.6](02-decisions.md#26-hosting)).
+**Why cookies and not tokens for the web app:** a token kept in JavaScript can be stolen by injected code, and an `HttpOnly` cookie cannot. It all works because the React app and the API share one address ([D2.6](../design/D2-decisions.md#d26-hosting)).
 
 **The mobile app (phase 3)** will use **API tokens** sent in a header (`Authorization: Bearer …`) instead, with the `HasApiTokens` trait on the `User` model; their table, `personal_access_tokens`, already exists.
 
-**Where the routes are.** Fortify's are under `/api/auth`, set by `prefix` in `config/fortify.php`. Not plain `/login`, for two reasons: `/login` is a React page, and Vite and Caddy forward only `/api` to Laravel ([4.1](04-frontend.md#41-the-pieces)).
+**Where the routes are.** Fortify's are under `/api/auth`, set by `prefix` in `config/fortify.php`. Not plain `/login`, for two reasons: `/login` is a React page, and Vite and Caddy forward only `/api` to Laravel ([C1.1](C1-frontend.md#c11-the-pieces)).
 
 | Method and path | What it does | Answers |
 |---|---|---|
@@ -277,7 +279,7 @@ Browser (localhost:5673)                        Laravel, through Vite's proxy
 | `GET /api/user` (ours) | Who is signed in | 200; 401 for a visitor |
 | `PATCH /api/user/preferences` (ours) | Saves the language or theme | 204; 422 if not valid |
 
-### 5.7.2 Signing in and out
+### C2.7.2 Signing in and out
 
 **With Fortify.** The route and the controller are Fortify's. We add one piece, in `app/Providers/FortifyServiceProvider.php`: how to check the password, because this app also refuses disabled accounts.
 
@@ -347,7 +349,7 @@ public function logout(Request $request): Response
 
 **A detail worth noticing in both:** a wrong password and an unknown email get the same message. A different one would let anyone find out who has an account.
 
-### 5.7.3 Signing up
+### C2.7.3 Signing up
 
 **With Fortify.** We write only what is specific to this app, in `app/Actions/Fortify/CreateNewUser.php`: which fields are required, and how to create the user. Fortify calls it, signs the new user in, and answers 201.
 
@@ -396,7 +398,7 @@ public function register(Request $request): Response
 }
 ```
 
-### 5.7.4 Slowing down password guessing
+### C2.7.4 Slowing down password guessing
 
 A **rate limiter** counts requests and answers 429 above a limit. Ours allows 5 attempts a minute for one email from one address.
 
@@ -410,11 +412,11 @@ RateLimiter::for('login', function (Request $request) {
 });
 ```
 
-**By hand,** the same definition, and `->middleware('throttle:login')` on the route, as in [5.7.2](#572-signing-in-and-out).
+**By hand,** the same definition, and `->middleware('throttle:login')` on the route, as in [C2.7.2](#c272-signing-in-and-out).
 
 The key counts the email *and* the address, so an attacker cannot lock someone out from elsewhere by trying their email on purpose.
 
-### 5.7.5 Forgot password
+### C2.7.5 Forgot password
 
 There are two requests, joined by an email:
 
@@ -429,7 +431,7 @@ There are two requests, joined by an email:
 ```php
 ResetPassword::createUrlUsing(fn (User $user, string $token): string => sprintf(
     '%s/reset-password?token=%s&email=%s',
-    config('app.frontend_url'),            // FRONTEND_URL (5.10)
+    config('app.frontend_url'),            // FRONTEND_URL (C2.10)
     $token,
     urlencode($user->email),               // keeps a + in an address intact
 ));
@@ -482,9 +484,9 @@ public function resetPassword(Request $request): JsonResponse
 
 The password facade here is `Illuminate\Support\Facades\Password`, while in the validation rules `Password::default()` is `Illuminate\Validation\Rules\Password`. They share a name, so a real file would import one under another name, with `as`.
 
-**Known limit:** an unknown email gets a 422, so this form reveals who has an account, as signing up also does. It is noted in [BE-3](backlog.md#be-3-harden-the-public-sign-in-routes), to deal with before the app opens to the public.
+**Known limit:** an unknown email gets a 422, so this form reveals who has an account, as signing up also does. It is noted in [BE-3](../project/backlog.md#be-3-harden-the-public-sign-in-routes), to deal with before the app opens to the public.
 
-### 5.7.6 Fortify or by hand
+### C2.7.6 Fortify or by hand
 
 Both work, and the by-hand code above is not long. The difference is in who answers for the details:
 
@@ -501,13 +503,13 @@ Both work, and the by-hand code above is not long. The difference is in who answ
 
 **Why Fortify here:** these are the parts where a small mistake is a security hole, and nothing about them is specific to a workout app. What is specific, the disabled accounts, the language and the link to React, fits in the places Fortify leaves open. By hand would be the better choice if signing in had to work in an unusual way, such as signing in with a code from a club's card.
 
-**Set aside:** Laravel Breeze and Jetstream, which generate screens of their own (Blade, Inertia); our screens are in React. Laravel Passport, an OAuth server, is more than this needs ([2.2](02-decisions.md#22-stack)).
+**Set aside:** Laravel Breeze and Jetstream, which generate screens of their own (Blade, Inertia); our screens are in React. Laravel Passport, an OAuth server, is more than this needs ([D2.2](../design/D2-decisions.md#d22-stack)).
 
 **What `fortify:install` generated, and what was removed.** It publishes migrations and actions for every feature. The migrations for two-factor and passkeys and the actions for changing profile and password were deleted, with those features off in `config/fortify.php`: no empty columns or unused code. Each comes back with its feature.
 
-### 5.7.7 Messages in the user's language
+### C2.7.7 Messages in the user's language
 
-Laravel's messages are read with `__('auth.failed')`, from the files in `lang/`. Our languages ([2.4](02-decisions.md#24-languages)):
+Laravel's messages are read with `__('auth.failed')`, from the files in `lang/`. Our languages ([D2.4](../design/D2-decisions.md#d24-languages)):
 
 | File | Holds |
 |---|---|
@@ -525,21 +527,21 @@ Laravel's messages are read with `__('auth.failed')`, from the files in `lang/`.
 
 ---
 
-## 5.8 Admin panel: Filament
+## C2.8 Admin panel: Filament
 
 Filament builds the admin panel from PHP classes. You describe a table's columns and a form's fields in PHP, and Filament draws the pages, the search, the filters and the validation.
 
 - **The panel** is configured in `app/Providers/Filament/AdminPanelProvider.php`: path `/admin`, login page, colours, and where to look for resources. Open http://localhost:8500/admin. It is served directly by Laravel, not through the React app.
-- **A resource** is the admin screen for one model: its list, its form and its pages. `make artisan c="make:filament-resource Exercise --generate"` creates one from the table's columns. The public exercise library is the first (BE-1, [1.4.15](01-ui-design.md#1415-admin-panel-filament)).
-- **Only admins enter,** in every environment. The `User` model implements `FilamentUser`, and its `canAccessPanel()` checks `is_admin` and that the account is not disabled. Anyone else gets a 403 ([6.3](06-data-model.md#63-users-and-preferences)).
+- **A resource** is the admin screen for one model: its list, its form and its pages. `make artisan c="make:filament-resource Exercise --generate"` creates one from the table's columns. The public exercise library is the first (BE-1, [D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)).
+- **Only admins enter,** in every environment. The `User` model implements `FilamentUser`, and its `canAccessPanel()` checks `is_admin` and that the account is not disabled. Anyone else gets a 403 ([D3.3](../design/D3-data-model.md#d33-users-and-preferences)).
 - **Getting an admin in development.** `make artisan c="db:seed"` creates `test@example.com`, password `password`, an admin. To make an existing account an admin: `make tinker`, then `User::where('email', 'you@example.com')->update(['is_admin' => true]);`. `make artisan c="make:filament-user"` creates a user, but not an admin, so it needs the same step.
 - **The session is shared with the React app:** both use the `web` guard, and cookies are per host, whatever the port. Signing in on one signs in on the other.
 
 ---
 
-## 5.9 Queues and jobs
+## C2.9 Queues and jobs
 
-Some work is too slow to do while the user waits, such as converting a video with ffmpeg ([2.5](02-decisions.md#25-photos-and-videos)) or sending an email. That work goes on a **queue**:
+Some work is too slow to do while the user waits, such as converting a video with ffmpeg ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)) or sending an email. That work goes on a **queue**:
 
 1. The code creates a **job**, a class in `app/Jobs/` with a `handle()` method doing the work, and **dispatches** it: `ConvertVideo::dispatch($media)`. Dispatching only saves a row in the `jobs` table and returns at once.
 2. The **worker**, which is the `queue` container running `php artisan queue:listen`, takes the jobs one at a time and runs them.
@@ -551,7 +553,7 @@ Some work is too slow to do while the user waits, such as converting a video wit
 
 ---
 
-## 5.10 Configuration and .env
+## C2.10 Configuration and .env
 
 - **`config/*.php`** hold every setting, grouped by area (`database.php`, `mail.php`, `queue.php`…). Each value reads an environment variable with a default: `'default' => env('QUEUE_CONNECTION', 'database')`. Code reads settings with `config('queue.default')`, never with `env()`, because `env()` returns nothing once the configuration is cached.
 - **`backend/.env`** sets the variables for this computer. It holds secrets, so it is never committed and never shown (an assistant must not read it). **`.env.example`** lists every variable with harmless values, and it is committed. A new variable goes in both files.
@@ -563,7 +565,7 @@ Some work is too slow to do while the user waits, such as converting a video wit
 
 ---
 
-## 5.11 Tests with Pest
+## C2.11 Tests with Pest
 
 A test is a small function that uses the app and checks the result. If someone later breaks that behaviour, the test fails and says where.
 
@@ -576,13 +578,13 @@ it('answers ok without signing in', function () {        // the scenario, in wor
 ```
 
 **The two folders:**
-- **`tests/Feature/`** holds tests that go through HTTP: a request in, then checks on the status, the JSON, and the database (`$this->assertDatabaseHas('plans', [...])`). Most of our tests belong here. Every endpoint has one, including the forbidden cases, such as another user's plan answering 403 ([3.2](03-conventions.md#32-code)).
+- **`tests/Feature/`** holds tests that go through HTTP: a request in, then checks on the status, the JSON, and the database (`$this->assertDatabaseHas('plans', [...])`). Most of our tests belong here. Every endpoint has one, including the forbidden cases, such as another user's plan answering 403 ([P1.2](../project/P1-conventions.md#p12-code)).
 - **`tests/Unit/`** holds tests of one class or function, without HTTP.
 
 **Writing tests:**
 - **`expect($value)->toBe(…)`** is Pest's way to check a value; there are many matchers (`toBeTrue`, `toHaveCount`…).
 - **Signing in inside a test:** `$this->actingAs(User::factory()->create())`.
-- **The database:** tests run on `atleoplan_test`, never on the development data ([0.6](00-setup.md#06-creating-the-laravel-backend)). A test that writes to the database adds `uses(RefreshDatabase::class);` at the top of its file. Every test then starts from empty tables.
+- **The database:** tests run on `atleoplan_test`, never on the development data ([S1.6](../start/S1-setup.md#s16-creating-the-laravel-backend)). A test that writes to the database adds `uses(RefreshDatabase::class);` at the top of its file. Every test then starts from empty tables.
 - **Datasets** run one test with several inputs: `it(…)->with([…])`, as in `tests/Feature/Auth/RegistrationTest.php`.
 - **Emails:** `Notification::fake()` records them instead of sending, and `Notification::assertSentTo()` checks them. To see the real text, `tests/Feature/Auth/LanguageTest.php` reads what the `array` mailer received.
 
@@ -595,12 +597,14 @@ it('answers ok without signing in', function () {        // the scenario, in wor
 
 ---
 
-## 5.12 Recipes
+## C2.12 Recipes
 
-**A new table with its model.**
+The short versions. [H2. Backend: how to](../how-to/H2-backend.md) builds a real endpoint step by step, with the output of each command: reading and changing data, permissions, tests, an admin screen, a job, translated messages, settings, packages and the common errors.
+
+**A new table with its model.** The short version; [H1.2](../how-to/H1-database.md#h12-a-new-table-from-start-to-finish) goes through it on a real table, with the output of each command.
 
 1. `make artisan c="make:model Plan -mf"` creates the model, its migration (`-m`) and its factory (`-f`).
-2. Fill in the migration, commenting every column ([3.2](03-conventions.md#32-code)), then run `make migrate`.
+2. Fill in the migration, commenting every column ([P1.2](../project/P1-conventions.md#p12-code)), then run `make migrate`.
 3. In the model, set the fillable columns, the casts and the relations.
 4. In the factory, describe what realistic fake data looks like.
 5. Add the TypeScript type of the model in `frontend/src/api/`.
@@ -608,12 +612,12 @@ it('answers ok without signing in', function () {        // the scenario, in wor
 **A new endpoint.** For example, list the user's plans:
 
 1. **Route** in `routes/api.php`, inside an `auth:sanctum` group: `Route::get('/plans', [PlanController::class, 'index']);`
-2. **Controller:** `make artisan c="make:controller PlanController"`. It stays thin ([5.5](#55-routes-and-controllers)).
+2. **Controller:** `make artisan c="make:controller PlanController"`. It stays thin ([C2.5](#c25-routes-and-controllers)).
 3. **Validation**, if the endpoint takes input: `make artisan c="make:request StorePlanRequest"`. List the rules there, such as `'name' => ['required', 'string', 'max:100']`.
 4. **Permission:** `make artisan c="make:policy PlanPolicy --model=Plan"`, with a method per action, such as `update(User $user, Plan $plan): bool`.
 5. **JSON shape:** `make artisan c="make:resource PlanResource"`.
 6. **Test** in `tests/Feature/`. It covers success, invalid input (422), signed out (401) and someone else's record (403).
-7. **Frontend:** the `src/api/` file and its hooks ([4.9](04-frontend.md#49-recipes)).
+7. **Frontend:** the `src/api/` file and its hooks ([C1.9](C1-frontend.md#c19-recipes)).
 
 **Work in the background.**
 
@@ -621,15 +625,15 @@ it('answers ok without signing in', function () {        // the scenario, in wor
 2. Dispatch it: `ConvertVideo::dispatch(...)`.
 3. After changing a job's code, run `make restart` (in development `queue:listen` reloads the code by itself, but restarting is harmless).
 
-**An admin screen:** `make artisan c="make:filament-resource Exercise --generate"`, then adjust its columns and fields ([5.8](#58-admin-panel-filament)).
+**An admin screen:** `make artisan c="make:filament-resource Exercise --generate"`, then adjust its columns and fields ([C2.8](#c28-admin-panel-filament)).
 
 **Before calling it done:** `make fix`, then `make check`.
 
 ---
 
-## 5.13 Artisan and Composer commands
+## C2.13 Artisan and Composer commands
 
-Every command runs inside the container. The `make` shortcuts avoid typing `docker compose exec backend …` ([0.8](00-setup.md#08-everyday-commands)).
+Every command runs inside the container. The `make` shortcuts avoid typing `docker compose exec backend …` ([S1.8](../start/S1-setup.md#s18-everyday-commands)).
 
 | What | Command |
 |---|---|
@@ -646,11 +650,11 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 | Logs | `make logs`; the file `backend/storage/logs/laravel.log` |
 
 **Official documentation**, worth reading next to this page:
-- Laravel: https://laravel.com/docs. The pages *Routing*, *Eloquent*, *Migrations*, *Validation*, *Authorization*, *Queues*, *Sanctum* and *Fortify* match the sections above; *Authentication* and *Resetting Passwords* cover the by-hand way of [5.7](#57-signing-in-sanctum).
+- Laravel: https://laravel.com/docs. The pages *Routing*, *Eloquent*, *Migrations*, *Validation*, *Authorization*, *Queues*, *Sanctum* and *Fortify* match the sections above; *Authentication* and *Resetting Passwords* cover the by-hand way of [C2.7](#c27-signing-in-sanctum).
 - Filament: https://filamentphp.com/docs.
 - Pest: https://pestphp.com/docs.
 - PHP itself: https://www.php.net/manual.
 
 ---
 
-← [4. Frontend](04-frontend.md) · [Contents](../README.md#documentation) · [6. Data model](06-data-model.md) →
+← [C1. Frontend](C1-frontend.md) · [Contents](../README.md) · [H1. Database: how to](../how-to/H1-database.md) →

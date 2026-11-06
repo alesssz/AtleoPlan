@@ -3,7 +3,7 @@
  * while rendering (an `errorElement` in src/router.tsx), so one broken
  * component shows a message and a way out instead of a blank page.
  * It replaces the whole frame (AppLayout included), so it draws its own
- * <main>. Routing: docs/04-frontend.md 4.5.
+ * <main>. Routing: docs/concepts/C1-frontend.md C1.5.
  */
 import { useTranslation } from 'react-i18next'
 import { useRouteError } from 'react-router'

@@ -1,7 +1,7 @@
 /*
- * The theme picker (Profile, docs/01-ui-design.md 1.4.14): dark, light or
+ * The theme picker (Profile, docs/design/D1-ui.md D1.4.14): dark, light or
  * the device's setting. Works through useTheme() (src/theme/), which reads
- * the theme context. Theme: docs/04-frontend.md 4.8.
+ * the theme context. Theme: docs/concepts/C1-frontend.md C1.8.
  *
  * Same shape as LanguageSelect: a shadcn/ui Select whose label is drawn by
  * the parent (SettingRow), linked through the `id` prop.

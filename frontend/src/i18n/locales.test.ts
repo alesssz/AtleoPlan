@@ -3,7 +3,7 @@
  * the English keys, no text is empty, and every {{placeholder}} of the
  * English text is kept in the translation. A key forgotten in one language
  * would show English to that user (the fallback); this catches it first.
- * docs/04-frontend.md 4.7 (translations) and 4.10 (tests).
+ * docs/concepts/C1-frontend.md C1.7 (translations) and C1.10 (tests).
  *
  * Vitest in brief: describe() groups tests, it() is one test, and
  * expect(actual).toEqual(expected) fails the test when the two differ

@@ -13,7 +13,7 @@ use Tests\TestCase;
  * Laravel's example Feature test, kept as a smoke test: the home page loads.
  *
  * A Feature test sends a request through the whole app (routes, middleware,
- * response) without a real web server (docs/05-backend.md 5.11). It is
+ * response) without a real web server (docs/concepts/C2-backend.md C2.11). It is
  * written PHPUnit's way, a class whose `test_...` methods are the tests;
  * Pest runs it like its own `it()` tests.
  */

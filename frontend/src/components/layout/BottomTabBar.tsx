@@ -1,9 +1,9 @@
 /*
  * The tab bar at the bottom of the screen on phones (narrower than 640 px):
- * the five sections, within reach of the thumb (docs/01-ui-design.md 1.1,
- * principle 1, and 1.7). Hidden from 640 px up, where SideNav takes over.
- * Routing and NavLink: docs/04-frontend.md 4.5; Tailwind: 4.8; the visual
- * style (the lime "pill" behind the current tab): 1.5 "Visual style".
+ * the five sections, within reach of the thumb (docs/design/D1-ui.md D1.1,
+ * principle 1, and D1.7). Hidden from 640 px up, where SideNav takes over.
+ * Routing and NavLink: docs/concepts/C1-frontend.md C1.5; Tailwind: C1.8; the visual
+ * style (the lime "pill" behind the current tab): D1.5 "Visual style".
  * Tested in BottomTabBar.test.tsx, next to it.
  */
 import { useTranslation } from 'react-i18next'
@@ -49,7 +49,7 @@ export function BottomTabBar() {
               // when the link is the current page (see the pill below).
               className={({ isActive }) => cn(
                 // Icon above label (flex column), centred; at least 64 px
-                // tall: a comfortable tap target (1.5); colours fade on change
+                // tall: a comfortable tap target (D1.5); colours fade on change
                 'group flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors',
                 // Current tab's label in lime; the others muted
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
@@ -64,7 +64,7 @@ export function BottomTabBar() {
                     <item.icon /> draws the component stored in the item */}
                 <item.icon aria-hidden="true" className="size-5.5" />
               </span>
-              {/* Long German or Spanish words are cut with "…", not overflowing (1.7) */}
+              {/* Long German or Spanish words are cut with "…", not overflowing (D1.7) */}
               <span className="max-w-full truncate px-1">{t(`nav.${item.labelKey}`)}</span>
             </NavLink>
           </li>

@@ -8,7 +8,7 @@
  * (bg-primary, text-destructive…, defined in src/index.css), and many are
  * built on Radix, a library of unstyled, accessible building blocks
  * (keyboard handling, focus, ARIA attributes). Styles and theme:
- * docs/04-frontend.md 4.8.
+ * docs/concepts/C1-frontend.md C1.8.
  *
  * The look is picked with two props, each a set of "variants":
  *   variant: default (filled, primary colour), outline, secondary, ghost
@@ -83,7 +83,7 @@ const buttonVariants = cva(
         // 36 px tall
         'lg': 'h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',
         // Ours, not shadcn's: 48 px tall, the touch-friendly size of the main
-        // actions (tap targets of at least 48 px, docs/01-ui-design.md 1.5),
+        // actions (tap targets of at least 48 px, docs/design/D1-ui.md D1.5),
         // bold text and 20 px icons. The default (lime) variant also glows a
         // little, through glow-primary (src/index.css), but only while it can
         // be clicked (`not-disabled:`): a disabled button must not look inviting.

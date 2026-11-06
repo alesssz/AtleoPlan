@@ -1,7 +1,7 @@
 /*
  * The TanStack Query client: the cache of every piece of server data the
  * app has loaded, shared by all components (provided in src/App.tsx).
- * docs/04-frontend.md 4.6.
+ * docs/concepts/C1-frontend.md C1.6.
  *
  * In short: a component asks for data with useQuery({ queryKey, queryFn });
  * the "query key" (an array such as ['health']) names the data in the

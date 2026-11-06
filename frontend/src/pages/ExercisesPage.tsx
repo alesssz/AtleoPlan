@@ -1,6 +1,6 @@
 /*
  * Exercises (route `/exercises`): the exercise library with search and
- * filters, docs/01-ui-design.md 1.4.3. Until the library exists (BE-1,
+ * filters, docs/design/D1-ui.md D1.4.3. Until the library exists (BE-1,
  * DATA-1, UI-1) it shows an empty state announcing it, its action disabled
  * and marked "Coming soon". Same shape as PlansPage, which is commented in
  * more detail.

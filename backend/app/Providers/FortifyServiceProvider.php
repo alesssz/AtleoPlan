@@ -21,7 +21,7 @@ use Laravel\Fortify\Fortify;
  * Fortify is Laravel's sign-in backend: it brings the routes and controllers of
  * signing up, in and out and of resetting a password, with no screens of its
  * own (`views` is off in config/fortify.php; the React app draws them). What it
- * cannot know about this app is set here. docs/05-backend.md 5.7 explains
+ * cannot know about this app is set here. docs/concepts/C2-backend.md C2.7 explains
  * each step, with Fortify and by hand.
  *
  * A service provider runs when the app starts (app/Providers/AppServiceProvider.php
@@ -42,7 +42,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
         // How to check an email and a password. Replaces Fortify's own check to
-        // add one rule: a disabled account cannot sign in (1.4.15).
+        // add one rule: a disabled account cannot sign in (D1.4.15).
         Fortify::authenticateUsing(function (Request $request) {
             // The user with this email, or null. Fortify has already turned
             // the email to lowercase (CanonicalizeUsername)

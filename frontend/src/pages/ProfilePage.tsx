@@ -1,5 +1,5 @@
 /*
- * Profile (route `/profile`), docs/01-ui-design.md 1.4.14. The first
+ * Profile (route `/profile`), docs/design/D1-ui.md D1.4.14. The first
  * working screen:
  * - an account header: name, email and the button to sign out;
  * - the preferences, language and theme, as rows of a settings list;

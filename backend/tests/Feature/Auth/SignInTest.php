@@ -3,10 +3,10 @@
 /**
  * Signing in and out, through Fortify's routes (config/fortify.php). These test
  * our app's behaviour, not Fortify's internals: what the React app sends and
- * what it gets back. docs/05-backend.md 5.7.2.
+ * what it gets back. docs/concepts/C2-backend.md C2.7.2.
  *
  * Every test creates its user with UserFactory, whose password is `password`.
- * RefreshDatabase gives each test empty tables, on atleoplan_test (5.11).
+ * RefreshDatabase gives each test empty tables, on atleoplan_test (C2.11).
  */
 
 use App\Models\User;

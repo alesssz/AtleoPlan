@@ -3,7 +3,7 @@
  * workouts done, sets logged and volume lifted (sets × reps × weight).
  * They are true today: zero, since no workout can be logged yet. When
  * workout mode exists (FEAT-3), Home will pass the real totals through the
- * props, and warm-up sets will not count (docs/02-decisions.md 2.8).
+ * props, and warm-up sets will not count (docs/design/D2-decisions.md D2.8).
  */
 import { useTranslation } from 'react-i18next'
 import { formatNumber, formatWeight } from '@/lib/format'

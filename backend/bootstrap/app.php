@@ -6,13 +6,13 @@
  *
  * This file has no class: it is a plain script that `return`s a value, and
  * whoever loads it with `require` receives that value, here the configured
- * Application (docs/05-backend.md 5.4). Laravel 11+ keeps most of the app's
+ * Application (docs/concepts/C2-backend.md C2.4). Laravel 11+ keeps most of the app's
  * wiring here, where older versions had a Kernel class: which route files to
  * load, which middleware to add, how to report errors. The service providers
  * are listed apart, in bootstrap/providers.php.
  */
 
-// Imports: the classes used below, by their short names (docs/05-backend.md 5.2)
+// Imports: the classes used below, by their short names (docs/concepts/C2-backend.md C2.2)
 use App\Http\Middleware\SetLocaleFromRequest;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,7 +26,7 @@ use Illuminate\Http\Request;
 // `->with...()` call then adds one piece and returns the builder, and
 // `->create()` at the end produces the Application.
 return Application::configure(basePath: dirname(__DIR__))
-    // The route files (docs/05-backend.md 5.5). web.php gets the "web"
+    // The route files (docs/concepts/C2-backend.md C2.5). web.php gets the "web"
     // middleware (session, cookies, CSRF); api.php gets the "api" middleware
     // and the /api prefix on every route; console.php defines Artisan
     // commands; /up is Laravel's built-in health check, answering 200 when the
@@ -38,15 +38,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     // Middleware are the steps a request passes through before and after its
-    // route (docs/05-backend.md 5.4). This anonymous function (a "closure")
+    // route (docs/concepts/C2-backend.md C2.4). This anonymous function (a "closure")
     // is called by Laravel with the Middleware settings object; `: void`
     // means it returns nothing.
     ->withMiddleware(function (Middleware $middleware): void {
         // Sanctum's SPA mode: requests to /api from the React app (an address
         // listed in SANCTUM_STATEFUL_DOMAINS) are authenticated with the
         // session cookie, CSRF-protected; other clients, such as the future
-        // mobile app, use API tokens (docs/02-decisions.md 2.2,
-        // docs/05-backend.md 5.7).
+        // mobile app, use API tokens (docs/design/D2-decisions.md D2.2,
+        // docs/concepts/C2-backend.md C2.7).
         $middleware->statefulApi();
 
         // Answers in the language the React app asks for. Both groups, because

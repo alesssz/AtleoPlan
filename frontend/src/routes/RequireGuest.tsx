@@ -3,7 +3,7 @@
  * A signed-in user is sent into the app, to the address they were going to when
  * RequireAuth sent them here. That is also how signing in "moves on": the forms
  * do not navigate, they only update who is signed in, and this guard reacts.
- * docs/04-frontend.md 4.13.
+ * docs/concepts/C1-frontend.md C1.13.
  */
 import { useTranslation } from 'react-i18next'
 import { Navigate, Outlet, useLocation } from 'react-router'

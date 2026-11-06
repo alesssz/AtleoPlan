@@ -1,7 +1,7 @@
 /*
  * Applies the signed-in user's language and theme to this device, so a choice
- * made on the phone follows the user to the computer (docs/01-ui-design.md
- * 1.4.14). The data flows one way: the pickers change the account
+ * made on the phone follows the user to the computer (docs/design/D1-ui.md
+ * D1.4.14). The data flows one way: the pickers change the account
  * (useUpdatePreferences in src/api/auth.ts), and this hook applies the account
  * to the page. Used by RequireAuth, so it runs on every signed-in screen.
  */

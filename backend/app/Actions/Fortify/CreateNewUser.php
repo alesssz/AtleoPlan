@@ -16,7 +16,7 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
  * This is the part of signing up that Fortify leaves to us: its controller
  * receives the request, calls this class, signs the new user in and answers.
  * app/Providers/FortifyServiceProvider.php tells Fortify to use it.
- * docs/05-backend.md 5.7.3 compares this with writing the whole step by hand.
+ * docs/concepts/C2-backend.md C2.7.3 compares this with writing the whole step by hand.
  */
 class CreateNewUser implements CreatesNewUsers
 {
@@ -41,7 +41,7 @@ class CreateNewUser implements CreatesNewUsers
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)],
             'password' => $this->passwordRules(),
-            // The browser's language, sent by the React app (2.4). Optional:
+            // The browser's language, sent by the React app (D2.4). Optional:
             // without it the column's default applies. Rule::enum() accepts
             // only the values of the Locale enum
             'locale' => ['sometimes', Rule::enum(Locale::class)],

@@ -2,7 +2,7 @@
   // TypeScript settings for the app's own code (everything in src/).
   // TypeScript here only checks types (`npm run typecheck`, and live in the
   // editor); Vite does the actual conversion to JavaScript.
-  // Guide: docs/04-frontend.md (4.10 for the checks, 4.12 for the syntax).
+  // Guide: docs/concepts/C1-frontend.md (C1.10 for the checks, C1.12 for the syntax).
   "compilerOptions": {
     // Where tsc -b keeps its notes to make the next check faster
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",

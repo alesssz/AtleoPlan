@@ -1,13 +1,13 @@
 /*
  * Skeleton: shadcn/ui's loading placeholder, a grey shape that pulses
  * where content will appear (the design's loading state, never a spinner
- * over the whole page: docs/01-ui-design.md 1.6). Give it the size and shape
+ * over the whole page: docs/design/D1-ui.md D1.6). Give it the size and shape
  * of what it stands for through className:
  *   <Skeleton className="h-4 w-40" />              a line of text
  *   <Skeleton className="size-3 rounded-full" />   a dot
  * Used by src/components/ServerStatus.tsx. shadcn/ui copies each
  * component's source into src/components/ui/, so this file is ours to read.
- * Styles: docs/04-frontend.md 4.8.
+ * Styles: docs/concepts/C1-frontend.md C1.8.
  */
 // cn() joins classes and resolves Tailwind conflicts (see src/lib/utils.ts)
 import { cn } from 'cn'

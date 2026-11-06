@@ -7,10 +7,10 @@
  * compose.yaml gives the containers the development database's settings, and
  * phpunit.xml overrides them with force="true". If that override is ever lost,
  * this test fails before RefreshDatabase in another test empties the
- * development data (docs/00-setup.md 0.6).
+ * development data (docs/start/S1-setup.md S1.6).
  *
  * A Pest test: `it()` declares it, `expect()` checks values
- * (docs/05-backend.md 5.11).
+ * (docs/concepts/C2-backend.md C2.11).
  */
 
 // DB is a facade: a static-looking call Laravel passes to its database manager

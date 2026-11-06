@@ -1,12 +1,12 @@
-# 1. UI design
+# D1. UI design
 
-How AtleoPlan looks and behaves, screen by screen. This is the reference for building the interface: a screen is built as described here, and a change to a screen's behaviour updates this page in the same commit ([3.3](03-conventions.md#33-documentation)). The decisions behind it (stack, languages, media limits, hosting) and their reasons are in [2. Decisions](02-decisions.md).
+How AtleoPlan looks and behaves, screen by screen. This is the reference for building the interface: a screen is built as described here, and a change to a screen's behaviour updates this page in the same commit ([P1.3](../project/P1-conventions.md#p13-documentation)). The decisions behind it (stack, languages, media limits, hosting) and their reasons are in [D2. Decisions](D2-decisions.md).
 
 Terms used throughout: a **plan** is a workout plan (in Italian, *scheda*), made of **days** ("Day A – Push"), each holding **plan items** (an exercise with its sets, reps and rest); a **session** is one workout actually done, made of **logged sets**.
 
 ---
 
-## 1.1 Overview
+## D1.1 Overview
 
 AtleoPlan builds workout plans out of a library of exercises, guides the workout while it is done, and logs weights and reps to show progress over time. It starts as a personal project but is multi-user from day one, with sharing and a possible paid version later.
 
@@ -17,9 +17,9 @@ AtleoPlan builds workout plans out of a library of exercises, guides the workout
 | **Athlete** | Trains on their own: builds plans, logs workouts, follows progress | MVP |
 | **Visitor** | Opens a shared plan from a link without an account; duplicates it after signing up | Phase 2 |
 | **Coach** | Builds plans for others and sees their progress | Phase 3 |
-| **Admin** | Manages the public exercise library and the users, in the admin panel ([1.4.15](#1415-admin-panel-filament)) | MVP |
+| **Admin** | Manages the public exercise library and the users, in the admin panel ([D1.4.15](#d1415-admin-panel-filament)) | MVP |
 
-**Languages:** Italian, English, Spanish and German from the start ([2.4](02-decisions.md#24-languages)). Every text of the interface comes from translation files; none is written in a component.
+**Languages:** Italian, English, Spanish and German from the start ([D2.4](D2-decisions.md#d24-languages)). Every text of the interface comes from translation files; none is written in a component.
 
 **Design principles**
 
@@ -32,7 +32,7 @@ AtleoPlan builds workout plans out of a library of exercises, guides the workout
 
 ---
 
-## 1.2 Main user journeys
+## D1.2 Main user journeys
 
 Five journeys cover the MVP; the third, the workout, is the one to get right first.
 
@@ -72,7 +72,7 @@ Five journeys cover the MVP; the third, the workout, is the one to get right fir
 
 ---
 
-## 1.3 Information architecture and navigation
+## D1.3 Information architecture and navigation
 
 Five tabs at the bottom on phones (a sidebar on desktop): **Home · Plans · Exercises · Progress · Profile**. Workout mode is a full-screen view outside the tabs; the shared plan page is public and needs no sign-in; the admin panel is a separate area for admins only.
 
@@ -113,26 +113,26 @@ Admin (admins only, Filament)
 
 | Route | Screen |
 |---|---|
-| `/login`, `/register`, `/forgot-password`, `/reset-password` | Sign-in ([1.4.1](#141-sign-in-and-onboarding)) |
-| `/s/:token` | Shared plan, public ([1.4.13](#1413-sharing)) |
-| `/onboarding` | Onboarding ([1.4.1](#141-sign-in-and-onboarding)) |
-| `/` | Home ([1.4.2](#142-home)) |
-| `/plans`, `/plans/new`, `/plans/:id`, `/plans/:id/edit` | Plans ([1.4.6](#146-plan-list)–[1.4.8](#148-plan-editor)) |
-| `/exercises`, `/exercises/new`, `/exercises/:id`, `/exercises/:id/edit` | Exercises ([1.4.3](#143-exercise-library)–[1.4.5](#145-exercise-editor)) |
-| `/session/:id` | Workout mode, full screen ([1.4.9](#149-workout-mode)) |
-| `/session/:id/summary` | Summary ([1.4.10](#1410-workout-summary)) |
-| `/progress`, `/progress/exercises/:id`, `/progress/records` | Progress ([1.4.12](#1412-progress)) |
-| `/history`, `/history/:sessionId` | History ([1.4.11](#1411-history)) |
-| `/profile`, `/settings` | Profile and settings ([1.4.14](#1414-profile-and-settings)) |
-| `/admin/*` | Admin panel, served by Laravel ([1.4.15](#1415-admin-panel-filament)) |
+| `/login`, `/register`, `/forgot-password`, `/reset-password` | Sign-in ([D1.4.1](#d141-sign-in-and-onboarding)) |
+| `/s/:token` | Shared plan, public ([D1.4.13](#d1413-sharing)) |
+| `/onboarding` | Onboarding ([D1.4.1](#d141-sign-in-and-onboarding)) |
+| `/` | Home ([D1.4.2](#d142-home)) |
+| `/plans`, `/plans/new`, `/plans/:id`, `/plans/:id/edit` | Plans ([D1.4.6](#d146-plan-list)–[D1.4.8](#d148-plan-editor)) |
+| `/exercises`, `/exercises/new`, `/exercises/:id`, `/exercises/:id/edit` | Exercises ([D1.4.3](#d143-exercise-library)–[D1.4.5](#d145-exercise-editor)) |
+| `/session/:id` | Workout mode, full screen ([D1.4.9](#d149-workout-mode)) |
+| `/session/:id/summary` | Summary ([D1.4.10](#d1410-workout-summary)) |
+| `/progress`, `/progress/exercises/:id`, `/progress/records` | Progress ([D1.4.12](#d1412-progress)) |
+| `/history`, `/history/:sessionId` | History ([D1.4.11](#d1411-history)) |
+| `/profile`, `/settings` | Profile and settings ([D1.4.14](#d1414-profile-and-settings)) |
+| `/admin/*` | Admin panel, served by Laravel ([D1.4.15](#d1415-admin-panel-filament)) |
 
 ---
 
-## 1.4 Screens
+## D1.4 Screens
 
-Fifteen screens, each with its purpose, content and actions. Workout mode (1.4.9) also has a wireframe, being the most critical.
+Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.9) also has a wireframe, being the most critical.
 
-### 1.4.1 Sign-in and onboarding
+### D1.4.1 Sign-in and onboarding
 
 - **Sign in / Sign up:** email and password; signing up also asks for a name and to repeat the password. "Continue with Google" and "Continue with Apple" in phase 2 (Apple is required on the App Store once any social sign-in is offered).
 - **Staying signed in:** always on, with no checkbox: a phone at the gym must not ask for a password.
@@ -141,18 +141,18 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (1.4.9
 - **Server unreachable:** "Can't reach the server" and **Try again**, never the sign-in form: the user may well be signed in.
 - **Onboarding**, three skippable steps: language (preset from the browser), units (kg/lb), goal (strength, hypertrophy, general fitness), then start from a template plan or from scratch.
 
-### 1.4.2 Home
+### D1.4.2 Home
 
-- **Active plan card** at the top. Only one plan is active at a time ([2.8](02-decisions.md#28-workout-rules)).
+- **Active plan card** at the top. Only one plan is active at a time ([D2.8](D2-decisions.md#d28-workout-rules)).
   - The **suggested day** stands out: the day after the last one completed, in the plan's order, back to the first after the last ("Suggested: Day 2 · last time you did Day 1"). Number of exercises and estimated duration; a large **Start** button.
   - Under it, a chip for each of the other days: one tap starts that one instead. The suggestion is only a suggestion: the choice is always the user's.
 - **Session in progress** banner when a session was left open: Resume or Finish.
 - **This week:** a strip of 7 days with the days trained highlighted.
 - **Recent records:** the last 3 personal records.
 - **Free workout** shortcut (no plan).
-- No active plan: the empty state of [1.6](#16-states-and-edge-cases).
+- No active plan: the empty state of [D1.6](#d16-states-and-edge-cases).
 
-### 1.4.3 Exercise library
+### D1.4.3 Exercise library
 
 - Search bar fixed at the top; matches names in the user's language and their aliases ("bench" finds "Barbell bench press"; "panca" finds "Panca piana con bilanciere").
 - **Filter chips:** muscle group, equipment, source (All / Mine / Public).
@@ -160,35 +160,35 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (1.4.9
 - **Select mode** (opened from the plan editor): a checkbox on every row and a bar at the bottom, "Add (3)".
 - **+** creates an exercise.
 
-### 1.4.4 Exercise details
+### D1.4.4 Exercise details
 
 - **Media at the top:** carousel of photos and videos; videos play muted and looping, a tap opens them full screen.
-- Step-by-step instructions, muscles worked (main and secondary), equipment. Tips and common mistakes come later, when there is content for them ([6.4](06-data-model.md#64-exercise-library)).
+- Step-by-step instructions, muscles worked (main and secondary), equipment. Tips and common mistakes come later, when there is content for them ([D3.4](D3-data-model.md#d34-exercise-library)).
 - **My history** tab: last sessions, best set, estimated one-rep max.
 - Actions: **Add to plan**, **Edit** (only for my own exercises), **Duplicate as mine** (for public ones, to customise them).
 
-### 1.4.5 Exercise editor
+### D1.4.5 Exercise editor
 
 - Fields: name, description, instructions, main muscle, secondary muscles, equipment, logging type (weight × reps, reps only, time, distance).
-- A personal exercise is written in the user's language only; public exercises get every language in the admin panel ([1.4.15](#1415-admin-panel-filament)).
-- **Media upload:** drag and drop or pick files, progress bar, reorder, choose the cover. The limits are stated next to the field ([2.5](02-decisions.md#25-photos-and-videos)): videos up to 30 s and 100 MB, photos up to 10 MB, at most 2 videos and 5 photos per exercise.
+- A personal exercise is written in the user's language only; public exercises get every language in the admin panel ([D1.4.15](#d1415-admin-panel-filament)).
+- **Media upload:** drag and drop or pick files, progress bar, reorder, choose the cover. The limits are stated next to the field ([D2.5](D2-decisions.md#d25-photos-and-videos)): videos up to 30 s and 100 MB, photos up to 10 MB, at most 2 videos and 5 photos per exercise.
 - After upload a video shows "Processing…" until the server has converted it; the exercise can be saved and used meanwhile.
 - Alternative **YouTube link** field, with a preview.
 
-### 1.4.6 Plan list
+### D1.4.6 Plan list
 
 - One card per plan: name, number of days, last used, **Active** and **Shared** badges.
 - The active plan is always first.
 - **New plan**; a **Templates** section with public plans to duplicate.
 - Archived plans behind a filter of their own.
 
-### 1.4.7 Plan details
+### D1.4.7 Plan details
 
 - Header: name, goal, notes, author (when duplicated from someone else).
 - **Days as tabs**; in each day the exercises with sets × reps and rest ("4 × 8–10 · 90 s"), warm-up sets counted apart ("+ 2 warm-up"). Supersets are joined by a coloured bar on the side.
 - Actions: **Start this day**, **Set as active** (replaces the current active plan), **Edit**, **Share**, **Duplicate**, **Archive**.
 
-### 1.4.8 Plan editor
+### D1.4.8 Plan editor
 
 - Day tabs: add, rename, reorder, delete.
 - Each exercise is a row with a drag handle; a tap expands its parameters: sets, reps (one value or a range, "8-10"), rest, target load or RPE, notes.
@@ -197,7 +197,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (1.4.9
 - **On desktop:** two columns, the library on the left and the plan on the right, dragging from the library into a day.
 - The draft is saved automatically; **Discard changes** goes back to the last saved version.
 
-### 1.4.9 Workout mode
+### D1.4.9 Workout mode
 
 Full screen, no tab bar, and the screen stays on (Wake Lock API).
 
@@ -235,9 +235,9 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 - **Exercise menu:** swap (with alternatives for the same muscle), skip, add a note, watch the video.
 - **Live records:** a set that beats a record shows a **New record** badge.
 - Closing with ✕ pauses the session; Home offers to resume it.
-- All of this works offline ([1.6](#16-states-and-edge-cases)).
+- All of this works offline ([D1.6](#d16-states-and-edge-cases)).
 
-### 1.4.10 Workout summary
+### D1.4.10 Workout summary
 
 - Duration, exercises completed, total sets, total volume (in the user's unit), warm-up sets excluded.
 - Records broken, highlighted.
@@ -245,38 +245,38 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 - How did it feel (1–5) and free notes.
 - **Save** and **Delete session**.
 
-### 1.4.11 History
+### D1.4.11 History
 
 - Sessions by date (or a monthly calendar): day, plan, duration, volume.
 - **Session details**, editable: fix a wrong weight, add a forgotten set.
 
-### 1.4.12 Progress
+### D1.4.12 Progress
 
 - **Overview:** sessions per week, weekly volume per muscle group, streak of consecutive weeks.
 - **By exercise:** pick an exercise → chart of the estimated one-rep max over time, best set, volume per session. Periods: 1 month / 3 months / 1 year / all.
 - **Records:** personal records per exercise (heaviest weight, estimated one-rep max, most reps at a given weight).
 - Phase 2: body weight and measurements, with a chart.
 
-The estimated one-rep max uses the Epley formula, weight × (1 + reps / 30), on normal, drop and to-failure sets ([2.8](02-decisions.md#28-workout-rules)).
+The estimated one-rep max uses the Epley formula, weight × (1 + reps / 30), on normal, drop and to-failure sets ([D2.8](D2-decisions.md#d28-workout-rules)).
 
-### 1.4.13 Sharing
+### D1.4.13 Sharing
 
 - **Share sheet** (from the bottom): **Link active** switch, Copy link, Share (the phone's own share menu), QR code.
 - **Public page:** the plan read-only, with its exercises and media and its author, in the visitor's language when the exercise has it; **Duplicate to my plans**. Without an account: sign up first, then the plan is duplicated automatically.
 - The link can be turned off at any time.
 
-### 1.4.14 Profile and settings
+### D1.4.14 Profile and settings
 
 - Account details, **Sign out**. Profile picture and change password in phase 2.
 - **Language:** Italian, English, Spanish, German, saved on the account with the theme, so both follow the user to other devices. Numbers and dates follow it: `82,5 kg` in Italian, Spanish and German, `82.5 kg` in English.
 - Preferences: units kg/lb, default rest, stepper weight step, timer sound and vibration, theme (dark / light / system).
 - **Export my data** (JSON or CSV) and **Delete account**: required by the GDPR once the app is public.
 
-### 1.4.15 Admin panel (Filament)
+### D1.4.15 Admin panel (Filament)
 
 The admin area at `/admin`, served by Laravel with Filament, for admins only. It is not part of the React app and follows Filament's own look.
 
-- **Exercises:** list, search and filters like the library; create, edit and delete public exercises, the ones imported from free-exercise-db included ([2.3](02-decisions.md#23-exercise-library)).
+- **Exercises:** list, search and filters like the library; create, edit and delete public exercises, the ones imported from free-exercise-db included ([D2.3](D2-decisions.md#d23-exercise-library)).
 - **Translations:** each public exercise shows its name, description and instructions per language, side by side; a **Machine translated** flag marks the texts not yet reviewed by a person.
 - **Media:** photos and videos of public exercises, with their processing status.
 - **Users:** list, role (user / admin), disable an account.
@@ -284,9 +284,9 @@ The admin area at `/admin`, served by Laravel with Filament, for admins only. It
 
 ---
 
-## 1.5 Design system
+## D1.5 Design system
 
-Built on shadcn/ui over Tailwind: colours are CSS variables (tokens), so the dark and light themes only change values. The values below are a starting point; they live in `frontend/src/index.css`, and [4.8](04-frontend.md#48-styles-and-theme) maps each token to its Tailwind classes.
+Built on shadcn/ui over Tailwind: colours are CSS variables (tokens), so the dark and light themes only change values. The values below are a starting point; they live in `frontend/src/index.css`, and [C1.8](../concepts/C1-frontend.md#c18-styles-and-theme) maps each token to its Tailwind classes.
 
 **Colours (tokens)**
 
@@ -335,20 +335,20 @@ Built on shadcn/ui over Tailwind: colours are CSS variables (tokens), so the dar
 
 **Visual style: energetic**
 
-The look of a sports app, chosen over a minimal or a "glass" style: the lime is the star, on a near-black background. The ingredients, and where they live in `frontend/src` ([4.8](04-frontend.md#48-styles-and-theme)):
+The look of a sports app, chosen over a minimal or a "glass" style: the lime is the star, on a near-black background. The ingredients, and where they live in `frontend/src` ([C1.8](../concepts/C1-frontend.md#c18-styles-and-theme)):
 
 - **Glow.** Soft colour fading into the background behind every page: lime from the top, the timer's blue from the top right (`body` in `index.css`). Lime halos around what matters: the logo, the main button, the current tab (`glow-primary`).
 - **Gradient borders.** The important cards have a 1 px border that is lime at the top-left and fades out (`border-glow`), with 24 px corners.
 - **Heavy type.** Titles are extra-bold or black, with tight letter spacing. Above each page title sits an **eyebrow**: one or two words in small lime capitals with wide spacing ("TRAINING", or today's date on Home). One word of Home's greeting is painted with a lime gradient (`text-gradient-primary`).
 - **Big numbers.** Counters are black-weight with same-width digits (`tabular-nums`).
-- **Brand.** A stylised "A" on a lime tile and the wordmark Atleo**Plan** (`components/brand/Brand.tsx`), until a real logo exists (open question in [1.8](#18-release-phases-and-open-questions)). The logo sits in the sidebar, or at the top of the page on phones.
+- **Brand.** A stylised "A" on a lime tile and the wordmark Atleo**Plan** (`components/brand/Brand.tsx`), until a real logo exists (open question in [D1.8](#d18-release-phases-and-open-questions)). The logo sits in the sidebar, or at the top of the page on phones.
 - **Navigation.** The current tab sits in a lime "pill" (phones); the current sidebar link has a glowing lime bar on its left edge.
-- **Motion, short and optional.** Each page fades in while rising 8 px (300 ms); the server's "connected" dot pulses. Both are switched off with the device's reduced-motion setting ([1.7](#17-responsive-layout-and-accessibility)).
+- **Motion, short and optional.** Each page fades in while rising 8 px (300 ms); the server's "connected" dot pulses. Both are switched off with the device's reduced-motion setting ([D1.7](#d17-responsive-layout-and-accessibility)).
 - **Main actions** are 48 px tall, bold, and glow when enabled (`Button size="xl"`).
 
 ---
 
-## 1.6 States and edge cases
+## D1.6 States and edge cases
 
 Every screen handles five states: empty, loading, error, offline and syncing.
 
@@ -388,12 +388,12 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 | Error | Red dot, tap for details | The server refused a change |
 
 - **Works offline:** all of workout mode; plans and exercises already opened; cached history; the photos of the active plan's exercises (downloaded ahead).
-- **Does not work offline** (buttons disabled, with the reason): creating or editing exercises ([6.2](06-data-model.md#62-rules-for-every-table)), uploading media, creating share links, searching the public library beyond the cache.
-- **Conflicts:** sessions never conflict (each has a UUID created on the device, [2.7](02-decisions.md#27-offline-and-sync)). For a plan edited on two devices the last change wins, with a warning: "This plan was changed somewhere else".
+- **Does not work offline** (buttons disabled, with the reason): creating or editing exercises ([D3.2](D3-data-model.md#d32-rules-for-every-table)), uploading media, creating share links, searching the public library beyond the cache.
+- **Conflicts:** sessions never conflict (each has a UUID created on the device, [D2.7](D2-decisions.md#d27-offline-and-sync)). For a plan edited on two devices the last change wins, with a warning: "This plan was changed somewhere else".
 
 ---
 
-## 1.7 Responsive layout and accessibility
+## D1.7 Responsive layout and accessibility
 
 **Breakpoints**
 
@@ -411,7 +411,7 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 
 - Text contrast at least 4.5:1 (WCAG AA); the lime on the light theme is the one to check.
 - Never colour alone: a record is an icon plus text, a completed set a tick plus colour, a set type a letter plus colour.
-- Icon-only buttons always have a label (e.g. "Complete set 3"), shown as a tooltip too ([3.2](03-conventions.md#32-code)).
+- Icon-only buttons always have a label (e.g. "Complete set 3"), shown as a tooltip too ([P1.2](../project/P1-conventions.md#p12-code)).
 - The rest timer's end is announced to screen readers (`aria-live`).
 - Dragging works from the keyboard too (dnd-kit supports it), with Move up / Move down as an alternative.
 - `prefers-reduced-motion` is respected: no celebration animation for records when motion is reduced.
@@ -419,7 +419,7 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 
 ---
 
-## 1.8 Release phases and open questions
+## D1.8 Release phases and open questions
 
 **Phase 1 — MVP (personal use)**
 
@@ -457,4 +457,4 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 
 ---
 
-← [0. Setup](00-setup.md) · [Contents](../README.md#documentation) · [2. Decisions](02-decisions.md) →
+← [S1. Setup](../start/S1-setup.md) · [Contents](../README.md) · [D2. Decisions](D2-decisions.md) →

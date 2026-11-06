@@ -3,7 +3,7 @@
 namespace App\Models;
 
 // The namespace above places the class in App\Models, which Composer's
-// autoloader maps to the app/Models folder (docs/05-backend.md 5.2).
+// autoloader maps to the app/Models folder (docs/concepts/C2-backend.md C2.2).
 
 // `use` at the top of a file imports a class by its full name, so the code
 // below can write the short name (HasFactory instead of
@@ -31,7 +31,7 @@ use Illuminate\Notifications\Notifiable;
  * the Filament panel at /admin.
  *
  * This is an Eloquent model: one class per database table, one object per row
- * (docs/05-backend.md 5.6). By convention the table is the class name in
+ * (docs/concepts/C2-backend.md C2.6). By convention the table is the class name in
  * plural snake_case, so User reads and writes the `users` table created in
  * database/migrations/0001_01_01_000000_create_users_table.php; the columns
  * become properties, e.g. `$user->email`. There is no list of columns here:
@@ -39,7 +39,7 @@ use Illuminate\Notifications\Notifiable;
  *
  * It extends Laravel's Authenticatable (a Model plus what sign-in needs:
  * password check, "remember me" token), which is what Sanctum's session login
- * and Filament's login page work with (docs/05-backend.md 5.7, 5.8).
+ * and Filament's login page work with (docs/concepts/C2-backend.md C2.7, C2.8).
  *
  * The two `#[...]` lines above the class are PHP attributes: labels the
  * framework reads to configure the class, here instead of writing
@@ -51,10 +51,10 @@ use Illuminate\Notifications\Notifiable;
  *   array, so an API answer never shows the password hash or the token.
  *
  * `is_admin` is not fillable on purpose: no request can make someone an admin.
- * Every column is explained in docs/06-data-model.md 6.3.
+ * Every column is explained in docs/design/D3-data-model.md D3.3.
  *
  * `implements` promises that the class has the methods an interface lists
- * (docs/05-backend.md 5.2), which is how two packages learn about it:
+ * (docs/concepts/C2-backend.md C2.2), which is how two packages learn about it:
  * - FilamentUser: canAccessPanel(), who may open the admin panel;
  * - HasLocalePreference: preferredLocale(), which language emails to this user
  *   are written in.
@@ -83,7 +83,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
      * - locale, theme and weight_unit become PHP enums (app/Enums/), so the code
      *   compares `Theme::Dark` rather than a bare string;
      * - weight_step stays exact: `decimal:2` gives the string "2.50", because a
-     *   float would lose precision (docs/06-data-model.md 6.11).
+     *   float would lose precision (docs/design/D3-data-model.md D3.11).
      *
      * @return array<string, string>
      */
@@ -105,7 +105,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
     }
 
     /**
-     * Whether this user may open a Filament panel (docs/05-backend.md 5.8):
+     * Whether this user may open a Filament panel (docs/concepts/C2-backend.md C2.8):
      * admins whose account is not disabled.
      *
      * @param  Panel  $panel  the panel being opened; there is only /admin

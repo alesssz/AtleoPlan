@@ -1,6 +1,6 @@
 /*
  * cn(): the helper that builds a `className` out of Tailwind classes, used
- * by every component that styles itself (docs/04-frontend.md 4.8).
+ * by every component that styles itself (docs/concepts/C1-frontend.md C1.8).
  *
  * It does two jobs:
  * - joins classes and skips the false ones, so a class can depend on a
