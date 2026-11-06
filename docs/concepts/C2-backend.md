@@ -11,6 +11,10 @@ Every PHP file starts with a comment saying what it is and points to the section
 - [C2.3 Folder structure](#c23-folder-structure)
 - [C2.4 The life of a request](#c24-the-life-of-a-request)
 - [C2.5 Routes and controllers](#c25-routes-and-controllers)
+  - [C2.5.1 Permissions: policies](#c251-permissions-policies)
+  - [C2.5.2 Lists: filters and pages](#c252-lists-filters-and-pages)
+  - [C2.5.3 Actions: the work outside the controller](#c253-actions-the-work-outside-the-controller)
+  - [C2.5.4 The exercise library's endpoints](#c254-the-exercise-librarys-endpoints)
 - [C2.6 Database: migrations, models, factories, seeders](#c26-database-migrations-models-factories-seeders)
 - [C2.7 Signing in: Sanctum](#c27-signing-in-sanctum)
   - [C2.7.1 How a session works](#c271-how-a-session-works)
@@ -90,7 +94,9 @@ PHP syntax as it appears in this project. A line in the code that looks strange 
 ```
 backend/
 ├── app/                    the application's own code (namespace App\)
-│   ├── Actions/Fortify/      what Fortify leaves to us: creating a user, setting a new password (C2.7)
+│   ├── Actions/              actions: one job of the app each, outside the controllers (C2.5.3)
+│   │   ├── Exercises/          SavePersonalExercise
+│   │   └── Fortify/            what Fortify leaves to us: creating a user, setting a new password (C2.7)
 │   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit, LoggingType, MuscleRole (D3.2.4)
 │   ├── Http/
 │   │   ├── Controllers/        receive a request, return an answer (C2.5)
@@ -98,9 +104,10 @@ backend/
 │   │   ├── Requests/           Form Requests: the validation of an endpoint (C2.5)
 │   │   └── Resources/          API Resources: the JSON shape of a model (C2.5)
 │   ├── Models/               Eloquent models, one class per table: User, Muscle, Equipment, Exercise, ExerciseMuscle (C2.6)
+│   ├── Policies/             who may do what to a row: ExercisePolicy (C2.5.1)
 │   └── Providers/            service providers: set things up when the app starts
 │       └── Filament/           the admin panel's configuration (C2.8)
-│   (to come: Policies permissions, Jobs background work, Filament/Resources admin screens)
+│   (to come: Jobs background work, Filament/Resources admin screens)
 ├── bootstrap/
 │   ├── app.php               builds the application: routes, middleware, error handling (C2.4)
 │   └── providers.php         the list of service providers to load
@@ -187,7 +194,118 @@ Our rule for an endpoint ([P1.2](../project/P1-conventions.md#p12-code)): **the 
 2. lets a **Form Request** validate the input, which answers 422 with one message per invalid field when the input is not valid;
 3. calls the code that does the work and returns an **API Resource**, a class that decides the JSON shape of a model.
 
-The rules themselves live in services or actions, tested without HTTP. The smallest real example is `CurrentUserController`, with `UpdatePreferencesRequest` and `UserResource`: it needs no policy, because it only touches the user asking. Policies arrive with BE-1; [C2.12](#c212-recipes) has the recipe.
+The rules themselves live in services or actions, tested without HTTP. The smallest real example is `CurrentUserController`, with `UpdatePreferencesRequest` and `UserResource`: it needs no policy, because it only touches the user asking. The complete one is `ExerciseController`, explained in the four sections below; [C2.12](#c212-recipes) has the recipe, and [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built) how it was built.
+
+### C2.5.1 Permissions: policies
+
+A **policy** is a class of yes/no answers about one model, one method per action. Laravel finds it by name: `ExercisePolicy` for `Exercise`, in `app/Policies/`. Each method receives the signed-in user, then the row:
+
+```php
+public function update(User $user, Exercise $exercise): bool
+{
+    return $exercise->isOwnedBy($user);        // only my own; a public one gets a 403
+}
+```
+
+The controller asks with `Gate::authorize('update', $exercise)`. A `false` stops the request with a **403**, and the rest of the method never runs. Creating has no row yet, so the class is passed instead: `Gate::authorize('create', Exercise::class)`, and the method has only `$user`.
+
+| Action | `ExercisePolicy` says yes when |
+|---|---|
+| `view` | The exercise is public, or mine |
+| `create` | Always: a new exercise is always personal |
+| `update`, `delete` | It is mine. A public one is refused, to admins too: they edit public exercises in the admin panel (BE-1, `feat/exercise-admin`) |
+
+**A list does not ask row by row.** Calling the policy for each of 800 exercises would mean loading them all first. The list uses a **query scope** that holds the same rule as `view`, written as SQL: `Exercise::visibleTo($user)` ([C2.6](#c26-database-migrations-models-factories-seeders)). The two must agree, and the tests check both.
+
+**403 or 404 for someone else's exercise?** We answer 403: the exercise exists, and you may not see it. Answering 404 would hide even that it exists, which matters when ids can be guessed and their existence is a secret; here it is not.
+
+### C2.5.2 Lists: filters and pages
+
+A list endpoint takes its options from the **query string**, the part of the URL after `?`. The library's list uses [spatie/laravel-query-builder](https://spatie.be/docs/laravel-query-builder), which reads the `filter[...]` parameters and applies only those it was told to accept:
+
+```
+GET /api/exercises?filter[search]=panca&filter[muscle]=chest,triceps&page=2
+```
+
+```php
+QueryBuilder::for(Exercise::visibleTo($request->user()))      // the starting query
+    ->allowedFilters(
+        AllowedFilter::scope('search')->delimiter(''),         // filter[search] → the scope search()
+        AllowedFilter::scope('muscle', 'withPrimaryMuscle'),   // filter[muscle] → withPrimaryMuscle()
+    )
+    ->with(['equipment', 'muscles'])                           // the relations, loaded once for the page
+    ->orderByName()                                            // another scope
+    ->paginate(50);                                            // one page, read from ?page=
+```
+
+- **Only listed filters work.** Any other name (`filter[owner_id]=…`) gets a 400, so a request cannot filter on a column we did not mean to expose.
+- **Commas split a value** into several: `chest,triceps` becomes two arguments of the scope. A search must not be split, hence `delimiter('')`.
+- **The values** are checked by a Form Request (`ListExercisesRequest`), which answers 422 to `filter[source]=everyone` or `per_page=500`. On a `GET`, a Form Request's rules read the query string.
+- **`paginate()`** runs two queries, the page's rows and the total count. The answer carries the rows in `data`, the URLs of the first, previous, next and last pages in `links`, and `current_page`, `last_page`, `per_page` and `total` in `meta`. `withQueryString()` keeps the filters in those URLs.
+
+**N+1 queries.** Reading `$exercise->muscles` on each exercise of a page would run one query per exercise: 1 for the list, plus N. `with([...])` loads the relation for the whole page in one query. In the API Resource, `$this->whenLoaded('muscles', …)` uses the relation only if it was loaded, and otherwise leaves the key out: a forgotten `with()` shows up as a missing key, not as a slow page.
+
+### C2.5.3 Actions: the work outside the controller
+
+An **action** is a small class that does one job of the app: `SavePersonalExercise` creates and changes a personal exercise. It lives in `app/Actions/`, and it is a plain class, created with `make artisan c="make:class Actions/Exercises/SavePersonalExercise"`: Laravel has no special base class for it.
+
+The controller receives it as a parameter, and Laravel's **service container** builds it ("dependency injection"):
+
+```php
+public function store(StoreExerciseRequest $request, SavePersonalExercise $save): ExerciseResource
+{
+    Gate::authorize('create', Exercise::class);
+    $exercise = $save->create($request->user(), $request->validated());
+
+    return new ExerciseResource($exercise->load(['equipment', 'muscles']));
+}
+```
+
+**Why not in the controller:**
+- a test can call it directly, without HTTP (`app(SavePersonalExercise::class)->create($user, [...])`, in `tests/Feature/ExerciseLibrary/SavePersonalExerciseTest.php`);
+- another caller can reuse it, such as an Artisan command or an import.
+
+**`DB::transaction(fn () => …)`** groups the writes: the exercise and its muscles are saved together, or not at all.
+
+### C2.5.4 The exercise library's endpoints
+
+The library's API, all under `auth:sanctum` ([D1.4.3](../design/D1-ui.md#d143-exercise-library)–[D1.4.5](../design/D1-ui.md#d145-exercise-editor)). Texts arrive and leave in the request's language (`Accept-Language`, [C2.7.7](#c277-messages-in-the-users-language)).
+
+| Method and path | What it does | Answers |
+|---|---|---|
+| `GET /api/muscles` | The 17 muscle groups, sorted by name | 200 |
+| `GET /api/equipment` | The 12 kinds of equipment, sorted by name | 200 |
+| `GET /api/exercises` | Public exercises and mine, sorted by name, 50 per page. Filters: `filter[search]` (name and aliases), `filter[muscle]` (primary muscles, slugs separated by commas), `filter[equipment]` (slugs), `filter[source]` (`mine` or `public`); `page`, `per_page` (up to 100) | 200; 422 for a wrong value; 400 for an unknown filter |
+| `GET /api/exercises/{id}` | One exercise | 200; 403 someone else's; 404 |
+| `POST /api/exercises` | Creates a personal exercise | 201; 422 |
+| `PATCH /api/exercises/{id}` | Changes mine, only the fields sent | 200; 403 public or someone else's; 422 |
+| `DELETE /api/exercises/{id}` | Deletes mine (soft delete) | 204; 403 |
+
+**An exercise in JSON**, as `ExerciseResource` sends it:
+
+```json
+{
+  "id": 3,
+  "name": "Panca piana con bilanciere",
+  "aliases": [],
+  "description": null,
+  "instructions": [],
+  "logging_type": "weight_reps",
+  "youtube_url": null,
+  "is_mine": false,
+  "equipment": { "id": 1, "slug": "barbell", "name": "Bilanciere" },
+  "muscles": [
+    { "id": 6, "slug": "chest", "name": "Petto", "role": "primary" },
+    { "id": 17, "slug": "triceps", "name": "Tricipiti", "role": "secondary" }
+  ]
+}
+```
+
+**What is sent to create or change one** (`StoreExerciseRequest`): `name` (required, up to 100 characters), `aliases` and `instructions` (lists of texts), `description`, `logging_type`, `equipment_id`, `youtube_url` (a YouTube address), and `muscles`, a list of `{ "id": 6, "role": "primary" }`. A change sends only the fields that change. `muscles`, when sent, is the complete list: muscles left out are removed.
+
+**One language per personal exercise** ([D2.4](../design/D2-decisions.md#d24-languages)). The texts are stored under the request's language and replace any other: an exercise written in Italian, then edited with the app in English, becomes English. Otherwise the old Italian name would come back on switching the app to Italian again.
+
+Photos and videos are not here yet: they come with `feat/exercise-media` ([BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin)).
 
 ---
 
@@ -251,6 +369,25 @@ $muscle->pivot->role;                         // a column of the pivot row, as a
 - **The pivot's own columns**, such as `role`, are loaded only when listed with `withPivot('role')`.
 - **A cast on a pivot column** needs a small *pivot class* (`ExerciseMuscle extends Pivot`), named on the relation with `using()`.
 - **When the column's name does not follow the convention**, it is given: `belongsTo(User::class, 'owner_id')`, because Laravel would look for `user_id`.
+
+**Query scopes** are named pieces of a query, written on the model and used like any query method:
+
+```php
+#[Scope]
+protected function visibleTo(Builder $query, User $user): void
+{
+    $query->where(fn (Builder $q) => $q->whereNull('owner_id')->orWhere('owner_id', $user->id));
+}
+
+Exercise::visibleTo($user)->search('panca')->orderByName()->get();   // scopes chain
+```
+
+- **`#[Scope]`** turns the protected method into one callable on the model or on a query, without the `$query` argument: Laravel passes it.
+- **The function in `where(fn …)`** becomes a parenthesis in SQL: `(owner_id is null or owner_id = 5)`. Without it, the `or` would mix with the conditions added after.
+- **`toRawSql()`** in tinker shows the SQL a chain of scopes produces ([H2.12.3](../how-to/H2-backend.md#h2123-scopes-the-sql-they-write)).
+- **The older form**, still common in examples, is a public method named `scopeVisibleTo(…)`, called as `visibleTo(…)`. Both work.
+
+`Exercise` has six: `visibleTo`, `search`, `withPrimaryMuscle`, `usingEquipment`, `fromSource` and `orderByName`.
 
 **Traits that change how a model behaves**, added with `use` inside the class:
 
@@ -566,7 +703,7 @@ Laravel's messages are read with `__('auth.failed')`, from the files in `lang/`.
 | `lang/{it,es,de}/auth.php`, `passwords.php` | Signing in and resetting a password |
 | `lang/{it,es,de}/validation.php` | Validation errors, for the rules the app uses so far, and the names of the fields |
 | `lang/{it,es,de}.json` | The sentences of the password email, whose keys are the English text |
-| `lang/en/auth.php` | Only what we added. English comes with Laravel, and our files are merged over its own |
+| `lang/en/auth.php`, `validation.php` | Only what we added: the disabled account's message, and the English names of fields such as `muscles.*.role`. English comes with Laravel, and our files are merged over its own, key by key |
 
 **Which language each message uses:**
 
@@ -574,6 +711,8 @@ Laravel's messages are read with `__('auth.failed')`, from the files in `lang/`.
 - **An email** uses the language of the account, because it may be read much later, on another device. `User` implements `HasLocalePreference`, and Laravel asks it before writing the email.
 
 **A new validation rule** in a Form Request adds its message to the three `validation.php` files; `tests/Feature/Auth/LanguageTest.php` lists the keys it checks. A rule without a translation shows its English message.
+
+**A field inside a list** is named with `*` in `attributes`: `'muscles.*.role' => 'ruolo del muscolo'`. Without it, the message would read "Il campo muscles.0.role è obbligatorio".
 
 ---
 
@@ -638,7 +777,9 @@ it('answers ok without signing in', function () {        // the scenario, in wor
 - **Datasets** run one test with several inputs: `it(…)->with([…])`, as in `tests/Feature/Auth/RegistrationTest.php`.
 - **Emails:** `Notification::fake()` records them instead of sending, and `Notification::assertSentTo()` checks them. To see the real text, `tests/Feature/Auth/LanguageTest.php` reads what the `array` mailer received.
 
-`tests/Feature/Auth/` is the model of an area's tests: signing in, signing up, resetting a password, the current user, languages and who may open the admin panel.
+`tests/Feature/Auth/` is the model of an area's tests: signing in, signing up, resetting a password, the current user, languages and who may open the admin panel. `tests/Feature/ExerciseLibrary/` is the model for an API with permissions: one file for the list and its filters, one for the other endpoints with each refusal, one for the action called without HTTP.
+
+**Datasets** with `'a name' => [values]` keys show that name in the output, which reads better than the values themselves: `it refuses invalid data with data set "a link that is not YouTube"`.
 
 **Running them:**
 - `make test` runs them all;
@@ -663,11 +804,12 @@ The short versions. [H2. Backend: how to](../how-to/H2-backend.md) builds a real
 
 1. **Route** in `routes/api.php`, inside an `auth:sanctum` group: `Route::get('/plans', [PlanController::class, 'index']);`
 2. **Controller:** `make artisan c="make:controller PlanController"`. It stays thin ([C2.5](#c25-routes-and-controllers)).
-3. **Validation**, if the endpoint takes input: `make artisan c="make:request StorePlanRequest"`. List the rules there, such as `'name' => ['required', 'string', 'max:100']`.
+3. **Validation**, if the endpoint takes input: `make artisan c="make:request StorePlanRequest"`. List the rules there, such as `'name' => ['required', 'string', 'max:100']`, and delete the generated `authorize()`. A change that accepts partial data can extend the creation's request and add `sometimes` to each field (`UpdateExerciseRequest`).
 4. **Permission:** `make artisan c="make:policy PlanPolicy --model=Plan"`, with a method per action, such as `update(User $user, Plan $plan): bool`.
 5. **JSON shape:** `make artisan c="make:resource PlanResource"`.
-6. **Test** in `tests/Feature/`. It covers success, invalid input (422), signed out (401) and someone else's record (403).
-7. **Frontend:** the `src/api/` file and its hooks ([C1.9](C1-frontend.md#c19-recipes)).
+6. **The work**, when it is more than a line: an action, `make artisan c="make:class Actions/Plans/SavePlan"` ([C2.5.3](#c253-actions-the-work-outside-the-controller)). A list with filters: a scope per filter on the model, and `QueryBuilder` in the controller ([C2.5.2](#c252-lists-filters-and-pages)).
+7. **Test** in `tests/Feature/`. It covers success, invalid input (422), signed out (401) and someone else's record (403).
+8. **Frontend:** the `src/api/` file and its hooks ([C1.9](C1-frontend.md#c19-recipes)).
 
 **Work in the background.**
 

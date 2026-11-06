@@ -2,13 +2,14 @@
 
 [C2. Backend](../concepts/C2-backend.md) explains how the Laravel app works. This page says **how to do things in it**: which commands to type, which files they create, what to write in each, and how to check the result. It is written for someone who has never written a Laravel endpoint.
 
-**The commands here have been run.** The example was built for real on this project, then removed; the outputs shown are what the commands printed. It is a small version of what [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin) will build: the list of muscles, with an endpoint to read it, one to rename a muscle, an admin screen and a background job. It starts from the `muscles` table, model, factory and seeder of [H1.2](H1-database.md#h12-a-new-table-from-start-to-finish). Those now exist for real ([H1.10](H1-database.md#h110-the-exercise-library-as-built)); the endpoints, the admin screen and the job on this page are still the example, removed after the run.
+**The commands here have been run.** The example was built for real on this project, then removed; the outputs shown are what the commands printed. It is a small version of what [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin) will build: the list of muscles, with an endpoint to read it, one to rename a muscle, an admin screen and a background job. It starts from the `muscles` table, model, factory and seeder of [H1.2](H1-database.md#h12-a-new-table-from-start-to-finish). Those now exist for real ([H1.10](H1-database.md#h110-the-exercise-library-as-built)), and so does `GET /api/muscles` of H2.2, built by BE-1 with sorting by name added ([H2.12](#h212-the-exercise-library-api-as-built)). Renaming a muscle, the admin screen and the job on this page are still the example, removed after the run.
 
 **How to read this page:**
 
 - The first time: [H2.1](#h21-before-you-start), then [H2.2](#h22-an-endpoint-that-reads-from-start-to-finish) and [H2.3](#h23-an-endpoint-that-changes-data) in order. Together they make a complete endpoint.
 - Later, when you need one thing: admin screens [H2.4](#h24-an-admin-screen), jobs [H2.5](#h25-work-in-the-background), translated messages [H2.6](#h26-messages-in-the-users-language), settings [H2.7](#h27-a-setting-from-the-environment), packages [H2.8](#h28-adding-a-package).
 - Something broke: [H2.9](#h29-finding-out-what-is-going-on) and [H2.10](#h210-when-something-goes-wrong).
+- A real, complete API, with a list, filters, pages, a policy and an action: [H2.12](#h212-the-exercise-library-api-as-built).
 - The same feature on the React side: [H3. Frontend: how to](H3-frontend.md).
 
 ## Contents
@@ -39,6 +40,14 @@
 - [H2.9 Finding out what is going on](#h29-finding-out-what-is-going-on)
 - [H2.10 When something goes wrong](#h210-when-something-goes-wrong)
 - [H2.11 Commands at a glance](#h211-commands-at-a-glance)
+- [H2.12 The exercise library API, as built](#h212-the-exercise-library-api-as-built)
+  - [H2.12.1 Generate the files](#h2121-generate-the-files)
+  - [H2.12.2 The routes](#h2122-the-routes)
+  - [H2.12.3 Scopes: the SQL they write](#h2123-scopes-the-sql-they-write)
+  - [H2.12.4 Sorting by name: the collation trap](#h2124-sorting-by-name-the-collation-trap)
+  - [H2.12.5 One language per exercise: the translations trap](#h2125-one-language-per-exercise-the-translations-trap)
+  - [H2.12.6 Look at the JSON](#h2126-look-at-the-json)
+  - [H2.12.7 The tests, and proving they can fail](#h2127-the-tests-and-proving-they-can-fail)
 
 ---
 
@@ -571,7 +580,7 @@ Queste credenziali non corrispondono ai nostri dati.
 ```
 
 - **A new rule** used in a Form Request needs its message in the three files `lang/{it,es,de}/validation.php`. A missing one shows in English.
-- **A new field name** goes in `attributes`, so the message says "nome" and not "name".
+- **A new field name** goes in `attributes`, so the message says "nome" and not "name". A field inside a list is written with `*`, `'muscles.*.role'`, and needs an English name too, in `lang/en/validation.php`: otherwise English reads "The muscles.0.role field is required".
 - **A sentence of our own**, such as `__('Muscle renamed.')`, goes in `lang/it.json`, `lang/es.json` and `lang/de.json`: `"Muscle renamed.": "Muscolo rinominato."`.
 
 ---
@@ -672,6 +681,10 @@ How each package of the project was installed: [S1.6](../start/S1-setup.md#s16-c
 | A field sent is not saved | It is not in the Form Request's `rules()`, or not in the model's `#[Fillable]` | Add it to both |
 | `make test f="two words"` says `Test file "…" not found` | `f=` takes one word | `make test f=OneWord` |
 | A job never runs | The `queue` container is down or stuck | `make ps`, `make restart`, `make logs s=queue` |
+| 400 ``Requested filter(s) `x` are not allowed`` | A `filter[x]` that the controller's `allowedFilters()` does not list | Add it there, if it is meant to exist ([H2.12.3](#h2123-scopes-the-sql-they-write)) |
+| A relation missing from the JSON | `whenLoaded()` in the resource, but no `with()` or `load()` in the controller | Load it ([H2.12.7](#h2127-the-tests-and-proving-they-can-fail)) |
+| A translated column saved as `{"en": null}` | `null` assigned to a translatable column | `forgetTranslations($field, asNull: true)` ([H2.12.5](#h2125-one-language-per-exercise-the-translations-trap)) |
+| Names in a strange order: capitals first, accents last | Postgres on Alpine compares bytes | `collate "und-x-icu"` ([H2.12.4](#h2124-sorting-by-name-the-collation-trap)) |
 
 Database errors: [H1.9](H1-database.md#h19-when-something-goes-wrong). Setup problems: [S1.10](../start/S1-setup.md#s110-troubleshooting).
 
@@ -682,7 +695,10 @@ Database errors: [H1.9](H1-database.md#h19-when-something-goes-wrong). Setup pro
 | What | Command |
 |---|---|
 | Controller, resource | `make artisan c="make:controller MuscleController"`, `c="make:resource MuscleResource"` |
+| Controller with the five API methods | `make artisan c="make:controller ExerciseController --api --model=Exercise"` |
 | Form Request, policy | `make artisan c="make:request UpdateMuscleRequest"`, `c="make:policy MusclePolicy --model=Muscle"` |
+| An action, or any plain class | `make artisan c="make:class Actions/Exercises/SavePersonalExercise"` |
+| The SQL of a query | in tinker, `Exercise::visibleTo(User::first())->search('panca')->toRawSql()` |
 | Test | `make artisan c="make:test MuscleApiTest --pest"` |
 | Admin screen | `make artisan c="make:filament-resource Muscle --generate"` |
 | Job | `make artisan c="make:job LogMuscleCount"` |
@@ -696,6 +712,242 @@ Database errors: [H1.9](H1-database.md#h19-when-something-goes-wrong). Setup pro
 | Format, then every check | `make fix`, `make check` |
 
 **Official documentation:** the Laravel pages *Routing*, *Controllers*, *Validation*, *Authorization*, *Eloquent: API Resources*, *HTTP Tests*, *Queues*, *Localization* and *Configuration*, at https://laravel.com/docs; Filament's *Resources* at https://filamentphp.com/docs.
+
+---
+
+## H2.12 The exercise library API, as built
+
+The second part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin) built the library's API on the tables of [H1.10](H1-database.md#h110-the-exercise-library-as-built). This section follows what was done, with the real output. It shows what [H2.2](#h22-an-endpoint-that-reads-from-start-to-finish) and [H2.3](#h23-an-endpoint-that-changes-data) do not: a list with filters and pages, a policy on a user's own rows, an action, translated columns written in one language, and sorting by name. The endpoints themselves are described in [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints).
+
+| File | What it is |
+|---|---|
+| `routes/api.php` | Three lines: muscles, equipment, and `apiResource('exercises')` |
+| `app/Http/Controllers/ExerciseController.php` | The five methods: index, show, store, update, destroy |
+| `app/Http/Controllers/MuscleController.php`, `EquipmentController.php` | The two fixed lists |
+| `app/Http/Requests/ListExercisesRequest.php` | The values of the list's filters |
+| `app/Http/Requests/StoreExerciseRequest.php`, `UpdateExerciseRequest.php` | The editor's fields; the second extends the first |
+| `app/Policies/ExercisePolicy.php` | Who may see, change, delete ([C2.5.1](../concepts/C2-backend.md#c251-permissions-policies)) |
+| `app/Actions/Exercises/SavePersonalExercise.php` | Saving: one language, muscles as a whole list ([C2.5.3](../concepts/C2-backend.md#c253-actions-the-work-outside-the-controller)) |
+| `app/Http/Resources/ExerciseResource.php`, `MuscleResource.php`, `EquipmentResource.php` | The JSON |
+| `app/Models/Exercise.php` | Six query scopes, and `isOwnedBy()` |
+| `lang/{it,es,de}/validation.php`, `lang/en/validation.php` | The messages of the new rules, the names of the new fields |
+| `tests/Feature/ExerciseLibrary/` | Four new files, 51 tests |
+
+### H2.12.1 Generate the files
+
+```sh
+make artisan c="make:controller ExerciseController --api --model=Exercise"
+make artisan c="make:controller MuscleController"
+make artisan c="make:controller EquipmentController"
+make artisan c="make:request ListExercisesRequest"
+make artisan c="make:request StoreExerciseRequest"
+make artisan c="make:request UpdateExerciseRequest"
+make artisan c="make:policy ExercisePolicy --model=Exercise"
+make artisan c="make:resource ExerciseResource"
+make artisan c="make:resource MuscleResource"
+make artisan c="make:resource EquipmentResource"
+make artisan c="make:class Actions/Exercises/SavePersonalExercise"
+make artisan c="make:test ExerciseLibrary/ExerciseApiTest --pest"
+make artisan c="make:test ExerciseLibrary/ExerciseListTest --pest"
+make artisan c="make:test ExerciseLibrary/MuscleAndEquipmentApiTest --pest"
+make artisan c="make:test ExerciseLibrary/SavePersonalExerciseTest --pest"
+```
+
+```
+INFO  Controller [app/Http/Controllers/ExerciseController.php] created successfully.
+INFO  Controller [app/Http/Controllers/MuscleController.php] created successfully.
+INFO  Controller [app/Http/Controllers/EquipmentController.php] created successfully.
+INFO  Request [app/Http/Requests/ListExercisesRequest.php] created successfully.
+INFO  Request [app/Http/Requests/StoreExerciseRequest.php] created successfully.
+INFO  Request [app/Http/Requests/UpdateExerciseRequest.php] created successfully.
+INFO  Policy [app/Policies/ExercisePolicy.php] created successfully.
+INFO  Resource [app/Http/Resources/ExerciseResource.php] created successfully.
+INFO  Resource [app/Http/Resources/MuscleResource.php] created successfully.
+INFO  Resource [app/Http/Resources/EquipmentResource.php] created successfully.
+INFO  Class [app/Actions/Exercises/SavePersonalExercise.php] created successfully.
+INFO  Test [tests/Feature/ExerciseLibrary/ExerciseApiTest.php] created successfully.
+…
+```
+
+- **`--api --model=Exercise`** writes the five methods of an API, already typed with the model: `show(Exercise $exercise)`. Without `--api` there would be seven, with `create` and `edit`, which return HTML forms: an API has no use for them.
+- **`make:class`** creates a plain class with an empty constructor, in the folder given (`Actions/Exercises/` under `app/`). Laravel has no base class for actions.
+- **A slash in `make:test`** puts the test in a subfolder: `tests/Feature/ExerciseLibrary/`.
+- **What to delete from the generated files**: the policy's `viewAny`, `restore` and `forceDelete`, which nothing uses; the requests' `authorize()`, which returns `false` ([H2.3.6](#h236-the-trap-of-the-generated-authorize)).
+
+### H2.12.2 The routes
+
+```php
+Route::get('/muscles', [MuscleController::class, 'index']);
+Route::get('/equipment', [EquipmentController::class, 'index']);
+Route::apiResource('exercises', ExerciseController::class);
+```
+
+```sh
+make artisan c="route:list --path=api"
+```
+
+```
+GET|HEAD        api/equipment .................... EquipmentController@index
+GET|HEAD        api/exercises ... exercises.index › ExerciseController@index
+POST            api/exercises ... exercises.store › ExerciseController@store
+GET|HEAD        api/exercises/{exercise} exercises.show › ExerciseControlle…
+PUT|PATCH       api/exercises/{exercise} exercises.update › ExerciseControl…
+DELETE          api/exercises/{exercise} exercises.destroy › ExerciseContro…
+GET|HEAD        api/muscles ......................... MuscleController@index
+```
+
+(The Fortify, `health` and `user` routes are left out.) **`apiResource`** wrote the five `exercises` routes from one line. The `{exercise}` parameter has the name of the controller's `Exercise $exercise`, so route model binding loads it ([H2.3.4](#h234-the-controller-method-and-the-route)). A soft-deleted exercise is not found, so it gets a 404.
+
+### H2.12.3 Scopes: the SQL they write
+
+The list is built from query scopes of the model ([C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders)). Before writing the controller, check what they produce, in tinker:
+
+```sh
+make tinker
+```
+
+```php
+> app()->setLocale('it');
+> echo Exercise::visibleTo(User::first())->search('panca')->withPrimaryMuscle('chest', 'triceps')->fromSource('mine')->orderByName()->toRawSql();
+select * from "exercises" where ("owner_id" is null or "owner_id" = 1) and (coalesce(name->>'it', name->>'en') ilike '%panca%' or coalesce(aliases->>'it', aliases->>'en') ilike '%panca%') and exists (select * from "muscles" inner join "exercise_muscle" on "muscles"."id" = "exercise_muscle"."muscle_id" where "exercises"."id" = "exercise_muscle"."exercise_id" and "slug" in ('chest', 'triceps') and "exercise_muscle"."role" = 'primary') and "owner_id" is not null and "exercises"."deleted_at" is null order by coalesce(name->>'it', name->>'en') collate "und-x-icu", "id" asc
+```
+
+What to look for in it:
+
+- **The parentheses** around `owner_id is null or owner_id = 1`: they come from `where(fn …)`. Without them, `… or owner_id = 1 and coalesce(…) ilike …` would show someone else's exercise to anyone whose search matched.
+- **`exists (select … )`** is what `whereHas('muscles', …)` writes: one subquery, whatever the number of muscles.
+- **`deleted_at is null`** was added by `SoftDeletes`, without asking.
+- **`toRawSql()`** fills in the values; `toSql()` shows the `?` placeholders instead.
+
+Then, in the controller, `QueryBuilder` ties each `filter[...]` to a scope:
+
+```php
+QueryBuilder::for(Exercise::visibleTo($request->user()))
+    ->allowedFilters(
+        AllowedFilter::scope('search')->delimiter(''),
+        AllowedFilter::scope('muscle', 'withPrimaryMuscle'),
+        AllowedFilter::scope('equipment', 'usingEquipment'),
+        AllowedFilter::scope('source', 'fromSource'),
+    )
+```
+
+An unknown filter gets a 400, with the package's message: ``Requested filter(s) `owner_id` are not allowed. Allowed filter(s) are `search, muscle, equipment, source`.``
+
+### H2.12.4 Sorting by name: the collation trap
+
+`order by coalesce(name->>'it', name->>'en')` alone gave this order:
+
+```
+FAILED  Tests\Feature\ExerciseLibrary\ExerciseListTest > it sorts names a…
+Failed asserting that two arrays are identical.
+ Array &0 [
+-    0 => 'ab wheel',
+-    1 => 'Ápice',
+-    2 => 'Bench',
+-    3 => 'Curl',
++    0 => 'Bench',
++    1 => 'Curl',
++    2 => 'ab wheel',
++    3 => 'Ápice',
+ ]
+```
+
+Capitals first, then lower case, then accents. The database's collation (its rules for comparing text) says `en_US.utf8`, but the Postgres image is built on Alpine, whose C library compares bytes. Checking it in `make psql`:
+
+```sql
+select datcollate from pg_database where datname = 'atleoplan';   -- en_US.utf8
+select 'Cuello' < 'Cuádriceps', 'banca' < 'Bench';                -- t | f
+select 'Cuádriceps' < 'Cuello' collate "und-x-icu",
+       'banca' < 'Bench' collate "und-x-icu";                     -- t | t
+```
+
+**The fix** is `collate "und-x-icu"` after the sorted text: the ICU library's rules, which this Postgres has built in, and which sort the way a reader expects. The muscles and the equipment are only 17 and 12 rows, sorted in PHP with `Collator` (from PHP's `intl` extension), which uses the same ICU rules.
+
+### H2.12.5 One language per exercise: the translations trap
+
+A personal exercise keeps one language ([C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints)). The first idea, `setTranslations()`, does not do that; tried in tinker:
+
+```php
+> $e = new Exercise();
+> $e->setTranslations('name', ['it' => 'Panca', 'en' => 'Bench']);
+> $e->setTranslations('name', ['de' => 'Bank']);
+> echo json_encode($e->getTranslations('name'));
+{"it":"Panca","en":"Bench","de":"Bank"}          // added, not replaced
+> $e->description = null;
+> echo $e->getAttributes()['description'];
+{"en":null}                                      // null under the current language, not NULL
+```
+
+The methods that do what is needed:
+
+```php
+> $e->replaceTranslations('name', ['de' => 'Bank']);
+> echo $e->getAttributes()['name'];
+{"de":"Bank"}
+> $e->forgetTranslations('description', asNull: true);
+> var_export($e->getAttributes()['description']);
+NULL
+```
+
+`forgetAllTranslations('it')`, despite its name, removes one **language** from every column; it is not the opposite of `setTranslations()`. `SavePersonalExercise::fill()` uses `replaceTranslations()` and `forgetTranslations(asNull: true)`.
+
+### H2.12.6 Look at the JSON
+
+To see a real answer without leaving rows behind, open a transaction in tinker and undo it at the end ([H1.10.7](H1-database.md#h1107-trying-things-in-tinker-without-leaving-traces)):
+
+```php
+> DB::beginTransaction();
+> app()->setLocale('it');
+> $e = Exercise::create(['name' => ['en' => 'Barbell bench press', 'it' => 'Panca piana con bilanciere'], 'equipment_id' => Equipment::where('slug', 'barbell')->value('id')]);
+> $e->muscles()->attach(Muscle::where('slug', 'triceps')->first(), ['role' => 'secondary']);
+> $e->muscles()->attach(Muscle::where('slug', 'chest')->first(), ['role' => 'primary']);
+> request()->setUserResolver(fn () => User::first());
+> echo json_encode((new App\Http\Resources\ExerciseResource($e->load(['equipment', 'muscles'])))->resolve(request()), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+> DB::rollBack();
+```
+
+The output is the JSON of [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints): the texts in Italian, the primary muscle first even though it was attached second, `is_mine` false. `setUserResolver()` gives the request a user, which the resource asks for `is_mine`; a request from the React app has one already.
+
+A page of the list has three keys, checked the same way with `Exercise::paginate(2)`: `data`, `links` (`first`, `last`, `prev`, `next`) and `meta` (`current_page`, `from`, `last_page`, `links`, `path`, `per_page`, `to`, `total`).
+
+### H2.12.7 The tests, and proving they can fail
+
+```sh
+make test f=ExerciseLibrary
+```
+
+```
+PASS  Tests\Feature\ExerciseLibrary\ExerciseApiTest
+PASS  Tests\Feature\ExerciseLibrary\ExerciseLibrarySeedersTest
+PASS  Tests\Feature\ExerciseLibrary\ExerciseListTest
+PASS  Tests\Feature\ExerciseLibrary\ExerciseModelTest
+PASS  Tests\Feature\ExerciseLibrary\MuscleAndEquipmentApiTest
+PASS  Tests\Feature\ExerciseLibrary\SavePersonalExerciseTest
+Tests:    67 passed (249 assertions)
+```
+
+| File | Covers |
+|---|---|
+| `ExerciseListTest.php` | Who sees what, language and order of names, search, the four filters, wrong values (422, 400), pages, relations, number of queries |
+| `ExerciseApiTest.php` | Reading, creating, changing, deleting; every refusal (401, 403 for someone else's and for a public one, admins included, 404, 422 per field); errors in Italian |
+| `SavePersonalExerciseTest.php` | The action without HTTP: one language, `null` empties, muscles replaced or kept |
+| `MuscleAndEquipmentApiTest.php` | The two lists, from the real seeders, sorted with accents |
+
+**Tests that passed at the first run prove little,** so each delicate line was broken on purpose, to see a test fail, and then put back:
+
+| Line removed | Test that failed |
+|---|---|
+| `collate "und-x-icu"` | `it sorts names as a person would` ([H2.12.4](#h2124-sorting-by-name-the-collation-trap)) |
+| `->with(self::RELATIONS)` | `it sends the equipment and the muscles`: ``Failed asserting that null is identical to 'barbell'`` |
+| `->delimiter('')` | `it searches for a % or a comma as themselves`: the search `squat, paused` became two searches, and found `Squat` too |
+
+The second is worth a note. Without `with()`, one would expect the "N+1" problem, one query per exercise. Instead the equipment **disappears** from the JSON: the resource uses `whenLoaded()`, which never queries by itself. The test that counts queries guards the other case, a resource that reads a relation directly.
+
+**Errors met along the way:**
+
+| Message | Cause | Fix |
+|---|---|---|
+| ``Expecting 'validation.attributes.muscles.*.role' not to be 'validation.attributes.muscles.*.role'`` | `__('validation.attributes.muscles.*.role')` takes each dot for a level of the file, and finds nothing. Laravel's validator reads the key whole, so the message itself was right | The test reads `__('validation.attributes')` as an array, then the key `'muscles.*.role'` |
 
 ---
 

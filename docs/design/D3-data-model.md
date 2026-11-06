@@ -452,7 +452,8 @@ The real model (`app/Models/Exercise.php`) adds:
 - the defaults in `$attributes`, which a new model does not read from the table;
 - `owner()`, the relation to the user, and on `User`, `exercises()`. Creating through it, `$user->exercises()->create(…)`, is how the owner is set: `owner_id` is not fillable;
 - `using(ExerciseMuscle::class)` on `muscles()` ([D3.4.3](#d343-exercise_muscle));
-- the media collections `photos` and `videos`, with the accepted file types of [D2.5](D2-decisions.md#d25-photos-and-videos).
+- the media collections `photos` and `videos`, with the accepted file types of [D2.5](D2-decisions.md#d25-photos-and-videos);
+- the query scopes of the library's list: `visibleTo`, `search` ([D3.4.6](#d346-searching)), `withPrimaryMuscle`, `usingEquipment`, `fromSource`, `orderByName` ([C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders)), and `isOwnedBy($user)`.
 
 ### D3.4.3 `exercise_muscle`
 
@@ -503,7 +504,7 @@ The `HasTranslations` trait makes this invisible in the code: `$exercise->name` 
 | `it` | Panca piana con bilanciere | Panca mia |
 | `de` | Barbell bench press *(no German: falls back to English)* | Panca mia *(no German or English: falls back to what exists)* |
 
-The right-hand column needs a setting. A personal exercise holds one language only ([D2.4](D2-decisions.md#d24-languages)), and by default the package answers with an **empty string** when both the language and the English fallback are missing. BE-1 turns on `fallbackAny` in a service provider:
+The right-hand column needs a setting. A personal exercise holds one language only ([D2.4](D2-decisions.md#d24-languages)), and by default the package answers with an **empty string** when both the language and the English fallback are missing. `AppServiceProvider` turns on `fallbackAny`:
 
 ```php
 Translatable::fallback(fallbackLocale: 'en', fallbackAny: true);
@@ -518,27 +519,34 @@ $exercise->getTranslation('instructions', 'en');
 
 ### D3.4.6 Searching
 
-Search looks in the name and the aliases, in the user's language, among public exercises and the user's own ([D1.4.3](D1-ui.md#d143-exercise-library)):
+Search looks in the name and the aliases **as the user reads them**: in the user's language, or in English when the exercise has no text in that language. It runs among public exercises and the user's own ([D1.4.3](D1-ui.md#d143-exercise-library)). These are two scopes of the `Exercise` model, `visibleTo()` and `search()`:
 
 ```php
-Exercise::query()
-    // Two conditions joined by OR, grouped so that they do not mix with the next where
-    ->where(fn ($q) => $q
-        ->where("name->$locale", 'ilike', "%$term%")     // ilike: ignores upper and lower case
-        ->orWhere("aliases->$locale", 'ilike', "%$term%"))
+// Exercise::visibleTo($user)->search('panca'), for a user who reads Italian
+$query
     ->where(fn ($q) => $q
         ->whereNull('owner_id')                          // public…
         ->orWhere('owner_id', $user->id))                // …or mine
-    ->get();
+    ->where(fn ($q) => $q
+        // coalesce(): the first value that is not null, so English when Italian is missing
+        ->whereRaw("coalesce(name->>?, name->>'en') ilike ?", [$locale, "%$term%"])
+        ->orWhereRaw("coalesce(aliases->>?, aliases->>'en') ilike ?", [$locale, "%$term%"]));
 ```
 
-| Search, with both exercises in the library | Finds |
-|---|---|
-| `panca`, in Italian | both, by their names |
-| `bench`, in English | the public one, by its name and alias |
-| `bench`, in Italian | none: it searches the user's language only |
+- **`name->>'it'`** reads one key of a JSON column as text.
+- **`ilike`** ignores upper and lower case.
+- **The two `where(fn …)`** become parentheses in SQL, so the `or`s do not mix.
+- **A `%` or `_` typed by the user** is escaped, so it matches itself.
 
-`name->it` is how Laravel reads a key inside a JSON column; it becomes `"name"->>'it'` in SQL. No special index is needed: a thousand rows do not need one, and a full-text index can come later if search slows down.
+| Search, in Italian | With these exercises | Finds |
+|---|---|---|
+| `panca` | Public `{"en": "Barbell bench press", "it": "Panca piana con bilanciere"}` and personal `{"it": "Panca mia"}` | both, by their names |
+| `bench` | The same | none: the public one has an Italian name, and only that is searched |
+| `bench` | Public `{"en": "Barbell bench press"}`, no Italian | it: the user reads it in English |
+
+No special index is needed: a thousand rows do not need one, and a full-text index can come later if search slows down.
+
+**Sorting by name** reads the same text, `coalesce(name->>'it', name->>'en')`, with `collate "und-x-icu"`. Postgres on Alpine compares bytes by default, which puts "Bench" before "banca" and accented letters after "z". The ICU rules sort as a reader expects ([H2.12.4](../how-to/H2-backend.md#h2124-sorting-by-name-the-collation-trap)).
 
 ### D3.4.7 What is not in the table
 
