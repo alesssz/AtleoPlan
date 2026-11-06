@@ -185,7 +185,7 @@ make tinker
 ```
 
 - **The list is inside `data`.** Resources always wrap their output this way, and the frontend reads `body.data` ([H3.3](H3-frontend.md#h33-reading-data-from-the-api)).
-- **In tinker, write the full class name if it is not a model:** `App\Http\Resources\MuscleResource`. Tinker finds models by their short name.
+- **In tinker, write the full class name if it is not a model:** `App\Http\Resources\MuscleResource`. Tinker finds models by their short name, through Composer's class map; a model added after the last `composer install` is missing from it, and `Class "Exercise" not found` follows. Then `use App\Models\Exercise;` first, or `make composer c="dump-autoload"` once ([H1.12.6](H1-database.md#h1126-when-something-goes-wrong)).
 
 ### H2.2.6 The test
 

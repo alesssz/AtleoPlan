@@ -32,6 +32,10 @@ Every PHP file starts with a comment saying what it is and points to the section
 - [C2.11 Tests with Pest](#c211-tests-with-pest)
 - [C2.12 Recipes](#c212-recipes)
 - [C2.13 Artisan and Composer commands](#c213-artisan-and-composer-commands)
+- [C2.14 Artisan commands of our own](#c214-artisan-commands-of-our-own)
+  - [C2.14.1 A command class](#c2141-a-command-class)
+  - [C2.14.2 Testing a command](#c2142-testing-a-command)
+  - [C2.14.3 The free-exercise-db import](#c2143-the-free-exercise-db-import)
 
 ---
 
@@ -97,9 +101,10 @@ PHP syntax as it appears in this project. A line in the code that looks strange 
 backend/
 ├── app/                    the application's own code (namespace App\)
 │   ├── Actions/              actions: one job of the app each, outside the controllers (C2.5.3)
-│   │   ├── Exercises/          SavePersonalExercise
+│   │   ├── Exercises/          SavePersonalExercise, ImportFreeExercise
 │   │   └── Fortify/            what Fortify leaves to us: creating a user, setting a new password (C2.7)
-│   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit, LoggingType, MuscleRole (D3.2.4)
+│   ├── Console/Commands/     our own Artisan commands: exercises:import (C2.14)
+│   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit, LoggingType, MuscleRole (D3.2.4), ImportOutcome
 │   ├── Http/
 │   │   ├── Controllers/        receive a request, return an answer (C2.5)
 │   │   ├── Middleware/         steps every request crosses: SetLocaleFromRequest (C2.7.7)
@@ -395,11 +400,11 @@ Exercise::visibleTo($user)->search('panca')->orderByName()->get();   // scopes c
 
 - **`SoftDeletes`**: `delete()` fills `deleted_at` instead of removing the row, and every query leaves those rows out. `withTrashed()` brings them back, and `forceDelete()` removes the row for real. An exercise uses it, so that plans and history pointing to it keep working ([D3.7.2](../design/D3-data-model.md#d372-deleting-an-exercise-a-soft-delete)).
 - **`HasTranslations`** (spatie/laravel-translatable): the columns listed in `$translatable` hold one value per language, as JSON. `$muscle->name` gives the current language's value. When that language is missing, it falls back to English, then to any language there is; this is set once in `AppServiceProvider` ([D3.4.5](../design/D3-data-model.md#d345-translations)).
-- **`InteractsWithMedia`** (spatie/laravel-medialibrary), with `implements HasMedia`: files belong to the model, stored as rows of the `media` table, in named *collections* (`photos`, `videos`) declared in `registerMediaCollections()`.
+- **`InteractsWithMedia`** (spatie/laravel-medialibrary), with `implements HasMedia`: files belong to the model, stored as rows of the `media` table, in named *collections* (`photos`, `videos`) declared in `registerMediaCollections()`. Attaching one: `$exercise->addMedia($path)->preservingOriginal()->toMediaCollection('photos')`, which copies the file to the media disk (`public`, `storage/app/public`); without `preservingOriginal()` the file is moved instead. Reading them: `$exercise->getMedia('photos')`, in their order. The import does both ([C2.14.3](#c2143-the-free-exercise-db-import)).
 
 How these were built step by step, with the real output: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built).
 
-**Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data: the fixed lists the app needs (the 17 muscles and the 12 kinds of equipment), the development account, and later the public exercise library (DATA-1). `make fresh` runs them.
+**Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data: the fixed lists the app needs (the 17 muscles and the 12 kinds of equipment) and the development account. `make fresh` runs them. The public exercise library is not a seeder but an Artisan command, `make exercises-import`, because it reads a dataset from outside, takes options and reports what failed ([C2.14](#c214-artisan-commands-of-our-own)); after `make fresh`, run it again.
 
 **Seeing the data:**
 - `make psql` opens an SQL console;
@@ -821,6 +826,8 @@ The short versions. [H2. Backend: how to](../how-to/H2-backend.md) builds a real
 
 **An admin screen:** `make artisan c="make:filament-resource Exercise --generate"`, then adjust its columns and fields ([C2.8](#c28-admin-panel-filament)).
 
+**A command of our own:** `make artisan c="make:command ImportSomething"`, then its `#[Signature]` and `handle()`; the rules in an action, and a test with `$this->artisan()` ([C2.14](#c214-artisan-commands-of-our-own)).
+
 **Before calling it done:** `make fix`, then `make check`.
 
 ---
@@ -842,12 +849,101 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 | Format the PHP code | `make pint` (part of `make fix`) |
 | Tests | `make test`, `make test f=Name` |
 | Logs | `make logs`; the file `backend/storage/logs/laravel.log` |
+| A command of our own, generated | `make artisan c="make:command Name"` ([C2.14](#c214-artisan-commands-of-our-own)) |
+| Fill the public exercise library | `make exercises-import`, `make exercises-import o="--limit=5"` |
 
 **Official documentation**, worth reading next to this page:
 - Laravel: https://laravel.com/docs. The pages *Routing*, *Eloquent*, *Migrations*, *Validation*, *Authorization*, *Queues*, *Sanctum* and *Fortify* match the sections above; *Authentication* and *Resetting Passwords* cover the by-hand way of [C2.7](#c27-signing-in-sanctum).
 - Filament: https://filamentphp.com/docs.
 - Pest: https://pestphp.com/docs.
 - PHP itself: https://www.php.net/manual.
+
+---
+
+## C2.14 Artisan commands of our own
+
+Artisan's commands are not only Laravel's: an app can add its own, for work that is not a web request, such as an import, a clean-up, or a task run every night. The first one in this project is `exercises:import`, which fills the public exercise library from free-exercise-db ([DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db)). How it was built and run: [H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built).
+
+### C2.14.1 A command class
+
+A command is a class in `app/Console/Commands/`, which Laravel finds and registers by itself. `make artisan c="make:command ImportFreeExerciseDb"` generates its skeleton. Three parts:
+
+```php
+// The name, then the options: --update is a switch, --path= and --limit= take a value.
+// The text after " : " is the help of `php artisan help exercises:import`
+#[Signature('exercises:import
+    {--path= : The folder of free-exercise-db}
+    {--update : Also refresh the exercises already imported}
+    {--without-photos : Import the texts only}
+    {--limit= : Import only the first N exercises}')]
+// One line in `php artisan list`
+#[Description('Import the public exercise library from free-exercise-db (DATA-1)')]
+class ImportFreeExerciseDb extends Command
+{
+    // The work. Its parameters come from the service container, as in a
+    // controller's method; the return value is the exit code
+    public function handle(ImportFreeExercise $import): int
+    {
+        $limit = $this->option('limit');           // an option's value; null when not typed
+        $this->info('Importing 876 exercises');    // a green line; error() red, line() plain
+        $this->withProgressBar($rows, fn ($row) => …);   // a bar that moves with each item
+
+        return self::SUCCESS;                      // 0; self::FAILURE is 1
+    }
+}
+```
+
+- **Attributes or properties.** `make:command` in Laravel 13 writes `#[Signature]` and `#[Description]` above the class. Older code and most tutorials write the same as two properties, `protected $signature = '…'` and `protected $description = '…'`; both work.
+- **Options** are read with `$this->option('name')`, **arguments** (values without `--`, written as `{file}` in the signature) with `$this->argument('name')`.
+- **The exit code** tells whoever called the command whether it worked: `make` stops on a failure, and so would a script on the server.
+- **Keep the rules out of the command.** The command reads the files, loops, prints; the rules of one exercise live in an action, `ImportFreeExercise`, which a test calls directly ([C2.5.3](#c253-actions-the-work-outside-the-controller)).
+- **Small commands** can be a function in `routes/console.php` instead of a class, like Laravel's example `inspire`.
+
+### C2.14.2 Testing a command
+
+`$this->artisan()` runs a command inside a test, as `php artisan` would, and checks what it printed and its exit code:
+
+```php
+$this->artisan('exercises:import', ['--path' => $path, '--limit' => 1])
+    ->expectsOutputToContain('Created: 1')     // a line of its output
+    ->assertSuccessful()                       // exit code 0; assertFailed() for 1
+    ->run();                                   // runs it now, then the checks below can follow
+
+expect(Exercise::count())->toBe(1);
+```
+
+Files the command reads are written by the test into the system's temporary folder (`sys_get_temp_dir()`), and `Storage::fake('public')` replaces the disk the photos go to with an empty one in memory: `tests/Feature/ExerciseLibrary/ImportFreeExerciseTest.php`.
+
+### C2.14.3 The free-exercise-db import
+
+**What it reads.** [free-exercise-db](https://github.com/yuhonas/free-exercise-db) is a public domain repository: `dist/exercises.json` holds 876 exercises, and `exercises/<id>/0.jpg`, `1.jpg` their 1,746 photos (start and end position), 98 MB once copied. `make exercises-import` clones it once into `backend/storage/app/free-exercise-db`, which Git ignores, then runs the command.
+
+**How each field is mapped** (`app/Actions/Exercises/ImportFreeExercise.php`):
+
+| Source | Becomes | Notes |
+|---|---|---|
+| `id` (`Barbell_Bench_Press`) | `external_id` | How a second run finds the exercise again |
+| `name` | `name`, English | The other languages come from the translation (second part of DATA-1) |
+| `instructions` | `instructions`, English | HTML tags and empty steps removed |
+| `level`, `category` | `level`, `category` | As they are; not shown yet |
+| `equipment` (`e-z curl bar`, or null) | `equipment_id` | Matched by slug: `Str::slug('e-z curl bar')` is `e-z-curl-bar`, the slug of `EquipmentSeeder` |
+| `primaryMuscles`, `secondaryMuscles` | `exercise_muscle`, with the role | Matched by slug the same way; a muscle in both lists stays primary |
+| `images` | the `photos` collection, in order | Copied to the `public` disk; the first is the cover |
+| (nothing) | `logging_type` | Guessed: stretching and cardio → time; body only or no equipment → reps; the rest → weight and reps. It gave 637 weight and reps, 137 time, 102 reps |
+| `force`, `mechanic` | (not kept) | No column for them ([D3.4.7](../design/D3-data-model.md#d347-what-is-not-in-the-table)) |
+
+**Running it again** never duplicates, and never undoes the work of an admin:
+
+| The exercise is… | Default | With `--update` |
+|---|---|---|
+| Not in the library | Created | Created |
+| Already there | Left as it is | English texts, level, category, equipment and muscles refreshed from the source; other languages, logging type and photos kept |
+| Deleted by an admin (soft delete) | Left deleted | Left deleted |
+| Without photos (an import stopped halfway, or run with `--without-photos`) | Photos added | Photos added |
+
+**One exercise that fails** (a muscle or kind of equipment not in our lists) is rolled back alone: the command lists it at the end, imports the others, and ends with a failure code.
+
+**Photos are stored as they come**, as the source's JPEGs. The conversions of [D2.5](../design/D2-decisions.md#d25-photos-and-videos) (WebP at 1600 px and a 400 px thumbnail) come with BE-1's `feat/exercise-media`, which can generate them for the photos already imported with medialibrary's `media-library:regenerate`.
 
 ---
 

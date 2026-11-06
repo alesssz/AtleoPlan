@@ -11,7 +11,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore \
+        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore exercises-import \
         dev fe-install fe-build \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit toc toc-check \
         branch sync push merge
@@ -135,6 +135,17 @@ db-restore: ## Replace the development database with a dump: make db-restore f=b
 	@test -f "$(f)" || { echo 'Usage: make db-restore f=backups/<file>.sql'; exit 1; }
 	$(DC) exec -T postgres psql -U atleoplan -q -v ON_ERROR_STOP=1 atleoplan < $(f) > /dev/null
 	@echo "✔ Restored $(f)"
+
+# The public exercise library (DATA-1, docs/how-to/H1-database.md H1.12). The
+# dataset is cloned once into backend/storage/app/, which Git ignores, and the
+# container sees it there through the ./backend volume. --depth 1: only the
+# latest version, without the repository's history. Options of the command go
+# in o="…": make exercises-import o="--limit=5", o="--update".
+FREE_EXERCISE_DB := backend/storage/app/free-exercise-db
+
+exercises-import: ## Fill the public exercise library from free-exercise-db (downloads it the first time): make exercises-import o="--limit=5"
+	@test -d $(FREE_EXERCISE_DB) || git clone --depth 1 https://github.com/yuhonas/free-exercise-db.git $(FREE_EXERCISE_DB)
+	$(ARTISAN) exercises:import $(o)
 
 # --- Frontend -----------------------------------------------------------------
 

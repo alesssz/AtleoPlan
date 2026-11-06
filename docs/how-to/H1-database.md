@@ -9,6 +9,7 @@
 - The first time: read [H1.1](#h11-before-you-start), then follow [H1.2](#h12-a-new-table-from-start-to-finish) from top to bottom. It goes through every step once, on a real table.
 - Later, when you need one thing: [H1.3](#h13-migrations) to [H1.6](#h16-seeders) are organised by file type, and [H1.11](#h111-commands-at-a-glance) lists every command.
 - Tables linked to each other, on the real code: [H1.10](#h110-the-exercise-library-as-built).
+- Filling the public exercise library from free-exercise-db: [H1.12](#h112-the-free-exercise-db-import-as-built).
 - Something broke: [H1.9](#h19-when-something-goes-wrong).
 - What migrations and models are, in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
 
@@ -56,6 +57,13 @@
   - [H1.10.7 Trying things in tinker without leaving traces](#h1107-trying-things-in-tinker-without-leaving-traces)
   - [H1.10.8 Testing what the database refuses](#h1108-testing-what-the-database-refuses)
 - [H1.11 Commands at a glance](#h111-commands-at-a-glance)
+- [H1.12 The free-exercise-db import, as built](#h112-the-free-exercise-db-import-as-built)
+  - [H1.12.1 The files](#h1121-the-files)
+  - [H1.12.2 The data](#h1122-the-data)
+  - [H1.12.3 Try it on five exercises](#h1123-try-it-on-five-exercises)
+  - [H1.12.4 The whole library](#h1124-the-whole-library)
+  - [H1.12.5 The tests](#h1125-the-tests)
+  - [H1.12.6 When something goes wrong](#h1126-when-something-goes-wrong)
 
 ---
 
@@ -715,7 +723,7 @@ Exercise::factory()->hasAttached(Muscle::factory(), ['role' => 'primary'])->crea
 |---|---|---|
 | **Fixed lists** the app needs in order to work | the 17 muscles, the 12 kinds of equipment | Its own seeder (`MuscleSeeder`), also run on the server |
 | **Development data**, for trying the app | the account `test@example.com` | `DatabaseSeeder`, never on the server |
-| **A large import** | the public exercise library ([DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db)) | A seeder or an Artisan command that reads a file ([H1.6.4](#h164-a-large-import)) |
+| **A large import** | the public exercise library ([DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db)) | An Artisan command that reads a file: `make exercises-import` ([H1.6.4](#h164-a-large-import), [H1.12](#h112-the-free-exercise-db-import-as-built)) |
 
 The tests do not use `DatabaseSeeder`: each test creates its rows with factories, or calls one seeder with `$this->seed(MuscleSeeder::class)`.
 
@@ -749,23 +757,29 @@ With `create()`, the second run stops at the first duplicate: `UniqueConstraintV
 
 ### H1.6.4 A large import
 
-For thousands of rows, one query per row is slow. Ideas for DATA-1:
+Data that comes from outside, in hundreds or thousands of rows, goes in an **Artisan command** rather than a seeder: it takes options (`--limit`, `--update`), shows its progress, reports what failed, and runs on its own, after the database is ready. The exercise library's import is the real example: `make exercises-import` ([H1.12](#h112-the-free-exercise-db-import-as-built), [C2.14](../concepts/C2-backend.md#c214-artisan-commands-of-our-own)).
+
+**Two ways to write the rows:**
+
+| Way | Speed | What it allows |
+|---|---|---|
+| **One model per row**, `$exercise->save()` | One or more queries per row: fine for some thousands | Everything the model does: casts, translations, relations, photos, a transaction per row |
+| **`upsert()` in groups** | One query per group of 500 | Plain columns only: no casts, no `HasTranslations`, no pivot rows, no files |
 
 ```php
-// The file to import, in the repository (a path inside backend/)
-$rows = json_decode(file_get_contents(database_path('data/exercises.json')), true);
-
-// All or nothing: if one row fails, none is saved
-DB::transaction(function () use ($rows) {
-    // In groups of 500: one INSERT … ON CONFLICT per group, not per row
-    foreach (array_chunk($rows, 500) as $chunk) {
-        Exercise::upsert($chunk, uniqueBy: ['external_id'], update: ['name', 'instructions']);
-    }
-});
+// The upsert way, for big plain tables: inserts the new rows, updates those
+// whose external_id already exists, 500 at a time
+foreach (array_chunk($rows, 500) as $chunk) {
+    Exercise::upsert($chunk, uniqueBy: ['external_id'], update: ['level', 'category']);
+}
 ```
 
-- **`upsert()` inserts the new rows and updates the ones whose `external_id` already exists,** so the import can run again.
-- **It skips the model:** casts and `HasTranslations` are not applied, and no model event fires. A `jsonb` column is passed already encoded, with `json_encode([...])`. The pivot rows (`exercise_muscle`) and the photos (medialibrary) need the models, so they are a second pass.
+The exercise import uses the first way: 876 rows, each with translations, muscles and photos, which all need the model. Its rules:
+
+- **Find each row by a stable key** (`external_id`), so a second run updates or skips instead of duplicating ([H1.6.3](#h163-a-seeder-that-can-run-again)).
+- **One transaction per row,** not one for everything: a row that fails is rolled back alone, and the others are kept.
+- **Files outside the transaction:** a rollback cannot remove a file already copied.
+- **Do not undo people's work:** a row deleted by an admin stays deleted, and other languages are kept.
 
 ### H1.6.5 On the server
 
@@ -1114,8 +1128,315 @@ Tests:    16 passed (97 assertions)
 | A table, a model, the database | `make artisan c="db:table muscles"`, `c="model:show Muscle"`, `c="db:show"` |
 | Tests | `make test`, `make test f=Muscle` |
 | Format, then every check | `make fix`, `make check` |
+| Fill the public exercise library | `make exercises-import`; try with `o="--limit=5"`, refresh with `o="--update"` ([H1.12](#h112-the-free-exercise-db-import-as-built)) |
+| A command of our own | `make artisan c="make:command ImportSomething"` |
 
 **Official documentation:** the Laravel pages *Migrations*, *Eloquent* (with *Relationships* and *Mutators / Casts*), *Factories* (under *Eloquent*), *Seeding* and *Database Testing*, at https://laravel.com/docs; and https://spatie.be/docs/laravel-translatable.
+
+---
+
+## H1.12 The free-exercise-db import, as built
+
+The first part of [DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db) fills the public library from [free-exercise-db](https://github.com/yuhonas/free-exercise-db): 876 exercises in English, with their muscles, equipment and 1,746 photos. The rules of the import, and why, are in [C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import); this section is the doing, with the real output of each command.
+
+| File | What it is |
+|---|---|
+| `app/Console/Commands/ImportFreeExerciseDb.php` | The command `exercises:import`: reads the dataset, loops, prints the summary |
+| `app/Actions/Exercises/ImportFreeExercise.php` | The rules for one exercise: matching, translations, muscles, logging type, photos |
+| `app/Actions/Exercises/ImportResult.php`, `app/Enums/ImportOutcome.php` | What the action reports for each exercise |
+| `tests/Feature/ExerciseLibrary/ImportFreeExerciseTest.php` | 18 tests, on a small dataset written by the tests themselves |
+| `Makefile` | `make exercises-import`: clones the dataset once, then runs the command |
+
+### H1.12.1 The files
+
+A command starts from `make:command`. Tried with a throwaway name:
+
+```sh
+make artisan c="make:command ImportSomethingDemo"
+```
+
+```
+INFO  Console command [app/Console/Commands/ImportSomethingDemo.php] created successfully.
+```
+
+```php
+namespace App\Console\Commands;
+
+use Illuminate\Console\Attributes\Description;
+use Illuminate\Console\Attributes\Signature;
+use Illuminate\Console\Command;
+
+#[Signature('app:import-something-demo')]
+#[Description('Command description')]
+class ImportSomethingDemo extends Command
+{
+    /**
+     * Execute the console command.
+     */
+    public function handle()
+    {
+        //
+    }
+}
+```
+
+- **Laravel 13 writes the name and the description as attributes,** `#[Signature]` and `#[Description]`. Older code, and most tutorials, write them as two properties, `protected $signature = '…'` and `protected $description = '…'`; both work. The first version of our command used the properties, and was changed to the attributes to match what the generator writes.
+- **The name it proposes** is `app:` plus the class name in kebab case. Ours is `exercises:import`: the part before the colon groups the commands in `php artisan list`.
+- **`handle()`** is empty and has no return type: ours returns `int`, the exit code.
+
+`ImportFreeExerciseDb.php` was written on this skeleton; the action is a plain class, as `make artisan c="make:class Actions/Exercises/ImportFreeExercise"` creates. What goes in each is in [C2.14](../concepts/C2-backend.md#c214-artisan-commands-of-our-own); the code is commented line by line.
+
+**The command's help** comes from its signature:
+
+```sh
+make artisan c="help exercises:import"
+```
+
+```
+Description:
+  Import the public exercise library from free-exercise-db (DATA-1)
+
+Usage:
+  exercises:import [options]
+
+Options:
+      --path[=PATH]     The folder of free-exercise-db (default: storage/app/free-exercise-db)
+      --update          Also refresh the exercises already imported, from the source
+      --without-photos  Import the texts only, no photos
+      --limit[=LIMIT]   Import only the first N exercises, to try it
+  -h, --help            Display help for the given command. …
+```
+
+(Laravel's own options, such as `--quiet` and `--verbose`, follow.)
+
+### H1.12.2 The data
+
+`make exercises-import` downloads the dataset the first time, with Git, into `backend/storage/app/free-exercise-db`:
+
+```sh
+git clone --depth 1 https://github.com/yuhonas/free-exercise-db.git backend/storage/app/free-exercise-db
+```
+
+```
+Cloning into 'backend/storage/app/free-exercise-db'...
+remote: Enumerating objects: 3532, done.
+remote: Counting objects: 100% (3532/3532), done.
+remote: Compressing objects: 100% (3454/3454), done.
+remote: Total 3532 (delta 171), reused 1835 (delta 71), pack-reused 0 (from 0)
+Receiving objects: 100% (3532/3532), 94.07 MiB | 3.64 MiB/s, done.
+Resolving deltas: 100% (171/171), done.
+```
+
+- **About 94 MB to download,** 200 MB on disk once unpacked (`du -sh backend/storage/app/free-exercise-db`).
+- **`backend/storage/app/` is ignored by Git** (its `.gitignore`), so the dataset never ends up in the repository.
+- **The container sees it** at `/app/storage/app/free-exercise-db`, through the `./backend` volume of `compose.yaml`: the command's default path.
+- **`--depth 1`** downloads only the latest version, without the repository's history.
+- **To get a newer version** later: `git -C backend/storage/app/free-exercise-db pull`, then `make exercises-import o="--update"`.
+
+### H1.12.3 Try it on five exercises
+
+The muscles and the equipment must be there first: they are, after `make fresh` or `make artisan c="db:seed --class=MuscleSeeder"` and `--class=EquipmentSeeder`.
+
+```sh
+make exercises-import o="--limit=5"
+```
+
+```
+docker compose exec backend php artisan exercises:import --limit=5
+Importing 5 exercises from /app/storage/app/free-exercise-db
+ 5/5 [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
+
+Created: 5
+Updated: 0
+Unchanged: 0
+Skipped, deleted by an admin: 0
+Photos added: 10
+```
+
+The path is the container's: `/app` is `backend/` on your computer. A `Failed: N` line, with the list of failures, appears only when there are some.
+
+**Look at the result** in `make tinker`. The first line imports the model's class: see [H1.12.6](#h1126-when-something-goes-wrong) for why it may be needed.
+
+```php
+> use App\Models\Exercise;
+> Exercise::count();
+= 5
+> $e = Exercise::where('external_id', '3_4_Sit-Up')->first();
+= App\Models\Exercise {#9762
+    id: 4,
+    owner_id: null,
+    external_id: "3_4_Sit-Up",
+    equipment_id: 11,
+    name: "{\"en\": \"3/4 Sit-Up\"}",
+    aliases: null,
+    description: null,
+    instructions: "{\"en\": [\"Lie down on the floor and secure your feet. …\", …]}",
+    logging_type: "reps",
+    level: "beginner",
+    category: "strength",
+    machine_translated: "[]",
+    youtube_url: null,
+    …
+  }
+> $e->name;
+= "3/4 Sit-Up"
+> $e->instructions;
+= [
+    "Lie down on the floor and secure your feet. Your legs should be bent at the knees.",
+    "Place your hands behind or to the side of your head. You will begin with your back on the ground. This will be your starting position.",
+    "Flex your hips and spine to raise your torso toward your knees.",
+    "At the top of the contraction your torso should be perpendicular to the ground. Reverse the motion, going only ¾ of the way down.",
+    "Repeat for the recommended amount of repetitions.",
+  ]
+> $e->muscles->map(fn ($m) => $m->slug.' '.$m->pivot->role->value);
+= Illuminate\Support\Collection {#9719
+    all: [
+      "abdominals primary",
+    ],
+  }
+```
+
+What it shows:
+
+- **The raw row and the model disagree on purpose.** Printing the model shows the columns as stored, `name` as the JSON `{"en": "3/4 Sit-Up"}`; `$e->name` goes through `HasTranslations` and gives the text.
+- **`owner_id: null`:** a public exercise. **`equipment_id: 11`:** "body only", hence **`logging_type: "reps"`**, the guess of [C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import).
+- **`id: 4`** although it is the first exercise of the source: Postgres never gives an id twice, not even the id of a row created inside a transaction that was then undone, as in the tinker tries of [H2.12.6](H2-backend.md#h2126-look-at-the-json).
+
+The equipment, the logging type and the photos:
+
+```php
+> $e->equipment?->slug;
+= "body-only"
+> $e->logging_type;
+= App\Enums\LoggingType {#…
+    +name: "Reps",
+    +value: "reps",
+  }
+> $e->getMedia('photos')->pluck('file_name');
+= Illuminate\Support\Collection {#…
+    all: [
+      "0.jpg",
+      "1.jpg",
+    ],
+  }
+```
+
+- **`body-only`** is "body only" in the source, through `Str::slug()`, hence the logging type `Reps`, an enum thanks to the cast.
+- **The photos keep their names,** and medialibrary puts each in a folder named after its row of `media`: the first photo of the library is `backend/storage/app/public/1/0.jpg`, an `image/jpeg` of 38 KB.
+
+### H1.12.4 The whole library
+
+```sh
+make exercises-import
+```
+
+```
+docker compose exec backend php artisan exercises:import
+Importing 876 exercises from /app/storage/app/free-exercise-db
+ 876/876 [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
+
+Created: 871
+Updated: 0
+Unchanged: 5
+Skipped, deleted by an admin: 0
+Photos added: 1736
+```
+
+The five of the first try came out `Unchanged`, with their photos already there. 1,746 photos in all, not 1,752 (876 × 2): three exercises have no images in the source itself (`Kettlebell_Halo`, `Kettlebell_Halo_With_Overhead_Extension`, `Kettlebell_Overhead_Triceps_Extension`). They take 98 MB in `backend/storage/app/public` (`du -sh`).
+
+**How the logging type came out,** counted in tinker:
+
+```php
+> Exercise::whereNull('owner_id')->selectRaw('logging_type, count(*) n')->groupBy('logging_type')->pluck('n', 'logging_type');
+= Illuminate\Support\Collection {#8454
+    all: [
+      "reps" => 102,
+      "weight_reps" => 637,
+      "time" => 137,
+    ],
+  }
+```
+
+`selectRaw` with `groupBy` is SQL's `select logging_type, count(*) … group by logging_type`; `pluck('n', 'logging_type')` turns the rows into a map.
+
+The exceptions, such as a weighted exercise with "body only" in the source, are for an admin to correct (BE-1, `feat/exercise-admin`).
+
+**Run it again:** nothing changes.
+
+```
+Importing 876 exercises from /app/storage/app/free-exercise-db
+ 876/876 [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
+
+Created: 0
+Updated: 0
+Unchanged: 876
+Skipped, deleted by an admin: 0
+Photos added: 0
+```
+
+**With `--update`,** every exercise is written again from the source: English texts, level, category, equipment and muscles.
+
+```sh
+make exercises-import o="--update"
+```
+
+```
+Importing 876 exercises from /app/storage/app/free-exercise-db
+ 876/876 [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
+
+Created: 0
+Updated: 876
+Unchanged: 0
+Skipped, deleted by an admin: 0
+Photos added: 0
+```
+
+About 4 seconds: without photos to copy, the work is a few queries per exercise.
+
+**After `make fresh`** the library is empty again: `make fresh` rebuilds the database with the seeders, and the import is not one of them. Run `make exercises-import` again; the dataset is already downloaded.
+
+### H1.12.5 The tests
+
+```sh
+make test f=ImportFreeExercise
+```
+
+```
+PASS  Tests\Feature\ExerciseLibrary\ImportFreeExerciseTest
+✓ it imports an exercise with its texts, equipment, muscles and photos                        4.30s
+✓ it guesses how sets are logged from the category and the equipment with dataset "a strengt… 0.10s
+✓ it guesses how sets are logged from the category and the equipment with dataset "a strengt… 0.08s
+✓ it guesses how sets are logged from the category and the equipment with dataset "a plyomet… 0.07s
+✓ it guesses how sets are logged from the category and the equipment with dataset "a stretch… 0.09s
+✓ it guesses how sets are logged from the category and the equipment with dataset "cardio on… 0.08s
+✓ it cleans the instructions: no HTML, no spaces around, no empty steps                       0.07s
+✓ it keeps primary a muscle that is listed in both lists                                      0.12s
+✓ it imports an exercise with no equipment and no instructions                                0.13s
+✓ it refuses a muscle that is not one of ours, saving nothing                                 0.19s
+✓ it leaves an exercise already imported as it is, unless asked to update                     0.15s
+✓ it refreshes the English texts on update, keeping the other languages and the logging type  0.23s
+✓ it does not bring back an exercise deleted by an admin                                      0.10s
+✓ it adds the photos on a later run to an exercise that has none yet                          0.11s
+✓ it imports the whole dataset and prints a summary                                           0.42s
+✓ it imports only the first exercises with --limit, and only texts with --without-photos      0.17s
+✓ it reports an exercise that fails and imports the others                                    0.13s
+✓ it stops with a hint when the dataset is not there                                          0.09s
+
+Tests:    18 passed (59 assertions)
+```
+
+They never read the real dataset. Each test writes a few exercises, in the same layout, into the system's temporary folder (`writeDataset()`), with tiny JPEG files as photos, and `Storage::fake('public')` keeps the copied photos in memory ([C2.14.2](../concepts/C2-backend.md#c2142-testing-a-command)).
+
+### H1.12.6 When something goes wrong
+
+| Message or symptom | Cause | Fix |
+|---|---|---|
+| `free-exercise-db not found: … does not exist.` | The dataset is not downloaded, or `--path` is wrong | `make exercises-import` clones it; check the folder `backend/storage/app/free-exercise-db/dist` |
+| `Unknown equipment "body only": run the EquipmentSeeder…` (or `Unknown muscle`) for every exercise | A database without the fixed lists, such as after `make migrate` on a new one | `make artisan c="db:seed --class=MuscleSeeder"` and `--class=EquipmentSeeder`, then the import again |
+| `Failed: 1` with one exercise named | That exercise has a value we do not know | The message says which; the others are imported. Add the value to the seeder if it is real |
+| `Photos added: 0` on the first run | `o="--without-photos"`, or the dataset has no `exercises/` folder | Run again without the option: the missing photos are added |
+| `git: command not found` | Git is not on the path of the terminal | On Windows, run `make` from Git Bash ([S1.2](../start/S1-setup.md#s12-prerequisites)) |
+| In tinker, `Error  Class "Exercise" not found.` | Met on the first try. Tinker finds a class by its short name through Composer's class map (`vendor/composer/autoload_classmap.php`), written when the packages were installed; classes added since are missing from it | `use App\Models\Exercise;` first, or the full name `App\Models\Exercise::count()`. Or, once, `make composer c="dump-autoload"`, which rewrites the map (`Generated optimized autoload files containing 11202 classes`); tinker then says `[!] Aliasing 'Exercise' to 'App\Models\Exercise' for this Tinker session.` and the short name works |
 
 ---
 

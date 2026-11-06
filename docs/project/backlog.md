@@ -93,13 +93,17 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 
 **Priority:** high · **Kind:** seed data · **Found:** 2026-11-05
 
-**What is missing.** The public library is empty until free-exercise-db is imported ([D2.3](../design/D2-decisions.md#d23-exercise-library)).
+**Done:** the import, in English with muscles, equipment and photos: `make exercises-import` (`feat/exercise-import`, [C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import), [H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)).
+
+**What is missing.** The translation into Italian, Spanish and German of the names and instructions ([D2.3](../design/D2-decisions.md#d23-exercise-library)): Italian reviewed by hand, Spanish and German marked **Machine translated** until a native speaker reviews them.
 
 **Options.**
-- A) A Laravel command that reads the JSON and the photos and writes them into the database, plus a separate translation script.
-- B) A one-off SQL dump.
+- A) An Artisan command calling an LLM's API, one exercise at a time, writing each language with `setTranslation()` and adding it to `machine_translated`; it skips languages already there, so it can resume.
+- B) A script outside the app that writes a JSON file of translations, then a command that reads it.
 
-**Recommended.** A: the command can run again on a fresh database, and translations get their **Machine translated** flag as they are written.
+**To decide first:** which model and API, its cost for 876 exercises × 3 languages, and where the API key lives (`.env`, never in Git).
+
+**Recommended.** A: the same shape as the import, it can stop and resume, and nothing is written twice.
 
 ## FEAT
 

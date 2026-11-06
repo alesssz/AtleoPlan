@@ -149,7 +149,7 @@ So a session copies nothing from the future: it records what happened, and it su
 | Tables | Created by |
 |---|---|
 | New columns on `users` | Done, except `active_plan_id`, which needs `plans` and comes with FEAT-2 |
-| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, exercises by [DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db) |
+| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, the public exercises by the import of [DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db), `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
 | `plans`, `plan_days`, `plan_items`, `plan_sets` | [FEAT-2](../project/backlog.md#feat-2-plans) |
 | `workout_sessions`, `session_exercises`, `logged_sets` | [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home) |
 
@@ -348,7 +348,7 @@ What the column cannot check by itself is that the plan belongs to this user and
 
 ## D3.4 Exercise library
 
-**In the code:** the migrations `…_create_{muscles,equipment,exercises,exercise_muscle}_table.php`, the models `Muscle`, `Equipment`, `Exercise` and `ExerciseMuscle`, the seeders `MuscleSeeder` and `EquipmentSeeder`. How they were built: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built).
+**In the code:** the migrations `…_create_{muscles,equipment,exercises,exercise_muscle}_table.php`, the models `Muscle`, `Equipment`, `Exercise` and `ExerciseMuscle`, the seeders `MuscleSeeder` and `EquipmentSeeder`. How they were built: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built). The public rows come from free-exercise-db, through the command `exercises:import` and the action `ImportFreeExercise` ([C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import), [H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)).
 
 ### D3.4.1 `muscles` and `equipment`
 

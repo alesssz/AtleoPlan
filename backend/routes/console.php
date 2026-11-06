@@ -5,7 +5,9 @@
  * tasks (docs/concepts/C2-backend.md C2.13).
  *
  * bootstrap/app.php loads this file (`commands:`) whenever Artisan runs.
- * Bigger commands get their own class (`php artisan make:command`) instead.
+ * Bigger commands get their own class (`php artisan make:command`) instead,
+ * in app/Console/Commands, which Laravel registers by itself: the first one
+ * is ImportFreeExerciseDb, `exercises:import` (docs/concepts/C2-backend.md C2.14).
  */
 
 use Illuminate\Foundation\Inspiring;
