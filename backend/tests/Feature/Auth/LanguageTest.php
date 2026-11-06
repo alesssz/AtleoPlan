@@ -41,11 +41,23 @@ it('has every message in the three translated languages', function (string $lang
         'passwords.reset', 'passwords.sent', 'passwords.throttled', 'passwords.token', 'passwords.user',
         'validation.confirmed', 'validation.email', 'validation.enum', 'validation.max.string',
         'validation.min.string', 'validation.required', 'validation.string', 'validation.unique',
+        // The exercise editor's (StoreExerciseRequest)
+        'validation.array', 'validation.distinct', 'validation.exists', 'validation.integer',
+        'validation.max.array', 'validation.regex', 'validation.url',
     ];
 
     foreach ($keys as $key) {
         // Different from the key and from English: a real translation, not a fallback
         expect(__($key, [], $language))->not->toBe($key)->not->toBe(__($key, [], 'en'));
+    }
+
+    // The fields' names. They are read as one array, because __() would take
+    // the dots of `muscles.*.role` for levels of the file
+    $attributes = __('validation.attributes', [], $language);
+    $english = __('validation.attributes', [], 'en');
+    foreach (['youtube_url', 'logging_type', 'equipment_id', 'aliases.*', 'muscles.*.id', 'muscles.*.role'] as $field) {
+        expect($attributes)->toHaveKey($field)
+            ->and($attributes[$field])->not->toBe($english[$field] ?? null);
     }
 })->with(['it', 'es', 'de']);
 

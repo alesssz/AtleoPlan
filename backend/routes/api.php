@@ -20,6 +20,9 @@
  */
 
 use App\Http\Controllers\CurrentUserController;
+use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\MuscleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -43,4 +46,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [CurrentUserController::class, 'show']);
     // Saves the language or the theme on the account
     Route::patch('/user/preferences', [CurrentUserController::class, 'updatePreferences']);
+
+    // The exercise library (docs/concepts/C2-backend.md C2.5.4): the two
+    // fixed lists its filters and editor use, then the exercises themselves
+    Route::get('/muscles', [MuscleController::class, 'index']);
+    Route::get('/equipment', [EquipmentController::class, 'index']);
+    // apiResource(): the five routes of a resource in one line, each tied to
+    // the controller method of the same name: GET /exercises (index),
+    // POST /exercises (store), GET /exercises/{exercise} (show),
+    // PUT|PATCH /exercises/{exercise} (update), DELETE /exercises/{exercise}
+    // (destroy). Their names are exercises.index, exercises.store…
+    Route::apiResource('exercises', ExerciseController::class);
 });

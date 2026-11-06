@@ -127,11 +127,13 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 
 **Priority:** high · **Kind:** backend · **Found:** 2026-11-05
 
-**Done:** the tables, models, relations and seeders of the library, with their tests (`feat/exercise-tables`, [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built)).
+**Done:**
+- the tables, models, relations and seeders of the library, with their tests (`feat/exercise-tables`, [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built));
+- the API without media: the policy, the list with search, filters and pages, reading, creating, changing and deleting personal exercises, the lists of muscles and equipment (`feat/exercise-api`, [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints), [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built)).
 
 **What is missing.** Two parts, each on its own branch:
-- `feat/exercise-api`: the policies for exercises (public, managed by admins; personal, owned by a user); the API to list with search and filters (laravel-query-builder), show, and create, edit and delete personal ones, with the photo and video uploads and their limits ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)).
-- `feat/exercise-admin`: the Filament resource for the public library, one field per language ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)).
+- `feat/exercise-media`: the photo and video uploads of personal exercises, with their limits, the conversion job and the order of the photos ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)); the photos and videos in `ExerciseResource`; **Duplicate as mine** for a public exercise ([D1.4.4](../design/D1-ui.md#d144-exercise-details)), which copies its photos too.
+- `feat/exercise-admin`: the Filament resource for the public library, one field per language ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)). Filament asks the model's policy, and `ExercisePolicy` refuses changes to public exercises, admins included, because the API must: the resource overrides `canEdit()`, `canDelete()` and `canCreate()` for admins, or the policy gains a separate ability for the panel.
 
 Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). DATA-1 then fills it.
 
@@ -165,4 +167,4 @@ Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). DATA-1 then fil
 
 **Priority:** high · **Kind:** missing screens · **Found:** 2026-11-05
 
-**What is missing.** The library with search and filters, the exercise details and the editor of personal exercises with photos ([D1.4.3](../design/D1-ui.md#d143-exercise-library)–[D1.4.5](../design/D1-ui.md#d145-exercise-editor)), replacing the empty state at `/exercises`. Needs BE-1.
+**What is missing.** The library with search and filters, the exercise details and the editor of personal exercises with photos ([D1.4.3](../design/D1-ui.md#d143-exercise-library)–[D1.4.5](../design/D1-ui.md#d145-exercise-editor)), replacing the empty state at `/exercises`. The API is ready ([C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints)); the TypeScript types of its answers go in `frontend/src/api/` with the screens. Photos need BE-1's `feat/exercise-media`.

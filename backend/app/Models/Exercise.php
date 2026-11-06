@@ -6,8 +6,11 @@ namespace App\Models;
 // types of the three relations, and the two packages' pieces (translations,
 // photos and videos)
 use App\Enums\LoggingType;
+use App\Enums\MuscleRole;
 use Database\Factories\ExerciseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -41,6 +44,11 @@ use Spatie\Translatable\HasTranslations;
  * in it: the code sets it, as in `$user->exercises()->create($data)`, so no
  * request can give an exercise to someone else. external_id, level, category
  * and machine_translated belong to the import, which writes them directly.
+ *
+ * The methods marked #[Scope] are query scopes: named pieces of a query, used
+ * as `Exercise::visibleTo($user)->search('panca')->get()`. The library's list
+ * (ExerciseController::index) is built from them
+ * (docs/concepts/C2-backend.md C2.6, "Query scopes").
  */
 #[Fillable(['name', 'aliases', 'description', 'instructions', 'logging_type', 'equipment_id', 'youtube_url'])]
 class Exercise extends Model implements HasMedia
@@ -131,6 +139,150 @@ class Exercise extends Model implements HasMedia
     public function isPublic(): bool
     {
         return $this->owner_id === null;
+    }
+
+    /**
+     * Whether it is this user's personal exercise.
+     *
+     * @param  User|null  $user  the user asking; null (nobody signed in) owns nothing
+     */
+    public function isOwnedBy(?User $user): bool
+    {
+        return $user !== null && $this->owner_id === $user->id;
+    }
+
+    /**
+     * Only the exercises this user may see: the public ones and their own
+     * (docs/design/D2-decisions.md D2.3). ExercisePolicy::view() says the same
+     * for one exercise; this says it for a query, so the list never loads
+     * someone else's personal exercises.
+     *
+     * A query scope. The #[Scope] attribute turns this protected method into
+     * one that can be called on the model or on a query, without the
+     * `$query` argument: `Exercise::visibleTo($user)`. Laravel passes the
+     * query being built as the first argument; the method adds conditions to
+     * it and returns nothing.
+     *
+     * @param  Builder<Exercise>  $query  the query being built
+     * @param  User  $user  the signed-in user
+     */
+    #[Scope]
+    protected function visibleTo(Builder $query, User $user): void
+    {
+        // The two conditions are wrapped in a function, which Laravel writes
+        // as a parenthesis: `(owner_id is null or owner_id = 5)`. Without it,
+        // the OR would mix with the conditions added after this scope
+        $query->where(fn (Builder $q) => $q
+            ->whereNull('owner_id')
+            ->orWhere('owner_id', $user->id));
+    }
+
+    /**
+     * Searches the name and the aliases, as the user reads them
+     * (docs/design/D3-data-model.md D3.4.6): in the request's language, or in
+     * English when the exercise has no text in that language. Upper and lower
+     * case do not matter.
+     *
+     * The SQL, for a user who reads Italian:
+     * `coalesce(name->>'it', name->>'en') ilike '%panca%'`. `->>` reads one
+     * key of a JSON column as text; coalesce() gives the first value that is
+     * not null; ilike is Postgres's case-insensitive LIKE, and `%` matches
+     * any text. The `?` are placeholders, filled by the database driver with
+     * the values in the array, so whatever the user types is never read as
+     * SQL ("SQL injection").
+     *
+     * @param  Builder<Exercise>  $query  the query being built
+     * @param  string  $term  what the user typed
+     */
+    #[Scope]
+    protected function search(Builder $query, string $term): void
+    {
+        // The current language, set from the request by SetLocaleFromRequest
+        $locale = app()->getLocale();
+        // The text to find anywhere: `%` around it. A `%` or `_` typed by the
+        // user is escaped with a backslash, so it is looked for as itself
+        // rather than meaning "anything"
+        $pattern = '%'.addcslashes(trim($term), '\\%_').'%';
+
+        $query->where(fn (Builder $q) => $q
+            ->whereRaw("coalesce(name->>?, name->>'en') ilike ?", [$locale, $pattern])
+            ->orWhereRaw("coalesce(aliases->>?, aliases->>'en') ilike ?", [$locale, $pattern]));
+    }
+
+    /**
+     * The exercises whose primary muscles include one of these, by slug:
+     * `withPrimaryMuscle('chest', 'triceps')`. Secondary muscles do not count,
+     * so filtering by chest shows the bench press but not the triceps dip.
+     *
+     * `string ...$slugs` takes any number of arguments as one array. The
+     * list's filter `filter[muscle]=chest,triceps` arrives here as two.
+     *
+     * @param  Builder<Exercise>  $query  the query being built
+     * @param  string  ...$slugs  the muscles' slugs
+     */
+    #[Scope]
+    protected function withPrimaryMuscle(Builder $query, string ...$slugs): void
+    {
+        // whereHas(): only exercises with at least one related row that
+        // matches. It becomes an `exists (select … from muscles inner join
+        // exercise_muscle …)` subquery, so the pivot's column is there,
+        // written with its table's name
+        $query->whereHas('muscles', fn (Builder $q) => $q
+            ->whereIn('slug', $slugs)
+            ->where('exercise_muscle.role', MuscleRole::Primary));
+    }
+
+    /**
+     * The exercises that use one of these kinds of equipment, by slug.
+     *
+     * @param  Builder<Exercise>  $query  the query being built
+     * @param  string  ...$slugs  the equipment's slugs
+     */
+    #[Scope]
+    protected function usingEquipment(Builder $query, string ...$slugs): void
+    {
+        $query->whereHas('equipment', fn (Builder $q) => $q->whereIn('slug', $slugs));
+    }
+
+    /**
+     * Only public exercises (`public`) or only personal ones (`mine`), the
+     * Source filter of the library (docs/design/D1-ui.md D1.4.3).
+     *
+     * "Personal" is enough to mean "mine" because the list is already
+     * limited by visibleTo(). ListExercisesRequest accepts only these two
+     * values, so `default` never runs from the API.
+     *
+     * @param  Builder<Exercise>  $query  the query being built
+     * @param  string  $source  `mine` or `public`
+     */
+    #[Scope]
+    protected function fromSource(Builder $query, string $source): void
+    {
+        // match: like switch, but an expression, with strict comparison
+        match ($source) {
+            'public' => $query->whereNull('owner_id'),
+            'mine' => $query->whereNotNull('owner_id'),
+            default => null,
+        };
+    }
+
+    /**
+     * Sorts by name, in the request's language (English when missing), the
+     * way a person expects: upper and lower case and accents together.
+     *
+     * `collate "und-x-icu"` asks Postgres for the ICU rules of no language in
+     * particular. The database's own rules, on the Alpine image, compare the
+     * bytes: "Bench" before "banca", "Cuello" before "Cuádriceps"
+     * (docs/how-to/H2-backend.md H2.12). The id comes last, so two exercises
+     * with the same name keep the same order from one page to the next.
+     *
+     * @param  Builder<Exercise>  $query  the query being built
+     */
+    #[Scope]
+    protected function orderByName(Builder $query): void
+    {
+        $query->orderByRaw("coalesce(name->>?, name->>'en') collate \"und-x-icu\"", [app()->getLocale()])
+            ->orderBy('id');
     }
 
     /**
