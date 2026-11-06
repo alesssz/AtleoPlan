@@ -8,7 +8,7 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 
 **Done:**
 
-- **Design docs:** UI ([D1](../design/D1-ui.md)), decisions ([D2](../design/D2-decisions.md)), conventions ([P1](../project/P1-conventions.md)), data model ([D3](../design/D3-data-model.md)), how-to guides for the database ([H1](../how-to/H1-database.md)), the backend ([H2](../how-to/H2-backend.md)) and the frontend ([H3](../how-to/H3-frontend.md)), [backlog](../project/backlog.md).
+- **Design docs:** UI ([D1](../design/D1-ui.md)), decisions ([D2](../design/D2-decisions.md)), conventions ([P1](../project/P1-conventions.md)), data model ([D3](../design/D3-data-model.md)), how-to guides for the database ([H1](../how-to/H1-database.md)), the backend ([H2](../how-to/H2-backend.md)), the frontend ([H3](../how-to/H3-frontend.md)) and opening the database ([H4](../how-to/H4-database-tools.md)), [backlog](../project/backlog.md).
 - **Git:** repository on GitHub (`alesssz/AtleoPlan`) with the personal GitHub identity, and a hook that refuses any other email ([S1.3](#s13-git-identity)).
 - **Docker stack for development:** [`Dockerfile`](../../Dockerfile), [`compose.yaml`](../../compose.yaml), [`docker/php/dev.ini`](../../docker/php/dev.ini). Four services:
 
@@ -339,6 +339,7 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | Filament admin (once installed) | http://localhost:8500/admin |
 | React app (once created) | http://localhost:5673 |
 | Mailpit | http://localhost:8525 |
+| Postgres, from a database program | `127.0.0.1:5932`, database, user and password `atleoplan` ([H4](../how-to/H4-database-tools.md)) |
 
 **Documentation**
 

@@ -69,4 +69,4 @@ Work known and waiting goes in [`docs/project/backlog.md`](backlog.md), one entr
 
 ---
 
-← [H3. Frontend: how to](../how-to/H3-frontend.md) · [Contents](../README.md)
+← [H4. Opening the database](../how-to/H4-database-tools.md) · [Contents](../README.md)

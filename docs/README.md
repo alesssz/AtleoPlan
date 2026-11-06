@@ -49,6 +49,7 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 | [H1. Database](how-to/H1-database.md) | A new table from start to finish (migration, model, factory, seeder, tinker, test), changing a table, relations, seeders and imports, looking at the data, common errors |
 | [H2. Backend](how-to/H2-backend.md) | An endpoint that reads and one that changes data (controller, resource, form request, policy, tests), an admin screen, a background job, translated messages, settings, packages, debugging, common errors |
 | [H3. Frontend](how-to/H3-frontend.md) | A new page, data from the API, a form that saves, tests, translations, npm packages, the browser's tools, shadcn/ui components, common errors |
+| [H4. Opening the database](how-to/H4-database-tools.md) | The connection details, TablePlus step by step (connecting, browsing, SQL, editing safely, shortcuts), the terminal's ways, the alternatives (DBeaver, pgAdmin, Adminer…), connection errors |
 
 ### P · Project
 
@@ -57,4 +58,4 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 | [P1. Conventions](project/P1-conventions.md) | Git, code and comments, documentation, backlog |
 | [Backlog](project/backlog.md) | The work known and waiting, one entry per point with options and a recommendation; an entry is deleted when its work is done |
 
-**Reading order the first time:** S1, then D1 to D3, then C1 or C2, depending on the side you work on. Keep H1 to H3 at hand while working.
+**Reading order the first time:** S1, then D1 to D3, then C1 or C2, depending on the side you work on. Keep H1 to H4 at hand while working.

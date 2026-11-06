@@ -732,7 +732,7 @@ On the server only the fixed lists are seeded, with `php artisan db:seed --class
 | **Tinker** | Try a query, read or fix a row with the models | `make tinker` ([H1.2.7](#h127-look-at-the-result)) |
 | **psql** | Plain SQL | `make psql` |
 | **Artisan** | The structure of a table or a model | `make artisan c="db:table muscles"`, `c="model:show Muscle"`, `c="db:show"` (every table, with sizes) |
-| **A database program** | Browse the tables with a mouse | TablePlus, DBeaver, DataGrip: host `localhost`, port `5932` ([S1.4](../start/S1-setup.md#s14-ports)), the user and password of `backend/.env` |
+| **A database program** | Browse the tables with a mouse | TablePlus, the one we use: connecting, browsing and editing safely are in [H4](H4-database-tools.md). In short: host `localhost`, port `5932`, database, user and password `atleoplan` |
 
 **In psql:**
 
