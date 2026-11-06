@@ -52,7 +52,8 @@ How work is done in this repository: Git, code, comments, documentation and the 
   - `design/` (D): what the app does and why;
   - `concepts/` (C): how the code works;
   - `how-to/` (H): doing things step by step;
-  - `project/` (P): how we work, and the backlog.
+  - `project/` (P): how we work, and the backlog;
+  - `learn/` (L): courses on the frameworks themselves, standard Laravel and React, lesson by lesson. A course keeps apart what is the framework, what is a package and what is our choice; its examples are run for real, like the how-tos.
 
   A document's code is its folder's letter and a number from 1, which is also the start of its file name: `docs/how-to/H2-backend.md` is H2.
 - **A change updates the section it touches, in the same commit.** A change to how the project is installed or started also updates the setup section, once it exists.
@@ -77,4 +78,4 @@ Work known and waiting goes in [`docs/project/backlog.md`](backlog.md), one entr
 
 ---
 
-← [H4. Opening the database](../how-to/H4-database-tools.md) · [Contents](../README.md)
+← [H4. Opening the database](../how-to/H4-database-tools.md) · [Contents](../README.md) · [L1. Laravel course](../learn/L1-laravel.md) →

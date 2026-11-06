@@ -11,6 +11,7 @@ The documents are grouped by **what you are looking for**. Each folder has a let
   - [C · Concepts](#c--concepts)
   - [H · How to](#h--how-to)
   - [P · Project](#p--project)
+  - [L · Learn](#l--learn)
 
 ## Where to look
 
@@ -21,11 +22,13 @@ The documents are grouped by **what you are looking for**. Each folder has a let
 | Understand how the code works: React, Laravel, the concepts behind them | [`concepts/`](concepts) | **C** |
 | Do something concrete, step by step, with the commands and their output | [`how-to/`](how-to) | **H** |
 | Know how we work: Git, comments, docs, what comes next | [`project/`](project) | **P** |
+| Learn Laravel or React themselves, lesson by lesson, with exercises | [`learn/`](learn) | **L** |
 
 **A rule of thumb:**
 - *what* and *why* → `design/`;
 - *how it works* → `concepts/`;
-- *how to do it* → `how-to/`.
+- *how to do it* → `how-to/`;
+- *learning the framework itself* → `learn/`.
 
 The how-to guides and the concepts go in pairs: H2 shows how to build an endpoint, and C2.5 explains what a controller is.
 
@@ -68,4 +71,10 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 | [P1. Conventions](project/P1-conventions.md) | Git, code and comments, documentation, backlog |
 | [Backlog](project/backlog.md) | The work known and waiting, one entry per point with options and a recommendation; an entry is deleted when its work is done |
 
-**Reading order the first time:** S1, then D1 to D3, then C1 or C2, depending on the side you work on. Keep H1 to H4 at hand while working.
+### L · Learn
+
+| Document | What it covers |
+|---|---|
+| [L1. Laravel course](learn/L1-laravel.md) | Standard Laravel in 24 lessons, each with where the project uses it, a tried example, a recap and an exercise: PHP, Artisan, the container, migrations, Eloquent, relations, queries, collections, factories, routes, controllers, validation, policies, resources, middleware, signing in, configuration, translations, tests; what the project adds on top. A running example, training notes, built and thrown away |
+
+**Reading order the first time:** S1, then D1 to D3, then C1 or C2, depending on the side you work on. New to Laravel: L1 first, at your own pace, next to C2. Keep H1 to H4 at hand while working.
