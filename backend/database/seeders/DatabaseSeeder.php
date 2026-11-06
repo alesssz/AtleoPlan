@@ -18,6 +18,11 @@ use Illuminate\Database\Seeder;
  * data sets go in their own seeders, called from here with `$this->call()`.
  * The test database is not seeded: each test creates what it needs with
  * factories.
+ *
+ * The public exercise library is not seeded here: it comes from outside, so
+ * it is an Artisan command of its own, `make exercises-import`
+ * (app/Console/Commands/ImportFreeExerciseDb.php), to run after `make fresh`
+ * (docs/concepts/C2-backend.md C2.14).
  */
 class DatabaseSeeder extends Seeder
 {

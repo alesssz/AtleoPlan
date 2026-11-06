@@ -186,6 +186,7 @@ heavy
 | `app/Http/Resources/` | The JSON shape | `make:resource` |
 | `app/Http/Middleware/` | Steps every request crosses | `make:middleware` |
 | `app/Policies/` | Permissions | `make:policy` |
+| `app/Console/Commands/` | Artisan commands of the app, such as `exercises:import` | `make:command` |
 | `database/migrations/` | The tables' history | `make:migration`, `make:model -m` |
 | `database/factories/`, `seeders/` | Fake and starting data | `make:factory`, `make:seeder` |
 | `routes/` | `api.php`, `web.php`, `console.php` | written by hand |
@@ -1552,13 +1553,12 @@ Laravel covers much more than an API needs at first. These parts are not in the 
 |---|---|---|
 | [Queues and jobs](https://laravel.com/docs/queues) | Slow work in the background, out of the request | The `queue` container runs; the video conversion of `feat/exercise-media` will be the first job. Example: [H2.5](../how-to/H2-backend.md#h25-work-in-the-background) |
 | [Notifications](https://laravel.com/docs/notifications), [Mail](https://laravel.com/docs/mail) | Emails and other messages | Only the password reset email, sent by Laravel itself ([C2.7.5](../concepts/C2-backend.md#c275-forgot-password)); Mailpit shows it |
-| [File storage](https://laravel.com/docs/filesystem) | Files on a "disk": local, or a cloud like R2 | Coming with the photos and videos ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)) |
+| [File storage](https://laravel.com/docs/filesystem) | Files on a "disk": local, or a cloud like R2 | Indirectly: the import copies the photos to the `public` disk (`storage/app/public`) through medialibrary; uploads come with the photos and videos of `feat/exercise-media` ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)) |
 | [Task scheduling](https://laravel.com/docs/scheduling) | Commands that run at set times | Not yet; `routes/console.php` is where they would go |
 | [Events](https://laravel.com/docs/events) | Code reacting to something that happened | Not yet |
 | [Cache](https://laravel.com/docs/cache) | Keeping a result to avoid recomputing it | Not yet |
 | [Blade](https://laravel.com/docs/blade) | HTML templates | Only Laravel's welcome page; the screens are React's, and the admin panel is Filament's |
-| [Artisan commands of your own](https://laravel.com/docs/artisan#writing-commands) | `php artisan app:something` | Coming with the free-exercise-db import ([DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db)) |
-
+| [Artisan commands of your own](https://laravel.com/docs/artisan#writing-commands) | `php artisan app:something` | **In use now:** `exercises:import`, the free-exercise-db import, with its options, progress bar and tests ([C2.14](../concepts/C2-backend.md#c214-artisan-commands-of-our-own)) |
 ---
 
 ## L1.22 What in this project is not plain Laravel

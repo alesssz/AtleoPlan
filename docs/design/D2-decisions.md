@@ -53,7 +53,12 @@ Before buying a domain or opening store accounts, the name is checked against do
 | **Public** (`owner_id` empty) | Admins, in the admin panel | Everyone |
 | **Personal** (`owner_id` = a user) | Their owner, in the app ([D1.4.5](D1-ui.md#d145-exercise-editor)) | Their owner, and whoever opens a plan they shared |
 
-**Initial import: free-exercise-db.** The public library starts from [free-exercise-db](https://github.com/yuhonas/free-exercise-db), imported once: about 800 exercises with main and secondary muscles, equipment, level, category, instructions and two photos each (start and end position). It is public domain (Unlicense): once imported, its rows are AtleoPlan's to change, translate or delete, with no licence obligation, a paid version included.
+**Initial import: free-exercise-db.** The public library starts from [free-exercise-db](https://github.com/yuhonas/free-exercise-db), imported once: 876 exercises with main and secondary muscles, equipment, level, category, instructions and two photos each (start and end position). It is public domain (Unlicense): once imported, its rows are AtleoPlan's to change, translate or delete, with no licence obligation, a paid version included.
+
+**How it is imported.** An Artisan command, `make exercises-import`, which can run again at any time ([C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import)):
+- **What is kept:** name and instructions in English, level, category, equipment, primary and secondary muscles, photos. `force` and `mechanic` are not kept, since no screen uses them.
+- **The logging type is guessed,** since the source does not say: stretching and cardio are timed, exercises with the body only or no equipment count reps, the rest are weight and reps. An admin corrects the exceptions.
+- **Running it again never undoes people's work:** exercises already there are left alone unless asked to refresh, and then only their English texts and the source's data change; other languages, the logging type and the photos stay. An exercise deleted by an admin stays deleted.
 
 **Translations.** free-exercise-db is in English only. Names, descriptions and instructions are translated into Italian, Spanish and German once, with a script using an LLM, and stored in the database. Italian is reviewed by hand; Spanish and German keep a **Machine translated** flag until a native speaker reviews them ([D1.4.15](D1-ui.md#d1415-admin-panel-filament)).
 
@@ -87,7 +92,7 @@ Why these numbers: two or three reps are enough to show how an exercise is done 
 
 **Storage: the server's disk first, R2 later.**
 
-- **Now:** files are stored on the disk of the server that runs the app ([D2.6](#d26-hosting)): free, simple, and 200 GB are far more than needed (the imported photos take a few hundred MB; a thousand videos about 8 GB).
+- **Now:** files are stored on the disk of the server that runs the app ([D2.6](#d26-hosting)): free, simple, and 200 GB are far more than needed (the imported photos take 98 MB; a thousand videos about 8 GB).
 - **Later**, with real users: Cloudflare R2 on a **Cloudflare account of its own**, with its own free 10 GB, separate costs and an easy hand-over if the app is sold. Laravel writes to a "disk": switching is a change of `FILESYSTEM_DISK` in `.env`, not of the code.
 - **Not Chronovault's R2:** its FLAC files already use that account's free 10 GB, and the two projects stay apart.
 - Files on the server's disk need **backups**, planned with the deployment.
