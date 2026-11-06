@@ -24,6 +24,8 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [UI](#ui)
   - [UI-1 Exercise library screens](#ui-1-exercise-library-screens)
+- [DOCS](#docs)
+  - [DOCS-1 A React course](#docs-1-a-react-course)
 
 ## How this page works
 
@@ -168,3 +170,13 @@ Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). DATA-1 then fil
 **Priority:** high · **Kind:** missing screens · **Found:** 2026-11-05
 
 **What is missing.** The library with search and filters, the exercise details and the editor of personal exercises with photos ([D1.4.3](../design/D1-ui.md#d143-exercise-library)–[D1.4.5](../design/D1-ui.md#d145-exercise-editor)), replacing the empty state at `/exercises`. The API is ready ([C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints)); the TypeScript types of its answers go in `frontend/src/api/` with the screens. Photos need BE-1's `feat/exercise-media`.
+
+## DOCS
+
+### DOCS-1 A React course
+
+**Priority:** medium · **Kind:** learning docs · **Found:** 2026-11-06
+
+**What is missing.** The React counterpart of [L1. Laravel course](../learn/L1-laravel.md): standard React, TypeScript and the libraries the frontend uses (React Router, TanStack Query, react-i18next, Tailwind, shadcn/ui), lesson by lesson, each with where the app uses it, a tried example, a recap and an exercise, and what is React, what is a library and what is our choice.
+
+**Recommended.** `docs/learn/L2-react.md`, on its own branch (`docs/react-course`), with a running example built in the app and removed, as L1 does with its notes.
