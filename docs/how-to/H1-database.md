@@ -2,12 +2,13 @@
 
 [D3. Data model](../design/D3-data-model.md) says **what** the tables are. This page says **how** to build them: which commands to type, which files they create, what to write in each file, how to fill the database with data and how to check the result. It is written for someone who has never made a migration.
 
-**The commands here have been run.** The example in [H1.2](#h12-a-new-table-from-start-to-finish) was built for real on this project's database, then removed; the outputs shown are what the commands printed.
+**The commands here have been run.** The example in [H1.2](#h12-a-new-table-from-start-to-finish) was built for real on this project's database, then removed; the outputs shown are what the commands printed. [H1.10](#h110-the-exercise-library-as-built) follows the real tables of the exercise library, which are now in the code.
 
 **How to read this page:**
 
 - The first time: read [H1.1](#h11-before-you-start), then follow [H1.2](#h12-a-new-table-from-start-to-finish) from top to bottom. It goes through every step once, on a real table.
-- Later, when you need one thing: [H1.3](#h13-migrations) to [H1.6](#h16-seeders) are organised by file type, and [H1.10](#h110-commands-at-a-glance) lists every command.
+- Later, when you need one thing: [H1.3](#h13-migrations) to [H1.6](#h16-seeders) are organised by file type, and [H1.11](#h111-commands-at-a-glance) lists every command.
+- Tables linked to each other, on the real code: [H1.10](#h110-the-exercise-library-as-built).
 - Something broke: [H1.9](#h19-when-something-goes-wrong).
 - What migrations and models are, in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
 
@@ -52,6 +53,8 @@ Then the data model page ([D3](../design/D3-data-model.md)) must say the same as
 ## H1.2 A new table from start to finish
 
 The example is the `muscles` table of [D3.4.1](../design/D3-data-model.md#d341-muscles-and-equipment): a list of muscles with a stable key (`slug`) and a name in several languages. It is small but has the interesting parts: a unique column, a translated column and starting data.
+
+This page's version is shortened: three muscles, two languages, few comments. The table now exists for real, with all 17 muscles in four languages and every line commented: `backend/app/Models/Muscle.php`, `database/seeders/MuscleSeeder.php` and the migration `…_create_muscles_table.php`. How it was built, together with the tables linked to it: [H1.10](#h110-the-exercise-library-as-built).
 
 ### H1.2.1 Generate the files
 
@@ -589,7 +592,7 @@ A relation is a model method saying how the table is linked to another. Once it 
 |---|---|---|
 | has a column pointing to another (`plan_days.plan_id`) | `belongsTo` | a day belongs to a plan: `return $this->belongsTo(Plan::class);` |
 | is pointed to by many rows | `hasMany` | a plan has many days: `return $this->hasMany(PlanDay::class);` |
-| is linked many-to-many through a pivot table | `belongsToMany` | an exercise has many muscles: `return $this->belongsToMany(Muscle::class)->withPivot('role');` |
+| is linked many-to-many through a pivot table | `belongsToMany` | an exercise has many muscles: `return $this->belongsToMany(Muscle::class)->using(ExerciseMuscle::class)->withPivot('role');` ([H1.10.3](#h1103-a-pivot-with-a-column-of-its-own)) |
 
 ```php
 // In the model: the method's return type is the relation's class
@@ -785,10 +788,269 @@ More on Pest: [C2.11](../concepts/C2-backend.md#c211-tests-with-pest).
 | `column "position" of relation "muscles" contains null values` (`23502`), while migrating | A required column added to a table that already has rows: Postgres has no value for them | `->default(…)`, or `->nullable()` |
 | `SQLSTATE[08006]`, `Connection refused` or `could not translate host name "postgres"` | Postgres is not running | `make up`, then `make ps` |
 | Tinker does not see a change to a model | Tinker keeps the code it loaded | `exit` and `make tinker` again |
+| `current transaction is aborted, commands ignored until end of transaction block` (`25P02`), in a test | A query ran after a database error, in the same transaction | Wrap the statement that fails in `DB::transaction()` ([H1.10.8](#h1108-testing-what-the-database-refuses)) |
+| `relation "equipment" does not exist`, while migrating | A migration runs before the table it points to | The file of the table pointed to must have the earlier date ([H1.10.1](#h1101-generate-the-files-in-the-right-order)) |
 
 ---
 
-## H1.10 Commands at a glance
+## H1.10 The exercise library, as built
+
+The first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin) created four tables that point to each other ([D3.4](../design/D3-data-model.md#d34-exercise-library)). This section follows what was done, with the real output. It shows what [H1.2](#h12-a-new-table-from-start-to-finish) does not: foreign keys, a pivot table with an extra column, soft deletes, a package configured at start-up, and tests of what the database refuses.
+
+| File | What it is |
+|---|---|
+| `database/migrations/2026_11_06_0942*_create_{muscles,equipment,exercises,exercise_muscle}_table.php` | The four tables |
+| `app/Models/Muscle.php`, `Equipment.php`, `Exercise.php` | Their models, with the relations |
+| `app/Models/ExerciseMuscle.php` | The pivot class, for the `role` column ([H1.10.3](#h1103-a-pivot-with-a-column-of-its-own)) |
+| `app/Enums/LoggingType.php`, `MuscleRole.php` | The fixed lists of values |
+| `database/factories/{Muscle,Equipment,Exercise}Factory.php` | Fake rows for tests |
+| `database/seeders/MuscleSeeder.php`, `EquipmentSeeder.php` | The 17 muscles and 12 kinds of equipment, in four languages |
+| `app/Providers/AppServiceProvider.php` | The fallback of translations ([H1.10.5](#h1105-a-package-set-up-at-start-the-translations-fallback)) |
+| `tests/Feature/ExerciseLibrary/` | 16 tests |
+
+### H1.10.1 Generate the files, in the right order
+
+```sh
+make artisan c="make:model Muscle -mfs"
+make artisan c="make:model Equipment -mfs"
+make artisan c="make:model Exercise -mf"
+make artisan c="make:migration create_exercise_muscle_table"
+make artisan c="make:enum LoggingType --string"
+make artisan c="make:enum MuscleRole --string"
+```
+
+```
+INFO  Migration [database/migrations/2026_11_06_094203_create_muscles_table.php] created successfully.
+INFO  Migration [database/migrations/2026_11_06_094214_create_equipment_table.php] created successfully.
+INFO  Migration [database/migrations/2026_11_06_094216_create_exercises_table.php] created successfully.
+INFO  Migration [database/migrations/2026_11_06_094218_create_exercise_muscle_table.php] created successfully.
+INFO  Enum [app/Enums/LoggingType.php] created successfully.
+INFO  Enum [app/Enums/MuscleRole.php] created successfully.
+```
+
+(The lines for models, factories and seeders are left out.)
+
+- **The order of the commands is the order of the migrations.** `exercises` points to `equipment`, so it must run after it, and it does, because its file was created later. Run in the opposite order, `migrate` would stop with `relation "equipment" does not exist`.
+- **The pivot table has no model of its own:** `make:migration` alone. Its name says it creates a table, so the file already holds `Schema::create('exercise_muscle', …)`.
+- **`make:model Equipment` names the table `equipment`**, without an "s". The generated migration shows it: `Schema::create('equipment', …)`.
+
+### H1.10.2 Check the SQL before running it
+
+```sh
+make artisan c="migrate --pretend"
+```
+
+A part of the output, the lines that the migrations of H1.2 did not have:
+
+```
+⇂ create table "exercises" (… "logging_type" varchar(255) check ("logging_type" in ('weight_reps', 'reps', 'time', 'distance')) not null default 'weight_reps', … "machine_translated" jsonb not null default '[]', … "deleted_at" timestamp(0) with time zone null)
+⇂ alter table "exercises" add constraint "exercises_owner_id_foreign" foreign key ("owner_id") references "users" ("id")
+⇂ create index "exercises_owner_id_index" on "exercises" ("owner_id")
+⇂ alter table "exercise_muscle" add constraint "exercise_muscle_exercise_id_foreign" foreign key ("exercise_id") references "exercises" ("id") on delete cascade
+⇂ alter table "exercise_muscle" add primary key ("exercise_id", "muscle_id")
+```
+
+Each line is a decision of [D3](../design/D3-data-model.md):
+
+| Line | Came from | Means |
+|---|---|---|
+| `check ("logging_type" in (…))` | `$table->enum(…)` | Postgres refuses any other value ([D3.2.4](../design/D3-data-model.md#d324-fixed-lists-of-values)) |
+| `foreign key ("owner_id") references "users"`, with nothing after | `->constrained('users')` | Deleting a user who owns exercises is refused ([D3.7](../design/D3-data-model.md#d37-what-happens-on-delete)) |
+| `create index … ("owner_id")` | `->index()` | Postgres does not index foreign keys by itself ([D3.2.6](../design/D3-data-model.md#d326-indexes)) |
+| `on delete cascade` | `->cascadeOnDelete()` | An exercise deleted for good takes its pivot rows |
+| `primary key ("exercise_id", "muscle_id")` | `$table->primary([…])` | The pair is unique: a muscle once per exercise |
+| `deleted_at timestamp … with time zone` | `$table->softDeletesTz()` | The column of soft deletes |
+
+Then `make migrate`:
+
+```
+2026_11_06_094203_create_muscles_table ........................ 42.64ms DONE
+2026_11_06_094214_create_equipment_table ....................... 5.10ms DONE
+2026_11_06_094216_create_exercises_table ...................... 22.03ms DONE
+2026_11_06_094218_create_exercise_muscle_table ................ 20.25ms DONE
+```
+
+### H1.10.3 A pivot with a column of its own
+
+`exercise_muscle` has a column besides the two ids: `role`. Two things make it usable:
+
+1. **`withPivot('role')`** on the relation, or the column is not loaded at all.
+2. **A pivot class**, so that `role` gets a cast to the enum, like any column of a model:
+
+```sh
+make artisan c="make:model ExerciseMuscle --pivot"
+```
+
+```php
+class ExerciseMuscle extends Pivot
+{
+    protected $table = 'exercise_muscle';   // otherwise Laravel would guess exercise_muscles
+    public $timestamps = false;             // the table has no created_at / updated_at
+
+    protected function casts(): array
+    {
+        return ['role' => MuscleRole::class];
+    }
+}
+```
+
+```php
+// In Exercise (and the other way round in Muscle)
+public function muscles(): BelongsToMany
+{
+    return $this->belongsToMany(Muscle::class)->using(ExerciseMuscle::class)->withPivot('role');
+}
+```
+
+In tinker:
+
+```php
+> $bench->muscles()->attach($chest, ['role' => MuscleRole::Primary]);
+> $bench->muscles()->attach($triceps, ['role' => MuscleRole::Secondary]);
+> foreach ($bench->fresh()->muscles as $m) { echo $m->slug, ' ', $m->pivot->role->name, PHP_EOL; }
+chest Primary
+triceps Secondary
+> $bench->muscles()->wherePivot('role', MuscleRole::Primary)->pluck('slug');
+= ["chest"]
+```
+
+### H1.10.4 Defaults a new model does not see
+
+The table gives `logging_type` the default `weight_reps`, but a model just created does not read the row back. The value would be `null` until the next load. The model therefore repeats the defaults in `$attributes`:
+
+```php
+protected $attributes = [
+    'logging_type' => 'weight_reps',
+    'machine_translated' => '[]',     // the JSON text: the cast turns it into []
+];
+```
+
+```php
+> $bench = Exercise::create(['name' => ['en' => 'Barbell bench press', 'it' => 'Panca piana con bilanciere'], 'equipment_id' => $barbell->id]);
+> var_export($bench->logging_type); echo json_encode($bench->machine_translated);
+\App\Enums\LoggingType::WeightReps
+[]
+```
+
+`UserFactory` does the same for the user's preferences.
+
+### H1.10.5 A package set up at start: the translations' fallback
+
+When a text is missing in the current language, spatie/laravel-translatable falls back to English. If English is missing too, it returns an empty string. A personal exercise is written in one language only ([D2.4](../design/D2-decisions.md#d24-languages)), so for a user who reads German its name would be blank. The fix is a setting, made once when the app starts, in `AppServiceProvider::boot()` ([C2.4](../concepts/C2-backend.md#c24-the-life-of-a-request)):
+
+```php
+use Spatie\Translatable\Facades\Translatable;
+
+public function boot(): void
+{
+    Translatable::fallback(fallbackLocale: 'en', fallbackAny: true);
+}
+```
+
+```php
+> $mine = $user->exercises()->create(['name' => ['it' => 'Panca mia']]);
+> app()->setLocale('de'); echo $mine->name;
+Panca mia
+> echo Muscle::where('slug', 'lower-back')->first()->name;
+Unterer Rücken
+```
+
+`$user->exercises()->create(…)` also fills `owner_id` by itself: that is how the code sets the owner, which is deliberately not in `#[Fillable]`.
+
+### H1.10.6 Fixed lists on a database that already has data
+
+`DatabaseSeeder` now calls the two seeders first, so `make fresh` fills them. But `make fresh` also deletes your account and everything else. On a development database that already holds data, run only the two seeders:
+
+```sh
+make migrate
+make artisan c="db:seed --class=MuscleSeeder"
+make artisan c="db:seed --class=EquipmentSeeder"
+```
+
+```
+Database\Seeders\MuscleSeeder ................................... 98 ms DONE
+Database\Seeders\EquipmentSeeder ................................ 43 ms DONE
+```
+
+They use `updateOrCreate()` on the slug, so running them again is harmless ([H1.6.3](#h163-a-seeder-that-can-run-again)). **After pulling this branch on another computer**, these are the three commands to run.
+
+### H1.10.7 Trying things in tinker without leaving traces
+
+Tinker writes to the real database. To try creating, linking and deleting, open a transaction and undo it at the end:
+
+```php
+> DB::beginTransaction();
+> // … create exercises, attach muscles, delete …
+> $bench->delete(); echo Exercise::count(), ' visible, ', Exercise::withTrashed()->count(), ' with trashed';
+1 visible, 2 with trashed
+> DB::rollBack();
+> Exercise::withTrashed()->count()
+= 0
+```
+
+What Postgres refuses can be tried the same way. Each attempt goes in its own `DB::transaction()` ([H1.10.8](#h1108-testing-what-the-database-refuses)):
+
+```php
+> try { DB::transaction(fn () => $user->delete()); } catch (Throwable $e) { echo $e->getMessage(); }
+SQLSTATE[23503]: Foreign key violation: 7 ERROR:  update or delete on table "users" violates fo…
+> try { DB::transaction(fn () => DB::table('exercises')->update(['logging_type' => 'laps'])); } catch (Throwable $e) { echo $e->getMessage(); }
+SQLSTATE[23514]: Check violation: 7 ERROR:  new row for relation "exercises" violates check constraint "exerci…
+```
+
+### H1.10.8 Testing what the database refuses
+
+The tests are in `tests/Feature/ExerciseLibrary/`. Four factory tools build the rows with their relations:
+
+```php
+Exercise::factory()->personal()->create();                // owned by a new user (a state)
+Exercise::factory()->for($barbell)->create();             // with this equipment (belongsTo)
+Exercise::factory()->for($user, 'owner')->create();       // owned by $user: the relation's name, as it is not "user"
+Exercise::factory()
+    ->hasAttached($chest, ['role' => MuscleRole::Primary], 'muscles')
+    ->create();                                           // with a pivot row
+```
+
+**A refusal is tested inside `DB::transaction()`:**
+
+```php
+it('refuses to delete a user who still owns exercises', function () {
+    $exercise = Exercise::factory()->personal()->create();
+
+    expect(fn () => DB::transaction(fn () => $exercise->owner->delete()))
+        ->toThrow(QueryException::class, 'Foreign key violation');
+});
+```
+
+**Without it**, any query after the refusal fails. Every test runs inside a transaction (that is how `RefreshDatabase` undoes it), and on Postgres an error ends that transaction. Written as `expect(fn () => $exercise->owner->delete())->toThrow(…)` followed by `expect(Exercise::count())->toBe(1)`, the test failed like this:
+
+```
+FAILED  Tests\Feature\ExerciseLibrary\TrapTest > it refuses to delete a user who still owns exercises
+SQLSTATE[25P02]: In failed sql transaction: 7 ERROR:  current transaction is aborted, commands ignored until end of transaction block
+```
+
+`DB::transaction()` opens a nested transaction (a *savepoint*) and undoes only that, so the test goes on.
+
+```sh
+make test f=ExerciseLibrary
+```
+
+```
+PASS  Tests\Feature\ExerciseLibrary\ExerciseLibrarySeedersTest
+✓ it writes the 17 muscles and the 12 kinds of equipment
+✓ it names every row in the four languages
+✓ it can run again without duplicating anything
+✓ it runs from DatabaseSeeder, so make fresh fills them too
+PASS  Tests\Feature\ExerciseLibrary\ExerciseModelTest
+✓ it reads the name in the current language, falling back to English
+✓ it falls back to any language when English is missing too
+…
+✓ it refuses a muscle twice on the same exercise
+Tests:    16 passed (97 assertions)
+```
+
+---
+
+## H1.11 Commands at a glance
 
 | What | Command |
 |---|---|

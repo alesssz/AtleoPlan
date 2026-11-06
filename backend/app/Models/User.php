@@ -23,6 +23,7 @@ use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -113,6 +114,21 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_admin && $this->disabled_at === null;
+    }
+
+    /**
+     * The user's personal exercises (docs/design/D3-data-model.md D3.4.2).
+     *
+     * A hasMany relation, explained in app/Models/Equipment.php. The column
+     * in exercises is owner_id, not the user_id Laravel would guess, so it is
+     * given. Creating through it fills owner_id by itself:
+     * `$user->exercises()->create(['name' => ['it' => 'Panca mia']])`.
+     *
+     * @return HasMany<Exercise, $this>
+     */
+    public function exercises(): HasMany
+    {
+        return $this->hasMany(Exercise::class, 'owner_id');
     }
 
     /**

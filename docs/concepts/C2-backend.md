@@ -68,13 +68,13 @@ PHP syntax as it appears in this project. A line in the code that looks strange 
 backend/
 ├── app/                    the application's own code (namespace App\)
 │   ├── Actions/Fortify/      what Fortify leaves to us: creating a user, setting a new password (C2.7)
-│   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit (D3.2.4)
+│   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit, LoggingType, MuscleRole (D3.2.4)
 │   ├── Http/
 │   │   ├── Controllers/        receive a request, return an answer (C2.5)
 │   │   ├── Middleware/         steps every request crosses: SetLocaleFromRequest (C2.7.7)
 │   │   ├── Requests/           Form Requests: the validation of an endpoint (C2.5)
 │   │   └── Resources/          API Resources: the JSON shape of a model (C2.5)
-│   ├── Models/               Eloquent models, one class per table (C2.6)
+│   ├── Models/               Eloquent models, one class per table: User, Muscle, Equipment, Exercise, ExerciseMuscle (C2.6)
 │   └── Providers/            service providers: set things up when the app starts
 │       └── Filament/           the admin panel's configuration (C2.8)
 │   (to come: Policies permissions, Jobs background work, Filament/Resources admin screens)
@@ -208,9 +208,36 @@ $plan->days;                                 // a relation: the plan's days (ano
 - **`#[Fillable([...])]`** lists the columns that may be filled from a request's data in one go (`User::create($data)`). Any other column is ignored, so a request cannot set `is_admin`. This is protection against "mass assignment".
 - **`#[Hidden([...])]`** lists the columns never included when the model is turned into JSON, such as `password`.
 - **`casts()`** converts columns when they are read or written: `'email_verified_at' => 'datetime'` gives a date object, and `'password' => 'hashed'` hashes the password when it is set.
-- **Relations** are methods returning `hasMany`, `belongsTo` and so on. They come with the first tables of [D3. Data model](../design/D3-data-model.md).
+- **`$attributes`** gives a new model its default values. The table has its own defaults, but a model just created does not read them back, so without this a column would be `null` until the row is loaded again (`app/Models/Exercise.php`).
 
-**Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data, such as a test user or the public exercise library (DATA-1). `make fresh` runs them.
+**Relations** are methods that say how a table is linked to another. Once one is written, `$exercise->muscles` reads the linked rows, with no SQL. Laravel works out the table and the column names from the class names. The exercise library has the three kinds ([D3.4](../design/D3-data-model.md#d34-exercise-library)):
+
+| Kind | Where | Read as |
+|---|---|---|
+| **belongsTo**: this table has the column pointing to the other | `Exercise::equipment()`, `Exercise::owner()` | "an exercise belongs to one kind of equipment" |
+| **hasMany**: the other table points here | `Equipment::exercises()`, `User::exercises()` | "a kind of equipment has many exercises" |
+| **belongsToMany**: a pivot table in between holds the pairs | `Exercise::muscles()`, `Muscle::exercises()` | "an exercise works many muscles, a muscle is worked by many exercises" |
+
+```php
+$exercise->equipment->name;                  // the equipment's name (one more query)
+$user->exercises()->create([...]);           // with (): a query, here creating with owner_id filled in
+$exercise->muscles()->attach($chest, ['role' => MuscleRole::Primary]);   // adds a pivot row
+$muscle->pivot->role;                         // a column of the pivot row, as an enum
+```
+
+- **The pivot's own columns**, such as `role`, are loaded only when listed with `withPivot('role')`.
+- **A cast on a pivot column** needs a small *pivot class* (`ExerciseMuscle extends Pivot`), named on the relation with `using()`.
+- **When the column's name does not follow the convention**, it is given: `belongsTo(User::class, 'owner_id')`, because Laravel would look for `user_id`.
+
+**Traits that change how a model behaves**, added with `use` inside the class:
+
+- **`SoftDeletes`**: `delete()` fills `deleted_at` instead of removing the row, and every query leaves those rows out. `withTrashed()` brings them back, and `forceDelete()` removes the row for real. An exercise uses it, so that plans and history pointing to it keep working ([D3.7.2](../design/D3-data-model.md#d372-deleting-an-exercise-a-soft-delete)).
+- **`HasTranslations`** (spatie/laravel-translatable): the columns listed in `$translatable` hold one value per language, as JSON. `$muscle->name` gives the current language's value. When that language is missing, it falls back to English, then to any language there is; this is set once in `AppServiceProvider` ([D3.4.5](../design/D3-data-model.md#d345-translations)).
+- **`InteractsWithMedia`** (spatie/laravel-medialibrary), with `implements HasMedia`: files belong to the model, stored as rows of the `media` table, in named *collections* (`photos`, `videos`) declared in `registerMediaCollections()`.
+
+How these were built step by step, with the real output: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built).
+
+**Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data: the fixed lists the app needs (the 17 muscles and the 12 kinds of equipment), the development account, and later the public exercise library (DATA-1). `make fresh` runs them.
 
 **Seeing the data:**
 - `make psql` opens an SQL console;

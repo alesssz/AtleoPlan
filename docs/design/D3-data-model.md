@@ -2,7 +2,7 @@
 
 Every table of the MVP ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)): what it stands for, its columns, how it connects to the others, why it is built that way, and the Laravel code that creates it. The migrations are written from this page, so a change to the design updates it in the same commit ([P1.3](../project/P1-conventions.md#p13-documentation)).
 
-**Only `users` exists so far,** with the columns of [D3.3](#d33-users-and-preferences). Each feature creates its own part when it is built ([D3.1.4](#d314-which-task-creates-what)).
+**What exists so far:** `users`, with the columns of [D3.3](#d33-users-and-preferences), and the four tables of the exercise library ([D3.4](#d34-exercise-library)), with the muscles and the equipment already filled in. Each feature creates its own part when it is built ([D3.1.4](#d314-which-task-creates-what)).
 
 **The code here has been run.** The migrations, relations and queries on this page ran on Postgres 18 and Laravel 13, inside a transaction that was then undone. Results shown next to the code are that run's real output. The real files will add the full comments of [P1.2](../project/P1-conventions.md#p12-code); here the comments explain what is new.
 
@@ -99,7 +99,7 @@ So a session copies nothing from the future: it records what happened, and it su
 | Tables | Created by |
 |---|---|
 | New columns on `users` | Done, except `active_plan_id`, which needs `plans` and comes with FEAT-2 |
-| `muscles`, `equipment`, `exercises`, `exercise_muscle` | [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin), filled by [DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db) |
+| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, exercises by [DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db) |
 | `plans`, `plan_days`, `plan_items`, `plan_sets` | [FEAT-2](../project/backlog.md#feat-2-plans) |
 | `workout_sessions`, `session_exercises`, `logged_sets` | [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home) |
 
@@ -298,6 +298,8 @@ What the column cannot check by itself is that the plan belongs to this user and
 
 ## D3.4 Exercise library
 
+**In the code:** the migrations `…_create_{muscles,equipment,exercises,exercise_muscle}_table.php`, the models `Muscle`, `Equipment`, `Exercise` and `ExerciseMuscle`, the seeders `MuscleSeeder` and `EquipmentSeeder`. How they were built: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built).
+
 ### D3.4.1 `muscles` and `equipment`
 
 **What they stand for.** Two short lists, one row per value, used by the library's filters ([D1.4.3](D1-ui.md#d143-exercise-library)) and by volume per muscle group ([D2.8](D2-decisions.md#d28-workout-rules)). They have the same columns:
@@ -322,6 +324,8 @@ They start with the values of free-exercise-db:
 
 - **17 muscles:** abdominals, abductors, adductors, biceps, calves, chest, forearms, glutes, hamstrings, lats, lower back, middle back, neck, quadriceps, shoulders, traps, triceps. These are also the "muscle groups" of the interface.
 - **12 kinds of equipment:** barbell, dumbbell, cable, machine, kettlebells, bands, e-z curl bar, medicine ball, exercise ball, foam roll, body only, other.
+
+The names in Italian, Spanish and German are in the seeders. Equipment reads as a plural where that is how people say it ("Dumbbells", "Manubri"), while the slug keeps free-exercise-db's value (`dumbbell`).
 
 **Why tables rather than PHP enums.** Foreign keys keep them consistent, the filters join on them, their names are translated like any other content, and an admin can correct a name without a release.
 
@@ -393,6 +397,13 @@ class Exercise extends Model
 }
 ```
 
+The real model (`app/Models/Exercise.php`) adds:
+- the cast of `logging_type` to the enum `LoggingType`;
+- the defaults in `$attributes`, which a new model does not read from the table;
+- `owner()`, the relation to the user, and on `User`, `exercises()`. Creating through it, `$user->exercises()->create(…)`, is how the owner is set: `owner_id` is not fillable;
+- `using(ExerciseMuscle::class)` on `muscles()` ([D3.4.3](#d343-exercise_muscle));
+- the media collections `photos` and `videos`, with the accepted file types of [D2.5](D2-decisions.md#d25-photos-and-videos).
+
 ### D3.4.3 `exercise_muscle`
 
 **What it stands for.** Which muscles an exercise works, and how. A pivot table ([idea 5](#d311-a-database-in-ten-ideas)).
@@ -417,6 +428,8 @@ Schema::create('exercise_muscle', function (Blueprint $table) {
 $exercise->muscles()->attach($chest, ['role' => 'primary']);        // adds a pivot row
 $exercise->muscles()->wherePivot('role', 'primary')->pluck('slug'); // ["chest"]
 ```
+
+**The role as an enum.** A pivot table has no model, so its `role` would be a plain string. The small class `ExerciseMuscle extends Pivot` gives it the cast to `MuscleRole`, and both relations use it: `->using(ExerciseMuscle::class)->withPivot('role')`. Then `$muscle->pivot->role` is `MuscleRole::Primary` ([H1.10.3](../how-to/H1-database.md#h1103-a-pivot-with-a-column-of-its-own)).
 
 ### D3.4.4 Photos and videos
 

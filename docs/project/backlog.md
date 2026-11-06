@@ -106,7 +106,13 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 
 **Priority:** high · **Kind:** backend · **Found:** 2026-11-05
 
-**What is missing.** Migrations, models and policies for exercises (public, managed by admins; personal, owned by a user), with translatable fields and photos (medialibrary); the API to list with search and filters (laravel-query-builder), show, and create, edit and delete personal ones; the Filament resource for the public library ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)). Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). DATA-1 then fills it.
+**Done:** the tables, models, relations and seeders of the library, with their tests (`feat/exercise-tables`, [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built)).
+
+**What is missing.** Two parts, each on its own branch:
+- `feat/exercise-api`: the policies for exercises (public, managed by admins; personal, owned by a user); the API to list with search and filters (laravel-query-builder), show, and create, edit and delete personal ones, with the photo and video uploads and their limits ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)).
+- `feat/exercise-admin`: the Filament resource for the public library, one field per language ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)).
+
+Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). DATA-1 then fills it.
 
 ### BE-2 Manage users in the admin panel
 
