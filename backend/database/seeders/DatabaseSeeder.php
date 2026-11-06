@@ -29,12 +29,21 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      *
-     * Creates the account to sign in with in development:
+     * First the fixed lists the app needs, muscles and equipment
+     * (docs/design/D3-data-model.md D3.4.1); they come first because exercises
+     * will point to them. Then the account to sign in with in development:
      * test@example.com, password `password` (from UserFactory). It is an admin,
      * so it opens the Filament panel too.
      */
     public function run(): void
     {
+        // $this->call() runs other seeders, in this order. Each can also run
+        // alone: make artisan c="db:seed --class=MuscleSeeder"
+        $this->call([
+            MuscleSeeder::class,
+            EquipmentSeeder::class,
+        ]);
+
         // Laravel's example: ten random users
         // User::factory(10)->create();
 

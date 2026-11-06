@@ -5,8 +5,10 @@ namespace App\Providers;
 // The namespace above places the class in App\Providers, which Composer's
 // autoloader maps to the app/Providers folder (docs/concepts/C2-backend.md C2.2).
 
-// Imports Laravel's base class, so the code below can write just ServiceProvider
+// Imports Laravel's base class, so the code below can write just
+// ServiceProvider, and the facade of spatie/laravel-translatable
 use Illuminate\Support\ServiceProvider;
+use Spatie\Translatable\Facades\Translatable;
 
 /**
  * The app's own service provider: the place to set things up when Laravel
@@ -20,8 +22,8 @@ use Illuminate\Support\ServiceProvider;
  * bootstrap/providers.php, plus those of the installed packages, on every
  * request and Artisan command (docs/concepts/C2-backend.md C2.4).
  *
- * Both methods are empty for now; `extends ServiceProvider` means this class
- * inherits everything from Laravel's base class and only overrides these two.
+ * `extends ServiceProvider` means this class inherits everything from
+ * Laravel's base class and only overrides these two methods.
  */
 class AppServiceProvider extends ServiceProvider
 {
@@ -46,6 +48,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // The fallback of translated columns (docs/design/D3-data-model.md
+        // D3.4.5): a text missing in the current language is shown in English,
+        // and if English is missing too, in any language there is
+        // (fallbackAny). Without fallbackAny, a personal exercise written only
+        // in Italian would have an empty name for a user who reads German.
+        // Translatable is a facade, like Route or Schema (C2.2)
+        Translatable::fallback(fallbackLocale: 'en', fallbackAny: true);
     }
 }

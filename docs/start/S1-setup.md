@@ -23,10 +23,11 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - **React app** in `frontend/` ([S1.7](#s17-creating-the-react-frontend), guide in [C1](../concepts/C1-frontend.md)): React 19, TypeScript 6, Vite 8 on port 5673 with the proxy to Laravel; React Router, TanStack Query, i18next in four languages, Tailwind and shadcn/ui with the design system's colours, a dark / light theme; the app's frame (tab bar on phones, sidebar wider) in the energetic style of D1.5, empty states on the pages not built yet, a working Profile page; Vitest and ESLint with the code style. Node 24 pinned in `.nvmrc`.
 
 - **Signing in:** sign up, in and out, and resetting a password, with Fortify and four React screens; route guards; language and theme saved on the account; only admins open `/admin` ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum), [C1.13](../concepts/C1-frontend.md#c113-signing-in-and-forms)).
+- **Exercise library, tables** (first part of BE-1): `muscles` and `equipment` filled with free-exercise-db's 17 muscles and 12 kinds of equipment in four languages, `exercises` and `exercise_muscle`, with their models, relations and tests ([D3.4](../design/D3-data-model.md#d34-exercise-library), [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built)).
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([S1.6](#s16-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
 
-**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (exercise library, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
+**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the exercise library's API, admin screen and screens, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 
