@@ -2,6 +2,19 @@
 
 How to get AtleoPlan running on a computer: what is already in place, what is needed, how the Laravel and React apps are created, the port rule, the commands for every day, useful links and known problems. The decisions behind these choices are in [D2. Decisions](../design/D2-decisions.md); how work is done is in [P1. Conventions](../project/P1-conventions.md).
 
+## Contents
+
+- [S1.1 Where the project stands](#s11-where-the-project-stands)
+- [S1.2 Prerequisites](#s12-prerequisites)
+- [S1.3 Git identity](#s13-git-identity)
+- [S1.4 Ports](#s14-ports)
+- [S1.5 First start: the Docker stack](#s15-first-start-the-docker-stack)
+- [S1.6 Creating the Laravel backend](#s16-creating-the-laravel-backend)
+- [S1.7 Creating the React frontend](#s17-creating-the-react-frontend)
+- [S1.8 Everyday commands](#s18-everyday-commands)
+- [S1.9 Useful links](#s19-useful-links)
+- [S1.10 Troubleshooting](#s110-troubleshooting)
+
 ---
 
 ## S1.1 Where the project stands
@@ -319,7 +332,8 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | React dev server | `make dev` |
 | Tests, all or some | `make test`, `make test f=TestDatabase` |
 | Fix PHP format and ESLint problems automatically | `make fix` |
-| Every check before a merge: Pint, tests, lint, types | `make check` (needs the stack up) |
+| Every check before a merge: Pint, tests, lint, types, the docs' contents lists | `make check` (needs the stack up) |
+| Rebuild the contents list at the top of every doc, after adding, renaming or removing a heading | `make toc` |
 | Known vulnerabilities in the packages (report only) | `make audit` |
 | New branch from an up-to-date `main` | `make branch name=feat/plan-editor` |
 | Back to `main`, up to date with GitHub | `make sync` |

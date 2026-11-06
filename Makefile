@@ -13,7 +13,7 @@ SHELL := bash
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
         artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore \
         dev fe-install fe-build \
-        test pint pint-check lint lint-fix typecheck fe-test fix check audit \
+        test pint pint-check lint lint-fix typecheck fe-test fix check audit toc toc-check \
         branch sync push merge
 
 # docker compose, and the two ways into the backend container
@@ -172,7 +172,17 @@ fe-test: ## Frontend tests (Vitest); while coding, npm --prefix frontend run tes
 
 fix: pint lint-fix ## Fix what can be fixed automatically: PHP format and ESLint
 
-check: pint-check test lint typecheck fe-test ## Everything before a merge (needs the stack up)
+check: pint-check test lint typecheck fe-test toc-check ## Everything before a merge (needs the stack up)
+
+# --- Docs ---------------------------------------------------------------------
+
+# The "Contents" list at the top of each doc is generated from its headings
+# (scripts/docs-toc.mjs, docs/project/P1-conventions.md P1.3).
+toc: ## Rebuild the contents list at the top of every doc, after changing a heading
+	node scripts/docs-toc.mjs
+
+toc-check: ## Fail if a doc's contents list is out of date (part of make check)
+	node scripts/docs-toc.mjs --check
 
 # The leading "-" lets the second audit run when the first finds something.
 audit: ## Known vulnerabilities in the Composer and npm packages (report only, changes nothing)

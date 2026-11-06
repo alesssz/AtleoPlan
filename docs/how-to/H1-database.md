@@ -12,6 +12,51 @@
 - Something broke: [H1.9](#h19-when-something-goes-wrong).
 - What migrations and models are, in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
 
+## Contents
+
+- [H1.1 Before you start](#h11-before-you-start)
+- [H1.2 A new table from start to finish](#h12-a-new-table-from-start-to-finish)
+  - [H1.2.1 Generate the files](#h121-generate-the-files)
+  - [H1.2.2 Write the migration](#h122-write-the-migration)
+  - [H1.2.3 Look at the SQL, then run it](#h123-look-at-the-sql-then-run-it)
+  - [H1.2.4 Write the model](#h124-write-the-model)
+  - [H1.2.5 Write the factory](#h125-write-the-factory)
+  - [H1.2.6 Write the seeder](#h126-write-the-seeder)
+  - [H1.2.7 Look at the result](#h127-look-at-the-result)
+  - [H1.2.8 Test it](#h128-test-it)
+  - [H1.2.9 Finish](#h129-finish)
+- [H1.3 Migrations](#h13-migrations)
+  - [H1.3.1 Column types](#h131-column-types)
+  - [H1.3.2 Column options](#h132-column-options)
+  - [H1.3.3 Changing a table that already exists](#h133-changing-a-table-that-already-exists)
+  - [H1.3.4 A pivot table](#h134-a-pivot-table)
+  - [H1.3.5 Running migrations](#h135-running-migrations)
+- [H1.4 Models](#h14-models)
+  - [H1.4.1 Generating them](#h141-generating-them)
+  - [H1.4.2 Casts](#h142-casts)
+  - [H1.4.3 Relations](#h143-relations)
+  - [H1.4.4 UUIDs, soft deletes, translations](#h144-uuids-soft-deletes-translations)
+- [H1.5 Factories](#h15-factories)
+- [H1.6 Seeders](#h16-seeders)
+  - [H1.6.1 What goes in a seeder](#h161-what-goes-in-a-seeder)
+  - [H1.6.2 Creating and running them](#h162-creating-and-running-them)
+  - [H1.6.3 A seeder that can run again](#h163-a-seeder-that-can-run-again)
+  - [H1.6.4 A large import](#h164-a-large-import)
+  - [H1.6.5 On the server](#h165-on-the-server)
+- [H1.7 Looking at the data](#h17-looking-at-the-data)
+- [H1.8 Testing database code](#h18-testing-database-code)
+- [H1.9 When something goes wrong](#h19-when-something-goes-wrong)
+- [H1.10 The exercise library, as built](#h110-the-exercise-library-as-built)
+  - [H1.10.1 Generate the files, in the right order](#h1101-generate-the-files-in-the-right-order)
+  - [H1.10.2 Check the SQL before running it](#h1102-check-the-sql-before-running-it)
+  - [H1.10.3 A pivot with a column of its own](#h1103-a-pivot-with-a-column-of-its-own)
+  - [H1.10.4 Defaults a new model does not see](#h1104-defaults-a-new-model-does-not-see)
+  - [H1.10.5 A package set up at start: the translations' fallback](#h1105-a-package-set-up-at-start-the-translations-fallback)
+  - [H1.10.6 Fixed lists on a database that already has data](#h1106-fixed-lists-on-a-database-that-already-has-data)
+  - [H1.10.7 Trying things in tinker without leaving traces](#h1107-trying-things-in-tinker-without-leaving-traces)
+  - [H1.10.8 Testing what the database refuses](#h1108-testing-what-the-database-refuses)
+- [H1.11 Commands at a glance](#h111-commands-at-a-glance)
+
 ---
 
 ## H1.1 Before you start

@@ -4,6 +4,32 @@ How AtleoPlan looks and behaves, screen by screen. This is the reference for bui
 
 Terms used throughout: a **plan** is a workout plan (in Italian, *scheda*), made of **days** ("Day A – Push"), each holding **plan items** (an exercise with its sets, reps and rest); a **session** is one workout actually done, made of **logged sets**.
 
+## Contents
+
+- [D1.1 Overview](#d11-overview)
+- [D1.2 Main user journeys](#d12-main-user-journeys)
+- [D1.3 Information architecture and navigation](#d13-information-architecture-and-navigation)
+- [D1.4 Screens](#d14-screens)
+  - [D1.4.1 Sign-in and onboarding](#d141-sign-in-and-onboarding)
+  - [D1.4.2 Home](#d142-home)
+  - [D1.4.3 Exercise library](#d143-exercise-library)
+  - [D1.4.4 Exercise details](#d144-exercise-details)
+  - [D1.4.5 Exercise editor](#d145-exercise-editor)
+  - [D1.4.6 Plan list](#d146-plan-list)
+  - [D1.4.7 Plan details](#d147-plan-details)
+  - [D1.4.8 Plan editor](#d148-plan-editor)
+  - [D1.4.9 Workout mode](#d149-workout-mode)
+  - [D1.4.10 Workout summary](#d1410-workout-summary)
+  - [D1.4.11 History](#d1411-history)
+  - [D1.4.12 Progress](#d1412-progress)
+  - [D1.4.13 Sharing](#d1413-sharing)
+  - [D1.4.14 Profile and settings](#d1414-profile-and-settings)
+  - [D1.4.15 Admin panel (Filament)](#d1415-admin-panel-filament)
+- [D1.5 Design system](#d15-design-system)
+- [D1.6 States and edge cases](#d16-states-and-edge-cases)
+- [D1.7 Responsive layout and accessibility](#d17-responsive-layout-and-accessibility)
+- [D1.8 Release phases and open questions](#d18-release-phases-and-open-questions)
+
 ---
 
 ## D1.1 Overview

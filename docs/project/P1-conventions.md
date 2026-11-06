@@ -2,6 +2,13 @@
 
 How work is done in this repository: Git, code, comments, documentation and the backlog. They follow Chronovault's conventions, adapted to Laravel and React.
 
+## Contents
+
+- [P1.1 Git](#p11-git)
+- [P1.2 Code](#p12-code)
+- [P1.3 Documentation](#p13-documentation)
+- [P1.4 Backlog](#p14-backlog)
+
 ---
 
 ## P1.1 Git
@@ -56,6 +63,7 @@ How work is done in this repository: Git, code, comments, documentation and the 
   - the errors met along the way, and their fix.
 
   When a guide already explains that kind of work, the task adds only what is new. The model to follow is [H1.2](../how-to/H1-database.md#h12-a-new-table-from-start-to-finish).
+- **Every document opens with a "Contents" list** of its sections, generated from the headings by [`scripts/docs-toc.mjs`](../../scripts/docs-toc.mjs). After adding, renaming or removing a heading, run `make toc`; never edit the list by hand. `make check` fails when a list is out of date.
 - **Headings carry the document's code** (`## H2.3 An endpoint that changes data`) and keep their numbers. References give them ("see D1.4.9"), in the docs and in code comments: `// Warm-up sets are excluded (docs/design/D2-decisions.md D2.8)`.
 - **A new document** goes in the folder that fits its purpose, with the next free number of that folder (the next how-to is `docs/how-to/H4-name.md`). It needs a row in [`docs/README.md`](../README.md), and the navigation lines at the bottom of the previous and next pages. Numbers are never reused, so a reference never points to the wrong document.
 - **Setup** ([S1](../start/S1-setup.md)) follows the project: a new service, port, command or prerequisite updates it in the same commit.

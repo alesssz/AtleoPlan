@@ -4,6 +4,28 @@ How the React app in `frontend/` is built, why, and how to work on it. It is wri
 
 Every source file starts with a comment saying what it is for, and the code is commented line by line ([P1.2](../project/P1-conventions.md#p12-code)): the files are meant to be read next to this page. The decisions behind the choices are in [D2.2](../design/D2-decisions.md#d22-stack); the screens they serve in [D1. UI design](../design/D1-ui.md); setup and commands in [S1.7](../start/S1-setup.md#s17-creating-the-react-frontend) and [S1.8](../start/S1-setup.md#s18-everyday-commands).
 
+## Contents
+
+- [C1.1 The pieces](#c11-the-pieces)
+- [C1.2 Folder structure](#c12-folder-structure)
+- [C1.3 What happens when the app opens](#c13-what-happens-when-the-app-opens)
+- [C1.4 React from scratch](#c14-react-from-scratch)
+- [C1.5 Routing](#c15-routing)
+- [C1.6 Server data](#c16-server-data)
+- [C1.7 Translations](#c17-translations)
+- [C1.8 Styles and theme](#c18-styles-and-theme)
+- [C1.9 Recipes](#c19-recipes)
+- [C1.10 Tests and checks](#c110-tests-and-checks)
+- [C1.11 Known limits](#c111-known-limits)
+- [C1.12 JavaScript and TypeScript you will meet](#c112-javascript-and-typescript-you-will-meet)
+- [C1.13 Signing in and forms](#c113-signing-in-and-forms)
+  - [C1.13.1 The one idea: who is signed in is server data](#c1131-the-one-idea-who-is-signed-in-is-server-data)
+  - [C1.13.2 The guards](#c1132-the-guards)
+  - [C1.13.3 A form, step by step](#c1133-a-form-step-by-step)
+  - [C1.13.4 Language and theme on the account](#c1134-language-and-theme-on-the-account)
+  - [C1.13.5 Details that are easy to miss](#c1135-details-that-are-easy-to-miss)
+  - [C1.13.6 Testing a screen with the API](#c1136-testing-a-screen-with-the-api)
+
 ---
 
 ## C1.1 The pieces

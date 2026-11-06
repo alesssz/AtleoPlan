@@ -4,6 +4,27 @@ Work that is known and waiting: features, interface, backend and data changes, t
 
 This page is not a numbered section of the docs: it changes all the time, and it empties as work gets done.
 
+## Contents
+
+- [How this page works](#how-this-page-works)
+  - [Template](#template)
+- [Road to the MVP](#road-to-the-mvp)
+- [OPS](#ops)
+  - [OPS-2 Check that the AtleoPlan name is free](#ops-2-check-that-the-atleoplan-name-is-free)
+  - [OPS-3 Deploy to the free server](#ops-3-deploy-to-the-free-server)
+- [DATA](#data)
+  - [DATA-1 Import and translate free-exercise-db](#data-1-import-and-translate-free-exercise-db)
+- [FEAT](#feat)
+  - [FEAT-2 Plans](#feat-2-plans)
+  - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
+  - [FEAT-4 Summary and history](#feat-4-summary-and-history)
+- [BE](#be)
+  - [BE-1 Exercise library: API and admin](#be-1-exercise-library-api-and-admin)
+  - [BE-2 Manage users in the admin panel](#be-2-manage-users-in-the-admin-panel)
+  - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
+- [UI](#ui)
+  - [UI-1 Exercise library screens](#ui-1-exercise-library-screens)
+
 ## How this page works
 
 - **One point, one branch** ([P1.1](P1-conventions.md#p11-git)); several small points may share one.

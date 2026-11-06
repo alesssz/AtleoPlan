@@ -8,6 +8,19 @@ How to look inside the Postgres database with a program: browse tables, read row
 - It does not connect: [H4.5](#h45-when-it-does-not-connect).
 - How to write the queries themselves, and the tables' structure: [H1.7](H1-database.md#h17-looking-at-the-data) and [D3. Data model](../design/D3-data-model.md).
 
+## Contents
+
+- [H4.1 The connection details](#h41-the-connection-details)
+- [H4.2 TablePlus, the tool we use](#h42-tableplus-the-tool-we-use)
+  - [H4.2.1 Creating the connection, once](#h421-creating-the-connection-once)
+  - [H4.2.2 Looking at the data](#h422-looking-at-the-data)
+  - [H4.2.3 Running SQL](#h423-running-sql)
+  - [H4.2.4 Changing data, carefully](#h424-changing-data-carefully)
+  - [H4.2.5 Shortcuts worth knowing](#h425-shortcuts-worth-knowing)
+- [H4.3 Without leaving the terminal](#h43-without-leaving-the-terminal)
+- [H4.4 The alternatives](#h44-the-alternatives)
+- [H4.5 When it does not connect](#h45-when-it-does-not-connect)
+
 ---
 
 ## H4.1 The connection details

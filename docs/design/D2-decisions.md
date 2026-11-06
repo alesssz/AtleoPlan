@@ -2,6 +2,17 @@
 
 The choices made before writing code, each with its reason and what was set aside. A decision changes by editing its section here, with the reason for the change; the screens it affects are described in [D1. UI design](D1-ui.md).
 
+## Contents
+
+- [D2.1 Name](#d21-name)
+- [D2.2 Stack](#d22-stack)
+- [D2.3 Exercise library](#d23-exercise-library)
+- [D2.4 Languages](#d24-languages)
+- [D2.5 Photos and videos](#d25-photos-and-videos)
+- [D2.6 Hosting](#d26-hosting)
+- [D2.7 Offline and sync](#d27-offline-and-sync)
+- [D2.8 Workout rules](#d28-workout-rules)
+
 ---
 
 ## D2.1 Name
