@@ -11,6 +11,35 @@
 - Something broke: [H2.9](#h29-finding-out-what-is-going-on) and [H2.10](#h210-when-something-goes-wrong).
 - The same feature on the React side: [H3. Frontend: how to](H3-frontend.md).
 
+## Contents
+
+- [H2.1 Before you start](#h21-before-you-start)
+- [H2.2 An endpoint that reads, from start to finish](#h22-an-endpoint-that-reads-from-start-to-finish)
+  - [H2.2.1 Generate the files](#h221-generate-the-files)
+  - [H2.2.2 The shape of the JSON: the API Resource](#h222-the-shape-of-the-json-the-api-resource)
+  - [H2.2.3 The controller](#h223-the-controller)
+  - [H2.2.4 The route](#h224-the-route)
+  - [H2.2.5 Look at the JSON](#h225-look-at-the-json)
+  - [H2.2.6 The test](#h226-the-test)
+- [H2.3 An endpoint that changes data](#h23-an-endpoint-that-changes-data)
+  - [H2.3.1 Generate the files](#h231-generate-the-files)
+  - [H2.3.2 The rules: the Form Request](#h232-the-rules-the-form-request)
+  - [H2.3.3 Who may do it: the Policy](#h233-who-may-do-it-the-policy)
+  - [H2.3.4 The controller method and the route](#h234-the-controller-method-and-the-route)
+  - [H2.3.5 The tests: success and every refusal](#h235-the-tests-success-and-every-refusal)
+  - [H2.3.6 The trap of the generated `authorize()`](#h236-the-trap-of-the-generated-authorize)
+- [H2.4 An admin screen](#h24-an-admin-screen)
+  - [H2.4.1 Generate it](#h241-generate-it)
+  - [H2.4.2 Adjust what was generated](#h242-adjust-what-was-generated)
+  - [H2.4.3 Open it and test it](#h243-open-it-and-test-it)
+- [H2.5 Work in the background](#h25-work-in-the-background)
+- [H2.6 Messages in the user's language](#h26-messages-in-the-users-language)
+- [H2.7 A setting from the environment](#h27-a-setting-from-the-environment)
+- [H2.8 Adding a package](#h28-adding-a-package)
+- [H2.9 Finding out what is going on](#h29-finding-out-what-is-going-on)
+- [H2.10 When something goes wrong](#h210-when-something-goes-wrong)
+- [H2.11 Commands at a glance](#h211-commands-at-a-glance)
+
 ---
 
 ## H2.1 Before you start

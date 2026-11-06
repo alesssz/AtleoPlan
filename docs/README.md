@@ -2,6 +2,16 @@
 
 The documents are grouped by **what you are looking for**. Each folder has a letter, and its documents are numbered from 1: `H2` is the second how-to, and `H2.3` is section 3 of it. A code comment such as `// docs/how-to/H2-backend.md H2.3` therefore points to one exact place.
 
+## Contents
+
+- [Where to look](#where-to-look)
+- [Every document](#every-document)
+  - [S · Start](#s--start)
+  - [D · Design](#d--design)
+  - [C · Concepts](#c--concepts)
+  - [H · How to](#h--how-to)
+  - [P · Project](#p--project)
+
 ## Where to look
 
 | You want to… | Folder | Letter |

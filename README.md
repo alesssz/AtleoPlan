@@ -8,6 +8,11 @@ It works on phones and desktop as a PWA, offline during workouts, in Italian, En
 
 **Status:** early. The Laravel and React apps run locally, with signing in, the app's frame, four languages and the two themes; the other features come next, in the order of the [road to the MVP](docs/project/backlog.md#road-to-the-mvp). Deploying comes later ([OPS-3](docs/project/backlog.md#ops-3-deploy-to-the-free-server)).
 
+## Contents
+
+- [Local development](#local-development)
+- [Documentation](#documentation)
+
 ---
 
 ## Local development

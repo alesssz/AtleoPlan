@@ -10,6 +10,28 @@
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
 
+## Contents
+
+- [H3.1 Before you start](#h31-before-you-start)
+- [H3.2 A new page](#h32-a-new-page)
+  - [H3.2.1 The page file](#h321-the-page-file)
+  - [H3.2.2 Its texts](#h322-its-texts)
+  - [H3.2.3 Its address](#h323-its-address)
+  - [H3.2.4 Open it](#h324-open-it)
+- [H3.3 Reading data from the API](#h33-reading-data-from-the-api)
+  - [H3.3.1 The API file](#h331-the-api-file)
+  - [H3.3.2 Using it in the page](#h332-using-it-in-the-page)
+- [H3.4 A form that saves](#h34-a-form-that-saves)
+  - [H3.4.1 The mutation](#h341-the-mutation)
+  - [H3.4.2 The form](#h342-the-form)
+- [H3.5 Testing a page](#h35-testing-a-page)
+- [H3.6 Translations](#h36-translations)
+- [H3.7 Adding an npm package](#h37-adding-an-npm-package)
+- [H3.8 Checking in the browser](#h38-checking-in-the-browser)
+- [H3.9 A shadcn/ui component](#h39-a-shadcnui-component)
+- [H3.10 When something goes wrong](#h310-when-something-goes-wrong)
+- [H3.11 Commands at a glance](#h311-commands-at-a-glance)
+
 ---
 
 ## H3.1 Before you start

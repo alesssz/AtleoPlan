@@ -4,6 +4,29 @@ How the Laravel backend in `backend/` works, written for someone who knows littl
 
 Every PHP file starts with a comment saying what it is and points to the section of this page that explains its concepts ([P1.2](../project/P1-conventions.md#p12-code)). The choices behind the stack are in [D2.2](../design/D2-decisions.md#d22-stack); the setup in [S1.6](../start/S1-setup.md#s16-creating-the-laravel-backend); the React side in [C1. Frontend](C1-frontend.md).
 
+## Contents
+
+- [C2.1 The pieces](#c21-the-pieces)
+- [C2.2 PHP you will meet](#c22-php-you-will-meet)
+- [C2.3 Folder structure](#c23-folder-structure)
+- [C2.4 The life of a request](#c24-the-life-of-a-request)
+- [C2.5 Routes and controllers](#c25-routes-and-controllers)
+- [C2.6 Database: migrations, models, factories, seeders](#c26-database-migrations-models-factories-seeders)
+- [C2.7 Signing in: Sanctum](#c27-signing-in-sanctum)
+  - [C2.7.1 How a session works](#c271-how-a-session-works)
+  - [C2.7.2 Signing in and out](#c272-signing-in-and-out)
+  - [C2.7.3 Signing up](#c273-signing-up)
+  - [C2.7.4 Slowing down password guessing](#c274-slowing-down-password-guessing)
+  - [C2.7.5 Forgot password](#c275-forgot-password)
+  - [C2.7.6 Fortify or by hand](#c276-fortify-or-by-hand)
+  - [C2.7.7 Messages in the user's language](#c277-messages-in-the-users-language)
+- [C2.8 Admin panel: Filament](#c28-admin-panel-filament)
+- [C2.9 Queues and jobs](#c29-queues-and-jobs)
+- [C2.10 Configuration and .env](#c210-configuration-and-env)
+- [C2.11 Tests with Pest](#c211-tests-with-pest)
+- [C2.12 Recipes](#c212-recipes)
+- [C2.13 Artisan and Composer commands](#c213-artisan-and-composer-commands)
+
 ---
 
 ## C2.1 The pieces
