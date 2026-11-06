@@ -7,8 +7,8 @@
  *   2. ThemeProvider: the dark / light theme (src/theme/);
  *   3. RouterProvider: draws the screen of the current address (src/router.tsx).
  * Translations need no provider: i18next is set up globally in src/i18n/.
- * Start-up sequence: docs/04-frontend.md 4.3; providers are React "context",
- * explained in 4.4.
+ * Start-up sequence: docs/concepts/C1-frontend.md C1.3; providers are React "context",
+ * explained in C1.4.
  */
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -21,7 +21,7 @@ import { ThemeProvider } from '@/theme/ThemeProvider'
 /**
  * The whole app. A React component is a plain function whose name starts
  * with a capital letter and that returns JSX, the description of what to
- * draw (docs/04-frontend.md 4.4). `export` makes it importable from other
+ * draw (docs/concepts/C1-frontend.md C1.4). `export` makes it importable from other
  * files: here as a *named* export, imported with `import { App } from …`.
  */
 export function App() {

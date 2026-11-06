@@ -7,7 +7,7 @@
  * public/ is the only folder the web server exposes (FrankenPHP, running in
  * the `backend` container; see the Dockerfile), so the code, .env and storage
  * stay out of reach. The steps below are the start of the life of a request
- * (docs/05-backend.md 5.4): load the classes, build the app, hand it the
+ * (docs/concepts/C2-backend.md C2.4): load the classes, build the app, hand it the
  * request, send back its response.
  */
 
@@ -29,7 +29,7 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 // Register the Composer autoloader...
 // Composer (PHP's package manager) generated this file: from then on a class
 // is loaded from its file the first time it is used, by its namespace, with
-// no `require` per class (docs/05-backend.md 5.1).
+// no `require` per class (docs/concepts/C2-backend.md C2.1).
 require __DIR__.'/../vendor/autoload.php';
 
 // Bootstrap Laravel and handle the request...

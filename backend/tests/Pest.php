@@ -1,14 +1,14 @@
 <?php
 
 /**
- * Pest's setup file, loaded before every test run (docs/05-backend.md 5.11).
+ * Pest's setup file, loaded before every test run (docs/concepts/C2-backend.md C2.11).
  *
  * Pest is the test runner, built on PHPUnit: a test is written as
  * `it('does something', function () { ... })` instead of a class with test
  * methods, and checks values with `expect($value)->toBe(...)`. Both styles
  * run side by side: the two ExampleTest.php files are PHPUnit classes. Tests
  * run with `make test` (`php artisan test`), on the separate `atleoplan_test`
- * database set in phpunit.xml (docs/00-setup.md 0.6).
+ * database set in phpunit.xml (docs/start/S1-setup.md S1.6).
  */
 
 use Illuminate\Foundation\Testing\RefreshDatabase;

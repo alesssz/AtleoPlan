@@ -6,14 +6,14 @@
  * Vite is the build tool: `npm run dev` starts its development server,
  * which turns our TypeScript and JSX into JavaScript the browser can run,
  * on the fly; `npm run build` makes the optimised files of production in
- * dist/ (docs/04-frontend.md 4.1).
+ * dist/ (docs/concepts/C1-frontend.md C1.1).
  *
  * In development the browser only ever talks to Vite (http://localhost:5673);
  * Vite answers with the React app and forwards Laravel's paths to the backend
  * container. One address means Sanctum's login cookies work without CORS, as
- * they will in production behind Caddy (docs/02-decisions.md 2.6).
- * Setup and ports: docs/00-setup.md 0.4 and 0.7. How the app is built:
- * docs/04-frontend.md.
+ * they will in production behind Caddy (docs/design/D2-decisions.md D2.6).
+ * Setup and ports: docs/start/S1-setup.md S1.4 and S1.7. How the app is built:
+ * docs/concepts/C1-frontend.md.
  */
 // Named imports (in braces) take one export by name; default imports (no
 // braces, e.g. `react`) take the package's main export under a name we pick.
@@ -57,7 +57,7 @@ export default defineConfig({
   },
 
   server: {
-    // Standard port 5173 + 500 (docs/00-setup.md 0.4); strictPort makes Vite
+    // Standard port 5173 + 500 (docs/start/S1-setup.md S1.4); strictPort makes Vite
     // stop with an error instead of silently moving to another port, which
     // Sanctum would not recognise.
     port: 5673,
@@ -77,7 +77,7 @@ export default defineConfig({
   },
 
   // Vitest, the test runner (`npm test`): reuses this file's plugins and
-  // alias. docs/04-frontend.md 4.10
+  // alias. docs/concepts/C1-frontend.md C1.10
   test: {
     // A simulated browser (jsdom), so components can be rendered in tests
     environment: 'jsdom',

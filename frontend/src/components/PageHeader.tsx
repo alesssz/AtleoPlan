@@ -2,8 +2,8 @@
  * The title block at the top of every page: a small lime label (the
  * "eyebrow"), the page's name as its one <h1> (screen readers use it to tell
  * pages apart) and an optional line below. The simplest component of the
- * app, a good first read: props in, JSX out (docs/04-frontend.md 4.4).
- * Its look follows the energetic style: docs/01-ui-design.md 1.5 "Visual style".
+ * app, a good first read: props in, JSX out (docs/concepts/C1-frontend.md C1.4).
+ * Its look follows the energetic style: docs/design/D1-ui.md D1.5 "Visual style".
  */
 
 /**

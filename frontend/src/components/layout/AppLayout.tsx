@@ -4,8 +4,8 @@
  * the space where the current page is drawn. In the route table
  * (src/router.tsx) it is the parent of the pages; React Router draws the
  * matching page where <Outlet /> is. Workout mode will live outside this
- * frame, full screen (docs/01-ui-design.md 1.3). Routing:
- * docs/04-frontend.md 4.5; the responsive layout and Tailwind: 4.8.
+ * frame, full screen (docs/design/D1-ui.md D1.3). Routing:
+ * docs/concepts/C1-frontend.md C1.5; the responsive layout and Tailwind: C1.8.
  *
  * Both navigations are always in the page; Tailwind's responsive classes
  * show one and hide the other depending on the screen width.
@@ -69,7 +69,7 @@ export function AppLayout() {
               animate-in fade-in slide-in-from-bottom-2 (from tw-animate-css):
               fade in while rising 8 px, in 300 ms. motion-reduce:animate-none
               skips it for users who asked their device for less motion
-              (docs/01-ui-design.md 1.7). */}
+              (docs/design/D1-ui.md D1.7). */}
           <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none">
             <Outlet />
           </div>

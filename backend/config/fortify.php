@@ -1,9 +1,9 @@
 <?php
 
 /**
- * The settings of Fortify, Laravel's sign-in backend (docs/05-backend.md 5.7).
+ * The settings of Fortify, Laravel's sign-in backend (docs/concepts/C2-backend.md C2.7).
  * How it is connected to this app: app/Providers/FortifyServiceProvider.php.
- * A config file returns an array, read with config('fortify.prefix') (5.10).
+ * A config file returns an array, read with config('fortify.prefix') (C2.10).
  */
 
 use Laravel\Fortify\Features;
@@ -29,7 +29,7 @@ return [
 
     // Every route starts with this: /api/auth/login and so on. Not plain /login,
     // which is a React page; and Vite and Caddy forward only /api to Laravel
-    // (docs/04-frontend.md 4.1).
+    // (docs/concepts/C1-frontend.md C1.1).
     'prefix' => 'api/auth',
 
     // No subdomain of its own

@@ -2,11 +2,11 @@
  * The one way the app talks to the Laravel API: a small wrapper around the
  * browser's fetch() that adds what every request needs, and turns failures
  * into a typed ApiError. Server data in components goes through TanStack
- * Query (src/api/), which calls these functions. docs/04-frontend.md 4.6.
+ * Query (src/api/), which calls these functions. docs/concepts/C1-frontend.md C1.6.
  *
  * Why the extras:
  * - Same address: in development Vite forwards /api to Laravel, in
- *   production Caddy does (docs/02-decisions.md 2.6), so paths are relative
+ *   production Caddy does (docs/design/D2-decisions.md D2.6), so paths are relative
  *   ('/api/health') and Sanctum's session cookie travels with every request.
  * - CSRF: Sanctum protects every request that changes data (POST, PUT,
  *   PATCH, DELETE). It sets a cookie, XSRF-TOKEN, when /sanctum/csrf-cookie
@@ -19,7 +19,7 @@
  *   errors, in the user's language (backend SetLocaleFromRequest).
  *
  * No React here: plain TypeScript. The syntax met below (interfaces,
- * classes, async/await, generics) is summed up in docs/04-frontend.md 4.12.
+ * classes, async/await, generics) is summed up in docs/concepts/C1-frontend.md C1.12.
  */
 import i18n from '@/i18n'
 import { FALLBACK_LANGUAGE } from '@/i18n/languages'

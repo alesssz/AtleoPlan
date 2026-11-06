@@ -7,7 +7,7 @@
  * of .nvmrc) and npm's cache, the Git identity and hook, the dependencies of
  * both apps, the backend's .env (only that it exists: it holds secrets), the
  * ports, and the test database. The problems met while setting the project
- * up are among them: docs/00-setup.md 0.10. Works on macOS, Linux and Windows;
+ * up are among them: docs/start/S1-setup.md S1.10. Works on macOS, Linux and Windows;
  * the npm cache check does not apply to Windows and is skipped there.
  *
  * Exit code 1 when at least one check fails, 0 otherwise (warnings included).
@@ -21,9 +21,9 @@ import { fileURLToPath } from 'node:url'
 
 /** The repository root (this file is in scripts/). */
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-/** The only email allowed in commits (docs/00-setup.md 0.3). */
+/** The only email allowed in commits (docs/start/S1-setup.md S1.3). */
 const NOREPLY = '32982604+alesssz@users.noreply.github.com'
-/** Host ports of the stack, standard + 500 (docs/00-setup.md 0.4), with what owns them. */
+/** Host ports of the stack, standard + 500 (docs/start/S1-setup.md S1.4), with what owns them. */
 const PORTS = { 8500: 'Laravel', 5932: 'Postgres', 8525: 'Mailpit', 5673: 'Vite' }
 /** Below this many free GB on Docker's disk, builds start failing in odd ways. */
 const MIN_DOCKER_FREE_GB = 5
@@ -122,7 +122,7 @@ else {
     // Kilobytes to gigabytes, one decimal
     const freeGb = Math.round(Number(freeKb) / 1024 / 1024 * 10) / 10
     if (freeGb < MIN_DOCKER_FREE_GB) {
-      fail(`only ${freeGb} GB free on Docker's disk`, 'docker builder prune -af; docker image prune -af (docs/00-setup.md 0.10)')
+      fail(`only ${freeGb} GB free on Docker's disk`, 'docker builder prune -af; docker image prune -af (docs/start/S1-setup.md S1.10)')
     }
     else {
       ok(`${freeGb} GB free on Docker's disk`)
@@ -164,7 +164,7 @@ if (email === NOREPLY) {
   ok(`commits as ${email}`)
 }
 else {
-  fail(`commits would use ${email ?? 'no email'}`, `git config user.email "${NOREPLY}" (docs/00-setup.md 0.3)`)
+  fail(`commits would use ${email ?? 'no email'}`, `git config user.email "${NOREPLY}" (docs/start/S1-setup.md S1.3)`)
 }
 if (run('git', ['config', 'core.hooksPath']) === '.githooks') {
   ok('email-guard hook active')
@@ -198,10 +198,10 @@ for (const [port, service] of Object.entries(PORTS)) {
   if (!await isListening(Number(port))) ok(`${port} (${service}) free`)
   else if (ownPorts.has(port)) ok(`${port} (${service}) in use by AtleoPlan`)
   else if (port === '5673' && await isVite(port)) ok(`${port} (${service}) in use by Vite, probably make dev`)
-  else warn(`${port} (${service}) taken by another program`, `${portOwnerCommand(port)}; or change the port (docs/00-setup.md 0.4)`)
+  else warn(`${port} (${service}) taken by another program`, `${portOwnerCommand(port)}; or change the port (docs/start/S1-setup.md S1.4)`)
 }
 
-// The test database, when Postgres runs (docs/00-setup.md 0.6)
+// The test database, when Postgres runs (docs/start/S1-setup.md S1.6)
 const testDb = run('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', 'atleoplan', '-tAc', "select 1 from pg_database where datname = 'atleoplan_test'"])
 if (testDb === null) warn('Postgres not running, test database not checked', 'make up')
 else if (testDb === '1') ok('test database atleoplan_test exists')

@@ -2,8 +2,8 @@
 # AtleoPlan — project commands
 # Usage: make <command>     (make help for the full list)
 # Backend commands run in the Docker containers (compose.yaml); frontend
-# commands run with this computer's Node in frontend/. Ports: docs/00-setup.md 0.4.
-# On Windows, run make from Git Bash: the recipes need bash, grep and cp (0.2).
+# commands run with this computer's Node in frontend/. Ports: docs/start/S1-setup.md S1.4.
+# On Windows, run make from Git Bash: the recipes need bash, grep and cp (S1.2).
 # Commands that take a value get it as a variable, because Make reads anything
 # after the target as more targets: make artisan c="route:list".
 # =============================================================================
@@ -34,7 +34,7 @@ help: ## Show this list
 doctor: ## Check this computer and clone (Docker, disk, Node, npm cache, Git identity, ports…) and print the fixes
 	node scripts/doctor.mjs
 
-# The order matters on a new clone (docs/00-setup.md 0.5):
+# The order matters on a new clone (docs/start/S1-setup.md S1.5):
 # - backend/.env comes first: without it Laravel believes it is in production
 #   and `migrate` stops to ask for confirmation.
 # - Composer runs before the stack starts: without vendor/ the queue worker
@@ -53,7 +53,7 @@ setup: ## New clone: Git hook, backend/.env and its key, image, Composer and npm
 	$(ARTISAN) migrate
 	@echo ""
 	@echo "✔ Ready. Laravel: http://localhost:8500 · React: make dev (http://localhost:5673)"
-	@echo "  Set the Git identity once if not done: docs/00-setup.md 0.3 · then: make doctor"
+	@echo "  Set the Git identity once if not done: docs/start/S1-setup.md S1.3 · then: make doctor"
 
 urls: ## The local addresses
 	@echo "Laravel          http://localhost:8500"

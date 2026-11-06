@@ -4,7 +4,7 @@
   // config (vite.config.ts): the two run in different places (the browser
   // and Node), so they need different settings.
   // `npm run typecheck` (tsc -b) builds both. tsconfig files are JSON that
-  // also accepts // comments. Checks: docs/04-frontend.md 4.10.
+  // also accepts // comments. Checks: docs/concepts/C1-frontend.md C1.10.
   // No files of its own: the two referenced configs list theirs
   "files": [],
   "references": [

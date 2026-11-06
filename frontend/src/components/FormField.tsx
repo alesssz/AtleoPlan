@@ -1,7 +1,7 @@
 /*
  * One field of a form: label, input and, when there is one, its error, wired
  * together for screen readers. Every form of the app uses it, so all fields
- * look and behave alike. Forms: docs/04-frontend.md 4.13.
+ * look and behave alike. Forms: docs/concepts/C1-frontend.md C1.13.
  */
 import { useId, type ComponentProps } from 'react'
 import { Input } from '@/components/ui/input'
@@ -21,7 +21,7 @@ interface FormFieldProps extends ComponentProps<'input'> {
 
 /**
  * A labelled text field, 48 px tall as touch screens need
- * (docs/01-ui-design.md 1.1). The text is 16 px on purpose: below that, iPhones
+ * (docs/design/D1-ui.md D1.1). The text is 16 px on purpose: below that, iPhones
  * zoom into the page when a field is focused.
  */
 export function FormField({ label, error, ...inputProps }: FormFieldProps) {

@@ -1,6 +1,6 @@
 /*
  * What the tests of signed-in screens share: a fake API, and a page drawn with
- * everything a real one has around it. Tests and checks: docs/04-frontend.md 4.10.
+ * everything a real one has around it. Tests and checks: docs/concepts/C1-frontend.md C1.10.
  *
  * Tests never call a real server. vi.stubGlobal replaces the browser's fetch()
  * with a function of ours that answers from a table, and each test says which

@@ -2,7 +2,7 @@
  * GET /api/health: is the Laravel backend reachable? The first API call of
  * the app, and the model for the next ones: every resource of the API gets
  * a file like this in src/api/ with its types, its query keys and its hooks.
- * Server data with TanStack Query: docs/04-frontend.md 4.6.
+ * Server data with TanStack Query: docs/concepts/C1-frontend.md C1.6.
  *
  * The whole chain it proves: browser → Vite (or Caddy) → Laravel → JSON back.
  */
@@ -45,7 +45,7 @@ export function fetchHealth(signal?: AbortSignal): Promise<Health> {
  * Hook: the backend's health, for components. A hook is a function whose
  * name starts with `use` and that calls other hooks (here TanStack Query's
  * useQuery), so it follows the same rules: call it only at the top level of
- * a component (docs/04-frontend.md 4.4).
+ * a component (docs/concepts/C1-frontend.md C1.4).
  *
  * Returns TanStack Query's result, whose fields re-render the component as
  * they change: `data` (the answer, once there), `isPending` (no data yet),

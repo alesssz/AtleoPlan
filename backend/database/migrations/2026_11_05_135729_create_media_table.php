@@ -8,14 +8,14 @@ use Illuminate\Support\Facades\Schema;
  * The `media` table of spatie/laravel-medialibrary: one row per photo or video
  * attached to any model (an exercise's photos and videos, later a user's
  * avatar). The files live on a Laravel disk; this row says where, and which
- * resized versions exist (docs/02-decisions.md 2.5).
+ * resized versions exist (docs/design/D2-decisions.md D2.5).
  *
  * Published from the package (vendor:publish --tag=medialibrary-migrations),
  * with comments added; the columns are the package's own and must stay as
  * they are, since the package reads and writes them. Already applied, too:
  * a change to this table is a new migration. How migrations work (up(),
  * Schema, Blueprint): see the header of
- * 0001_01_01_000000_create_users_table.php and docs/05-backend.md 5.6.
+ * 0001_01_01_000000_create_users_table.php and docs/concepts/C2-backend.md C2.6.
  *
  * The file returns an object of an anonymous class (a class with no name)
  * that extends Laravel's Migration, so two migrations never clash over a

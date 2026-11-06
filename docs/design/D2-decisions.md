@@ -1,25 +1,25 @@
-# 2. Decisions
+# D2. Decisions
 
-The choices made before writing code, each with its reason and what was set aside. A decision changes by editing its section here, with the reason for the change; the screens it affects are described in [1. UI design](01-ui-design.md).
+The choices made before writing code, each with its reason and what was set aside. A decision changes by editing its section here, with the reason for the change; the screens it affects are described in [D1. UI design](D1-ui.md).
 
 ---
 
-## 2.1 Name
+## D2.1 Name
 
 **AtleoPlan.** "Atleo" comes from *atleta* / *athlete* / *Athlet*, understood in all four languages of the app; "Plan" says what the app is about (*piano*, *plan*, *Plan*). Set aside: Spotter (already used by other apps), AtleoGym (generic, and ties the app to the gym when plans are used at home or outdoors too).
 
-Before buying a domain or opening store accounts, the name is checked against domains, App Store, Play Store and EU trademarks (EUIPO): see the backlog ([OPS-2](backlog.md#ops-2-check-that-the-atleoplan-name-is-free)).
+Before buying a domain or opening store accounts, the name is checked against domains, App Store, Play Store and EU trademarks (EUIPO): see the backlog ([OPS-2](../project/backlog.md#ops-2-check-that-the-atleoplan-name-is-free)).
 
 ---
 
-## 2.2 Stack
+## D2.2 Stack
 
 | Layer | Choice | Why | Set aside |
 |---|---|---|---|
 | Backend | **Laravel**, API only | Known stack; Sanctum, policies, queues, Pint and Pest out of the box | Inertia (ties the frontend to the server: no offline, no mobile app later) |
-| Auth | **Sanctum**: cookies for the web app, tokens for the future mobile app. **Fortify** for signing up, in and out and resetting a password, with the screens in React | Official, simple; cookie auth needs frontend and API on the same domain, which the hosting gives ([2.6](#26-hosting)). Fortify keeps the security-sensitive parts in Laravel's own maintained code ([5.7.6](05-backend.md#576-fortify-or-by-hand)) | Passport (OAuth server, more than needed); hand-written controllers (more of our own code to keep safe); Breeze and Jetstream (screens not in React) |
+| Auth | **Sanctum**: cookies for the web app, tokens for the future mobile app. **Fortify** for signing up, in and out and resetting a password, with the screens in React | Official, simple; cookie auth needs frontend and API on the same domain, which the hosting gives ([D2.6](#d26-hosting)). Fortify keeps the security-sensitive parts in Laravel's own maintained code ([C2.7.6](../concepts/C2-backend.md#c276-fortify-or-by-hand)) | Passport (OAuth server, more than needed); hand-written controllers (more of our own code to keep safe); Breeze and Jetstream (screens not in React) |
 | Database | **PostgreSQL** | JSON columns for translations, solid constraints | MySQL (works too; Postgres is the choice for its JSON and constraint support) |
-| Admin | **Filament** | Admin panel for the public library and the users without writing a back office in React ([1.4.15](01-ui-design.md#1415-admin-panel-filament)) | A React admin (weeks of work for an internal tool) |
+| Admin | **Filament** | Admin panel for the public library and the users without writing a back office in React ([D1.4.15](D1-ui.md#d1415-admin-panel-filament)) | A React admin (weeks of work for an internal tool) |
 | Frontend | **React + TypeScript**, Vite, as a PWA | New to learn after Vue; the most used; React Native (Expo) reuses the same knowledge for a store app | Svelte (no mobile path), Angular (heavy), Flutter (another language, weak on the web) |
 | Server data | **TanStack Query** | Cache, retries, offline mutations | Redux (more code for the same result) |
 | Routing | **React Router** | The most documented | TanStack Router (good, smaller community) |
@@ -27,24 +27,24 @@ Before buying a domain or opening store accounts, the name is checked against do
 | Forms | **react-hook-form + zod** | Validation shared between forms and API types | — |
 | Drag and drop | **dnd-kit** | Touch and keyboard support | — |
 | Charts | **Recharts** | Simple line and bar charts | — |
-| Translations | **react-i18next** (frontend), Laravel language files and **spatie/laravel-translatable** (backend) | See [2.4](#24-languages) | — |
+| Translations | **react-i18next** (frontend), Laravel language files and **spatie/laravel-translatable** (backend) | See [D2.4](#d24-languages) | — |
 | Tests | **Pest** (backend), **Vitest** + Testing Library (frontend), **Playwright** (end to end) | Same tools as Chronovault for the frontend | — |
-| Local development | **Backend in Docker**, **frontend directly on the computer** (macOS or Windows) with Node 24 (pinned in `.nvmrc`) ([0.7](00-setup.md#07-creating-the-react-frontend)) | The backend needs PHP, its extensions and ffmpeg, which stay off the computer, and runs the same image as production. The frontend needs only Node; VS Code's TypeScript and ESLint read `frontend/node_modules` from the computer; Vite's hot reload is faster on the computer's own disk. In production the React app is static files served by Caddy, so the dev server has no production twin to match | Frontend in Docker: `node_modules` would live in a Docker volume, invisible to VS Code (or installed twice), and hot reload is slower through Docker's file sharing on macOS |
+| Local development | **Backend in Docker**, **frontend directly on the computer** (macOS or Windows) with Node 24 (pinned in `.nvmrc`) ([S1.7](../start/S1-setup.md#s17-creating-the-react-frontend)) | The backend needs PHP, its extensions and ffmpeg, which stay off the computer, and runs the same image as production. The frontend needs only Node; VS Code's TypeScript and ESLint read `frontend/node_modules` from the computer; Vite's hot reload is faster on the computer's own disk. In production the React app is static files served by Caddy, so the dev server has no production twin to match | Frontend in Docker: `node_modules` would live in a Docker volume, invisible to VS Code (or installed twice), and hot reload is slower through Docker's file sharing on macOS |
 
 ---
 
-## 2.3 Exercise library
+## D2.3 Exercise library
 
 **The library is AtleoPlan's own database.** Exercises live in its Postgres in two kinds:
 
 | Kind | Managed by | Seen by |
 |---|---|---|
 | **Public** (`owner_id` empty) | Admins, in the admin panel | Everyone |
-| **Personal** (`owner_id` = a user) | Their owner, in the app ([1.4.5](01-ui-design.md#145-exercise-editor)) | Their owner, and whoever opens a plan they shared |
+| **Personal** (`owner_id` = a user) | Their owner, in the app ([D1.4.5](D1-ui.md#d145-exercise-editor)) | Their owner, and whoever opens a plan they shared |
 
 **Initial import: free-exercise-db.** The public library starts from [free-exercise-db](https://github.com/yuhonas/free-exercise-db), imported once: about 800 exercises with main and secondary muscles, equipment, level, category, instructions and two photos each (start and end position). It is public domain (Unlicense): once imported, its rows are AtleoPlan's to change, translate or delete, with no licence obligation, a paid version included.
 
-**Translations.** free-exercise-db is in English only. Names, descriptions and instructions are translated into Italian, Spanish and German once, with a script using an LLM, and stored in the database. Italian is reviewed by hand; Spanish and German keep a **Machine translated** flag until a native speaker reviews them ([1.4.15](01-ui-design.md#1415-admin-panel-filament)).
+**Translations.** free-exercise-db is in English only. Names, descriptions and instructions are translated into Italian, Spanish and German once, with a script using an LLM, and stored in the database. Italian is reviewed by hand; Spanish and German keep a **Machine translated** flag until a native speaker reviews them ([D1.4.15](D1-ui.md#d1415-admin-panel-filament)).
 
 **wger: only the muscle drawings.** [wger](https://wger.de) has its own exercise database, translated into many languages, under CC-BY-SA 4.0: using it means crediting every author and releasing what is derived from it (the translations, for example) under the same licence. It is not imported. Its SVG drawings of the muscles may be used for a muscle map in the interface, credited on a Credits page.
 
@@ -52,17 +52,17 @@ Before buying a domain or opening store accounts, the name is checked against do
 
 ---
 
-## 2.4 Languages
+## D2.4 Languages
 
 - **Italian, English, Spanish and German** from the start; English is the fallback when a text is missing in the user's language.
-- **Interface:** every text comes from translation files (react-i18next on the frontend, Laravel's language files for the API's messages, e.g. validation errors, and for emails: [5.7.7](05-backend.md#577-messages-in-the-users-language)). No text is written directly in a component ([3.2](03-conventions.md#32-code)).
+- **Interface:** every text comes from translation files (react-i18next on the frontend, Laravel's language files for the API's messages, e.g. validation errors, and for emails: [C2.7.7](../concepts/C2-backend.md#c277-messages-in-the-users-language)). No text is written directly in a component ([P1.2](../project/P1-conventions.md#p12-code)).
 - **Content:** the translatable fields of public exercises (name, aliases, description, instructions) are JSON columns with one value per language (spatie/laravel-translatable). Personal exercises and plans are in their author's language only.
 - **Formats:** numbers, dates and units follow the language (`82,5 kg` in Italian, Spanish and German, `82.5 kg` in English), through `Intl.NumberFormat` and `Intl.DateTimeFormat`.
-- **Language choice:** preset from the browser, changeable in the settings ([1.4.14](01-ui-design.md#1414-profile-and-settings)) and saved on the account.
+- **Language choice:** preset from the browser, changeable in the settings ([D1.4.14](D1-ui.md#d1414-profile-and-settings)) and saved on the account.
 
 ---
 
-## 2.5 Photos and videos
+## D2.5 Photos and videos
 
 **Limits**
 
@@ -76,16 +76,16 @@ Why these numbers: two or three reps are enough to show how an exercise is done 
 
 **Storage: the server's disk first, R2 later.**
 
-- **Now:** files are stored on the disk of the server that runs the app ([2.6](#26-hosting)): free, simple, and 200 GB are far more than needed (the imported photos take a few hundred MB; a thousand videos about 8 GB).
+- **Now:** files are stored on the disk of the server that runs the app ([D2.6](#d26-hosting)): free, simple, and 200 GB are far more than needed (the imported photos take a few hundred MB; a thousand videos about 8 GB).
 - **Later**, with real users: Cloudflare R2 on a **Cloudflare account of its own**, with its own free 10 GB, separate costs and an easy hand-over if the app is sold. Laravel writes to a "disk": switching is a change of `FILESYSTEM_DISK` in `.env`, not of the code.
 - **Not Chronovault's R2:** its FLAC files already use that account's free 10 GB, and the two projects stay apart.
 - Files on the server's disk need **backups**, planned with the deployment.
 
 ---
 
-## 2.6 Hosting
+## D2.6 Hosting
 
-**Not yet.** During development everything runs on the local machine with Docker; deploying is postponed until the app is worth putting online ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)). What follows is the plan for that day.
+**Not yet.** During development everything runs on the local machine with Docker; deploying is postponed until the app is worth putting online ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)). What follows is the plan for that day.
 
 **One free server runs everything:** the React app, Laravel, its queue worker, Postgres and the media.
 
@@ -127,19 +127,19 @@ Free tiers change often: they are checked again when the app is first deployed.
 
 ---
 
-## 2.7 Offline and sync
+## D2.7 Offline and sync
 
-- **Plans, sessions and logged sets get a UUID created on the device** ([6.2](06-data-model.md#62-rules-for-every-table)). A workout logged offline is sent later, and sending it twice changes nothing (the server recognises the UUID): no duplicates, no conflicts.
+- **Plans, sessions and logged sets get a UUID created on the device** ([D3.2](D3-data-model.md#d32-rules-for-every-table)). A workout logged offline is sent later, and sending it twice changes nothing (the server recognises the UUID): no duplicates, no conflicts.
 - Plans and exercises already opened are kept on the device (TanStack Query's persisted cache in IndexedDB); the photos of the active plan's exercises are downloaded ahead by the service worker.
-- Changes made offline wait in a queue and are sent in order when the network comes back; `SyncIndicator` shows their state ([1.6](01-ui-design.md#16-states-and-edge-cases)).
-- For plans, the last change wins, with a warning when the plan was changed elsewhere in the meantime ([6.5](06-data-model.md#65-plans)).
+- Changes made offline wait in a queue and are sent in order when the network comes back; `SyncIndicator` shows their state ([D1.6](D1-ui.md#d16-states-and-edge-cases)).
+- For plans, the last change wins, with a warning when the plan was changed elsewhere in the meantime ([D3.5](D3-data-model.md#d35-plans)).
 
 ---
 
-## 2.8 Workout rules
+## D2.8 Workout rules
 
 - **One active plan at a time.** Setting another plan as active replaces it.
-- **The day is chosen by the user, every time.** The app suggests the day after the last one completed, in the plan's order (back to the first after the last), and shows it first; any other day is one tap away ([1.4.2](01-ui-design.md#142-home)).
+- **The day is chosen by the user, every time.** The app suggests the day after the last one completed, in the plan's order (back to the first after the last), and shows it first; any other day is one tap away ([D1.4.2](D1-ui.md#d142-home)).
 - **Set types from the MVP:** normal, warm-up, drop set, to failure.
 - **Warm-up sets count neither for volume nor for records**, or the statistics would be inflated.
 - **Estimated one-rep max:** Epley formula, weight × (1 + reps / 30), on every set that is not a warm-up.
@@ -147,4 +147,4 @@ Free tiers change often: they are checked again when the app is first deployed.
 
 ---
 
-← [1. UI design](01-ui-design.md) · [Contents](../README.md#documentation) · [3. Conventions](03-conventions.md) →
+← [D1. UI design](D1-ui.md) · [Contents](../README.md) · [D3. Data model](D3-data-model.md) →

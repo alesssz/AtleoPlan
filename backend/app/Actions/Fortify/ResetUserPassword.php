@@ -11,7 +11,7 @@ use Laravel\Fortify\Contracts\ResetsUserPasswords;
 /**
  * Sets the new password at the end of "forgot password"
  * (POST /api/auth/reset-password). Fortify has already checked the emailed
- * token by the time this runs. docs/05-backend.md 5.7.5.
+ * token by the time this runs. docs/concepts/C2-backend.md C2.7.5.
  */
 class ResetUserPassword implements ResetsUserPasswords
 {

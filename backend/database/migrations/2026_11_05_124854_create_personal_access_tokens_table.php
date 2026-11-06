@@ -3,14 +3,14 @@
 /**
  * Creates Sanctum's `personal_access_tokens` table: the API tokens of clients
  * that cannot use the session cookie, such as the future mobile app
- * (docs/02-decisions.md 2.2, docs/05-backend.md 5.7).
+ * (docs/design/D2-decisions.md D2.2, docs/concepts/C2-backend.md C2.7).
  *
  * The React app does not need it: in Sanctum's SPA mode it signs in with the
  * session cookie (bootstrap/app.php). A model gets tokens with Sanctum's
  * HasApiTokens trait (`$user->createToken('phone')`), which User does not use
  * yet. Added by `php artisan install:api`; comments added. How migrations
  * work: see the header of 0001_01_01_000000_create_users_table.php and
- * docs/05-backend.md 5.6. Already applied, so it must stay as it is: a change
+ * docs/concepts/C2-backend.md C2.6. Already applied, so it must stay as it is: a change
  * is a new migration.
  */
 

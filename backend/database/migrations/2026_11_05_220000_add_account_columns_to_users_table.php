@@ -1,14 +1,14 @@
 <?php
 
 // Imports: the base Migration class, the Blueprint that describes a table, and
-// Schema, the facade that changes the database (docs/05-backend.md 5.6)
+// Schema, the facade that changes the database (docs/concepts/C2-backend.md C2.6)
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
  * Adds to `users` what sign-in and the preferences need (every column
- * explained in docs/06-data-model.md 6.3). `active_plan_id` comes later, with
+ * explained in docs/design/D3-data-model.md D3.3). `active_plan_id` comes later, with
  * the `plans` table it points to (FEAT-2).
  *
  * The file returns an anonymous class: Laravel creates it and calls up() to
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->enum('locale', ['it', 'en', 'es', 'de'])->default('en');
             // Saved on the account, so it follows the user to another device
             $table->enum('theme', ['dark', 'light', 'system'])->default('dark');
-            // Which unit weights are shown in; they are always stored in kg (6.2.3)
+            // Which unit weights are shown in; they are always stored in kg (D3.2.3)
             $table->enum('weight_unit', ['kg', 'lb'])->default('kg');
             // Rest between sets when a plan item sets none
             $table->integer('default_rest_seconds')->default(90);

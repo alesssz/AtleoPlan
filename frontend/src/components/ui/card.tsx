@@ -5,8 +5,8 @@
  *
  * shadcn/ui copies each component's source into src/components/ui/ (its
  * CLI, configured by components.json), so this file is ours to read; it is
- * styled with Tailwind and the theme's colour tokens (docs/04-frontend.md
- * 4.8). A card is not one component but a family of small ones that fit
+ * styled with Tailwind and the theme's colour tokens (docs/concepts/C1-frontend.md
+ * C1.8). A card is not one component but a family of small ones that fit
  * together, each a styled <div>:
  *
  *   <Card>

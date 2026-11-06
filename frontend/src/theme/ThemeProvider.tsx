@@ -1,8 +1,8 @@
 /*
  * ThemeProvider: holds the current theme, applies it to the page, saves it,
  * and shares it with every component below it (through ThemeContext).
- * Wraps the whole app in src/App.tsx. Theme: docs/04-frontend.md 4.8;
- * state, effects, useMemo and context: 4.4.
+ * Wraps the whole app in src/App.tsx. Theme: docs/concepts/C1-frontend.md C1.8;
+ * state, effects, useMemo and context: C1.4.
  *
  * The repo's example of the three core React tools together:
  * - useState: a value React remembers between renders; changing it with

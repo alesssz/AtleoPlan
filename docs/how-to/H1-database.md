@@ -1,0 +1,815 @@
+# H1. Database: how to
+
+[D3. Data model](../design/D3-data-model.md) says **what** the tables are. This page says **how** to build them: which commands to type, which files they create, what to write in each file, how to fill the database with data and how to check the result. It is written for someone who has never made a migration.
+
+**The commands here have been run.** The example in [H1.2](#h12-a-new-table-from-start-to-finish) was built for real on this project's database, then removed; the outputs shown are what the commands printed.
+
+**How to read this page:**
+
+- The first time: read [H1.1](#h11-before-you-start), then follow [H1.2](#h12-a-new-table-from-start-to-finish) from top to bottom. It goes through every step once, on a real table.
+- Later, when you need one thing: [H1.3](#h13-migrations) to [H1.6](#h16-seeders) are organised by file type, and [H1.10](#h110-commands-at-a-glance) lists every command.
+- Something broke: [H1.9](#h19-when-something-goes-wrong).
+- What migrations and models are, in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
+
+---
+
+## H1.1 Before you start
+
+**Every command runs inside the container.** PHP is not installed on the computer ([S1. Setup](../start/S1-setup.md)). The `make` shortcuts in the repository root do it for you:
+
+| You type | It runs |
+|---|---|
+| `make artisan c="make:model Muscle"` | `docker compose exec backend php artisan make:model Muscle` |
+| `make migrate` | `… php artisan migrate` |
+| `make fresh` | `… php artisan migrate:fresh --seed` |
+| `make tinker` | `… php artisan tinker` |
+| `make psql` | an SQL console on the development database |
+| `make test` | `… php artisan test` |
+
+The stack must be running: `make up`, and check it with `make ps`.
+
+**Artisan** is Laravel's command-line tool. `make artisan c="list"` shows all its commands, and `make artisan c="help make:model"` explains one of them with all its options. The `make:…` commands write new files from Laravel's templates, which you then fill in.
+
+**Two databases.**
+
+- `atleoplan` is the development database. The app at http://localhost:8500 uses it, and so do `make migrate`, `make tinker` and `make psql`.
+- `atleoplan_test` is used only by the tests. They empty and rebuild it by themselves ([H1.8](#h18-testing-database-code)), so you never migrate it by hand.
+
+**The files of one table.** A new table usually touches five files, all in `backend/`:
+
+| File | Folder | What it does |
+|---|---|---|
+| Migration | `database/migrations/` | Creates the table in the database |
+| Model | `app/Models/` | The PHP class that reads and writes the table |
+| Factory | `database/factories/` | Makes fake rows for tests |
+| Seeder | `database/seeders/` | Puts starting rows in the database |
+| Test | `tests/Feature/` | Checks that it all works |
+
+Then the data model page ([D3](../design/D3-data-model.md)) must say the same as the code, in the same commit ([P1.3](../project/P1-conventions.md#p13-documentation)).
+
+---
+
+## H1.2 A new table from start to finish
+
+The example is the `muscles` table of [D3.4.1](../design/D3-data-model.md#d341-muscles-and-equipment): a list of muscles with a stable key (`slug`) and a name in several languages. It is small but has the interesting parts: a unique column, a translated column and starting data.
+
+### H1.2.1 Generate the files
+
+```sh
+make artisan c="make:model Muscle -mfs"
+```
+
+The model name is **singular and in PascalCase** (`Muscle`, `PlanDay`). The letters after the dash ask for more files: `-m` a migration, `-f` a factory, `-s` a seeder. The output:
+
+```
+INFO  Model [app/Models/Muscle.php] created successfully.
+INFO  Factory [database/factories/MuscleFactory.php] created successfully.
+INFO  Migration [database/migrations/2026_11_06_073222_create_muscles_table.php] created successfully.
+INFO  Seeder [database/seeders/MuscleSeeder.php] created successfully.
+```
+
+- **The table is named for you.** From `Muscle` Laravel writes `create_muscles_table`: plural and in snake_case. A `PlanDay` model gets `plan_days`.
+- **The date at the start of the migration's name decides the order.** Migrations run oldest first, so a table runs after the ones it points to only if it was created after them.
+- **Every generated file is nearly empty.** You fill it in the next steps.
+
+The other options are in [H1.4](#h14-models).
+
+### H1.2.2 Write the migration
+
+What Laravel wrote:
+
+```php
+Schema::create('muscles', function (Blueprint $table) {
+    $table->id();
+    $table->timestamps();
+});
+```
+
+You add the columns from the table in [D3.4.1](../design/D3-data-model.md#d341-muscles-and-equipment). Each row in the data model's table becomes one line here:
+
+```php
+public function up(): void
+{
+    // Schema::create() makes a new table; the function receives $table,
+    // a Blueprint, and each call on it adds a column
+    Schema::create('muscles', function (Blueprint $table) {
+        // The id: a bigint that grows by itself, and the primary key
+        $table->id();
+        // A stable English key such as "lower-back"; unique() refuses duplicates
+        $table->string('slug')->unique();
+        // The name in every language, as JSON: {"en": "Chest", "it": "Petto"}
+        $table->jsonb('name');
+        // created_at and updated_at, filled in by Laravel
+        $table->timestamps();
+    });
+}
+
+public function down(): void
+{
+    // The opposite of up(): used by migrate:rollback
+    Schema::dropIfExists('muscles');
+}
+```
+
+- **`up()` makes the change, `down()` undoes it.** For a new table `down()` is already written. For an added column you write it yourself ([H1.3.3](#h133-changing-a-table-that-already-exists)).
+- **The real file gets the full comments** of [P1.2](../project/P1-conventions.md#p12-code): a header saying what the table is for and pointing to section 6, and a line for every column.
+- Which method gives which type is in [H1.3.1](#h131-column-types).
+
+### H1.2.3 Look at the SQL, then run it
+
+Before running it, `--pretend` shows the SQL that Laravel would send, without changing anything:
+
+```sh
+make artisan c="migrate --pretend"
+```
+
+```
+2026_11_06_073222_create_muscles_table ................................
+⇂ create table "muscles" ("id" bigserial not null primary key, "slug" varchar(255) not null, "name" jsonb not null, "created_at" timestamp(0) without time zone null, "updated_at" timestamp(0) without time zone null)
+⇂ alter table "muscles" add constraint "muscles_slug_unique" unique ("slug")
+```
+
+This is the best way to learn what each method does. For example, `string()` became `varchar(255)`, and `unique()` became a separate constraint.
+
+Then run it for real, and check:
+
+```sh
+make migrate
+```
+
+```
+INFO  Running migrations.
+2026_11_06_073222_create_muscles_table ........................ 71.40ms DONE
+```
+
+```sh
+make artisan c="migrate:status"
+```
+
+```
+2026_11_05_220000_add_account_columns_to_users_table ............... [4] Ran
+2026_11_06_073222_create_muscles_table ............................. [5] Ran
+```
+
+The number in brackets is the **batch**. Every `make migrate` is one batch, and `migrate:rollback` undoes the last batch.
+
+**Made a mistake?** As long as the migration exists only on your computer, because it has not been pushed, you can undo it, fix the file and run it again:
+
+```sh
+make artisan c="migrate:rollback"     # runs down(): the table is dropped
+# … fix the migration …
+make migrate                           # runs up() again
+```
+
+Once it has been pushed, never edit it again: write a new migration ([H1.3.3](#h133-changing-a-table-that-already-exists)).
+
+### H1.2.4 Write the model
+
+The model is the PHP class that stands for the table. What Laravel wrote is almost empty: by convention `Muscle` already reads and writes `muscles`. You add three things:
+
+```php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Spatie\Translatable\HasTranslations;
+
+// The columns that create() and update() may fill from an array (C2.6)
+#[Fillable(['slug', 'name'])]
+class Muscle extends Model
+{
+    /** @use HasFactory<\Database\Factories\MuscleFactory> */
+    // HasFactory: makes Muscle::factory() work.
+    // HasTranslations (spatie/laravel-translatable): one value per language
+    use HasFactory, HasTranslations;
+
+    // The columns HasTranslations manages
+    public array $translatable = ['name'];
+}
+```
+
+- **`#[Fillable]`** is a safety list. A column missing from it is silently ignored by `create()` and `update()`. You get no error: the value is just not saved ([H1.9](#h19-when-something-goes-wrong)).
+- **`casts()`** converts values on the way in and out of the database, for example an enum, a boolean or a date. `muscles` needs none, because `HasTranslations` handles `name` by itself. The common casts are in [H1.4.2](#h142-casts).
+- **Relations** go in the model too: [H1.4.3](#h143-relations).
+
+### H1.2.5 Write the factory
+
+A factory describes a **fake but realistic row**, for tests. `definition()` returns one value per column:
+
+```php
+public function definition(): array
+{
+    // fake() gives random realistic data; unique() never repeats a value,
+    // because slug is a unique column
+    $word = fake()->unique()->word();
+
+    return [
+        'slug' => $word,
+        'name' => ['en' => ucfirst($word), 'it' => ucfirst($word)],
+    ];
+}
+```
+
+A test can then write `Muscle::factory()->create()` and get a saved muscle, without listing every column. The parts of a factory, such as states and relations, are in [H1.5](#h15-factories).
+
+### H1.2.6 Write the seeder
+
+A seeder **puts rows in the database**. A factory makes random data for tests; a seeder puts in the real starting data, here the list of muscles:
+
+```php
+namespace Database\Seeders;
+
+use App\Models\Muscle;
+use Illuminate\Database\Seeder;
+
+class MuscleSeeder extends Seeder
+{
+    /** The muscles: slug => name per language (here three of the 17, D3.4.1). */
+    private const MUSCLES = [
+        'chest' => ['en' => 'Chest', 'it' => 'Petto'],
+        'biceps' => ['en' => 'Biceps', 'it' => 'Bicipiti'],
+        'lower-back' => ['en' => 'Lower back', 'it' => 'Zona lombare'],
+    ];
+
+    public function run(): void
+    {
+        foreach (self::MUSCLES as $slug => $name) {
+            // Finds the row with this slug and updates it, or creates it:
+            // running the seeder twice does not duplicate anything
+            Muscle::updateOrCreate(['slug' => $slug], ['name' => $name]);
+        }
+    }
+}
+```
+
+Run it alone:
+
+```sh
+make artisan c="db:seed --class=MuscleSeeder"
+```
+
+```
+Database\Seeders\MuscleSeeder ...................................... RUNNING
+Database\Seeders\MuscleSeeder .................................. 193 ms DONE
+```
+
+Running it a second time adds nothing, thanks to `updateOrCreate()`. With `create()` instead, the second run would fail on the unique `slug` ([H1.6.3](#h163-a-seeder-that-can-run-again)).
+
+**For `make fresh` to run it**, add it to `DatabaseSeeder`, the seeder that runs all the others:
+
+```php
+public function run(): void
+{
+    // Order matters: a table runs after the ones it points to
+    $this->call([
+        MuscleSeeder::class,
+    ]);
+
+    User::factory()->admin()->create([…]);   // the test account, already there
+}
+```
+
+### H1.2.7 Look at the result
+
+Three ways, from the quickest to the most flexible.
+
+**The table, as Postgres sees it:**
+
+```sh
+make artisan c="db:table muscles"
+```
+
+```
+public.muscles .............................................................
+Column ................................................................ Type
+id int8, autoincrement .......... nextval('muscles_id_seq'::regclass) bigint
+slug varchar ........................................ character varying(255)
+name jsonb ........................................................... jsonb
+created_at timestamp, nullable .............. timestamp(0) without time zone
+updated_at timestamp, nullable .............. timestamp(0) without time zone
+Index ......................................................................
+muscles_pkey id ............................................. btree, primary
+muscles_slug_unique slug ..................................... btree, unique
+```
+
+**The model, as Laravel sees it:** which columns are fillable, the casts and the relations. This is useful to check that the model matches the table.
+
+```sh
+make artisan c="model:show Muscle"
+```
+
+```
+Attributes ..................................................... type / cast
+id increments, unique ......................................... bigint / int
+slug unique, fillable ............................... character varying(255)
+name fillable ................................................ jsonb / array
+```
+
+**Tinker**, a PHP console with the whole app loaded. You type PHP and see the result straight away. It is the place to try a query before putting it in the code:
+
+```sh
+make tinker
+```
+
+```php
+> Muscle::count()
+= 3
+
+> $m = Muscle::where('slug', 'chest')->first();
+> $m->name                       // in the current language
+= "Chest"
+
+> app()->setLocale('it'); $m->name
+= "Petto"
+
+> $m->getTranslations('name')    // all the languages
+= ["en" => "Chest", "it" => "Petto"]
+
+> Muscle::pluck('slug')
+= ["chest", "biceps", "lower-back"]
+
+> Muscle::factory()->make()      // make(): built, not saved
+> Muscle::create(['slug' => 'chest', 'name' => ['en' => 'X']])
+// Illuminate\Database\UniqueConstraintViolationException: … duplicate key value
+// violates unique constraint "muscles_slug_unique"
+```
+
+- **Tinker writes to the real development database.** `create()`, `update()` and `delete()` here change real data.
+- `exit` or `Ctrl+D` closes it.
+- **After changing a model, reopen tinker:** it keeps the code it loaded at the start.
+
+### H1.2.8 Test it
+
+```sh
+make artisan c="make:test MuscleTest --pest"
+```
+
+```php
+use App\Models\Muscle;
+use Database\Seeders\MuscleSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+// Empties atleoplan_test and runs every migration before the tests of this
+// file; each test's changes are undone after it (H1.8)
+uses(RefreshDatabase::class);
+
+test('the seeder can run twice without duplicating rows', function () {
+    $this->seed(MuscleSeeder::class);
+    $this->seed(MuscleSeeder::class);
+
+    expect(Muscle::count())->toBe(3);
+    $this->assertDatabaseHas('muscles', ['slug' => 'chest']);
+});
+
+test('a muscle reads its name in the current language', function () {
+    $muscle = Muscle::factory()->create(['name' => ['en' => 'Chest', 'it' => 'Petto']]);
+
+    app()->setLocale('it');
+
+    expect($muscle->name)->toBe('Petto');
+});
+```
+
+```sh
+make test f=Muscle
+```
+
+```
+PASS  Tests\Feature\MuscleTest
+✓ the seeder can run twice without duplicating rows       2.69s
+✓ a muscle reads its name in the current language         0.08s
+Tests:    2 passed (3 assertions)
+```
+
+### H1.2.9 Finish
+
+1. **The comments.** Generated files have none, so add the full comments of [P1.2](../project/P1-conventions.md#p12-code).
+2. **The data model.** If anything differs from [D3](../design/D3-data-model.md), update it; if the table is new there, say it now exists ([D3.1.4](../design/D3-data-model.md#d314-which-task-creates-what)).
+3. **The frontend.** If an endpoint returns the table, add its TypeScript type in `frontend/src/api/` ([C2.12](../concepts/C2-backend.md#c212-recipes)).
+4. **The checks.** `make fix` formats the code, then `make check` runs every check.
+
+---
+
+## H1.3 Migrations
+
+### H1.3.1 Column types
+
+The types used in [D3](../design/D3-data-model.md), and the method that makes each one:
+
+| Data model says | Migration | Postgres makes |
+|---|---|---|
+| `bigint` id | `$table->id()` | `bigserial` primary key |
+| `uuid` id | `$table->uuid('id')->primary()` | `uuid` primary key ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)) |
+| `→ users` | `$table->foreignId('user_id')->constrained()` | `bigint` + foreign key |
+| `→ plans` with a UUID | `$table->foreignUuid('plan_id')->constrained()` | `uuid` + foreign key |
+| `string` | `$table->string('slug')` | `varchar(255)` |
+| `text` | `$table->text('notes')` | `text` |
+| `integer`, `smallint` | `$table->integer('reps')`, `$table->smallInteger('position')` | `integer`, `smallint` |
+| `numeric(7,3)` | `$table->decimal('weight_kg', 7, 3)` | `numeric(7, 3)` |
+| `boolean` | `$table->boolean('timer_sound')` | `boolean` |
+| `jsonb` | `$table->jsonb('name')` | `jsonb` |
+| `enum` | `$table->enum('role', ['primary', 'secondary'])` | `varchar` + a check on the values |
+| `timestampTz` | `$table->timestampTz('started_at')` | `timestamp with time zone` |
+| `created_at`, `updated_at` | `$table->timestamps()` | two `timestamp` columns |
+| `deleted_at` (soft delete) | `$table->softDeletesTz()` | `timestamp with time zone`, nullable |
+
+The full list: the *Migrations* page of the Laravel docs, under "Available Column Types".
+
+### H1.3.2 Column options
+
+They go after the type, chained with `->`:
+
+| Option | What it does |
+|---|---|
+| `->nullable()` | The cell may be empty (`NULL`). Without it, the column is required |
+| `->default(90)` | The value when none is given. It also fills the rows that already exist |
+| `->unique()` | No two rows with the same value; also creates an index |
+| `->index()` | An index: faster searches on this column ([D3.2.6](../design/D3-data-model.md#d326-indexes)) |
+| `->comment('…')` | A note stored in the database itself |
+
+**Foreign keys:**
+
+```php
+// user_id points to users.id. constrained() works out the table from the name
+$table->foreignId('user_id')->constrained();
+
+// When the name does not say the table, it is given
+$table->foreignId('owner_id')->nullable()->index()->constrained('users');
+
+// What happens to this row when the row it points to is deleted (D3.7):
+->cascadeOnDelete()     // deleted too
+->nullOnDelete()        // the column becomes empty (it must be nullable)
+// nothing                 Postgres refuses to delete the row pointed to
+```
+
+Column options such as `->nullable()` and `->index()` go **before** `->constrained()` ([D3.11](../design/D3-data-model.md#d311-traps-to-avoid)).
+
+**A key on two columns**, as in a pivot table:
+
+```php
+$table->primary(['exercise_id', 'muscle_id']);   // the pair is the primary key
+$table->unique(['plan_id', 'position']);         // the pair must be unique
+```
+
+**Check constraints** have no method; they are SQL, right after `Schema::create()` ([D3.2.8](../design/D3-data-model.md#d328-check-constraints)).
+
+### H1.3.3 Changing a table that already exists
+
+A migration that has run on another computer, or is on GitHub, **is never edited**: those databases have already run it and would not see the change. A change is a new migration:
+
+```sh
+make artisan c="make:migration add_position_to_muscles_table"
+```
+
+Laravel reads the name: `add_…_to_muscles_table` gives a migration that already uses `Schema::table('muscles', …)`. `Schema::table()` changes an existing table; `Schema::create()` makes a new one. If the name does not follow this pattern, add `--table=muscles`, or `--create=muscles` for a new table.
+
+```php
+public function up(): void
+{
+    Schema::table('muscles', function (Blueprint $table) {
+        // Add a column. A required column on a table that already has
+        // rows needs a default, or Postgres cannot fill the existing rows
+        $table->smallInteger('position')->default(0);
+
+        // Change a column: rewrite it in full, then ->change(). Options such
+        // as ->nullable() and ->default() that are not repeated are lost;
+        // indexes (unique, index) stay as they are, so ->unique() is not
+        // repeated: it would try to create a second one
+        $table->string('slug', 100)->change();
+
+        // Rename and remove
+        $table->renameColumn('old_name', 'new_name');
+        $table->dropColumn('unused');
+
+        // Remove a foreign key column together with its key
+        $table->dropConstrainedForeignId('equipment_id');
+    });
+}
+
+public function down(): void
+{
+    // The exact opposite, in reverse order
+    Schema::table('muscles', function (Blueprint $table) {
+        $table->dropColumn('position');
+    });
+}
+```
+
+[`add_account_columns_to_users_table`](../../backend/database/migrations/2026_11_05_220000_add_account_columns_to_users_table.php) is a real, commented example: it adds nine columns to `users`.
+
+### H1.3.4 A pivot table
+
+A pivot table links two tables many-to-many, as `exercise_muscle` does ([D3.4.3](../design/D3-data-model.md#d343-exercise_muscle)). It has no model of its own, so it is made with `make:migration`:
+
+```sh
+make artisan c="make:migration create_exercise_muscle_table"
+```
+
+The name follows Laravel's convention: **the two tables in the singular, in alphabetical order**, joined by `_`. With that name, `belongsToMany()` finds it by itself. The columns are in [D3.4.3](../design/D3-data-model.md#d343-exercise_muscle). Its migration must run after both tables it links, so it is created after them.
+
+### H1.3.5 Running migrations
+
+| Command | What it does | Data |
+|---|---|---|
+| `make migrate` | Runs the migrations not yet run | Kept |
+| `make artisan c="migrate --pretend"` | Prints their SQL, changes nothing | Kept |
+| `make artisan c="migrate:status"` | Lists every migration: run or pending, and its batch | Kept |
+| `make artisan c="migrate:rollback"` | Undoes the last batch (runs `down()`) | Lost in those tables |
+| `make artisan c="migrate:rollback --step=1"` | Undoes only the last migration | Lost in that table |
+| `make fresh` | **Drops every table**, runs every migration, then the seeders | **All lost** |
+
+`make fresh` also deletes the accounts you created by hand. To keep a copy first, run `make db-dump`; `make db-restore f=…` puts it back ([S1.8](../start/S1-setup.md#s18-everyday-commands)).
+
+**After a `git pull`** that brings new migrations, run `make migrate`. `make artisan c="migrate:status"` shows any marked `Pending`.
+
+---
+
+## H1.4 Models
+
+### H1.4.1 Generating them
+
+`make:model` takes options that create the related files at the same time:
+
+| Option | Also creates |
+|---|---|
+| `-m` | the migration |
+| `-f` | the factory |
+| `-s` | the seeder |
+| `-c` | a controller; with `--api`, one with the five API methods |
+| `--policy` | the policy (who may do what, [C2.12](../concepts/C2-backend.md#c212-recipes)) |
+| `--pest` | a Pest test |
+| `-a` | all of the above: migration, seeder, factory, policy, controller, form requests |
+
+```sh
+make artisan c="make:model Plan -mf --policy"   # a table the user owns
+make artisan c="make:model Muscle -mfs"         # a list with starting data
+```
+
+**Enums**, for the fixed lists of values of [D3.2.4](../design/D3-data-model.md#d324-fixed-lists-of-values):
+
+```sh
+make artisan c="make:enum SetType --string"
+```
+
+```php
+enum SetType: string
+{
+    case WarmUp = 'warm_up';     // the value stored in the column
+    case Normal = 'normal';
+}
+```
+
+`app/Enums/Theme.php` is a real one.
+
+### H1.4.2 Casts
+
+A cast converts a column's value when it is read from the database and when it is written back. They go in the model's `casts()` method:
+
+```php
+protected function casts(): array
+{
+    return [
+        'theme' => Theme::class,             // the text "dark" ↔ Theme::Dark
+        'is_admin' => 'boolean',             // true / false
+        'disabled_at' => 'datetime',         // a date object (Carbon)
+        'weight_kg' => 'decimal:3',          // the string "80.000", exact (D3.11)
+        'machine_translated' => 'array',     // jsonb ↔ PHP array
+    ];
+}
+```
+
+`app/Models/User.php` has a commented `casts()`. A translatable column is not cast: `$translatable` handles it.
+
+### H1.4.3 Relations
+
+A relation is a model method saying how the table is linked to another. Once it is written, `$plan->days` reads the linked rows without writing SQL. Which relations each table has is in [D3](../design/D3-data-model.md); the code for the plans is in [D3.5.5](../design/D3-data-model.md#d355-the-relations-in-code).
+
+| The table… | Method | Example |
+|---|---|---|
+| has a column pointing to another (`plan_days.plan_id`) | `belongsTo` | a day belongs to a plan: `return $this->belongsTo(Plan::class);` |
+| is pointed to by many rows | `hasMany` | a plan has many days: `return $this->hasMany(PlanDay::class);` |
+| is linked many-to-many through a pivot table | `belongsToMany` | an exercise has many muscles: `return $this->belongsToMany(Muscle::class)->withPivot('role');` |
+
+```php
+// In the model: the method's return type is the relation's class
+public function days(): HasMany
+{
+    return $this->hasMany(PlanDay::class)->orderBy('position');
+}
+```
+
+```php
+// In the code
+$plan->days;                                        // the days (one query)
+$plan->days()->where('name', 'like', 'Day A%')->get(); // with () it is a query to add to
+Plan::with('days.items')->find($id);                // plan, days and items: few queries in all
+$exercise->muscles()->attach($chest, ['role' => 'primary']);  // add a pivot row
+```
+
+**`with()` avoids a common slowdown.** Looping over 20 plans and reading `$plan->days` in each makes 21 queries, one for the plans and one per plan. `Plan::with('days')` makes 2.
+
+### H1.4.4 UUIDs, soft deletes, translations
+
+These are traits added with `use` inside the class:
+
+| Trait | When | What it changes |
+|---|---|---|
+| `HasUuids` | The id is a UUID ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)) | Fills the id with a new UUID when it is empty |
+| `SoftDeletes` | The table has `deleted_at` ([D3.7](../design/D3-data-model.md#d37-what-happens-on-delete)) | `delete()` fills `deleted_at` instead of removing the row, and queries hide those rows; `withTrashed()` shows them again |
+| `HasTranslations` | Columns with one value per language ([D3.4.5](../design/D3-data-model.md#d345-translations)) | Reads the current language, writes `['en' => …, 'it' => …]` |
+| `HasFactory` | Always | Makes `Model::factory()` work |
+
+---
+
+## H1.5 Factories
+
+A factory is used in **tests**, where each test creates the rows it needs, and sometimes by seeders, for example the test account. The real one to read is `database/factories/UserFactory.php`.
+
+```php
+Muscle::factory()->create();                     // one, saved
+Muscle::factory()->count(5)->create();           // five
+Muscle::factory()->make();                       // built but not saved
+Muscle::factory()->create(['slug' => 'chest']);  // with some columns chosen
+User::factory()->admin()->create();              // with a state (below)
+```
+
+**States** are named variations, written as methods of the factory:
+
+```php
+public function admin(): static
+{
+    return $this->state(fn (array $attributes) => ['is_admin' => true]);
+}
+```
+
+**Foreign keys.** In `definition()`, a factory as a column's value creates the linked row when needed:
+
+```php
+// PlanFactory: a plan with no user given gets a new one
+'user_id' => User::factory(),
+```
+
+```php
+// In a test: choose the owner, or create the children too
+Plan::factory()->for($user)->create();                    // this user's plan
+Plan::factory()->has(PlanDay::factory()->count(3), 'days')->create();  // with 3 days
+Exercise::factory()->hasAttached(Muscle::factory(), ['role' => 'primary'])->create();  // with a pivot row
+```
+
+---
+
+## H1.6 Seeders
+
+### H1.6.1 What goes in a seeder
+
+| Kind of data | Example | Where |
+|---|---|---|
+| **Fixed lists** the app needs in order to work | the 17 muscles, the 12 kinds of equipment | Its own seeder (`MuscleSeeder`), also run on the server |
+| **Development data**, for trying the app | the account `test@example.com` | `DatabaseSeeder`, never on the server |
+| **A large import** | the public exercise library ([DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db)) | A seeder or an Artisan command that reads a file ([H1.6.4](#h164-a-large-import)) |
+
+The tests do not use `DatabaseSeeder`: each test creates its rows with factories, or calls one seeder with `$this->seed(MuscleSeeder::class)`.
+
+### H1.6.2 Creating and running them
+
+```sh
+make artisan c="make:seeder EquipmentSeeder"    # database/seeders/EquipmentSeeder.php
+```
+
+| Command | Runs |
+|---|---|
+| `make artisan c="db:seed"` | `DatabaseSeeder`, which calls the others |
+| `make artisan c="db:seed --class=MuscleSeeder"` | only that seeder |
+| `make fresh` | empties the database, runs the migrations, then `DatabaseSeeder` |
+
+`DatabaseSeeder` lists the others in `$this->call([...])`. **The order matters:** `ExerciseSeeder` points to muscles and equipment, so it comes after their seeders.
+
+### H1.6.3 A seeder that can run again
+
+`db:seed` on a database that already has the rows must not fail or duplicate them. Look rows up by a stable key, such as `slug` or `external_id`, never by `id`:
+
+```php
+// One row: update it if the slug exists, create it if not
+Muscle::updateOrCreate(['slug' => 'chest'], ['name' => ['en' => 'Chest', 'it' => 'Petto']]);
+
+// Create it only if missing, without touching it otherwise
+Muscle::firstOrCreate(['slug' => 'chest'], ['name' => [...]]);
+```
+
+With `create()`, the second run stops at the first duplicate: `UniqueConstraintViolationException` ([H1.2.7](#h127-look-at-the-result)).
+
+### H1.6.4 A large import
+
+For thousands of rows, one query per row is slow. Ideas for DATA-1:
+
+```php
+// The file to import, in the repository (a path inside backend/)
+$rows = json_decode(file_get_contents(database_path('data/exercises.json')), true);
+
+// All or nothing: if one row fails, none is saved
+DB::transaction(function () use ($rows) {
+    // In groups of 500: one INSERT … ON CONFLICT per group, not per row
+    foreach (array_chunk($rows, 500) as $chunk) {
+        Exercise::upsert($chunk, uniqueBy: ['external_id'], update: ['name', 'instructions']);
+    }
+});
+```
+
+- **`upsert()` inserts the new rows and updates the ones whose `external_id` already exists,** so the import can run again.
+- **It skips the model:** casts and `HasTranslations` are not applied, and no model event fires. A `jsonb` column is passed already encoded, with `json_encode([...])`. The pivot rows (`exercise_muscle`) and the photos (medialibrary) need the models, so they are a second pass.
+
+### H1.6.5 On the server
+
+On the server only the fixed lists are seeded, with `php artisan db:seed --class=MuscleSeeder --force`. `--force` is required outside development. The test account never goes there. Deploying to a server is still to come ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
+
+---
+
+## H1.7 Looking at the data
+
+| Tool | When | How |
+|---|---|---|
+| **Tinker** | Try a query, read or fix a row with the models | `make tinker` ([H1.2.7](#h127-look-at-the-result)) |
+| **psql** | Plain SQL | `make psql` |
+| **Artisan** | The structure of a table or a model | `make artisan c="db:table muscles"`, `c="model:show Muscle"`, `c="db:show"` (every table, with sizes) |
+| **A database program** | Browse the tables with a mouse | TablePlus, DBeaver, DataGrip: host `localhost`, port `5932` ([S1.4](../start/S1-setup.md#s14-ports)), the user and password of `backend/.env` |
+
+**In psql:**
+
+```sql
+\dt                          -- the list of tables
+\d muscles                   -- one table's columns, indexes and foreign keys
+SELECT slug, name->>'it' AS it FROM muscles;   -- ->> reads one key of a jsonb
+\q                           -- quit
+```
+
+**The SQL Eloquent sends**, in tinker:
+
+```php
+> echo Muscle::where('slug', 'chest')->toRawSql();
+select * from "muscles" where "slug" = 'chest'
+```
+
+---
+
+## H1.8 Testing database code
+
+- **Tests use `atleoplan_test`,** never the development database. A test file that touches the database starts with `uses(RefreshDatabase::class);`. Before the file's first test, it empties `atleoplan_test` and runs every migration; then it undoes each test's changes after that test. Every test therefore starts from empty tables.
+- **Each test creates what it needs** with factories ([H1.5](#h15-factories)), or with `$this->seed(MuscleSeeder::class)` for a fixed list.
+- **Checks on the database:**
+
+```php
+$this->assertDatabaseHas('muscles', ['slug' => 'chest']);     // a row like this exists
+$this->assertDatabaseMissing('muscles', ['slug' => 'neck']);  // none does
+$this->assertDatabaseCount('muscles', 3);                     // exactly 3 rows
+$this->assertSoftDeleted($exercise);                          // deleted_at is filled
+expect(Muscle::count())->toBe(3);                             // Pest's way, with any value
+```
+
+More on Pest: [C2.11](../concepts/C2-backend.md#c211-tests-with-pest).
+
+---
+
+## H1.9 When something goes wrong
+
+| Message or symptom | Cause | Fix |
+|---|---|---|
+| `Class "Laravel\…" not found`, after a `git pull` | A package added by someone else is not installed in the container | `make composer c=install` |
+| `Class "App\Models\…" not found` for your own class | The `namespace` does not match the folder, or the file name does not match the class | Fix them; then `make composer c=dump-autoload` |
+| `relation "muscles" does not exist` (`SQLSTATE[42P01]`) | The migration has not run | `make migrate`. In a test: `uses(RefreshDatabase::class)` is missing |
+| `Nothing to migrate`, but the change is not in the database | A migration that had already run was edited | On your own branch: `migrate:rollback`, then `make migrate`. Pushed already: a new migration ([H1.3.3](#h133-changing-a-table-that-already-exists)) |
+| A value given to `create()` or `update()` is not saved, with no error | The column is not in `#[Fillable]` | Add it, if a request may set it |
+| `UniqueConstraintViolationException` (`23505`) | A second row with the same unique value; often a seeder run twice | `updateOrCreate()` ([H1.6.3](#h163-a-seeder-that-can-run-again)) |
+| `Foreign key violation` (`23503`) | A row points to one that does not exist, or one that is still pointed to is being deleted | Seeders in the right order ([H1.6.2](#h162-creating-and-running-them)); see [D3.7](../design/D3-data-model.md#d37-what-happens-on-delete) for deletes |
+| `Not null violation` (`23502`) | A required column was given no value | Give it, or add it to the factory's `definition()` |
+| `column "position" of relation "muscles" contains null values` (`23502`), while migrating | A required column added to a table that already has rows: Postgres has no value for them | `->default(…)`, or `->nullable()` |
+| `SQLSTATE[08006]`, `Connection refused` or `could not translate host name "postgres"` | Postgres is not running | `make up`, then `make ps` |
+| Tinker does not see a change to a model | Tinker keeps the code it loaded | `exit` and `make tinker` again |
+
+---
+
+## H1.10 Commands at a glance
+
+| What | Command |
+|---|---|
+| Model with migration, factory, seeder | `make artisan c="make:model Muscle -mfs"` |
+| Migration only | `make artisan c="make:migration add_position_to_muscles_table"` |
+| Seeder, factory, enum | `make artisan c="make:seeder EquipmentSeeder"`, `c="make:factory EquipmentFactory"`, `c="make:enum SetType --string"` |
+| Test | `make artisan c="make:test MuscleTest --pest"` |
+| The SQL of the pending migrations | `make artisan c="migrate --pretend"` |
+| Run the migrations | `make migrate` |
+| Which migrations have run | `make artisan c="migrate:status"` |
+| Undo the last batch | `make artisan c="migrate:rollback"` |
+| Rebuild the database with the seeders | `make fresh` (**deletes all data**; `make db-dump` first) |
+| All seeders, or one | `make artisan c="db:seed"`, `make artisan c="db:seed --class=MuscleSeeder"` |
+| PHP console | `make tinker` |
+| SQL console | `make psql` |
+| A table, a model, the database | `make artisan c="db:table muscles"`, `c="model:show Muscle"`, `c="db:show"` |
+| Tests | `make test`, `make test f=Muscle` |
+| Format, then every check | `make fix`, `make check` |
+
+**Official documentation:** the Laravel pages *Migrations*, *Eloquent* (with *Relationships* and *Mutators / Casts*), *Factories* (under *Eloquent*), *Seeding* and *Database Testing*, at https://laravel.com/docs; and https://spatie.be/docs/laravel-translatable.
+
+---
+
+← [C2. Backend](../concepts/C2-backend.md) · [Contents](../README.md) · [H2. Backend: how to](H2-backend.md) →

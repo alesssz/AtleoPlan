@@ -1,8 +1,8 @@
 /*
- * "Forgot password" (route `/forgot-password`), docs/01-ui-design.md 1.4.1, the
+ * "Forgot password" (route `/forgot-password`), docs/design/D1-ui.md D1.4.1, the
  * first of two steps: it asks for the address and sends the email. Its link opens
  * ResetPasswordPage. In development the email is in Mailpit
- * (http://localhost:8525). Built as LoginPage (docs/04-frontend.md 4.13).
+ * (http://localhost:8525). Built as LoginPage (docs/concepts/C1-frontend.md C1.13).
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'

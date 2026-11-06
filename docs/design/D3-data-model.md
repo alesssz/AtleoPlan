@@ -1,22 +1,23 @@
-# 6. Data model
+# D3. Data model
 
-Every table of the MVP ([1.8](01-ui-design.md#18-release-phases-and-open-questions)): what it stands for, its columns, how it connects to the others, why it is built that way, and the Laravel code that creates it. The migrations are written from this page, so a change to the design updates it in the same commit ([3.3](03-conventions.md#33-documentation)).
+Every table of the MVP ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)): what it stands for, its columns, how it connects to the others, why it is built that way, and the Laravel code that creates it. The migrations are written from this page, so a change to the design updates it in the same commit ([P1.3](../project/P1-conventions.md#p13-documentation)).
 
-**Only `users` exists so far,** with the columns of [6.3](#63-users-and-preferences). Each feature creates its own part when it is built ([6.1.4](#614-which-task-creates-what)).
+**Only `users` exists so far,** with the columns of [D3.3](#d33-users-and-preferences). Each feature creates its own part when it is built ([D3.1.4](#d314-which-task-creates-what)).
 
-**The code here has been run.** The migrations, relations and queries on this page ran on Postgres 18 and Laravel 13, inside a transaction that was then undone. Results shown next to the code are that run's real output. The real files will add the full comments of [3.2](03-conventions.md#32-code); here the comments explain what is new.
+**The code here has been run.** The migrations, relations and queries on this page ran on Postgres 18 and Laravel 13, inside a transaction that was then undone. Results shown next to the code are that run's real output. The real files will add the full comments of [P1.2](../project/P1-conventions.md#p12-code); here the comments explain what is new.
 
 **How to read this page:**
 
-- New to databases: read [6.1.1](#611-a-database-in-ten-ideas), then the story of one week of training in [6.10](#610-the-full-story-one-week-of-training), and come back to the tables after.
-- Writing a migration: go to the table's section, then read [6.11](#611-traps-to-avoid) before finishing.
-- How migrations and models work in Laravel in general: [5.6](05-backend.md#56-database-migrations-models-factories-seeders).
+- New to databases: read [D3.1.1](#d311-a-database-in-ten-ideas), then the story of one week of training in [D3.10](#d310-the-full-story-one-week-of-training), and come back to the tables after.
+- Writing a migration: go to the table's section, then read [D3.11](#d311-traps-to-avoid) before finishing.
+- How migrations and models work in Laravel in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
+- How to build a table in practice, step by step: the commands, the files to write, seeders, tinker, tests: [H1. Database: how to](../how-to/H1-database.md).
 
 ---
 
-## 6.1 Overview
+## D3.1 Overview
 
-### 6.1.1 A database in ten ideas
+### D3.1.1 A database in ten ideas
 
 **1. Tables, rows and columns.** A table is like a spreadsheet with strict rules. Each **row** is one thing and each **column** is one fact about it, with a fixed type: a text column refuses a list, a number column refuses a word.
 
@@ -55,9 +56,9 @@ A **foreign key** is a rule on that column: "this value must exist as an id in `
 
 **9. Transactions: all or nothing.** Saving a plan touches many rows. A **transaction** groups them so that either all the changes happen or none do; a crash halfway cannot leave half a plan. In Laravel: `DB::transaction(function () { … })`.
 
-**10. Soft delete: hiding instead of erasing.** A normal delete erases the row. A **soft delete** only writes the time into a `deleted_at` column; the row stays, and Laravel's `SoftDeletes` trait hides it from normal queries. It is used where the row must keep existing behind the scenes ([6.7](#67-what-happens-on-delete)).
+**10. Soft delete: hiding instead of erasing.** A normal delete erases the row. A **soft delete** only writes the time into a `deleted_at` column; the row stays, and Laravel's `SoftDeletes` trait hides it from normal queries. It is used where the row must keep existing behind the scenes ([D3.7](#d37-what-happens-on-delete)).
 
-### 6.1.2 The map
+### D3.1.2 The map
 
 An arrow means "points to": the table on the left holds the id of a row in the table on the right.
 
@@ -78,7 +79,7 @@ users
 
 Each level is a one-to-many: a plan has many days, a day has many items, an item has many sets.
 
-### 6.1.3 The main idea: what I mean to do, and what I did
+### D3.1.3 The main idea: what I mean to do, and what I did
 
 Two families of tables mirror each other:
 
@@ -91,21 +92,21 @@ Two families of tables mirror each other:
 
 It would seem simpler to tick off the plan's own rows. They are kept apart because **changing a plan must never change the past**. Suppose a plan says 4 sets at 80 kg, and next month the user changes it to 5 sets at 85 kg. If history were read from the plan, last month's workouts would suddenly show 85 kg, and the progress charts would be false.
 
-So a session copies nothing from the future: it records what happened, and it survives even when the plan is deleted ([6.7](#67-what-happens-on-delete)).
+So a session copies nothing from the future: it records what happened, and it survives even when the plan is deleted ([D3.7](#d37-what-happens-on-delete)).
 
-### 6.1.4 Which task creates what
+### D3.1.4 Which task creates what
 
 | Tables | Created by |
 |---|---|
 | New columns on `users` | Done, except `active_plan_id`, which needs `plans` and comes with FEAT-2 |
-| `muscles`, `equipment`, `exercises`, `exercise_muscle` | [BE-1](backlog.md#be-1-exercise-library-api-and-admin), filled by [DATA-1](backlog.md#data-1-import-and-translate-free-exercise-db) |
-| `plans`, `plan_days`, `plan_items`, `plan_sets` | [FEAT-2](backlog.md#feat-2-plans) |
-| `workout_sessions`, `session_exercises`, `logged_sets` | [FEAT-3](backlog.md#feat-3-workout-mode-and-home) |
+| `muscles`, `equipment`, `exercises`, `exercise_muscle` | [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin), filled by [DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db) |
+| `plans`, `plan_days`, `plan_items`, `plan_sets` | [FEAT-2](../project/backlog.md#feat-2-plans) |
+| `workout_sessions`, `session_exercises`, `logged_sets` | [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home) |
 
-### 6.1.5 How to read the column tables
+### D3.1.5 How to read the column tables
 
 - **`bigint`** is a whole number, for ids; **`integer`** and **`smallint`** are smaller whole numbers.
-- **`uuid`** is a long random identifier, explained in [6.2.1](#621-which-kind-of-id).
+- **`uuid`** is a long random identifier, explained in [D3.2.1](#d321-which-kind-of-id).
 - **`string`** is a short text, up to 255 characters; **`text`** has no practical limit.
 - **`numeric(7,3)`** is an exact number with 7 digits, 3 of them decimals.
 - **`jsonb`** is structured data in one column: lists, or one value per language.
@@ -116,9 +117,9 @@ So a session copies nothing from the future: it records what happened, and it su
 
 ---
 
-## 6.2 Rules for every table
+## D3.2 Rules for every table
 
-### 6.2.1 Which kind of id
+### D3.2.1 Which kind of id
 
 There are two kinds, and the choice depends on **who creates the row**.
 
@@ -129,9 +130,9 @@ There are two kinds, and the choice depends on **who creates the row**.
 
 **The problem UUIDs solve.** A number comes from the database: the next free one. In a gym with no signal, the phone cannot ask what the next number is, and two phones offline would pick the same one. A UUID is random enough that any device can create one on its own, without two ever matching.
 
-This also makes retries safe, which is the base of offline working ([2.7](02-decisions.md#27-offline-and-sync)). The phone creates a set with id `…f20` and sends it; the signal drops before the answer comes back; the phone sends it again. The server sees that `…f20` already exists and does not create a second one.
+This also makes retries safe, which is the base of offline working ([D2.7](D2-decisions.md#d27-offline-and-sync)). The phone creates a set with id `…f20` and sends it; the signal drops before the answer comes back; the phone sends it again. The server sees that `…f20` already exists and does not create a second one.
 
-**Why exercises have a number instead.** The `media` table links a photo to its owner through `model_id`, which is a number (`morphs('model')` in its migration). Exercises can therefore be created and edited only online, which fits: their photos can only be uploaded online ([1.6](01-ui-design.md#16-states-and-edge-cases)).
+**Why exercises have a number instead.** The `media` table links a photo to its owner through `model_id`, which is a number (`morphs('model')` in its migration). Exercises can therefore be created and edited only online, which fits: their photos can only be uploaded online ([D1.6](D1-ui.md#d16-states-and-edge-cases)).
 
 **In Laravel:**
 
@@ -147,19 +148,19 @@ class Plan extends Model
 ```
 
 - `HasUuids` fills the id only when it is empty. An id sent by the device is kept; a row created on the server, such as by a seeder, gets a UUIDv7, a kind of UUID that sorts by creation time.
-- For the device's id to be accepted, `id` has to be listed in the model's `#[Fillable]` ([5.6](05-backend.md#56-database-migrations-models-factories-seeders)).
+- For the device's id to be accepted, `id` has to be listed in the model's `#[Fillable]` ([C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders)).
 
-**A UUID sent by a device is not to be trusted.** Before updating a row, an endpoint checks that it belongs to the user asking. Otherwise anyone who learned a UUID could overwrite someone else's row. [6.6.5](#665-sending-a-session-to-the-server) shows the check.
+**A UUID sent by a device is not to be trusted.** Before updating a row, an endpoint checks that it belongs to the user asking. Otherwise anyone who learned a UUID could overwrite someone else's row. [D3.6.5](#d365-sending-a-session-to-the-server) shows the check.
 
-### 6.2.2 Table names
+### D3.2.2 Table names
 
 - **Laravel's rule:** the model `PlanDay` reads the table `plan_days`, plural and in lowercase with underscores. A pivot table joins two singular names in alphabetical order: `exercise_muscle`.
-- **`workout_sessions`, not `sessions`.** Laravel's own `sessions` table already exists: it holds the sign-in sessions behind Sanctum's cookies ([5.7](05-backend.md#57-signing-in-sanctum)). The model is `WorkoutSession`. The interface and these docs still say "session".
+- **`workout_sessions`, not `sessions`.** Laravel's own `sessions` table already exists: it holds the sign-in sessions behind Sanctum's cookies ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)). The model is `WorkoutSession`. The interface and these docs still say "session".
 - **`equipment`, not `equipments`.** Laravel treats the word as uncountable, as English does.
 
-### 6.2.3 Weights are always in kilograms
+### D3.2.3 Weights are always in kilograms
 
-Every weight is stored in kilograms, as `numeric(7,3)`: up to 9999.999 kg. The unit is a preference of the user ([6.3](#63-users-and-preferences)), applied only when showing and reading values.
+Every weight is stored in kilograms, as `numeric(7,3)`: up to 9999.999 kg. The unit is a preference of the user ([D3.3](#d33-users-and-preferences)), applied only when showing and reading values.
 
 **Why one unit.** If each set stored its own unit, every sum, chart and record would have to convert first, and one forgotten conversion would mix pounds and kilos silently. A user who switches unit also keeps their whole history.
 
@@ -172,9 +173,9 @@ Every weight is stored in kilograms, as `numeric(7,3)`: up to 9999.999 kg. The u
 
 **Why `numeric` and not `float`.** A `float` is an approximation: 0.1 + 0.2 gives 0.30000000000000004. `numeric` is exact, which matters for numbers added up and compared to find a record.
 
-In a migration, `numeric` is `$table->decimal('weight_kg', 7, 3)`. See the [trap about strings](#611-traps-to-avoid) when reading these values in PHP.
+In a migration, `numeric` is `$table->decimal('weight_kg', 7, 3)`. See the [trap about strings](#d311-traps-to-avoid) when reading these values in PHP.
 
-### 6.2.4 Fixed lists of values
+### D3.2.4 Fixed lists of values
 
 A set's type can only be normal, warm-up, drop or to failure. Two things enforce this:
 
@@ -200,13 +201,13 @@ protected function casts(): array
 
 The database refuses a value outside the list. In PHP, `SetType::WarmUp` cannot be mistyped the way the string `'warmup'` can: a typo is an error at once rather than a comparison that is silently always false.
 
-### 6.2.5 Times
+### D3.2.5 Times
 
 Times written by the device (`started_at`, `completed_at`…) are `timestampTz`, which keeps the exact moment whatever the device's time zone. A workout at 18:00 in Rome and one at 18:00 in London are one hour apart, and the database knows it.
 
 What counts as "Monday" depends on where the user is, so the days of a week are worked out on the device, in the user's own zone.
 
-### 6.2.6 Indexes
+### D3.2.6 Indexes
 
 Postgres indexes primary keys and unique columns by itself, but **not foreign keys**. Each foreign key therefore gets an index, written in the migration:
 
@@ -222,7 +223,7 @@ $table->foreignUuid('plan_id')->constrained()->cascadeOnDelete();
 $table->index(['plan_id', 'position']);     // the days of a plan, in order
 ```
 
-### 6.2.7 Order is a `position` column
+### D3.2.7 Order is a `position` column
 
 Rows in a table have no order of their own: without `ORDER BY`, Postgres may return them in any order. Whatever the user can reorder has an integer `position`, starting at 0, and relations always sort by it:
 
@@ -235,7 +236,7 @@ public function days(): HasMany
 
 **It is not unique, on purpose.** While a reorder is being saved, two rows briefly share a position, and a unique rule would refuse the save.
 
-### 6.2.8 Check constraints
+### D3.2.8 Check constraints
 
 Laravel's migration language has no method for check constraints, so they are written in SQL, right after the table is created:
 
@@ -248,22 +249,22 @@ Giving the constraint a name makes the error readable when it fires. A check pas
 
 ---
 
-## 6.3 Users and preferences
+## D3.3 Users and preferences
 
-**What it stands for.** One row per account. `users` already has `id`, `name`, `email`, `email_verified_at`, `password`, `remember_token` and the timestamps ([5.7](05-backend.md#57-signing-in-sanctum)). The new columns are:
+**What it stands for.** One row per account. `users` already has `id`, `name`, `email`, `email_verified_at`, `password`, `remember_token` and the timestamps ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)). The new columns are:
 
 | Column | Type | Default | What it is for |
 |---|---|---|---|
-| `is_admin` | boolean | false | Opens Filament ([1.4.15](01-ui-design.md#1415-admin-panel-filament)), where it shows as the role "user / admin". Never fillable from a request, or anyone could make themselves an admin |
+| `is_admin` | boolean | false | Opens Filament ([D1.4.15](D1-ui.md#d1415-admin-panel-filament)), where it shows as the role "user / admin". Never fillable from a request, or anyone could make themselves an admin |
 | `disabled_at` | timestampTz, nullable | | Set by an admin to disable an account |
-| `locale` | enum `it`, `en`, `es`, `de` | `en` | The interface's language. Preset from the browser when signing up ([2.4](02-decisions.md#24-languages)) |
+| `locale` | enum `it`, `en`, `es`, `de` | `en` | The interface's language. Preset from the browser when signing up ([D2.4](D2-decisions.md#d24-languages)) |
 | `theme` | enum `dark`, `light`, `system` | `dark` | Saved on the account, so it follows the user to another device |
-| `weight_unit` | enum `kg`, `lb` | `kg` | Which unit to show and read ([6.2.3](#623-weights-are-always-in-kilograms)) |
+| `weight_unit` | enum `kg`, `lb` | `kg` | Which unit to show and read ([D3.2.3](#d323-weights-are-always-in-kilograms)) |
 | `default_rest_seconds` | integer | 90 | Used when a plan item sets no rest |
 | `weight_step` | numeric(5,2) | 2.5 | The stepper's step in workout mode, in the user's unit |
 | `timer_sound` | boolean | true | Sound when the rest ends |
 | `timer_vibration` | boolean | true | Vibration when the rest ends |
-| `active_plan_id` | uuid, nullable → `plans` | | The one active plan ([2.8](02-decisions.md#28-workout-rules)) |
+| `active_plan_id` | uuid, nullable → `plans` | | The one active plan ([D2.8](D2-decisions.md#d28-workout-rules)) |
 
 ```php
 Schema::table('users', function (Blueprint $table) {    // table(), not create(): the table exists
@@ -286,7 +287,7 @@ Schema::table('users', function (Blueprint $table) {
 
 **Why plain columns, not one JSON column for the preferences.** Each column has a type and a default enforced by Postgres, and the list is short. A JSON column would accept anything, including a typo in a key.
 
-**Why `users.active_plan_id` rather than `plans.is_active`.** The rule is "one active plan at a time" ([2.8](02-decisions.md#28-workout-rules)).
+**Why `users.active_plan_id` rather than `plans.is_active`.** The rule is "one active plan at a time" ([D2.8](D2-decisions.md#d28-workout-rules)).
 
 - With `is_active` on each plan, nothing stops two plans from being active at once, and changing plan takes two updates that must both succeed.
 - With one column on the user, a cell cannot hold two plans, so the rule holds by construction, and changing plan is one update.
@@ -295,11 +296,11 @@ What the column cannot check by itself is that the plan belongs to this user and
 
 ---
 
-## 6.4 Exercise library
+## D3.4 Exercise library
 
-### 6.4.1 `muscles` and `equipment`
+### D3.4.1 `muscles` and `equipment`
 
-**What they stand for.** Two short lists, one row per value, used by the library's filters ([1.4.3](01-ui-design.md#143-exercise-library)) and by volume per muscle group ([2.8](02-decisions.md#28-workout-rules)). They have the same columns:
+**What they stand for.** Two short lists, one row per value, used by the library's filters ([D1.4.3](D1-ui.md#d143-exercise-library)) and by volume per muscle group ([D2.8](D2-decisions.md#d28-workout-rules)). They have the same columns:
 
 | Column | Type | What it is for |
 |---|---|---|
@@ -324,32 +325,32 @@ They start with the values of free-exercise-db:
 
 **Why tables rather than PHP enums.** Foreign keys keep them consistent, the filters join on them, their names are translated like any other content, and an admin can correct a name without a release.
 
-### 6.4.2 `exercises`
+### D3.4.2 `exercises`
 
-**What it stands for.** One row per exercise in the library, of either kind ([2.3](02-decisions.md#23-exercise-library)). An empty `owner_id` means public, seen by everyone; a filled one means personal, seen by its owner.
+**What it stands for.** One row per exercise in the library, of either kind ([D2.3](D2-decisions.md#d23-exercise-library)). An empty `owner_id` means public, seen by everyone; a filled one means personal, seen by its owner.
 
 | Column | Type | What it is for |
 |---|---|---|
-| `id` | bigint | A number, see [6.2.1](#621-which-kind-of-id) |
+| `id` | bigint | A number, see [D3.2.1](#d321-which-kind-of-id) |
 | `owner_id` | bigint, nullable → `users` | Empty: public. Filled: personal |
 | `external_id` | string, nullable, unique | The id in free-exercise-db, such as `Barbell_Bench_Press`, so that the import can run again and update instead of duplicating |
-| `equipment_id` | bigint, nullable → `equipment` | One value, as in free-exercise-db and in the editor ([1.4.5](01-ui-design.md#145-exercise-editor)) |
+| `equipment_id` | bigint, nullable → `equipment` | One value, as in free-exercise-db and in the editor ([D1.4.5](D1-ui.md#d145-exercise-editor)) |
 | `name` | jsonb, translatable | Required |
 | `aliases` | jsonb, translatable, nullable | Other names per language, searched with the name: `{"it": ["panca"]}` |
 | `description` | jsonb, translatable, nullable | |
 | `instructions` | jsonb, translatable, nullable | A list of steps per language, as free-exercise-db gives them |
-| `logging_type` | enum `weight_reps`, `reps`, `time`, `distance` | Default `weight_reps`. Decides which fields a set shows ([6.6.3](#663-logged_sets)) |
+| `logging_type` | enum `weight_reps`, `reps`, `time`, `distance` | Default `weight_reps`. Decides which fields a set shows ([D3.6.3](#d363-logged_sets)) |
 | `level` | string, nullable | From the import: beginner, intermediate, expert. Not shown yet |
 | `category` | string, nullable | From the import: strength, stretching, cardio… Not shown yet |
 | `machine_translated` | jsonb | Languages not yet reviewed by a person, such as `["es", "de"]`; default `[]` |
 | `youtube_url` | string, nullable | The editor's alternative to uploading a video |
-| `created_at`, `updated_at`, `deleted_at` | | Soft deletes ([6.7](#67-what-happens-on-delete)) |
+| `created_at`, `updated_at`, `deleted_at` | | Soft deletes ([D3.7](#d37-what-happens-on-delete)) |
 
 ```php
 Schema::create('exercises', function (Blueprint $table) {
     $table->id();
     // constrained('users'): the column's name does not say the table, so it is stated.
-    // Nothing after it: Postgres refuses to delete a user who still owns exercises (6.7)
+    // Nothing after it: Postgres refuses to delete a user who still owns exercises (D3.7)
     $table->foreignId('owner_id')->nullable()->index()->constrained('users');
     $table->string('external_id')->nullable()->unique();
     $table->foreignId('equipment_id')->nullable()->index()->constrained('equipment');
@@ -392,9 +393,9 @@ class Exercise extends Model
 }
 ```
 
-### 6.4.3 `exercise_muscle`
+### D3.4.3 `exercise_muscle`
 
-**What it stands for.** Which muscles an exercise works, and how. A pivot table ([idea 5](#611-a-database-in-ten-ideas)).
+**What it stands for.** Which muscles an exercise works, and how. A pivot table ([idea 5](#d311-a-database-in-ten-ideas)).
 
 | Column | Type | What it is for |
 |---|---|---|
@@ -417,14 +418,14 @@ $exercise->muscles()->attach($chest, ['role' => 'primary']);        // adds a pi
 $exercise->muscles()->wherePivot('role', 'primary')->pluck('slug'); // ["chest"]
 ```
 
-### 6.4.4 Photos and videos
+### D3.4.4 Photos and videos
 
 They go in the existing `media` table of spatie/laravel-medialibrary, not in columns of `exercises`, in the collections `photos` and `videos`. Its `order_column` holds the order chosen in the editor, and the first photo is the cover.
 
-- The limits of [2.5](02-decisions.md#25-photos-and-videos) (2 videos, 5 photos, sizes) are checked when uploading, not by the database.
+- The limits of [D2.5](D2-decisions.md#d25-photos-and-videos) (2 videos, 5 photos, sizes) are checked when uploading, not by the database.
 - A soft-deleted exercise **keeps its files**: the library removes them only on a `forceDelete()`.
 
-### 6.4.5 Translations
+### D3.4.5 Translations
 
 A translatable column holds one value per language. This is what the `name` column really contains:
 
@@ -439,7 +440,7 @@ The `HasTranslations` trait makes this invisible in the code: `$exercise->name` 
 | `it` | Panca piana con bilanciere | Panca mia |
 | `de` | Barbell bench press *(no German: falls back to English)* | Panca mia *(no German or English: falls back to what exists)* |
 
-The right-hand column needs a setting. A personal exercise holds one language only ([2.4](02-decisions.md#24-languages)), and by default the package answers with an **empty string** when both the language and the English fallback are missing. BE-1 turns on `fallbackAny` in a service provider:
+The right-hand column needs a setting. A personal exercise holds one language only ([D2.4](D2-decisions.md#d24-languages)), and by default the package answers with an **empty string** when both the language and the English fallback are missing. BE-1 turns on `fallbackAny` in a service provider:
 
 ```php
 Translatable::fallback(fallbackLocale: 'en', fallbackAny: true);
@@ -452,9 +453,9 @@ $exercise->getTranslation('instructions', 'en');
 // ["Lie on the bench.", "Lower the bar to the chest."]
 ```
 
-### 6.4.6 Searching
+### D3.4.6 Searching
 
-Search looks in the name and the aliases, in the user's language, among public exercises and the user's own ([1.4.3](01-ui-design.md#143-exercise-library)):
+Search looks in the name and the aliases, in the user's language, among public exercises and the user's own ([D1.4.3](D1-ui.md#d143-exercise-library)):
 
 ```php
 Exercise::query()
@@ -476,13 +477,13 @@ Exercise::query()
 
 `name->it` is how Laravel reads a key inside a JSON column; it becomes `"name"->>'it'` in SQL. No special index is needed: a thousand rows do not need one, and a full-text index can come later if search slows down.
 
-### 6.4.7 What is not in the table
+### D3.4.7 What is not in the table
 
-The "tips and common mistakes" of [1.4.4](01-ui-design.md#144-exercise-details). free-exercise-db has none, so the column would be empty. A `tips` column is added when there is content to put in it.
+The "tips and common mistakes" of [D1.4.4](D1-ui.md#d144-exercise-details). free-exercise-db has none, so the column would be empty. A `tips` column is added when there is content to put in it.
 
 ---
 
-## 6.5 Plans
+## D3.5 Plans
 
 A plan has four levels, because each level holds different facts:
 
@@ -495,9 +496,9 @@ Push Pull Legs                     plans        the name and the goal
         └── 2   8–10 reps at 80 kg
 ```
 
-### 6.5.1 `plans`
+### D3.5.1 `plans`
 
-**What it stands for.** One workout plan (in Italian, *scheda*). Created by the user in the plan editor ([1.4.8](01-ui-design.md#148-plan-editor)).
+**What it stands for.** One workout plan (in Italian, *scheda*). Created by the user in the plan editor ([D1.4.8](D1-ui.md#d148-plan-editor)).
 
 | Column | Type | What it is for |
 |---|---|---|
@@ -506,8 +507,8 @@ Push Pull Legs                     plans        the name and the goal
 | `name` | string | "Push Pull Legs" |
 | `goal` | string, nullable | |
 | `notes` | text, nullable | |
-| `version` | integer | Starts at 1, plus 1 on every save ([6.5.7](#657-when-a-plan-is-changed-in-two-places)) |
-| `archived_at` | timestampTz, nullable | Filled: archived ([1.4.6](01-ui-design.md#146-plan-list)) |
+| `version` | integer | Starts at 1, plus 1 on every save ([D3.5.7](#d357-when-a-plan-is-changed-in-two-places)) |
+| `archived_at` | timestampTz, nullable | Filled: archived ([D1.4.6](D1-ui.md#d146-plan-list)) |
 | `created_at`, `updated_at` | | |
 
 ```php
@@ -524,9 +525,9 @@ Schema::create('plans', function (Blueprint $table) {
 });
 ```
 
-### 6.5.2 `plan_days`
+### D3.5.2 `plan_days`
 
-**What it stands for.** One training day of a plan, such as "Day A – Push". Its `position` is the order the suggested day follows ([2.8](02-decisions.md#28-workout-rules)).
+**What it stands for.** One training day of a plan, such as "Day A – Push". Its `position` is the order the suggested day follows ([D2.8](D2-decisions.md#d28-workout-rules)).
 
 | Column | Type | What it is for |
 |---|---|---|
@@ -547,7 +548,7 @@ Schema::create('plan_days', function (Blueprint $table) {
 });
 ```
 
-### 6.5.3 `plan_items`
+### D3.5.3 `plan_items`
 
 **What it stands for.** One exercise in one day. The same exercise can appear on many days and in many plans, each with its own rest and sets, which is why this table exists rather than days pointing straight at exercises.
 
@@ -566,7 +567,7 @@ Schema::create('plan_days', function (Blueprint $table) {
 Schema::create('plan_items', function (Blueprint $table) {
     $table->uuid('id')->primary();
     $table->foreignUuid('plan_day_id')->constrained()->cascadeOnDelete();
-    $table->foreignId('exercise_id')->index()->constrained();    // refused while in use (6.7)
+    $table->foreignId('exercise_id')->index()->constrained();    // refused while in use (D3.7)
     $table->integer('position');
     $table->smallInteger('superset_group')->nullable();
     $table->integer('rest_seconds')->nullable();
@@ -576,7 +577,7 @@ Schema::create('plan_items', function (Blueprint $table) {
 });
 ```
 
-**Supersets.** Two or more exercises done in turn ([1.4.8](01-ui-design.md#148-plan-editor)) are marked by giving them the same number. Here bench press and rows form a superset, and the squat is on its own:
+**Supersets.** Two or more exercises done in turn ([D1.4.8](D1-ui.md#d148-plan-editor)) are marked by giving them the same number. Here bench press and rows form a superset, and the squat is on its own:
 
 | position | exercise | superset_group |
 |---|---|---|
@@ -586,16 +587,16 @@ Schema::create('plan_items', function (Blueprint $table) {
 
 The numbers mean nothing except "same or different", and they must belong to neighbouring items, which the Form Request checks. A separate `supersets` table would hold nothing but an id.
 
-### 6.5.4 `plan_sets`
+### D3.5.4 `plan_sets`
 
 **What it stands for.** One planned set, warm-ups included.
 
 | Column | Type | What it is for |
 |---|---|---|
-| `id` | bigint | Nothing points to these rows ([6.5.6](#656-saving-a-plan)) |
+| `id` | bigint | Nothing points to these rows ([D3.5.6](#d356-saving-a-plan)) |
 | `plan_item_id` | uuid → `plan_items` | |
 | `position` | integer | |
-| `set_type` | enum `normal`, `warm_up`, `drop`, `failure` | Default `normal` ([2.8](02-decisions.md#28-workout-rules)) |
+| `set_type` | enum `normal`, `warm_up`, `drop`, `failure` | Default `normal` ([D2.8](D2-decisions.md#d28-workout-rules)) |
 | `target_reps_min`, `target_reps_max` | integer, nullable | "8–10" is 8 and 10; "8" is 8 and 8. Check: min ≤ max |
 | `target_weight_kg` | numeric(7,3), nullable | |
 | `target_rpe` | numeric(3,1), nullable | How hard it should feel. Check: between 1 and 10 |
@@ -622,11 +623,11 @@ DB::statement('ALTER TABLE plan_sets ADD CONSTRAINT plan_sets_rpe_range
     CHECK (target_rpe BETWEEN 1 AND 10)');
 ```
 
-**Why one row per set, rather than "4 sets" on the plan item.** The screens need each set's own type and targets: in workout mode the warm-up asks for 40 kg and the next set for 80 kg ([1.4.9](01-ui-design.md#149-workout-mode)). The text "4 × 8–10 · + 2 warm-up" of [1.4.7](01-ui-design.md#147-plan-details) is counted from the rows.
+**Why one row per set, rather than "4 sets" on the plan item.** The screens need each set's own type and targets: in workout mode the warm-up asks for 40 kg and the next set for 80 kg ([D1.4.9](D1-ui.md#d149-workout-mode)). The text "4 × 8–10 · + 2 warm-up" of [D1.4.7](D1-ui.md#d147-plan-details) is counted from the rows.
 
 **Set aside:** a JSON column on `plan_items` holding the list of sets. It looks simpler, but it would lose the check constraints.
 
-### 6.5.5 The relations in code
+### D3.5.5 The relations in code
 
 ```php
 class Plan extends Model
@@ -650,7 +651,7 @@ class PlanItem extends Model
 
     public function exercise(): BelongsTo
     {
-        // withTrashed(): the exercise may be soft-deleted, and the plan must still show it (6.11)
+        // withTrashed(): the exercise may be soft-deleted, and the plan must still show it (D3.11)
         return $this->belongsTo(Exercise::class)->withTrashed();
     }
 }
@@ -668,7 +669,7 @@ $plan->days[0]->items[0]->sets->map(fn ($set) => [$set->set_type->value, $set->t
 // [["warm_up", "40.000"], ["normal", "80.000"], ["normal", "80.000"]]
 ```
 
-### 6.5.6 Saving a plan
+### D3.5.6 Saving a plan
 
 The editor sends the whole plan at once, and the server does this in one transaction:
 
@@ -678,11 +679,11 @@ The editor sends the whole plan at once, and the server does this in one transac
 
 The two levels differ on purpose. Days and items **keep their UUIDs** across saves, because sessions point to them: a session done last week stays linked to the same `plan_items` row even after its reps change. Nothing points to `plan_sets`, so rewriting them is simpler than working out which set changed. That is why they have a plain number as their id.
 
-**The editor's draft is kept on the device** (IndexedDB), not in the database. "Discard changes" ([1.4.8](01-ui-design.md#148-plan-editor)) goes back to the last saved version, which is the row in `plans`. A draft therefore does not follow the user from desktop to phone; a saved plan does.
+**The editor's draft is kept on the device** (IndexedDB), not in the database. "Discard changes" ([D1.4.8](D1-ui.md#d148-plan-editor)) goes back to the last saved version, which is the row in `plans`. A draft therefore does not follow the user from desktop to phone; a saved plan does.
 
-### 6.5.7 When a plan is changed in two places
+### D3.5.7 When a plan is changed in two places
 
-[2.7](02-decisions.md#27-offline-and-sync) says that the last change wins, with a warning. The `version` column is how the server knows there is something to warn about:
+[D2.7](D2-decisions.md#d27-offline-and-sync) says that the last change wins, with a warning. The `version` column is how the server knows there is something to warn about:
 
 | Step | Phone (offline) | Laptop | Server's `version` |
 |---|---|---|---|
@@ -691,15 +692,15 @@ The two levels differ on purpose. Days and items **keep their UUIDs** across sav
 | 3. The phone, offline, changes a rest | waits to send | | 4 |
 | 4. The phone is back online and sends | sends "started from 3" | | 5 |
 
-At step 4, the phone started from 3 but the server is at 4, so someone else got there first. The save still goes through, and the answer carries the warning "This plan was changed somewhere else" ([1.6](01-ui-design.md#16-states-and-edge-cases)).
+At step 4, the phone started from 3 but the server is at 4, so someone else got there first. The save still goes through, and the answer carries the warning "This plan was changed somewhere else" ([D1.6](D1-ui.md#d16-states-and-edge-cases)).
 
 **Why a number and not `updated_at`.** Comparing times would mean trusting two clocks to agree, and a phone's clock can be minutes off. A counter cannot be wrong that way.
 
 ---
 
-## 6.6 Workouts
+## D3.6 Workouts
 
-### 6.6.1 `workout_sessions`
+### D3.6.1 `workout_sessions`
 
 **What it stands for.** One workout, from the moment Start is tapped. Created on the phone, usually sent to the server later.
 
@@ -708,14 +709,14 @@ At step 4, the phone started from 3 but the server is at 4, so someone else got 
 | `id` | uuid | Created on the device |
 | `user_id` | bigint → `users` | |
 | `plan_id` | uuid, nullable → `plans` | Empty for a free workout, or once the plan is deleted |
-| `plan_day_id` | uuid, nullable → `plan_days` | The same. Also finds "the last time this day was done" ([1.4.10](01-ui-design.md#1410-workout-summary)) |
+| `plan_day_id` | uuid, nullable → `plan_days` | The same. Also finds "the last time this day was done" ([D1.4.10](D1-ui.md#d1410-workout-summary)) |
 | `plan_name`, `day_name` | string, nullable | Copies of the names when the session started |
 | `started_at` | timestampTz | |
-| `finished_at` | timestampTz, nullable | Empty: still in progress, which is what Home's banner looks for ([1.4.2](01-ui-design.md#142-home)) |
+| `finished_at` | timestampTz, nullable | Empty: still in progress, which is what Home's banner looks for ([D1.4.2](D1-ui.md#d142-home)) |
 | `duration_seconds` | integer, nullable | Set by the device at the end |
 | `feeling` | smallint, nullable | The summary's 1–5. Check: between 1 and 5 |
 | `notes` | text, nullable | |
-| `created_at`, `updated_at`, `deleted_at` | | Soft deletes ([6.7](#67-what-happens-on-delete)) |
+| `created_at`, `updated_at`, `deleted_at` | | Soft deletes ([D3.7](#d37-what-happens-on-delete)) |
 
 ```php
 Schema::create('workout_sessions', function (Blueprint $table) {
@@ -745,7 +746,7 @@ DB::statement('ALTER TABLE workout_sessions ADD CONSTRAINT workout_sessions_feel
 
 **One session in progress at a time is not enforced by the database.** Two phones offline could each start one, and refusing the second when it syncs would lose a workout. When more than one is open, Home offers the most recent.
 
-### 6.6.2 `session_exercises`
+### D3.6.2 `session_exercises`
 
 **What it stands for.** One exercise as done in one session.
 
@@ -776,7 +777,7 @@ Schema::create('session_exercises', function (Blueprint $table) {
 
 **Set aside: logged sets pointing straight at the exercise,** with no table in between. There would then be no place for the order of the exercises, a note on one of them, or an exercise that was skipped.
 
-### 6.6.3 `logged_sets`
+### D3.6.3 `logged_sets`
 
 **What it stands for.** One completed set: the tap on ✓.
 
@@ -785,7 +786,7 @@ Schema::create('session_exercises', function (Blueprint $table) {
 | `id` | uuid | |
 | `session_exercise_id` | uuid → `session_exercises` | |
 | `position` | integer | |
-| `set_type` | enum `normal`, `warm_up`, `drop`, `failure` | Warm-ups count neither for volume nor for records ([2.8](02-decisions.md#28-workout-rules)) |
+| `set_type` | enum `normal`, `warm_up`, `drop`, `failure` | Warm-ups count neither for volume nor for records ([D2.8](D2-decisions.md#d28-workout-rules)) |
 | `weight_kg` | numeric(7,3), nullable | Check: not negative |
 | `reps` | integer, nullable | Check: not negative |
 | `duration_seconds` | integer, nullable | For `time` exercises |
@@ -822,15 +823,15 @@ DB::statement('ALTER TABLE logged_sets ADD CONSTRAINT logged_sets_reps_not_negat
 
 The rule lies across two tables, which a check constraint cannot see, so the Form Request enforces it.
 
-**Why the set type is here as well as in `plan_sets`.** The type can be changed during a workout ([1.4.9](01-ui-design.md#149-workout-mode)), and what counts for statistics is what was really done.
+**Why the set type is here as well as in `plan_sets`.** The type can be changed during a workout ([D1.4.9](D1-ui.md#d149-workout-mode)), and what counts for statistics is what was really done.
 
-### 6.6.4 How the screens use these tables
+### D3.6.4 How the screens use these tables
 
 - **A row exists only once a set is ticked.** The sets still to do in workout mode come from the plan. Unticking removes the row.
 - **A skipped exercise** is a `session_exercises` row with no sets. "Exercises completed" in the summary counts those with at least one.
 - **Swapping an exercise** changes `exercise_id` and keeps `plan_item_id`: the plan's slot is the same, the exercise is different.
 
-**The "Last" column** ([1.4.9](01-ui-design.md#149-workout-mode)) shows what was done last time with this exercise, in any plan:
+**The "Last" column** ([D1.4.9](D1-ui.md#d149-workout-mode)) shows what was done last time with this exercise, in any plan:
 
 ```php
 WorkoutSession::query()                                // starts from the session: deleted ones are hidden
@@ -847,7 +848,7 @@ WorkoutSession::query()                                // starts from the sessio
 
 Each row is shown next to the set in the same `position`.
 
-**The suggested day** ([2.8](02-decisions.md#28-workout-rules)) is the day after the last one completed, back to the first after the last:
+**The suggested day** ([D2.8](D2-decisions.md#d28-workout-rules)) is the day after the last one completed, back to the first after the last:
 
 ```php
 $plan = Plan::find($user->active_plan_id);
@@ -868,9 +869,9 @@ $index = $days->search(fn ($day) => $day->id === $lastDayId);
 return $index === false ? $days->first() : ($days[$index + 1] ?? $days->first());
 ```
 
-### 6.6.5 Sending a session to the server
+### D3.6.5 Sending a session to the server
 
-The phone sends the whole session, with its exercises and sets, when the network is back, and may send it more than once. The server must therefore end up in the same state however many times it receives it ([2.7](02-decisions.md#27-offline-and-sync)). This is the idea; FEAT-3 writes the real endpoint, with its Form Request:
+The phone sends the whole session, with its exercises and sets, when the network is back, and may send it more than once. The server must therefore end up in the same state however many times it receives it ([D2.7](D2-decisions.md#d27-offline-and-sync)). This is the idea; FEAT-3 writes the real endpoint, with its Form Request:
 
 ```php
 DB::transaction(function () use ($user, $data) {
@@ -878,10 +879,10 @@ DB::transaction(function () use ($user, $data) {
     $session = WorkoutSession::withTrashed()->find($data['id']);
 
     if ($session && $session->user_id !== $user->id) {
-        abort(403);                                    // someone else's UUID (6.2.1)
+        abort(403);                                    // someone else's UUID (D3.2.1)
     }
     if ($session?->trashed()) {
-        return;                                        // deleted elsewhere: do not bring it back (6.7)
+        return;                                        // deleted elsewhere: do not bring it back (D3.7)
     }
 
     // ??= assigns only when the left side is empty: an unknown UUID is a new session
@@ -916,7 +917,7 @@ DB::transaction(function () use ($user, $data) {
 
 ---
 
-## 6.7 What happens on delete
+## D3.7 What happens on delete
 
 A foreign key has to say what happens when the row it points to is deleted. There are three answers, and each is used on purpose:
 
@@ -937,7 +938,7 @@ The full list:
 | `users.active_plan_id`, `workout_sessions.plan_id`, `workout_sessions.plan_day_id`, `session_exercises.plan_item_id` | set to empty |
 | `exercises.owner_id`, `exercises.equipment_id`, `exercise_muscle.muscle_id`, `plan_items.exercise_id`, `session_exercises.exercise_id` | refuse |
 
-### 6.7.1 Deleting a plan
+### D3.7.1 Deleting a plan
 
 Its days, items and sets go. The sessions stay, and this is what remained of a session after its plan was deleted:
 
@@ -950,17 +951,17 @@ Its days, items and sets go. The sessions stay, and this is what remained of a s
 | Logged sets of the session | all 3 still there |
 | `users.active_plan_id` | *(empty)*, so Home shows its empty state |
 
-### 6.7.2 Deleting an exercise: a soft delete
+### D3.7.2 Deleting an exercise: a soft delete
 
 Plans and history point to the exercise, and they must keep working. So it gets a `deleted_at`: it disappears from the library and from search, but a plan or a past session can still show its name and photos. A hard delete is refused while anything points to it.
 
-### 6.7.3 Deleting a session: a soft delete
+### D3.7.3 Deleting a session: a soft delete
 
-A device may retry sending a session after the user deleted it elsewhere ([6.6.5](#665-sending-a-session-to-the-server)). With the row gone, the retry would simply create it again. With the row still there, the server sees the UUID, sees that it is deleted, and ignores it. The row acts as a marker that says "this one is gone".
+A device may retry sending a session after the user deleted it elsewhere ([D3.6.5](#d365-sending-a-session-to-the-server)). With the row gone, the retry would simply create it again. With the row still there, the server sees the UUID, sees that it is deleted, and ignores it. The row acts as a marker that says "this one is gone".
 
-### 6.7.4 Deleting an account: an action in the code
+### D3.7.4 Deleting an account: an action in the code
 
-Account deletion arrives in phase 2 ([1.4.14](01-ui-design.md#1414-profile-and-settings)). It has to run in this order:
+Account deletion arrives in phase 2 ([D1.4.14](D1-ui.md#d1414-profile-and-settings)). It has to run in this order:
 
 ```php
 DB::transaction(function () use ($user) {
@@ -987,20 +988,20 @@ So `exercises.owner_id` has no cascade, on purpose: a query that skips these ste
 
 ---
 
-## 6.8 Computed, never stored
+## D3.8 Computed, never stored
 
 These values are always worked out from the rows, so they can never disagree with them:
 
 | Value | Worked out from | Rule |
 |---|---|---|
-| Volume, per session, exercise or muscle | `logged_sets` | weight × reps, warm-ups excluded ([2.8](02-decisions.md#28-workout-rules)) |
+| Volume, per session, exercise or muscle | `logged_sets` | weight × reps, warm-ups excluded ([D2.8](D2-decisions.md#d28-workout-rules)) |
 | Estimated one-rep max | `logged_sets` | Epley: weight × (1 + reps / 30), warm-ups excluded |
-| Personal records | `logged_sets`, per exercise | [1.4.12](01-ui-design.md#1412-progress) |
-| Suggested day | The last finished session and `plan_days.position` | [6.6.4](#664-how-the-screens-use-these-tables) |
+| Personal records | `logged_sets`, per exercise | [D1.4.12](D1-ui.md#d1412-progress) |
+| Suggested day | The last finished session and `plan_days.position` | [D3.6.4](#d364-how-the-screens-use-these-tables) |
 | A plan's "last used" | The latest `workout_sessions.started_at` of that plan | |
 | A day's estimated duration | Its `plan_sets` and rests | |
 
-**The problem with storing them.** If a session's volume were saved in a column, then fixing a wrong weight in history ([1.4.11](01-ui-design.md#1411-history)) would have to update that column too, and any place that forgot would leave two numbers disagreeing, with no way to tell which is right.
+**The problem with storing them.** If a session's volume were saved in a column, then fixing a wrong weight in history ([D1.4.11](D1-ui.md#d1411-history)) would have to update that column too, and any place that forgot would leave two numbers disagreeing, with no way to tell which is right.
 
 Volume, for instance:
 
@@ -1019,26 +1020,26 @@ If a query becomes slow with years of data, a stored copy can be added then, wit
 
 ---
 
-## 6.9 Left for later
+## D3.9 Left for later
 
-Each comes with a new migration when its phase arrives ([1.8](01-ui-design.md#18-release-phases-and-open-questions)); nothing above needs to change for it.
+Each comes with a new migration when its phase arrives ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)); nothing above needs to change for it.
 
 | What | Phase | Probably |
 |---|---|---|
 | Share link | 2 | `plans.share_token`, unique and nullable: empty means the link is off |
-| Duplicating a plan, and its author | 2 | `plans.source_plan_id`. A duplicate must also copy any personal exercises of the author, or deleting that account would be refused ([6.7](#67-what-happens-on-delete)) |
-| Template plans | Not decided | Open question ([1.8](01-ui-design.md#18-release-phases-and-open-questions)); probably plans without an owner |
+| Duplicating a plan, and its author | 2 | `plans.source_plan_id`. A duplicate must also copy any personal exercises of the author, or deleting that account would be refused ([D3.7](#d37-what-happens-on-delete)) |
+| Template plans | Not decided | Open question ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)); probably plans without an owner |
 | Onboarding's goal, Google and Apple sign-in | 2 | Columns on `users`, a `social_accounts` table |
 | Exercises proposed by users | 2 | A status on `exercises` |
 | Coach and athlete links, body measurements, multi-week programming | 3 | Tables of their own |
 
 ---
 
-## 6.10 The full story: one week of training
+## D3.10 The full story: one week of training
 
 Every table, in the order they fill up. UUIDs are shortened to their last characters. Ada is a made-up user with id 1.
 
-**Saturday: Ada builds a plan.** The plan editor creates the ids on the device and saves the whole plan ([6.5.6](#656-saving-a-plan)):
+**Saturday: Ada builds a plan.** The plan editor creates the ids on the device and saves the whole plan ([D3.5.6](#d356-saving-a-plan)):
 
 `plans`
 
@@ -1095,11 +1096,11 @@ Ada taps **Set as active**, which makes `users.active_plan_id` `…a1`.
 
 **Ada finishes.** The phone fills `finished_at` and `duration_seconds`. The summary shows the volume, without the warm-up: 80 × 8 + 80 × 7 = **1200 kg**.
 
-**Outside the gym the signal returns.** The phone sends the session ([6.6.5](#665-sending-a-session-to-the-server)). The answer is lost in a tunnel, so the phone sends it again. The UUIDs already exist, so there are still three sets.
+**Outside the gym the signal returns.** The phone sends the session ([D3.6.5](#d365-sending-a-session-to-the-server)). The answer is lost in a tunnel, so the phone sends it again. The UUIDs already exist, so there are still three sets.
 
-**Tuesday: Home suggests a day.** The last finished session of the active plan was Day A, at position 0, so it suggests **Day B** ([6.6.4](#664-how-the-screens-use-these-tables)).
+**Tuesday: Home suggests a day.** The last finished session of the active plan was Day A, at position 0, so it suggests **Day B** ([D3.6.4](#d364-how-the-screens-use-these-tables)).
 
-**Thursday: Ada chooses Day A again.** The suggestion is only a suggestion ([2.8](02-decisions.md#28-workout-rules)). The "Last" column shows Monday's sets: W 40×10, 80×8, 80×7. Ada goes heavier:
+**Thursday: Ada chooses Day A again.** The suggestion is only a suggestion ([D2.8](D2-decisions.md#d28-workout-rules)). The "Last" column shows Monday's sets: W 40×10, 80×8, 80×7. Ada goes heavier:
 
 | position | set_type | weight_kg | reps |
 |---|---|---|---|
@@ -1107,19 +1108,19 @@ Ada taps **Set as active**, which makes `users.active_plan_id` `…a1`.
 | 1 | normal | 82.500 | 8 |
 | 2 | normal | 82.500 | 6 |
 
-The volume is 82.5 × 8 + 82.5 × 6 = **1155 kg**, a little less than Monday's. The best set's estimated one-rep max is 82.5 × (1 + 8 / 30) = **104.5 kg**, up from Monday's 101.3 kg. Neither number is stored ([6.8](#68-computed-never-stored)).
+The volume is 82.5 × 8 + 82.5 × 6 = **1155 kg**, a little less than Monday's. The best set's estimated one-rep max is 82.5 × (1 + 8 / 30) = **104.5 kg**, up from Monday's 101.3 kg. Neither number is stored ([D3.8](#d38-computed-never-stored)).
 
 **Friday: Ada changes the plan to 90 kg.** The item `…i1` keeps its UUID and its `plan_sets` are rewritten. The sessions are untouched: Monday still says 80 kg, because it reads `logged_sets`, not the plan.
 
-**Next month: Ada deletes the plan.** Its days, items and sets go. Both sessions stay, with `plan_id` empty, and history still reads "Push Pull Legs · Day A – Push" from the copies. Progress on the bench press is intact, because it follows `exercise_id` ([6.7.1](#671-deleting-a-plan)).
+**Next month: Ada deletes the plan.** Its days, items and sets go. Both sessions stay, with `plan_id` empty, and history still reads "Push Pull Legs · Day A – Push" from the copies. Progress on the bench press is intact, because it follows `exercise_id` ([D3.7.1](#d371-deleting-a-plan)).
 
 ---
 
-## 6.11 Traps to avoid
+## D3.11 Traps to avoid
 
 Each of these fails silently or surprisingly. The ones with a result below were seen in the test run; the others come from how Laravel and the packages are written.
 
-**A relation to a soft-deleted row gives `null`.** A plain `belongsTo(Exercise::class)` hides soft-deleted exercises, so history would have a session exercise with no exercise, and the page would crash on `$row->exercise->name`. The relations from `plan_items` and `session_exercises` use `->withTrashed()` ([6.5.5](#655-the-relations-in-code)).
+**A relation to a soft-deleted row gives `null`.** A plain `belongsTo(Exercise::class)` hides soft-deleted exercises, so history would have a session exercise with no exercise, and the page would crash on `$row->exercise->name`. The relations from `plan_items` and `session_exercises` use `->withTrashed()` ([D3.5.5](#d355-the-relations-in-code)).
 
 **`SoftDeletes` hides rows only in queries on its own model.** After deleting a session, this still counted it:
 
@@ -1127,26 +1128,26 @@ Each of these fails silently or surprisingly. The ones with a result below were 
 SessionExercise::where('exercise_id', $id)->count();    // 2, one of them from the deleted session
 ```
 
-So queries about history start from `WorkoutSession` ([6.6.4](#664-how-the-screens-use-these-tables)). A query that cannot must filter the deleted sessions itself, and each such query gets a test.
+So queries about history start from `WorkoutSession` ([D3.6.4](#d364-how-the-screens-use-these-tables)). A query that cannot must filter the deleted sessions itself, and each such query gets a test.
 
-**A `decimal` column is a string in PHP.** With the cast `'weight_kg' => 'decimal:3'`, the value is `"80.000"`, to keep it exact. Adding these in PHP would convert them to imprecise floats, so sums go in the database ([6.8](#68-computed-never-stored)).
+**A `decimal` column is a string in PHP.** With the cast `'weight_kg' => 'decimal:3'`, the value is `"80.000"`, to keep it exact. Adding these in PHP would convert them to imprecise floats, so sums go in the database ([D3.8](#d38-computed-never-stored)).
 
 **A plain `where` needs the enum's `->value`.** On a query, `where('set_type', '!=', SetType::WarmUp->value)` passes the string `warm_up` that the column holds.
 
-**Database cascades run no PHP.** No model event fires, so `InteractsWithMedia` never hears about it and files stay on disk. Anything with files is deleted through Eloquent, as in [6.7.4](#674-deleting-an-account-an-action-in-the-code).
+**Database cascades run no PHP.** No model event fires, so `InteractsWithMedia` never hears about it and files stay on disk. Anything with files is deleted through Eloquent, as in [D3.7.4](#d374-deleting-an-account-an-action-in-the-code).
 
-**`delete()` on a soft-deleting model keeps the files.** Only `forceDelete()` removes them, and that is what we want in a soft delete ([6.4.4](#644-photos-and-videos)).
+**`delete()` on a soft-deleting model keeps the files.** Only `forceDelete()` removes them, and that is what we want in a soft delete ([D3.4.4](#d344-photos-and-videos)).
 
 **`->index()` goes before `->constrained()`.** `constrained()` returns a different object, the foreign key's own definition, so column options such as `->index()` and `->nullable()` must come first.
 
-**Check constraints are not in the migration language.** They need `DB::statement()`, right after creating the table ([6.2.8](#628-check-constraints)). Forgetting them raises no error; bad data just gets in.
+**Check constraints are not in the migration language.** They need `DB::statement()`, right after creating the table ([D3.2.8](#d328-check-constraints)). Forgetting them raises no error; bad data just gets in.
 
-**Without `fallbackAny`, a personal exercise can have an empty name** ([6.4.5](#645-translations)).
+**Without `fallbackAny`, a personal exercise can have an empty name** ([D3.4.5](#d345-translations)).
 
-**A table named `sessions` already exists** ([6.2.2](#622-table-names)).
+**A table named `sessions` already exists** ([D3.2.2](#d322-table-names)).
 
-**An id in `#[Fillable]` needs an ownership check.** Accepting the device's `id` is required for offline working, and it means the endpoint decides who may touch that row ([6.6.5](#665-sending-a-session-to-the-server)).
+**An id in `#[Fillable]` needs an ownership check.** Accepting the device's `id` is required for offline working, and it means the endpoint decides who may touch that row ([D3.6.5](#d365-sending-a-session-to-the-server)).
 
 ---
 
-← [5. Backend](05-backend.md) · [Contents](../README.md#documentation)
+← [D2. Decisions](D2-decisions.md) · [Contents](../README.md) · [C1. Frontend](../concepts/C1-frontend.md) →

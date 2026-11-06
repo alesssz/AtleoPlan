@@ -2,7 +2,7 @@
  * The frame of the sign-in screens: full screen, no navigation, the logo above a
  * card. In the route table (src/router.tsx) it is the parent of those pages, and
  * React Router draws the current one where <Outlet /> is. Routing:
- * docs/04-frontend.md 4.5; the screens: docs/01-ui-design.md 1.4.1.
+ * docs/concepts/C1-frontend.md C1.5; the screens: docs/design/D1-ui.md D1.4.1.
  */
 import { Outlet } from 'react-router'
 import { BrandMark, Wordmark } from '@/components/brand/Brand'

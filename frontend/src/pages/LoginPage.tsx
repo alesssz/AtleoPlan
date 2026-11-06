@@ -1,9 +1,9 @@
 /*
- * Sign in (route `/login`), docs/01-ui-design.md 1.4.1. Also the model of a form
+ * Sign in (route `/login`), docs/design/D1-ui.md D1.4.1. Also the model of a form
  * in this app, whose four pieces are: a zod schema for the rules
  * (auth-schemas.ts), react-hook-form for the fields, a mutation for the request
  * (src/api/auth.ts), and showRequestError for what the server refuses.
- * Explained step by step in docs/04-frontend.md 4.13.
+ * Explained step by step in docs/concepts/C1-frontend.md C1.13.
  *
  * It does not navigate after signing in: the mutation updates who is signed in,
  * and RequireGuest, around this page, moves on.

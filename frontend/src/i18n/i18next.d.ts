@@ -5,7 +5,7 @@
  *   - t('nav.hom') (a typo, or a key that does not exist) is a type error,
  *     caught by `npm run typecheck` before anyone sees a raw key on screen.
  * The other languages must have the same keys: src/i18n/locales.test.ts
- * checks it. docs/04-frontend.md 4.7.
+ * checks it. docs/concepts/C1-frontend.md C1.7.
  *
  * A .d.ts file ("declaration file") holds types only, never code that runs;
  * TypeScript picks it up because it is in src/ (tsconfig.app.json).

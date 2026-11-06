@@ -2,7 +2,7 @@
 
 /**
  * "Forgot password", in its two steps: asking for the email, then choosing a
- * new password with the token it holds. docs/05-backend.md 5.7.5.
+ * new password with the token it holds. docs/concepts/C2-backend.md C2.7.5.
  */
 
 use App\Models\User;

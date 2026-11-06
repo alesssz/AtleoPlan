@@ -1,10 +1,10 @@
 /*
- * The language picker (Profile, docs/01-ui-design.md 1.4.14). The choice is
+ * The language picker (Profile, docs/design/D1-ui.md D1.4.14). The choice is
  * saved on the account, so it follows the user to other devices. This picker
  * only changes the account: useAccountPreferences (src/routes/) applies it, which
  * switches every text at once, saves it in this browser and updates <html lang>
  * (src/i18n/index.ts). Language names are shown in their own language:
- * "Deutsch", not "Tedesco". Translations: docs/04-frontend.md 4.7.
+ * "Deutsch", not "Tedesco". Translations: docs/concepts/C1-frontend.md C1.7.
  *
  * Built from shadcn/ui's Select (src/components/ui/select.tsx): several
  * small components that fit together (trigger, value, list, items). Its

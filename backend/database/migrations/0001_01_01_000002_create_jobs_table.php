@@ -8,9 +8,9 @@
  * it: sending an email, converting an uploaded video with ffmpeg. The app
  * stores the job in the `jobs` table (QUEUE_CONNECTION=database, set in
  * compose.yaml: no Redis to run) and the `queue` container runs it
- * (`php artisan queue:listen`) (docs/05-backend.md 5.9). How migrations work:
+ * (`php artisan queue:listen`) (docs/concepts/C2-backend.md C2.9). How migrations work:
  * see the header of 0001_01_01_000000_create_users_table.php and
- * docs/05-backend.md 5.6.
+ * docs/concepts/C2-backend.md C2.6.
  */
 
 use Illuminate\Database\Migrations\Migration;

@@ -3,17 +3,17 @@
  * it with <script type="module" src="/src/main.tsx">). It loads the global
  * styles, sets up the translations, and tells React to draw the app inside
  * <div id="root">. From then on React owns that <div> and everything in it.
- * The whole start-up sequence: docs/04-frontend.md 4.3.
+ * The whole start-up sequence: docs/concepts/C1-frontend.md C1.3.
  *
  * A .tsx file is TypeScript (JavaScript plus types) that may also contain
- * JSX, the HTML-like tags such as <App /> below (docs/04-frontend.md 4.4).
+ * JSX, the HTML-like tags such as <App /> below (docs/concepts/C1-frontend.md C1.4).
  * Vite turns it into plain JavaScript before the browser sees it.
  */
 
 // `import { X } from 'package'` is a *named* import: it takes the thing the
 // package exported under the name X. Packages come from node_modules; paths
 // starting with './' are files of this project (the extension is left out).
-// Syntax primer: docs/04-frontend.md 4.12.
+// Syntax primer: docs/concepts/C1-frontend.md C1.12.
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 // An import with no names runs the file only "for its effect".

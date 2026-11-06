@@ -6,9 +6,9 @@
  * TypeScript and React hooks) and keep one code style everywhere, as in
  * Chronovault: 2 spaces, single quotes, no semicolons, and "stroustrup"
  * braces (`else` and `catch` on their own line after the closing brace)
- * (docs/03-conventions.md 3.2). Style problems are fixed by
+ * (docs/project/P1-conventions.md P1.2). Style problems are fixed by
  * `npm run lint -- --fix` (`make fix`); VS Code fixes them on save with the
- * ESLint extension. There is no Prettier. Checks: docs/04-frontend.md 4.10.
+ * ESLint extension. There is no Prettier. Checks: docs/concepts/C1-frontend.md C1.10.
  *
  * A plain .js file (no types): ESLint loads it directly. The configuration
  * is an array of objects; each applies its settings to the files it names,
@@ -36,7 +36,7 @@ export default defineConfig([
       // The same for TypeScript (no `any` by mistake, unsafe patterns…)
       tseslint.configs.recommended,
       // The Rules of Hooks: hooks only at the top of a component, and
-      // complete dependency lists in useEffect / useMemo (docs/04-frontend.md 4.4)
+      // complete dependency lists in useEffect / useMemo (docs/concepts/C1-frontend.md C1.4)
       reactHooks.configs.flat.recommended,
       // Files that export components should export only components, so
       // Fast Refresh can update them in place without reloading the page

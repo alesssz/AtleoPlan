@@ -2,7 +2,7 @@
 
 /**
  * Error messages and emails arrive in the user's language
- * (docs/02-decisions.md 2.4, docs/05-backend.md 5.7.7).
+ * (docs/design/D2-decisions.md D2.4, docs/concepts/C2-backend.md C2.7.7).
  */
 
 use App\Enums\Locale;

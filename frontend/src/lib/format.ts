@@ -1,20 +1,20 @@
 /*
  * Numbers shown to the user, formatted the way their language writes them:
  * "82,5 kg" in Italian, Spanish and German, "82.5 kg" in English
- * (docs/02-decisions.md 2.4). The browser's Intl API knows every language's
+ * (docs/design/D2-decisions.md D2.4). The browser's Intl API knows every language's
  * rules; these helpers only fix the options AtleoPlan uses.
  *
  * Components pass the current language: `formatWeight(82.5, i18n.language)`.
  * Never build numbers with string concatenation (`${value} kg`): the
  * decimal separator would be wrong in three languages out of four.
- * Translations and formats: docs/04-frontend.md 4.7.
+ * Translations and formats: docs/concepts/C1-frontend.md C1.7.
  *
  * Plain TypeScript, no React: a .ts file (no JSX), easy to test on its own
  * (src/lib/format.test.ts).
  */
 
 /**
- * The weight units a user can pick (Profile, docs/01-ui-design.md 1.4.14).
+ * The weight units a user can pick (Profile, docs/design/D1-ui.md D1.4.14).
  * A `type` gives a name to a type. `'kg' | 'lb'` is a union type: the value
  * must be exactly one of these strings, and anything else is a type error.
  */

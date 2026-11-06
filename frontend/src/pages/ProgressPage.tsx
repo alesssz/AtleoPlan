@@ -1,8 +1,8 @@
 /*
  * Progress (route `/progress`): charts, records and history,
- * docs/01-ui-design.md 1.4.11 and 1.4.12. History is in the MVP (FEAT-4),
- * charts come in phase 2 (1.8). Until there are workouts it shows the
- * empty state of 1.6 ("Finish your first workout to see your progress"),
+ * docs/design/D1-ui.md D1.4.11 and D1.4.12. History is in the MVP (FEAT-4),
+ * charts come in phase 2 (D1.8). Until there are workouts it shows the
+ * empty state of D1.6 ("Finish your first workout to see your progress"),
  * its action disabled and marked "Coming soon". Same shape as PlansPage,
  * which is commented in more detail.
  */

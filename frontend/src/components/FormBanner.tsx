@@ -1,7 +1,7 @@
 /*
  * A message at the top of a form: an error about the whole form (no network,
  * too many tries), or a confirmation ("password changed"). Forms:
- * docs/04-frontend.md 4.13.
+ * docs/concepts/C1-frontend.md C1.13.
  */
 import { CircleAlert, CircleCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -14,7 +14,7 @@ interface FormBannerProps {
   children: string
 }
 
-/** The message in a tinted box. Never colour alone (1.7): the icon differs too. */
+/** The message in a tinted box. Never colour alone (D1.7): the icon differs too. */
 export function FormBanner({ variant, children }: FormBannerProps) {
   // A component chosen at runtime goes in a capitalised variable, so JSX reads it as a component
   const Icon = variant === 'error' ? CircleAlert : CircleCheck

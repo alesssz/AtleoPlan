@@ -3,7 +3,7 @@
 
 /**
  * Artisan, Laravel's command-line tool: `php artisan migrate`,
- * `php artisan make:model`, `php artisan test`... (docs/05-backend.md 5.13).
+ * `php artisan make:model`, `php artisan test`... (docs/concepts/C2-backend.md C2.13).
  *
  * The first line (the "shebang") lets the system run this file as a PHP
  * script. In this project PHP runs only in Docker, so commands go through
@@ -23,7 +23,7 @@ use Symfony\Component\Console\Input\ArgvInput;
 define('LARAVEL_START', microtime(true));
 
 // Register the Composer autoloader...
-// From here on classes load by themselves from their namespace (docs/05-backend.md 5.1)
+// From here on classes load by themselves from their namespace (docs/concepts/C2-backend.md C2.1)
 require __DIR__.'/vendor/autoload.php';
 
 // Bootstrap Laravel and handle the command...

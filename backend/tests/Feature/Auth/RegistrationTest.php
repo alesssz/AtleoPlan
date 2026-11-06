@@ -2,7 +2,7 @@
 
 /**
  * Signing up: POST /api/auth/register, answered by Fortify, with the account
- * created by app/Actions/Fortify/CreateNewUser.php. docs/05-backend.md 5.7.3.
+ * created by app/Actions/Fortify/CreateNewUser.php. docs/concepts/C2-backend.md C2.7.3.
  */
 
 use App\Enums\Locale;

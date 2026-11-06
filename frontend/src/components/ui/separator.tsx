@@ -4,7 +4,7 @@
  *
  * shadcn/ui copies each component's source into src/components/ui/, so
  * this file is ours to read; this one wraps Radix's Separator primitive,
- * which adds the right accessibility attributes. Styles: docs/04-frontend.md 4.8.
+ * which adds the right accessibility attributes. Styles: docs/concepts/C1-frontend.md C1.8.
  *
  *   <Separator />                         a 1 px line across the width
  *   <Separator orientation="vertical" />  a 1 px line as tall as its row

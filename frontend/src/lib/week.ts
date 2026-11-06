@@ -1,6 +1,6 @@
 /*
  * The days of the current week, for Home's "This week" strip
- * (docs/01-ui-design.md 1.4.2). Plain TypeScript, no React, so it can be
+ * (docs/design/D1-ui.md D1.4.2). Plain TypeScript, no React, so it can be
  * tested on its own (src/lib/week.test.ts).
  *
  * Weeks start on Monday, as in Italy, Spain and Germany (and in the ISO

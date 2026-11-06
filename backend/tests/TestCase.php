@@ -9,7 +9,7 @@ namespace Tests;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 /**
- * The base of every Feature test (docs/05-backend.md 5.11).
+ * The base of every Feature test (docs/concepts/C2-backend.md C2.11).
  *
  * tests/Pest.php makes each Pest test in tests/Feature run as an object of
  * this class, so `$this` inside the test is one. Laravel's base class boots a

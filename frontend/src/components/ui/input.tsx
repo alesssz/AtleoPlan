@@ -1,7 +1,7 @@
 /*
  * Input: shadcn/ui's text field. shadcn/ui copies each component's source into
  * src/components/ui/, so this file is ours to read and change
- * (docs/04-frontend.md 4.8). Its default height, 32 px, is for mouse use: on
+ * (docs/concepts/C1-frontend.md C1.8). Its default height, 32 px, is for mouse use: on
  * touch screens pass a taller one, as FormField does (src/components/FormField.tsx).
  */
 import * as React from 'react'

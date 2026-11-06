@@ -8,7 +8,7 @@
  * A Pest test file has no class: each `it('...', function () { ... })` is
  * one test, and its description reads as a sentence ("it answers ok...").
  * In tests/Feature, `$this` inside the function is a Tests\TestCase
- * (tests/Pest.php), with Laravel's HTTP helpers (docs/05-backend.md 5.11).
+ * (tests/Pest.php), with Laravel's HTTP helpers (docs/concepts/C2-backend.md C2.11).
  */
 it('answers ok without signing in', function () {
     // getJson() sends a fake GET request asking for JSON, through the whole

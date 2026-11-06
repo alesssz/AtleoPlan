@@ -2,7 +2,7 @@
  * The phone's tab bar: five tabs, the current one marked, labels in the
  * user's language. Also the model of a component test: render, then look
  * at the page the way a user would (by role and visible text, not by CSS
- * class). docs/04-frontend.md 4.10.
+ * class). docs/concepts/C1-frontend.md C1.10.
  *
  * The tools:
  * - Vitest gives describe() (a group of tests), it() (one test) and

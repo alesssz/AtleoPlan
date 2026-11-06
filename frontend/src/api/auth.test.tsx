@@ -2,7 +2,7 @@
  * The account's hooks, on their own. The one worth testing apart is
  * useUpdatePreferences: two changes close together once made the language jump
  * back, because the server's answer to the second carried the old value of the
- * first. docs/04-frontend.md 4.13.
+ * first. docs/concepts/C1-frontend.md C1.13.
  *
  * renderHook runs a hook without drawing any screen. Its `wrapper` is what would
  * surround the hook in the app; here, the provider of the cache.

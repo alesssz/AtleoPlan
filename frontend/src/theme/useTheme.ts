@@ -5,7 +5,7 @@
  * React's own hooks (useState, useContext…). It can only be called at the
  * top level of a component or of another hook: never inside an if, a loop
  * or an event handler, because React tells hooks apart by their call order
- * (the Rules of Hooks, checked by ESLint). docs/04-frontend.md 4.4.
+ * (the Rules of Hooks, checked by ESLint). docs/concepts/C1-frontend.md C1.4.
  */
 import { useContext } from 'react'
 // `type ThemeContextValue` inside the braces: that one name is a type-only import

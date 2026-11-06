@@ -1,14 +1,14 @@
 /*
- * The sidebar on tablets and desktops (docs/01-ui-design.md 1.7):
+ * The sidebar on tablets and desktops (docs/design/D1-ui.md D1.7):
  * - 640–1024 px: compact, icons only (each with an accessible name and a
- *   tooltip, as icon-only controls must have: docs/03-conventions.md 3.2);
+ *   tooltip, as icon-only controls must have: docs/project/P1-conventions.md P1.2);
  * - from 1024 px: wider, with the logo's name and the labels.
  * Hidden on phones, where BottomTabBar takes over.
  *
  * The widths are switched by Tailwind's responsive prefixes: a class with
  * `sm:` applies from 640 px up, with `lg:` from 1024 px up, and a class
- * without a prefix at every width (docs/04-frontend.md 4.8). Routing and
- * NavLink: 4.5. The visual style (lime indicator, glow): 1.5 "Visual style".
+ * without a prefix at every width (docs/concepts/C1-frontend.md C1.8). Routing and
+ * NavLink: C1.5. The visual style (lime indicator, glow): D1.5 "Visual style".
  */
 import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router'
@@ -53,7 +53,7 @@ export function SideNav() {
                   // The browser's own tooltip, useful when only the icon shows
                   title={label}
                   className={({ isActive }) => cn(
-                    // 48 px tall: the minimum tap target (1.5); the icon
+                    // 48 px tall: the minimum tap target (D1.5); the icon
                     // centred when compact, left-aligned with its label from
                     // 1024 px. `relative` lets the indicator below be placed
                     // against this link's edges.

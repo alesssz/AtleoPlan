@@ -3,14 +3,14 @@
  * (imported first thing by src/main.tsx). After this, any component gets its
  * texts with `const { t } = useTranslation()` and `t('nav.home')`: t() looks
  * the key up in the current language's file (src/i18n/locales/*.json).
- * docs/04-frontend.md 4.7, decisions in docs/02-decisions.md 2.4.
+ * docs/concepts/C1-frontend.md C1.7, decisions in docs/design/D2-decisions.md D2.4.
  *
  * Where the language comes from, in order:
  *   1. the choice saved in this browser (localStorage), made in Profile;
  *   2. the browser's own language (navigator.language), e.g. 'it-IT' → 'it';
  *   3. English, when neither is one of ours.
  * Once signed in, the account's language takes over, and is saved here too
- * (src/routes/useAccountPreferences.ts, docs/04-frontend.md 4.13.4).
+ * (src/routes/useAccountPreferences.ts, docs/concepts/C1-frontend.md C1.13.4).
  *
  * Being called index.ts, the file is what `import … from './i18n'` (the
  * folder) loads.

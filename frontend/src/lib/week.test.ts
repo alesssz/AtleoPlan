@@ -1,7 +1,7 @@
 /*
  * Tests of src/lib/week.ts: the Monday-to-Sunday week used by Home's
  * "This week" strip. Vitest basics (describe, it, expect): see
- * src/lib/format.test.ts and docs/04-frontend.md 4.10.
+ * src/lib/format.test.ts and docs/concepts/C1-frontend.md C1.10.
  */
 import { describe, expect, it } from 'vitest'
 import { getWeekDays, isBeforeDay, isSameDay } from './week'

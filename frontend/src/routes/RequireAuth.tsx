@@ -1,7 +1,7 @@
 /*
  * The guard of the signed-in app: a route whose element is this component opens
  * only for a signed-in user (src/router.tsx). A visitor is sent to /login, which
- * remembers where they were going. docs/04-frontend.md 4.13.
+ * remembers where they were going. docs/concepts/C1-frontend.md C1.13.
  *
  * This is about what the user sees, not about security. The real protection is
  * on the server, where `auth:sanctum` refuses the data: code in the browser can
@@ -25,7 +25,7 @@ export function RequireAuth() {
   useAccountPreferences(currentUser.data)
 
   // 1. Waiting for the first answer: grey shapes, never a spinner over the page
-  // (1.6). Drawing the app or /login here would flash the wrong screen
+  // (D1.6). Drawing the app or /login here would flash the wrong screen
   if (currentUser.isPending) {
     return (
       <div role="status" className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-4 p-8">

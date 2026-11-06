@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
  *
  * Unit tests check one piece of code on its own, without booting Laravel:
  * they are fast, but cannot use the database, facades or HTTP helpers
- * (docs/05-backend.md 5.11). Written PHPUnit's way, a class whose `test_...`
+ * (docs/concepts/C2-backend.md C2.11). Written PHPUnit's way, a class whose `test_...`
  * methods are the tests.
  */
 class ExampleTest extends TestCase

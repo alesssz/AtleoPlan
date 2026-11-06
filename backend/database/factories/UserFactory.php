@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 // The namespace above places the class in Database\Factories, which Composer's
-// autoloader maps to the database/factories folder (docs/05-backend.md 5.2, 5.3).
+// autoloader maps to the database/factories folder (docs/concepts/C2-backend.md C2.2, C2.3).
 
 // Imports: the enums of the preferences, the model this factory builds,
 // Laravel's base Factory, and two helpers (Hash, Str) used below
@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * Makes fake users for tests and seeders (docs/05-backend.md 5.6).
+ * Makes fake users for tests and seeders (docs/concepts/C2-backend.md C2.6).
  *
  * A factory knows how to fill a model with plausible random data, so a test
  * can write `User::factory()->create()` and get a saved user without listing
@@ -68,7 +68,7 @@ class UserFactory extends Factory
             // call Laravel passes to its hasher object, bcrypt by default).
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            // The same defaults as the columns (docs/06-data-model.md 6.3):
+            // The same defaults as the columns (docs/design/D3-data-model.md D3.3):
             // a new model does not read the database's defaults back, so without
             // these a test's user would have them empty until reloaded
             'is_admin' => false,

@@ -61,7 +61,7 @@ return [
     |
     | Where the React app is, for links in emails such as "reset your password"
     | (app/Providers/FortifyServiceProvider.php). In development it is Vite's
-    | address; in production the same as APP_URL (docs/00-setup.md 0.4).
+    | address; in production the same as APP_URL (docs/start/S1-setup.md S1.4).
     |
     */
 

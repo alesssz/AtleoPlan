@@ -1,7 +1,7 @@
 /*
- * Plans (route `/plans`): the list of the user's plans, docs/01-ui-design.md
- * 1.4.6. Until plans exist (FEAT-2) it shows the empty state the design
- * asks for (1.6, "Create your first plan"), with its action disabled and
+ * Plans (route `/plans`): the list of the user's plans, docs/design/D1-ui.md
+ * D1.4.6. Until plans exist (FEAT-2) it shows the empty state the design
+ * asks for (D1.6, "Create your first plan"), with its action disabled and
  * marked "Coming soon". Same shape as ExercisesPage and ProgressPage.
  */
 import { ClipboardList, Plus } from 'lucide-react'

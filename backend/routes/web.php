@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Routes for web pages rendered by Laravel itself (docs/05-backend.md 5.5).
+ * Routes for web pages rendered by Laravel itself (docs/concepts/C2-backend.md C2.5).
  *
  * bootstrap/app.php loads this file with the "web" middleware group (cookies,
  * session, CSRF protection) and no prefix. AtleoPlan's pages are the React

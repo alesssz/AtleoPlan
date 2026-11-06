@@ -1,12 +1,12 @@
-# 4. Frontend
+# C1. Frontend
 
-How the React app in `frontend/` is built, why, and how to work on it. It is written for someone who knows little React, TypeScript or modern JavaScript and wants to read the code and change it with confidence. Read [4.1](#41-the-pieces)–[4.4](#44-react-from-scratch) once, in order: the pieces, the folders, what happens when the app opens, and React's few core ideas. Keep [4.12](#412-javascript-and-typescript-you-will-meet) at hand for any syntax that looks strange, and [4.9](#49-recipes) while coding. Signing in and forms have a section of their own, [4.13](#413-signing-in-and-forms).
+How the React app in `frontend/` is built, why, and how to work on it. It is written for someone who knows little React, TypeScript or modern JavaScript and wants to read the code and change it with confidence. Read [C1.1](#c11-the-pieces)–[C1.4](#c14-react-from-scratch) once, in order: the pieces, the folders, what happens when the app opens, and React's few core ideas. Keep [C1.12](#c112-javascript-and-typescript-you-will-meet) at hand for any syntax that looks strange, and [C1.9](#c19-recipes) while coding. Signing in and forms have a section of their own, [C1.13](#c113-signing-in-and-forms).
 
-Every source file starts with a comment saying what it is for, and the code is commented line by line ([3.2](03-conventions.md#32-code)): the files are meant to be read next to this page. The decisions behind the choices are in [2.2](02-decisions.md#22-stack); the screens they serve in [1. UI design](01-ui-design.md); setup and commands in [0.7](00-setup.md#07-creating-the-react-frontend) and [0.8](00-setup.md#08-everyday-commands).
+Every source file starts with a comment saying what it is for, and the code is commented line by line ([P1.2](../project/P1-conventions.md#p12-code)): the files are meant to be read next to this page. The decisions behind the choices are in [D2.2](../design/D2-decisions.md#d22-stack); the screens they serve in [D1. UI design](../design/D1-ui.md); setup and commands in [S1.7](../start/S1-setup.md#s17-creating-the-react-frontend) and [S1.8](../start/S1-setup.md#s18-everyday-commands).
 
 ---
 
-## 4.1 The pieces
+## C1.1 The pieces
 
 | Piece | Role | Where |
 |---|---|---|
@@ -15,7 +15,7 @@ Every source file starts with a comment saying what it is for, and the code is c
 | **Vite 8** | Development server (instant reload) and production build | `vite.config.ts` |
 | **React Router 8** | Which screen each address shows, without reloading the page | `src/router.tsx` |
 | **TanStack Query 5** | Fetches server data, caches it, keeps it fresh | `src/lib/query-client.ts`, `src/api/` |
-| **react-hook-form + zod** | Forms: react-hook-form holds the fields, zod says what is valid ([4.13](#413-signing-in-and-forms)) | `src/pages/auth-schemas.ts`, `src/lib/form.ts` |
+| **react-hook-form + zod** | Forms: react-hook-form holds the fields, zod says what is valid ([C1.13](#c113-signing-in-and-forms)) | `src/pages/auth-schemas.ts`, `src/lib/form.ts` |
 | **i18next + react-i18next** | Every text in four languages | `src/i18n/` |
 | **Tailwind CSS 4** | Styling with utility classes in the markup | `src/index.css` |
 | **shadcn/ui** (Radix base, Nova preset) | Ready-made components (buttons, selects, cards) whose code lives in the project | `src/components/ui/` |
@@ -24,7 +24,7 @@ Every source file starts with a comment saying what it is for, and the code is c
 | **Vitest + Testing Library** | Tests of functions and components | `*.test.ts(x)` next to the code |
 | **ESLint** (with stylistic rules) | Likely bugs and one code style, no Prettier | `eslint.config.js` |
 
-How a request travels in development (in production Caddy takes Vite's place, [2.6](02-decisions.md#26-hosting)):
+How a request travels in development (in production Caddy takes Vite's place, [D2.6](../design/D2-decisions.md#d26-hosting)):
 
 ```
 Browser ── http://localhost:5673 ──▶ Vite ──┬── /api/*, /sanctum/*, /storage/* ──▶ Laravel (Docker, :8500)
@@ -35,7 +35,7 @@ One address for both is what lets Sanctum's login cookie work without CORS.
 
 ---
 
-## 4.2 Folder structure
+## C1.2 Folder structure
 
 ```
 frontend/
@@ -52,7 +52,7 @@ frontend/
     ├── index.css           Tailwind + the colour tokens of both themes
     ├── api/                one file per API resource: types, cache keys, hooks
     │   ├── health.ts         GET /api/health → useHealth()
-    │   └── auth.ts           the account: useCurrentUser(), useSignIn(), useSignOut()… (4.13)
+    │   └── auth.ts           the account: useCurrentUser(), useSignIn(), useSignOut()… (C1.13)
     ├── components/
     │   ├── ui/               shadcn/ui components (generated, then ours to edit)
     │   ├── layout/           the frames: AppLayout (navigation), AuthLayout (sign-in screens); SideNav, BottomTabBar, nav-items
@@ -60,7 +60,7 @@ frontend/
     │   ├── home/             pieces of Home: WeekStrip, WeekStats
     │   └── *.tsx             shared by several pages: PageHeader, EmptyState, SettingRow, FormField, FormBanner, the pickers…
     ├── pages/              one component per screen (HomePage, LoginPage…), and auth-schemas.ts, the rules of the sign-in forms
-    ├── routes/             the guards: RequireAuth, RequireGuest, useAccountPreferences (4.13)
+    ├── routes/             the guards: RequireAuth, RequireGuest, useAccountPreferences (C1.13)
     ├── i18n/
     │   ├── index.ts          i18next setup and language detection
     │   ├── languages.ts      the supported languages and their names
@@ -68,7 +68,7 @@ frontend/
     │   └── locales/          it.json, en.json, es.json, de.json
     ├── lib/                plain helpers, no React: http (fetch wrapper), query-client, form (server errors on a form), format (numbers, dates), week, utils (cn)
     ├── theme/              dark / light theme: logic, context, provider, hook
-    └── test/               setup.ts runs before every test file; auth-helpers.tsx: a fake API and full-page rendering (4.13)
+    └── test/               setup.ts runs before every test file; auth-helpers.tsx: a fake API and full-page rendering (C1.13)
 ```
 
 **Naming.**
@@ -81,7 +81,7 @@ frontend/
 
 ---
 
-## 4.3 What happens when the app opens
+## C1.3 What happens when the app opens
 
 1. The browser loads **`index.html`**. Its small inline script reads the saved theme and puts `class="dark"` on `<html>` at once, before anything is drawn, so a light-theme user never sees a dark flash.
 2. `index.html` loads **`src/main.tsx`**, which:
@@ -90,7 +90,7 @@ frontend/
    - tells React to draw `<App />` inside `<div id="root">`.
 3. **`App.tsx`** wraps everything in the providers, from the outside in: `QueryClientProvider` (server-data cache), `ThemeProvider` (theme), `RouterProvider` (screens).
 4. The **router** reads the address. On `/profile` it matches the branch whose element is the guard `RequireAuth`, then `AppLayout`, then the child `profile`.
-5. **`RequireAuth`** asks `GET /api/user` and shows grey shapes until the answer arrives. A visitor goes to `/login`; a signed-in user continues, with the account's language and theme applied ([4.13](#413-signing-in-and-forms)).
+5. **`RequireAuth`** asks `GET /api/user` and shows grey shapes until the answer arrives. A visitor goes to `/login`; a signed-in user continues, with the account's language and theme applied ([C1.13](#c113-signing-in-and-forms)).
 6. **`AppLayout`** draws the navigation and an `<Outlet />`; the router puts `ProfilePage` there.
 7. **`ProfilePage`** draws its cards. `ServerStatus` inside it calls `useHealth()`. TanStack Query starts `GET /api/health`, and the component shows its loading skeleton. When the answer arrives, the component draws itself again with "Connected".
 
@@ -98,7 +98,7 @@ frontend/
 
 ---
 
-## 4.4 React from scratch
+## C1.4 React from scratch
 
 React draws the interface out of **components**. Five ideas cover almost everything in the code: components, JSX, props, state and effects. Hooks and context build on them.
 
@@ -144,7 +144,7 @@ const [theme, setTheme] = useState<Theme>('dark')
 - **Calling the setter makes React render again.** React calls the component function once more with the new value, and updates only the parts of the page that changed.
 - **Never change state directly** (`theme = 'light'` does nothing visible). Always call the setter.
 - **The new value appears on the next render, not in the current one.** After `setCount(count + 1)`, `count` is still the old value until React calls the component again.
-- **Server data is not kept in state:** TanStack Query keeps it ([4.6](#46-server-data)).
+- **Server data is not kept in state:** TanStack Query keeps it ([C1.6](#c16-server-data)).
 
 **5. Effects run code after drawing.**
 
@@ -195,18 +195,18 @@ useEffect(() => {
 
 ---
 
-## 4.5 Routing
+## C1.5 Routing
 
 - **The table** is `src/router.tsx`, made with `createBrowserRouter([...])`. A route has a `path` and an `element`. `children` nest routes inside a parent, which draws them at its `<Outlet />`. `index: true` marks the parent's own address.
-- **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([4.13](#413-signing-in-and-forms)). Workout mode and the public shared plan, both full screen, will be siblings of these branches. Comments in the file mark where.
+- **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([C1.13](#c113-signing-in-and-forms)). Workout mode and the public shared plan, both full screen, will be siblings of these branches. Comments in the file mark where.
 - **Links:** use `<Link to="/plans">`. Use `<NavLink>` in navigation: it knows whether it is the current page and then gets `aria-current="page"`. Use `useNavigate()` to move in code, for example after saving.
 - **Parameters:** a route `plans/:id` gives the page `const { id } = useParams()`.
 - **Not found and crashes:** the last child, `path: '*'`, catches unknown addresses (`NotFoundPage`, inside the frame). `errorElement` (`RouteErrorPage`) replaces a screen that throws while rendering.
-- **The full map** of planned routes is [1.3](01-ui-design.md#13-information-architecture-and-navigation). Each feature adds its routes there and here.
+- **The full map** of planned routes is [D1.3](../design/D1-ui.md#d13-information-architecture-and-navigation). Each feature adds its routes there and here.
 
 ---
 
-## 4.6 Server data
+## C1.6 Server data
 
 **`src/lib/http.ts`: the only door to the API.** `request<T>(path, { method, body, signal })` wraps `fetch` and:
 
@@ -228,7 +228,7 @@ const health = useQuery({ queryKey: ['health'], queryFn: ({ signal }) => fetchHe
 - **Freshness:** data younger than 30 seconds (`staleTime`, `query-client.ts`) is served from the cache without asking again. Older data is shown at once and refreshed in the background, also when the tab regains focus.
 - **Retries:** a failed request is retried twice, but only for network and 5xx errors. A 401, 403, 404 or 422 would fail the same way again.
 - **Changing data** uses `useMutation`, as in `src/api/auth.ts`. On success it calls `queryClient.invalidateQueries({ queryKey })`, so the lists that show that data reload.
-- **A 401 on any request** means the session has ended: `src/lib/query-client.ts` marks the user as signed out, and the guards go to `/login` ([4.13](#413-signing-in-and-forms)).
+- **A 401 on any request** means the session has ended: `src/lib/query-client.ts` marks the user as signed out, and the guards go to `/login` ([C1.13](#c113-signing-in-and-forms)).
 
 **The `src/api/` pattern.** One file per API resource, holding:
 
@@ -239,15 +239,15 @@ const health = useQuery({ queryKey: ['health'], queryFn: ({ signal }) => fetchHe
 
 `health.ts` is the model to copy.
 
-**Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success. `ServerStatus` shows all three ([1.6](01-ui-design.md#16-states-and-edge-cases)).
+**Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success. `ServerStatus` shows all three ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)).
 
 **Seeing the cache:** in development, the TanStack Query Devtools button (top-right corner) opens a panel. It lists every query, its key, state and data.
 
 ---
 
-## 4.7 Translations
+## C1.7 Translations
 
-**No text is written in a component** ([2.4](02-decisions.md#24-languages)): every text comes from `src/i18n/locales/<language>.json` through `t()`:
+**No text is written in a component** ([D2.4](../design/D2-decisions.md#d24-languages)): every text comes from `src/i18n/locales/<language>.json` through `t()`:
 
 ```tsx
 const { t, i18n } = useTranslation()
@@ -274,7 +274,7 @@ New screens add their own group (`plans.editor.*`, …).
 - **Typed keys.** `i18next.d.ts` gives TypeScript the shape of `en.json`. `t('nav.plan')`, a typo, is a type error, and VS Code autocompletes the keys.
 - **Test.** `locales.test.ts` fails if a language misses a key, has an extra or empty one, or drops a `{{placeholder}}`.
 
-**Adding a text:** add the key to all four files, English first, then `make fe-test`. A machine translation is fine for Spanish and German until someone checks them (the same rule as the exercise library, [2.3](02-decisions.md#23-exercise-library)).
+**Adding a text:** add the key to all four files, English first, then `make fe-test`. A machine translation is fine for Spanish and German until someone checks them (the same rule as the exercise library, [D2.3](../design/D2-decisions.md#d23-exercise-library)).
 
 **Numbers and dates** follow the language through `Intl`, never string concatenation. Use `src/lib/format.ts`: `formatWeight(82.5, i18n.language)` gives "82,5 kg" in Italian, Spanish and German, and "82.5 kg" in English. `formatLongDate` and `formatDayParts` do the same for dates ("giovedì 5 novembre"); add more there, such as durations, as screens need them.
 
@@ -290,42 +290,42 @@ New screens add their own group (`plans.editor.*`, …).
 
 ---
 
-## 4.8 Styles and theme
+## C1.8 Styles and theme
 
 **Tailwind.** Styling is written as classes in the markup: `className="flex items-center gap-2 text-sm"`. A few rules:
 
-- **Mobile first.** Unprefixed classes apply everywhere; `sm:` from 640 px, `lg:` from 1024 px. For example, `hidden sm:flex` means hidden on phones, shown from tablets. These are the breakpoints of [1.7](01-ui-design.md#17-responsive-layout-and-accessibility).
+- **Mobile first.** Unprefixed classes apply everywhere; `sm:` from 640 px, `lg:` from 1024 px. For example, `hidden sm:flex` means hidden on phones, shown from tablets. These are the breakpoints of [D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility).
 - **`dark:`** applies with the dark theme. It is rarely needed, because the tokens already change.
 - **Arbitrary values** go in brackets when no class exists, for example `pb-[env(safe-area-inset-bottom)]` for the iPhone's home bar.
 - **The VS Code extension "Tailwind CSS IntelliSense"** autocompletes classes and shows their CSS on hover. Worth installing.
 
-**Colour tokens.** Never write a colour in a component; use the token's class. The values are in `src/index.css`, one set per theme, from [1.5](01-ui-design.md#15-design-system):
+**Colour tokens.** Never write a colour in a component; use the token's class. The values are in `src/index.css`, one set per theme, from [D1.5](../design/D1-ui.md#d15-design-system):
 
 | Token (CSS variable) | Tailwind classes | Use |
 |---|---|---|
 | `background` / `foreground` | `bg-background`, `text-foreground` | page and text |
-| `card` | `bg-card` | cards, sheets ("surface" in 1.5) |
+| `card` | `bg-card` | cards, sheets ("surface" in D1.5) |
 | `primary` | `bg-primary`, `text-primary` | main actions, the lime |
-| `muted-foreground` | `text-muted-foreground` | secondary text ("muted" in 1.5) |
+| `muted-foreground` | `text-muted-foreground` | secondary text ("muted" in D1.5) |
 | `muted`, `secondary`, `accent` | `bg-muted`… | quiet backgrounds; `accent` is shadcn's hovered-item background |
-| `timer` | `bg-timer`, `text-timer` | the rest timer ("accent" in 1.5, renamed to avoid shadcn's `accent`) |
+| `timer` | `bg-timer`, `text-timer` | the rest timer ("accent" in D1.5, renamed to avoid shadcn's `accent`) |
 | `success` / `warning` / `destructive` | `text-success`… | record / offline, pending / delete |
 | `border`, `input`, `ring` | `border`, `ring` | lines, fields, focus ring |
 
 **The theme.**
 
 - **How it is applied:** the `dark` class on `<html>` switches every token to its dark value. `index.html` sets it before React loads, and `ThemeProvider` keeps it in step with the user's choice. With "Same as the device" (`system`), it follows the operating system live.
-- **Where the choice is saved:** on the account, so it follows the user, and in this browser (`localStorage`, key `atleoplan.theme`), so `index.html` can apply it before anything is drawn ([4.13.4](#4134-language-and-theme-on-the-account)).
+- **Where the choice is saved:** on the account, so it follows the user, and in this browser (`localStorage`, key `atleoplan.theme`), so `index.html` can apply it before anything is drawn ([C1.13.4](#c1134-language-and-theme-on-the-account)).
 - **To read it from a component:** `useTheme()`. **To change it:** `useUpdatePreferences()` (`src/api/auth.ts`).
 
 **shadcn/ui.** These are not a library imported from `node_modules`. They are source files copied into `src/components/ui/`, and they are ours to change.
 
 - **Adding one:** `npx shadcn@latest add dialog` (from `frontend/`), then `make fix` to bring the generated file to our code style (single quotes, no semicolons).
-- **Their default sizes are for mouse use** (a button is 32 px tall). On touch screens use our `size="xl"` (48 px) or set the height yourself: tap targets are at least 48 px, and 56 px in workout mode ([1.5](01-ui-design.md#15-design-system)).
+- **Their default sizes are for mouse use** (a button is 32 px tall). On touch screens use our `size="xl"` (48 px) or set the height yourself: tap targets are at least 48 px, and 56 px in workout mode ([D1.5](../design/D1-ui.md#d15-design-system)).
 - **`cn()`** (`@/lib/utils`) joins class names, drops false ones, and resolves Tailwind conflicts: `cn('px-2', big && 'px-4')`.
 - **`asChild`** lends a component's look to its child: `<Button asChild><Link to="/">…</Link></Button>` is a real link that looks like a button.
 
-**Our own style tools.** The energetic style of [1.5](01-ui-design.md#15-design-system) ("Visual style") is built from a few pieces, to reuse rather than reinvent:
+**Our own style tools.** The energetic style of [D1.5](../design/D1-ui.md#d15-design-system) ("Visual style") is built from a few pieces, to reuse rather than reinvent:
 
 | Tool | What it does | Example |
 |---|---|---|
@@ -345,11 +345,13 @@ Utilities like these are written in `index.css` with `@utility name { … }` and
 **Icons** come from Lucide: `import { Dumbbell } from 'lucide-react'`, used as `<Dumbbell aria-hidden="true" className="size-5" />`.
 
 - An icon next to a text is decoration: `aria-hidden`.
-- An icon alone in a button needs a label ([3.2](03-conventions.md#32-code)).
+- An icon alone in a button needs a label ([P1.2](../project/P1-conventions.md#p12-code)).
 
 ---
 
-## 4.9 Recipes
+## C1.9 Recipes
+
+The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a real page step by step: data from the API, a form, tests, translations, packages, the browser's tools and the common errors.
 
 **A new page:**
 
@@ -364,7 +366,7 @@ Utilities like these are written in `index.css` with `@utility name { … }` and
 2. **Frontend:** `src/api/thing.ts`, copying `health.ts`, with the type, the keys, `fetchThing`, and `useThing`.
 3. In the component, `const thing = useThing()`, handling `isPending`, `isError` and `data`.
 
-**A form that saves,** copying `src/pages/LoginPage.tsx` ([4.13.3](#4133-a-form-step-by-step)):
+**A form that saves,** copying `src/pages/LoginPage.tsx` ([C1.13.3](#c1133-a-form-step-by-step)):
 
 1. A zod schema for the rules, built by a function taking `t`, with its messages in the four locale files.
 2. `useForm` with `zodResolver`, and a `FormField` per field.
@@ -381,12 +383,12 @@ Utilities like these are written in `index.css` with `@utility name { … }` and
 
 ---
 
-## 4.10 Tests and checks
+## C1.10 Tests and checks
 
 - **Vitest** runs the tests. `jsdom` simulates a browser, so components can be rendered.
 - **Testing Library** looks at the result the way a user would: `screen.getByRole('link', { name: 'Plans' })`. Query by role and visible text, never by CSS class. The test then also checks accessibility: if a test cannot find a button by its name, a screen reader cannot either.
 - **Where they live:** next to the code (`*.test.ts(x)`). `src/test/setup.ts` runs first: it adds matchers such as `toBeInTheDocument()`, sets English, and cleans up after each test, including cookies, `localStorage` and a replaced `fetch`.
-- **Screens that call the API** use a fake one ([4.13.6](#4136-testing-a-screen-with-the-api)).
+- **Screens that call the API** use a fake one ([C1.13.6](#c1136-testing-a-screen-with-the-api)).
 
 **The tests so far:**
 
@@ -414,7 +416,7 @@ Utilities like these are written in `index.css` with `@utility name { … }` and
 
 ---
 
-## 4.11 Known limits
+## C1.11 Known limits
 
 - **Bundle size.** The production build is one JavaScript file of about 560 kB (180 kB compressed), and Vite warns above 500 kB. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
 - **A preference changed with no connection is not saved.** It stays on screen until the page reloads, then the account's value returns. The offline queue will save it (FEAT-3).
@@ -427,7 +429,7 @@ Utilities like these are written in `index.css` with `@utility name { … }` and
 
 ---
 
-## 4.12 JavaScript and TypeScript you will meet
+## C1.12 JavaScript and TypeScript you will meet
 
 The syntax used in the code, with where to see it. TypeScript is JavaScript plus **types**: labels saying what kind of value a variable holds. They are checked by `npm run typecheck` and in the editor, and removed when the code runs.
 
@@ -475,11 +477,11 @@ The syntax used in the code, with where to see it. TypeScript is JavaScript plus
 
 ---
 
-## 4.13 Signing in and forms
+## C1.13 Signing in and forms
 
-The React side of signing in. The server side, including the same steps written by hand, is in [5.7](05-backend.md#57-signing-in-sanctum). The screens are described in [1.4.1](01-ui-design.md#141-sign-in-and-onboarding).
+The React side of signing in. The server side, including the same steps written by hand, is in [C2.7](C2-backend.md#c27-signing-in-sanctum). The screens are described in [D1.4.1](../design/D1-ui.md#d141-sign-in-and-onboarding).
 
-### 4.13.1 The one idea: who is signed in is server data
+### C1.13.1 The one idea: who is signed in is server data
 
 The app never keeps a "signed in" flag of its own. **Who is signed in is one piece of server data, in the TanStack Query cache,** under the key `authKeys.user` (`src/api/auth.ts`):
 
@@ -501,7 +503,7 @@ So the forms never navigate after signing in, and no screen has to handle a sess
 
 **`fetchCurrentUser` treats errors differently, on purpose.** A 401 means "nobody", so it returns `null`. No connection, or a server error, stays an error: it says nothing about who is signed in, and must not send anyone to `/login`.
 
-### 4.13.2 The guards
+### C1.13.2 The guards
 
 A **guard** is a parent route that decides whether its children may open (`src/routes/`). In `src/router.tsx`, nesting decides the order: guard, then frame, then page.
 
@@ -509,7 +511,7 @@ A **guard** is a parent route that decides whether its children may open (`src/r
 
 | The cache says | It draws |
 |---|---|
-| Still waiting | Grey shapes ([1.6](01-ui-design.md#16-states-and-edge-cases)): drawing either the app or `/login` here would flash the wrong one |
+| Still waiting | Grey shapes ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)): drawing either the app or `/login` here would flash the wrong one |
 | `null` | `<Navigate to="/login" />`, remembering the address in the router's `state` |
 | Nothing, and the request failed | "Can't reach the server" and **Try again** |
 | A `User` | `<Outlet />`, the app |
@@ -518,7 +520,7 @@ A **guard** is a parent route that decides whether its children may open (`src/r
 
 **A guard is not security.** Anyone can change the code running in their own browser. The protection is on the server, where `auth:sanctum` refuses the data; the guard only decides what to show.
 
-### 4.13.3 A form, step by step
+### C1.13.3 A form, step by step
 
 Every form is built from the same four pieces. `src/pages/LoginPage.tsx` is the model:
 
@@ -568,9 +570,9 @@ function onSubmit(values: SignInValues) {
 
 `FormField` (`src/components/FormField.tsx`) draws the label, the 48 px input and the error, linked for screen readers through `htmlFor`, `aria-invalid` and `aria-describedby`.
 
-### 4.13.4 Language and theme on the account
+### C1.13.4 Language and theme on the account
 
-A choice made on the phone follows the user to the computer ([1.4.14](01-ui-design.md#1414-profile-and-settings)). The data flows one way, around a circle:
+A choice made on the phone follows the user to the computer ([D1.4.14](../design/D1-ui.md#d1414-profile-and-settings)). The data flows one way, around a circle:
 
 ```
 LanguageSelect, ThemeSelect ──▶ useUpdatePreferences ──▶ the cache (at once) and the server
@@ -596,15 +598,15 @@ The tests passed, because the fake API answered in order. A test in a real brows
 
 `src/api/auth.test.tsx` reproduces it, with one request held back. **The lesson for any optimistic update:** an answer can describe the past.
 
-### 4.13.5 Details that are easy to miss
+### C1.13.5 Details that are easy to miss
 
 - **`remember: true` is always sent.** A session lasts two hours, and a phone at the gym must not ask for a password. So there is no checkbox.
 - **An expired CSRF token gets a second try** (`request()` in `src/lib/http.ts`): a 419 fetches a fresh cookie and sends the request once more, so a sign-in page left open for hours still works.
-- **`Accept-Language`** on every request makes Laravel answer in the user's language ([5.7.7](05-backend.md#577-messages-in-the-users-language)).
+- **`Accept-Language`** on every request makes Laravel answer in the user's language ([C2.7.7](C2-backend.md#c277-messages-in-the-users-language)).
 - **Signing out empties the cache,** except who is signed in, which becomes `null`: the next user on this device must not see this one's data.
 - **`autoComplete`** on the fields (`username`, `current-password`, `new-password`) is what makes password managers work.
 
-### 4.13.6 Testing a screen with the API
+### C1.13.6 Testing a screen with the API
 
 Tests never call a real server. `src/test/auth-helpers.tsx` gives them:
 
@@ -614,8 +616,8 @@ Tests never call a real server. `src/test/auth-helpers.tsx` gives them:
 
 `src/pages/auth-pages.test.tsx` uses them with `userEvent`, typing and clicking as a person would. Prefer `findBy…`, which waits, when the element appears after an answer.
 
-**What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers. Before calling a feature done, try it in a browser against the real stack, as [4.13.4](#4134-language-and-theme-on-the-account) shows.
+**What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers. Before calling a feature done, try it in a browser against the real stack, as [C1.13.4](#c1134-language-and-theme-on-the-account) shows.
 
 ---
 
-← [3. Conventions](03-conventions.md) · [Contents](../README.md#documentation) · [5. Backend](05-backend.md) →
+← [D3. Data model](../design/D3-data-model.md) · [Contents](../README.md) · [C2. Backend](C2-backend.md) →
