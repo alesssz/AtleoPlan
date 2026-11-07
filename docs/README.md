@@ -52,7 +52,7 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 
 | Document | What it covers |
 |---|---|
-| [C1. Frontend](concepts/C1-frontend.md) | The React app, for a reader new to React: its pieces, folders, start-up, React from scratch, routing, server data, translations, styles and theme, short recipes, tests, JavaScript and TypeScript syntax, signing in and forms |
+| [C1. Frontend](concepts/C1-frontend.md) | The React app, for a reader new to React: its pieces, folders, start-up, React from scratch, routing, server data, translations, styles and theme, short recipes, tests, JavaScript and TypeScript syntax, signing in and forms, the exercise library's screens |
 | [C2. Backend](concepts/C2-backend.md) | The Laravel app, for a reader new to PHP and Laravel: its pieces, PHP syntax, folders, the life of a request, routes and controllers, database, signing in with Fortify and by hand, admin panel, queues, configuration, tests, short recipes, commands, Artisan commands of our own and the free-exercise-db import |
 
 ### H · How to
@@ -61,7 +61,7 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 |---|---|
 | [H1. Database](how-to/H1-database.md) | A new table from start to finish (migration, model, factory, seeder, tinker, test), changing a table, relations, seeders and imports, looking at the data, common errors, filling the exercise library from free-exercise-db |
 | [H2. Backend](how-to/H2-backend.md) | An endpoint that reads and one that changes data (controller, resource, form request, policy, tests), an admin screen, a background job, translated messages, settings, packages, debugging, common errors |
-| [H3. Frontend](how-to/H3-frontend.md) | A new page, data from the API, a form that saves, tests, translations, npm packages, the browser's tools, shadcn/ui components, common errors |
+| [H3. Frontend](how-to/H3-frontend.md) | A new page, data from the API, a form that saves, tests, translations, npm packages, the browser's tools, shadcn/ui components, common errors, the exercise library's screens as built |
 | [H4. Opening the database](how-to/H4-database-tools.md) | The connection details, TablePlus step by step (connecting, browsing, SQL, editing safely, shortcuts), the terminal's ways, the alternatives (DBeaver, pgAdmin, Adminer…), connection errors |
 
 ### P · Project

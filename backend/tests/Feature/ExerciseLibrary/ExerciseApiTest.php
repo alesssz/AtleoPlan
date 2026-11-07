@@ -17,6 +17,7 @@ use App\Models\Exercise;
 use App\Models\Muscle;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -57,7 +58,32 @@ it('shows a public exercise with every field, in the request\'s language', funct
             'is_mine' => false,
             'equipment' => ['id' => $barbell->id, 'slug' => 'barbell', 'name' => $barbell->name],
             'muscles' => [['id' => $chest->id, 'slug' => 'chest', 'name' => 'Petto', 'role' => 'primary']],
+            'photos' => [],
         ]]);
+});
+
+it('sends the photos as paths on the app\'s own address, in their order', function () {
+    // A fake media disk: the copies stay in a temporary folder
+    Storage::fake('public');
+    $exercise = Exercise::factory()->create();
+    // Two tiny JPEG files: the smallest valid one, written to a temporary file
+    $jpeg = base64_decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=');
+    foreach (['0.jpg', '1.jpg'] as $name) {
+        $file = tempnam(sys_get_temp_dir(), 'photo');
+        file_put_contents($file, $jpeg);
+        // usingFileName(): the name the copy gets, instead of the temporary one
+        $exercise->addMedia($file)->usingFileName($name)->toMediaCollection('photos');
+    }
+
+    $photos = $this->actingAs(User::factory()->create())
+        ->getJson("/api/exercises/{$exercise->id}")
+        ->assertOk()
+        ->json('data.photos');
+
+    // "/storage/<media id>/0.jpg": a path, without APP_URL's scheme and host
+    expect($photos)->toHaveCount(2)
+        ->and($photos[0]['url'])->toMatch('#^/storage/\d+/0\.jpg$#')
+        ->and($photos[1]['url'])->toMatch('#^/storage/\d+/1\.jpg$#');
 });
 
 it('shows my own exercise', function () {

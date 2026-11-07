@@ -2,13 +2,14 @@
 
 namespace App\Http\Resources;
 
-// Imports: the enum of the muscles' role, the models it describes, the
-// request, and Laravel's base resource
+// Imports: the enum of the muscles' role, the models it describes (medialibrary's
+// Media is one row of `media`), the request, and Laravel's base resource
 use App\Enums\MuscleRole;
 use App\Models\Exercise;
 use App\Models\Muscle;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * The JSON shape of an exercise, the same in the library's list and in the
@@ -24,13 +25,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *       "youtube_url": null,
  *       "is_mine": false,
  *       "equipment": { "id": 1, "slug": "barbell", "name": "Bilanciere" },
- *       "muscles": [{ "id": 6, "slug": "chest", "name": "Petto", "role": "primary" }, …]
+ *       "muscles": [{ "id": 6, "slug": "chest", "name": "Petto", "role": "primary" }, …],
+ *       "photos": [{ "id": 1, "url": "/storage/1/0.jpg" }, …]
  *     }
  *
  * The texts are in the request's language, with HasTranslations' fallback
  * (docs/design/D3-data-model.md D3.4.5). The columns of the import (level,
  * category, external_id, machine_translated) are not sent: the app does not
- * show them yet. Photos and videos arrive with feat/exercise-media.
+ * show them yet. The photos are sent as they are stored; their resized
+ * versions and the videos arrive with feat/exercise-media.
  *
  * @mixin Exercise
  */
@@ -78,6 +81,39 @@ class ExerciseResource extends JsonResource
                 // values(): renumbers the keys 0, 1, 2…, so the JSON is a
                 // list and not an object with the old keys
                 ->values()),
+            // The photos, in their order: the first is the cover. `media` is
+            // the relation medialibrary adds to the model; getMedia('photos')
+            // reads it, so with it loaded there is no query per exercise
+            'photos' => $this->whenLoaded('media', fn () => $this->getMedia('photos')
+                ->map(fn (Media $photo) => [
+                    'id' => $photo->id,
+                    'url' => self::pathOf($photo->getUrl()),
+                ])
+                ->values()),
         ];
+    }
+
+    /**
+     * The path of a URL, without its scheme and host:
+     * "http://localhost:8000/storage/1/0.jpg" → "/storage/1/0.jpg".
+     *
+     * medialibrary builds a photo's URL from APP_URL, the address Laravel
+     * believes it has. Inside the container that is localhost:8000, while the
+     * browser reaches Laravel at localhost:8500, through Vite at 5673: a full
+     * URL would point to the wrong place. A path works everywhere, because the
+     * React app and the files share one address: Vite forwards /storage to
+     * Laravel in development (vite.config.ts), Caddy in production
+     * (docs/design/D2-decisions.md D2.6). It also keeps the photos on the app's
+     * own address, which the service worker will need to keep them offline.
+     *
+     * `static`: it uses nothing of the exercise; `self::pathOf()` calls it.
+     * parse_url() splits a URL into its parts; PHP_URL_PATH asks for the path.
+     *
+     * @param  string  $url  a full URL
+     * @return string the path, or the URL as it was when it has none
+     */
+    private static function pathOf(string $url): string
+    {
+        return parse_url($url, PHP_URL_PATH) ?: $url;
     }
 }

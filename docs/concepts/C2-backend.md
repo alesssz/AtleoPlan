@@ -304,15 +304,21 @@ The library's API, all under `auth:sanctum` ([D1.4.3](../design/D1-ui.md#d143-ex
   "muscles": [
     { "id": 6, "slug": "chest", "name": "Petto", "role": "primary" },
     { "id": 17, "slug": "triceps", "name": "Tricipiti", "role": "secondary" }
+  ],
+  "photos": [
+    { "id": 1, "url": "/storage/1/0.jpg" },
+    { "id": 2, "url": "/storage/2/1.jpg" }
   ]
 }
 ```
+
+**Photos are paths, not full URLs.** medialibrary builds a photo's URL from `APP_URL`, which inside the container is `http://localhost:8000`, while the browser reaches Laravel at `localhost:8500`, through Vite at 5673: a full URL would point to the wrong place. `ExerciseResource` keeps only the path, `/storage/1/0.jpg`, which works wherever the React app is, since its server forwards `/storage` to Laravel (Vite in development, Caddy in production), and keeps the photos on the app's own address for the offline cache to come. `public/storage` must be a link to `storage/app/public`: `make setup` creates it with `storage:link`, and `make artisan c="storage:link"` does on a clone made before. The controller loads `media` with the other relations, so the photos add one query per page, not one per exercise.
 
 **What is sent to create or change one** (`StoreExerciseRequest`): `name` (required, up to 100 characters), `aliases` and `instructions` (lists of texts), `description`, `logging_type`, `equipment_id`, `youtube_url` (a YouTube address), and `muscles`, a list of `{ "id": 6, "role": "primary" }`. A change sends only the fields that change. `muscles`, when sent, is the complete list: muscles left out are removed.
 
 **One language per personal exercise** ([D2.4](../design/D2-decisions.md#d24-languages)). The texts are stored under the request's language and replace any other: an exercise written in Italian, then edited with the app in English, becomes English. Otherwise the old Italian name would come back on switching the app to Italian again.
 
-Photos and videos are not here yet: they come with `feat/exercise-media` ([BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin)).
+The photos are read as stored (the imported ones, so far). Uploading them, their resized versions and the videos come with `feat/exercise-media` ([BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin)).
 
 ---
 

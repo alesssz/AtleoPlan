@@ -28,9 +28,18 @@
 - [H3.6 Translations](#h36-translations)
 - [H3.7 Adding an npm package](#h37-adding-an-npm-package)
 - [H3.8 Checking in the browser](#h38-checking-in-the-browser)
+  - [H3.8.1 Phone, tablet and desktop widths](#h381-phone-tablet-and-desktop-widths)
 - [H3.9 A shadcn/ui component](#h39-a-shadcnui-component)
 - [H3.10 When something goes wrong](#h310-when-something-goes-wrong)
 - [H3.11 Commands at a glance](#h311-commands-at-a-glance)
+- [H3.12 The exercise library screens, as built](#h312-the-exercise-library-screens-as-built)
+  - [H3.12.1 The photos reach the browser](#h3121-the-photos-reach-the-browser)
+  - [H3.12.2 Five shadcn/ui components](#h3122-five-shadcnui-components)
+  - [H3.12.3 The list](#h3123-the-list)
+  - [H3.12.4 The page and the editor](#h3124-the-page-and-the-editor)
+  - [H3.12.5 The tests, and the errors met](#h3125-the-tests-and-the-errors-met)
+  - [H3.12.6 The production build](#h3126-the-production-build)
+  - [H3.12.7 Checking in the browser](#h3127-checking-in-the-browser)
 
 ---
 
@@ -534,7 +543,7 @@ Open the developer tools: `F12`, or `Cmd+Option+I` on the Mac.
 | **Console** | Errors and warnings from React | A red error stops the page; React's warnings, such as a missing `key`, appear here |
 | **Elements** | The HTML drawn, and the CSS of each element | Why something is placed or coloured as it is |
 | **Application → Cookies** | `atleoplan-session` and `XSRF-TOKEN` | Signing-in problems ([C2.7.1](../concepts/C2-backend.md#c271-how-a-session-works)) |
-| **Device toolbar** (`Cmd+Shift+M`) | The page at a phone's width | Every screen is designed for the phone first ([D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility)) |
+| **Device toolbar** (`Cmd+Shift+M`) | The page at a phone's or a tablet's width | Every screen is designed for the phone first ([D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility)); how to use it: [H3.8.1](#h381-phone-tablet-and-desktop-widths) |
 | **React Developer Tools** (a browser extension) | The components, with their props and state | What a component received |
 
 **A 500 in the Network tab is a backend error:** its detail is in `backend/storage/logs/laravel.log` ([H2.9](H2-backend.md#h29-finding-out-what-is-going-on)).
@@ -542,7 +551,44 @@ Open the developer tools: `F12`, or `Cmd+Option+I` on the Mac.
 **Check every screen:**
 - in dark and light theme (Profile);
 - in at least two languages, because Italian and German texts are longer than English ones;
-- at phone width.
+- at the three widths of [H3.8.1](#h381-phone-tablet-and-desktop-widths): phone, tablet, desktop.
+
+### H3.8.1 Phone, tablet and desktop widths
+
+The layout depends only on the page's width. The app has three, set in [D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility); in the code they are Tailwind's `sm:` (from 640 px) and `lg:` (from 1024 px) prefixes ([C1.8](../concepts/C1-frontend.md#c18-styles-and-theme)).
+
+| Width | Called | What changes in the app | A device to try it with |
+|---|---|---|---|
+| under 640 px | phone | Tab bar at the bottom, one column; in the exercise library, the filters stacked and only the search box fixed | iPhone SE (375 px), iPhone 14 Pro Max (430 px) |
+| 640 to 1024 px | tablet | Sidebar with icons only; the filters in one row, fixed with the search box | iPad Air (820 px) |
+| over 1024 px | desktop | Sidebar with labels | the browser window itself |
+
+**In Chrome or Edge** (the steps used in this project):
+
+1. Open the developer tools: `Cmd+Option+I` on the Mac, `F12` or `Ctrl+Shift+I` on Windows.
+2. Switch on the **device toolbar**: `Cmd+Shift+M` (Windows: `Ctrl+Shift+M`), or the phone-and-tablet icon at the top left of the tools. A bar appears above the page.
+3. Pick a size in the bar's first menu:
+   - **Dimensions: Responsive**: any width. Type it in the two boxes (`390` × `844`), or drag the handles at the sides of the page.
+   - **A device** from the list: *iPhone SE*, *iPhone 14 Pro Max*, *iPad Air*, *iPad Pro* (1024 px, right on the edge). *Edit…* at the bottom of the list adds more.
+   - The **rotate** icon next to the boxes turns it to landscape.
+   - The **zoom** menu (*100%*, *75%*…) shrinks the view when it does not fit on your screen. It changes only how big you see it, not the width the app gets.
+4. **Jump to a threshold:** the bar's `⋮` menu → *Show media queries*. Coloured stripes appear above the page, one per width the CSS reacts to (640, 1024…); clicking one sets the page to exactly that width. The quickest way to see where a layout changes.
+5. **Back to desktop:** `Cmd+Shift+M` again; the page is as wide as the window.
+
+Two things the device toolbar also does when a phone is picked: the pointer becomes a circle that acts as a finger, and there is no hover, as on a real phone. A layout that looks wrong only here is often one that relies on hovering.
+
+**Without the device toolbar:** drag the edge of the browser window. While you drag, with the developer tools open, Chrome shows the page's size at its top right (`720 × 900`), so you know which of the three widths you are in. A window does not shrink to a phone's width, so for phones use the toolbar.
+
+**In the other browsers:**
+
+| Browser | How |
+|---|---|
+| Safari | Once: Settings → Advanced → *Show features for web developers*. Then Develop → *Enter Responsive Design Mode* (`Cmd+Option+R`) |
+| Firefox | *Responsive Design Mode*: `Cmd+Option+M` (Windows: `Ctrl+Shift+M`) |
+
+**A check to try it on:** `/exercises` ([H3.12.7](#h3127-checking-in-the-browser)). With *iPhone SE*, scroll the list: only the search box stays at the top. With *iPad Air*: the search box and the filters, in one row. Leave the device toolbar: the same, with the sidebar's labels.
+
+A real phone is a different matter: it must reach the computer over the network, and the session cookie must accept that address. It is not set up yet.
 
 ---
 
@@ -593,6 +639,10 @@ npx eslint src/components/ui/badge.tsx
 | 404 on `/api/…` | The backend route is missing, or `make up` is not running | `make artisan c="route:list --path=api"` ([H2.2.4](H2-backend.md#h224-the-route)) |
 | `Port 5673 is already in use` | Another `make dev` is still running | Close it; Vite never picks another port (`strictPort`) |
 | Lint errors after `shadcn add` | The copied file has shadcn's style | `make fix` ([H3.9](#h39-a-shadcnui-component)) |
+| `shadcn add` stops at `Would you like to overwrite?` | The component depends on one we changed, such as `button.tsx` | Add it alone and answer no: `printf 'n\n' \| npx shadcn add name` ([H3.12.2](#h3122-five-shadcnui-components)) |
+| `ResizeObserver is not defined` in a test | A Radix component measures itself; jsdom has no `ResizeObserver` | `src/test/setup.ts` gives one ([H3.12.5](#h3125-the-tests-and-the-errors-met)) |
+| `"undefined" is not valid JSON` from `sentBody` | No call to that path sent a body | Check the path, and that the request was sent before reading it |
+| Photos do not load, 404 on `/storage/…` | No `public/storage` link on this computer | `make artisan c="storage:link"` ([H3.12.1](#h3121-the-photos-reach-the-browser)) |
 
 Setup problems: [S1.10](../start/S1-setup.md#s110-troubleshooting).
 
@@ -608,10 +658,205 @@ Setup problems: [S1.10](../start/S1-setup.md#s110-troubleshooting).
 | TypeScript | `make typecheck` |
 | Style, and fixes | `make lint`, `make fix` |
 | A package | `npm install name` in `frontend/`; after a pull, `make fe-install` |
-| A shadcn/ui component | `npx shadcn add name` in `frontend/`, then `make fix` |
+| A shadcn/ui component | `npx shadcn add name` in `frontend/`, then `make fix`; answer no to overwriting our files |
+| The photos' link, once per computer | `make artisan c="storage:link"` (`make setup` does it) |
 | Every check, backend included | `make check` |
 
 **Official documentation:** React https://react.dev/learn; React Router https://reactrouter.com; TanStack Query https://tanstack.com/query/latest/docs/framework/react/overview; react-hook-form https://react-hook-form.com; zod https://zod.dev; Testing Library https://testing-library.com/docs/queries/about; Vitest https://vitest.dev; i18next https://www.i18next.com.
+
+---
+
+## H3.12 The exercise library screens, as built
+
+UI-1 built the library's three screens on the API of [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints): the list, an exercise's page, the editor. How they work is in [C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens); this section is the doing, with the real output. It shows what [H3.2](#h32-a-new-page)–[H3.5](#h35-testing-a-page) do not: a list read in pages, filters kept in the address, a form shaped differently from the API, a confirmation dialog, and photos served by Laravel.
+
+| File | What it is |
+|---|---|
+| `src/api/exercises.ts`, `muscles.ts`, `equipment.ts` | Types, keys and hooks of the library and its two fixed lists |
+| `src/pages/ExercisesPage.tsx`, `ExerciseDetailPage.tsx`, `ExerciseEditorPage.tsx` | The three screens; their routes in `src/router.tsx` |
+| `src/components/exercises/` | `ExerciseListItem`, `ExerciseFilters`, `ExercisePhotos`, `ExerciseForm`, and `exercise-form.ts` (rules and conversions) |
+| `src/lib/useDebouncedValue.ts` | The search's pause |
+| `src/components/ui/badge.tsx`, `checkbox.tsx`, `native-select.tsx`, `textarea.tsx`, `alert-dialog.tsx` | Five shadcn/ui components |
+| `src/i18n/locales/*.json` | The `exercises` section, in four languages |
+| `src/test/exercise-helpers.ts`, `auth-helpers.tsx`, `setup.ts` | Test data, and two changes to the helpers |
+| 4 test files, 26 tests | Next to the pages, and `exercise-form.test.ts` |
+| Backend: `ExerciseResource.php`, `ExerciseController.php`, `ExerciseApiTest.php`; `Makefile` | The photos in the API, and `storage:link` in `make setup` |
+
+### H3.12.1 The photos reach the browser
+
+The imported photos are files in `backend/storage/app/public` ([H1.12](H1-database.md#h112-the-free-exercise-db-import-as-built)). Two steps make them reachable.
+
+**A link from Laravel's public folder,** which the web server exposes, to that folder:
+
+```sh
+make artisan c="storage:link"
+```
+
+```
+INFO  The [public/storage] link has been connected to [storagepublic].
+```
+
+(The odd `[storagepublic]` is how Laravel prints the target, `storage/app/public`.) `backend/public/storage` is in `backend/.gitignore`: every computer makes its own link, and `make setup` now does it.
+
+**The photos in the API, as paths.** `ExerciseResource` adds `"photos": [{ "id": 1, "url": "/storage/1/0.jpg" }, …]`. medialibrary's `getUrl()` gives `http://localhost:8000/storage/1/0.jpg`, from `APP_URL`, as Laravel sees itself inside the container:
+
+```sh
+make artisan c="config:show app.url"
+```
+
+```
+app.url .............................................. http://localhost:8000
+```
+
+The browser cannot reach port 8000 (Laravel is at 8500 from the computer), so the resource keeps only the path, and the React app's server forwards `/storage` to Laravel: Vite's proxy already listed it (`vite.config.ts`). The backend's test:
+
+```
+✓ it sends the photos as paths on the app's own address, in their order
+```
+
+### H3.12.2 Five shadcn/ui components
+
+```sh
+npx shadcn add badge textarea checkbox alert-dialog native-select --yes
+```
+
+```
+✔ Checking registry.
+- Updating files.
+? The file button.tsx already exists. Would you like to overwrite? › (y/N)
+```
+
+**The command stopped there.** `alert-dialog` uses `button.tsx`, and offered to replace ours, which has the app's own `xl` size. `--yes` does not answer that question. Four files had been written; the fifth was added alone, answering "no":
+
+```sh
+printf 'n\n' | npx shadcn add alert-dialog
+```
+
+```
+✔ The file button.tsx already exists. Would you like to overwrite? … no
+✔ Created 1 file:
+  - src/components/ui/alert-dialog.tsx
+ℹ Skipped 1 file: (files might be identical, use --overwrite to overwrite)
+  - src/components/ui/button.tsx
+```
+
+`printf 'n\n' |` types "n" and Enter into the command. Then the style, as in [H3.9](#h39-a-shadcnui-component):
+
+```sh
+npx eslint src/components/ui/{badge,checkbox,native-select,textarea,alert-dialog}.tsx
+```
+
+```
+✖ 77 problems (77 errors, 0 warnings)
+  77 errors and 0 warnings potentially fixable with the `--fix` option.
+```
+
+`npx eslint --fix` on the same files corrected all 77; then each file got its header comment and a line on each function, on the model of `card.tsx`.
+
+**Why `native-select`.** The library's filters and the editor use the browser's own `<select>`, styled: on a phone it opens the system's picker, it needs no code to place a popup, and `register()` and `userEvent.selectOptions()` work on it as on any field.
+
+### H3.12.3 The list
+
+`src/api/exercises.ts` follows [H3.3.1](#h331-the-api-file), with `useInfiniteQuery` for the pages ([C1.14.2](../concepts/C1-frontend.md#c1142-a-list-one-page-at-a-time)). The page keeps its filters in the address ([C1.14.3](../concepts/C1-frontend.md#c1143-filters-in-the-address)):
+
+| Address | List |
+|---|---|
+| `/exercises` | All, sorted by name |
+| `/exercises?q=panca` | The search; the request leaves 300 ms after the last key |
+| `/exercises?muscle=chest&equipment=barbell` | Primary muscle chest, with a barbell |
+| `/exercises?source=mine` | Only the user's own; empty, it offers to create the first one |
+
+Each filter's request, as the test reads it from the fake API: `/api/exercises?filter%5Bmuscle%5D=chest&filter%5Bsource%5D=mine&page=1&per_page=50` (`%5B` and `%5D` are `[` and `]`, escaped by `URLSearchParams`).
+
+### H3.12.4 The page and the editor
+
+- **The page** shows the facts as a description list (`<dl>`), the steps as a numbered list, the YouTube link in a new tab. Edit and Delete appear only when `is_mine` is true. Delete opens an `AlertDialog`; its button calls `event.preventDefault()`, so the dialog stays open until the request is done, then the app goes to the list with `replace: true`.
+- **The editor** is one page for `/exercises/new` and `/exercises/:id/edit`. For a change it waits for the exercise, then draws `ExerciseForm` with its values. The form's fields and the API's body differ, and `exercise-form.ts` converts between them ([C1.14.4](../concepts/C1-frontend.md#c1144-the-editors-form)).
+- **"Create «…»"** after a search with no result opens `/exercises/new?name=…`, and the editor starts with that name.
+
+### H3.12.5 The tests, and the errors met
+
+```sh
+npx vitest run src/pages/Exercise src/components/exercises --reporter=verbose
+```
+
+```
+✓ src/components/exercises/exercise-form.test.ts > toExerciseInput > turns the form into what the API expects
+✓ src/components/exercises/exercise-form.test.ts > toExerciseInput > never sends the main muscle as a secondary one too
+✓ src/components/exercises/exercise-form.test.ts > toExerciseInput > sends no muscle and no equipment when none is chosen
+✓ src/components/exercises/exercise-form.test.ts > formValuesFrom > fills the form from an exercise, and gives it back unchanged
+✓ src/components/exercises/exercise-form.test.ts > exerciseFormSchema > asks for a name, and refuses a link that is not YouTube
+✓ src/components/exercises/exercise-form.test.ts > exerciseFormSchema > accepts the YouTube addresses people paste
+✓ src/pages/ExerciseDetailPage.test.tsx > ExerciseDetailPage > shows the photos, the facts, the muscles and the steps
+✓ src/pages/ExerciseDetailPage.test.tsx > ExerciseDetailPage > lets the owner edit, and delete after confirming
+✓ src/pages/ExerciseDetailPage.test.tsx > ExerciseDetailPage > keeps the exercise when the dialog is cancelled
+✓ src/pages/ExerciseDetailPage.test.tsx > ExerciseDetailPage > says so for an exercise that is not there, or not the user's
+✓ src/pages/ExercisesPage.test.tsx > ExercisesPage > lists the exercises with their count, cover, main muscle and Mine badge
+✓ src/pages/ExerciseEditorPage.test.tsx > ExerciseEditorPage > creates an exercise from every field, then opens it
+✓ src/pages/ExerciseEditorPage.test.tsx > ExerciseEditorPage > does not let the main muscle be ticked as secondary
+✓ src/pages/ExerciseEditorPage.test.tsx > ExerciseEditorPage > starts with the name of the search that found nothing
+✓ src/pages/ExerciseEditorPage.test.tsx > ExerciseEditorPage > says what is wrong before sending anything
+✓ src/pages/ExerciseEditorPage.test.tsx > ExerciseEditorPage > shows the server's message under its field
+✓ src/pages/ExerciseEditorPage.test.tsx > ExerciseEditorPage > changes an exercise, starting from its values
+✓ src/pages/ExerciseEditorPage.test.tsx > ExerciseEditorPage > refuses to edit an exercise that is not the user's
+✓ src/pages/ExercisesPage.test.tsx > ExercisesPage > searches once typing pauses, and keeps the search in the address
+✓ src/pages/ExercisesPage.test.tsx > ExercisesPage > reads the filters from the address and sends them
+✓ src/pages/ExercisesPage.test.tsx > ExercisesPage > changes a filter in the address and in the request
+✓ src/pages/ExercisesPage.test.tsx > ExercisesPage > offers to create the exercise a search did not find
+✓ src/pages/ExercisesPage.test.tsx > ExercisesPage > invites to create the first personal exercise
+✓ src/pages/ExercisesPage.test.tsx > ExercisesPage > offers to clear filters that match nothing
+✓ src/pages/ExercisesPage.test.tsx > ExercisesPage > loads the next page with Show more
+✓ src/pages/ExercisesPage.test.tsx > ExercisesPage > says so when the list cannot be loaded
+Test Files  4 passed (4)
+     Tests  26 passed (26)
+```
+
+**Two errors, on the way there.**
+
+The editor's tests first failed, every one of them, with:
+
+```
+React Router caught the following error during render ReferenceError: ResizeObserver is not defined
+```
+
+Radix's Checkbox watches its own size with `ResizeObserver`, which every browser has and jsdom does not. `src/test/setup.ts` now gives the tests one that does nothing.
+
+Then one test, the change of an exercise:
+
+```
+FAIL  src/pages/ExerciseEditorPage.test.tsx > ExerciseEditorPage > changes an exercise, starting from its values
+SyntaxError: "undefined" is not valid JSON
+```
+
+`sentBody(fake, '/api/exercises/13')` took the first call to that path, which was the page's `GET`, with no body. It now takes the first call **with a body**, the `PATCH`.
+
+### H3.12.6 The production build
+
+```sh
+npm run build
+```
+
+```
+dist/assets/index-BO-zBKwn.js                              783.30 kB │ gzip: 245.70 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+…
+✓ built in 1.55s
+```
+
+The warning is the known limit of [C1.11](../concepts/C1-frontend.md#c111-known-limits): one file for the whole app, grown by these screens, under 250 kB once compressed. Splitting it per page is for when it starts to slow the first load.
+
+### H3.12.7 Checking in the browser
+
+With `make start`, at http://localhost:5673/exercises:
+
+- **The list:** 876 exercises, with a photo on each row but three (the source has none for them); typing "bench" narrows it after a pause, and the address shows `?q=bench`. Back and Forward walk between pages, not letters.
+- **The filters:** a muscle, then Mine: the address and the count follow; reloading the page keeps them.
+- **What stays at the top:** scroll the list. In a wide window, the search box and the filters stay; in the device toolbar at a phone's width ([H3.8.1](#h381-phone-tablet-and-desktop-widths); *iPhone SE*, for example) only the search box stays, and the filters scroll away.
+- **The photos:** in the Network tab ([H3.8](#h38-checking-in-the-browser)), the images come from `localhost:5673/storage/…`, with status 200.
+- **An exercise of your own:** **New exercise**, fill it in, Create: its page opens with the Mine badge, Edit and Delete. Delete asks first.
+- **Another language:** in Profile, switch to Italian: the names, the muscles and the equipment change too.
 
 ---
 

@@ -38,11 +38,12 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - **Signing in:** sign up, in and out, and resetting a password, with Fortify and four React screens; route guards; language and theme saved on the account; only admins open `/admin` ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum), [C1.13](../concepts/C1-frontend.md#c113-signing-in-and-forms)).
 - **Exercise library, tables** (first part of BE-1): `muscles` and `equipment` filled with free-exercise-db's 17 muscles and 12 kinds of equipment in four languages, `exercises` and `exercise_muscle`, with their models, relations and tests ([D3.4](../design/D3-data-model.md#d34-exercise-library), [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built)).
 - **Exercise library, API** (second part of BE-1): the list with search, filters and pages, reading, creating, changing and deleting personal exercises ([C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints)).
+- **Exercise library, screens** (UI-1): the list with search and filters, an exercise's page, the editor of personal exercises, with the imported photos ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)).
 - **Exercise library, import** (first part of DATA-1): `make exercises-import` downloads free-exercise-db and fills the public library with its exercises in English, their muscles, equipment and photos ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)).
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([S1.6](#s16-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
 
-**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the translation of the library, its admin screen, photo uploads and screens, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
+**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the translation of the library, its admin screen and photo uploads, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 

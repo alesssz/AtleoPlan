@@ -15,6 +15,8 @@
 import { createBrowserRouter } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AuthLayout } from '@/components/layout/AuthLayout'
+import { ExerciseDetailPage } from '@/pages/ExerciseDetailPage'
+import { ExerciseEditorPage } from '@/pages/ExerciseEditorPage'
 import { ExercisesPage } from '@/pages/ExercisesPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { HomePage } from '@/pages/HomePage'
@@ -73,10 +75,17 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <HomePage /> },
           // Each section's sub-pages (/plans/:id, /plans/:id/edit…) join here
-          // with their features (FEAT-2, UI-1, FEAT-4); ':id' is a parameter,
+          // with their features (FEAT-2, FEAT-4); ':id' is a parameter,
           // read in the page with React Router's useParams()
           { path: 'plans', element: <PlansPage /> },
+          // The exercise library (D1.4.3–D1.4.5). 'exercises/new' is listed
+          // before ':id' only for the reader: React Router ranks a fixed
+          // segment above a parameter by itself, so /exercises/new never
+          // reaches the details page with id "new"
           { path: 'exercises', element: <ExercisesPage /> },
+          { path: 'exercises/new', element: <ExerciseEditorPage /> },
+          { path: 'exercises/:id', element: <ExerciseDetailPage /> },
+          { path: 'exercises/:id/edit', element: <ExerciseEditorPage /> },
           { path: 'progress', element: <ProgressPage /> },
           { path: 'profile', element: <ProfilePage /> },
           // Anything else ('*' matches every address): "page not found",
