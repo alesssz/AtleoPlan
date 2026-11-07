@@ -41,10 +41,11 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - **Exercise library, screens** (UI-1): the list with search and filters, an exercise's page, the editor of personal exercises, with the imported photos ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)).
 - **Exercise library, import** (first part of DATA-1): `make exercises-import` downloads free-exercise-db and fills the public library with its exercises in English, their muscles, equipment and photos ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)).
 - **Plans, tables and API** (first part of FEAT-2): `plans`, `plan_days`, `plan_items`, `plan_sets` and the user's active plan; the API lists, reads, creates and saves a whole plan, deletes, activates and archives ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints), [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built)). After pulling it: `make migrate`.
+- **Plans, screens** (second part of FEAT-2): the plan list and a plan's page, its days as tabs; `make plans-demo` gives every user two example plans until the editor exists ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([S1.6](#s16-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
 
-**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the translation of the library, its admin screen and photo uploads, the plans' screens, workout mode, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
+**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the translation of the library, its admin screen and photo uploads, the plan editor, workout mode, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 
@@ -299,6 +300,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Run the migrations | `docker compose exec backend php artisan migrate` |
 | Empty the database and rebuild it, with test data | `docker compose exec backend php artisan migrate:fresh --seed` |
 | Fill the public exercise library (after a fresh database too) | `make exercises-import`: the first time it also clones free-exercise-db into `backend/storage/app/` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
+| Example plans to look at, until the plan editor exists (after the import) | `make plans-demo`: two plans for every user who has none ([H3.13.1](../how-to/H3-frontend.md#h3131-plans-to-look-at)) |
 | Add a package | `docker compose exec backend composer require <package>` |
 | Interactive console | `docker compose exec backend php artisan tinker` |
 | Tests (on the `atleoplan_test` database) | `docker compose exec backend php artisan test` |

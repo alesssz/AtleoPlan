@@ -1,0 +1,244 @@
+/*
+ * One plan (route `/plans/:id`, docs/design/D1-ui.md D1.4.7): its name,
+ * goal and notes, its days as tabs, and in each day the exercises summed up
+ * as "4 × 8–10 · 80 kg · 90 s", warm-ups apart, supersets joined by a bar.
+ * The actions: Set as active, Archive or Restore, Delete; Edit waits for the
+ * plan editor (the next part of FEAT-2), marked "Coming soon".
+ *
+ * Not here yet, with the feature that brings it: "Start this day" (FEAT-3,
+ * workout mode), Share and Duplicate (phase 2).
+ *
+ * The open day lives in the address, `?day=2` (from 1), so a reload or Back
+ * from an exercise's page returns to the same day. How it was built:
+ * docs/how-to/H3-frontend.md H3.13.
+ */
+import { Archive, ArchiveRestore, ArrowLeft, Pencil, Star, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { useCurrentUser } from '@/api/auth'
+import { useDeletePlan, usePlan, usePlanAction, type Plan } from '@/api/plans'
+import { ComingSoon } from '@/components/ComingSoon'
+import { FormBanner } from '@/components/FormBanner'
+import { PageHeader } from '@/components/PageHeader'
+import { PlanDayView } from '@/components/plans/PlanDayView'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ApiError } from '@/lib/http'
+
+/**
+ * The user's rest when an exercise sets none and the user is not loaded
+ * yet: the backend's own default (users.default_rest_seconds).
+ */
+const FALLBACK_REST_SECONDS = 90
+
+/** The plan page (route `/plans/:id`). */
+export function PlanDetailPage() {
+  const { t, i18n } = useTranslation()
+  // The :id of the address: the plan's UUID. `?? ''`: useParams() types
+  // every parameter as possibly missing, though the route always has it
+  const id = useParams().id ?? ''
+  const plan = usePlan(id, i18n.language)
+
+  if (plan.isPending) {
+    return (
+      <div role="status" className="flex flex-col gap-4">
+        <Skeleton className="h-8 w-2/3" />
+        <Skeleton className="h-64 w-full rounded-3xl" />
+        <span className="sr-only">{t('plans.detail.loading')}</span>
+      </div>
+    )
+  }
+
+  if (plan.isError) {
+    // 404 (no such plan) and 403 (someone else's): the same message, since
+    // for the user both mean "not here". Any other error offers to try again
+    const missing = plan.error instanceof ApiError && [403, 404].includes(plan.error.status)
+    return (
+      <div role="alert" className="flex flex-col items-start gap-4">
+        <p>{missing ? t('plans.detail.notFound') : t('plans.detail.loadError')}</p>
+        {missing
+          ? <Link to="/plans" className="font-semibold text-primary">{t('plans.detail.back')}</Link>
+          : <Button variant="outline" onClick={() => void plan.refetch()}>{t('server.retry')}</Button>}
+      </div>
+    )
+  }
+
+  return <PlanDetail plan={plan.data} />
+}
+
+/** Props of PlanDetail. */
+interface PlanDetailProps {
+  /** The plan, loaded. */
+  plan: Plan
+}
+
+/** The page's content, once the plan has arrived. */
+function PlanDetail({ plan }: PlanDetailProps) {
+  const { t } = useTranslation()
+  // The signed-in user, for the weight unit and the default rest. Already
+  // in the cache: RequireAuth asked for it before any page opened
+  const { data: user } = useCurrentUser()
+  const action = usePlanAction(plan.id)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const archived = plan.archived_at !== null
+
+  // The open day, from `?day=` (1 for the first). Anything that is not one
+  // of the plan's days, a hand-typed ?day=9 say, opens the first
+  const requested = Number(searchParams.get('day') ?? '1')
+  const dayIndex = Number.isInteger(requested) && requested >= 1 && requested <= plan.days.length ? requested - 1 : 0
+
+  /**
+   * Opens another day, in the address. Tabs give their value as text: the
+   * day's index. `replace: true`: Back leaves the plan, not the last tab.
+   * @param value the tab's value, "0" for the first day
+   */
+  function openDay(value: string) {
+    setSearchParams({ day: String(Number(value) + 1) }, { replace: true })
+  }
+
+  return (
+    <>
+      {/* Back to the list the plan belongs to */}
+      <Link to={archived ? '/plans?archived=1' : '/plans'} className="mb-4 inline-flex min-h-12 items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
+        <ArrowLeft aria-hidden="true" className="size-4" />
+        {t('plans.detail.back')}
+      </Link>
+
+      {/* `?? undefined`: PageHeader leaves the description out when there is none */}
+      <PageHeader eyebrow={t('pages.plans.eyebrow')} title={plan.name} description={plan.goal ?? undefined} />
+
+      <div className="flex flex-col gap-6">
+        {/* Its state, in words */}
+        {(plan.is_active || archived) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {plan.is_active && <Badge>{t('plans.active')}</Badge>}
+            {archived && <Badge variant="secondary">{t('plans.archivedBadge')}</Badge>}
+            {archived && <p className="text-sm text-muted-foreground">{t('plans.detail.archivedText')}</p>}
+          </div>
+        )}
+
+        {/* The actions. Which ones depends on the plan's state:
+            an archived plan cannot be made active (PlanPolicy::activate) */}
+        <div className="flex flex-wrap items-center gap-3">
+          {!plan.is_active && !archived && (
+            <Button size="xl" disabled={action.isPending} onClick={() => action.mutate('activate')}>
+              <Star aria-hidden="true" />
+              {t('plans.detail.setActive')}
+            </Button>
+          )}
+          <Button size="xl" variant="outline" disabled>
+            <Pencil aria-hidden="true" />
+            {t('plans.detail.edit')}
+          </Button>
+          <ComingSoon />
+          <Button size="xl" variant="outline" disabled={action.isPending} onClick={() => action.mutate(archived ? 'unarchive' : 'archive')}>
+            {archived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}
+            {archived ? t('plans.detail.unarchive') : t('plans.detail.archive')}
+          </Button>
+          <DeletePlanButton plan={plan} />
+        </div>
+        {action.isError && <FormBanner variant="error">{t('plans.detail.actionError')}</FormBanner>}
+
+        {plan.notes && (
+          <section aria-labelledby="plan-notes-title" className="rounded-3xl border bg-card/60 p-5">
+            <h2 id="plan-notes-title" className="mb-1 text-sm text-muted-foreground">{t('plans.detail.notes')}</h2>
+            <p className="whitespace-pre-line">{plan.notes}</p>
+          </section>
+        )}
+
+        {/* The days as tabs (src/components/ui/tabs.tsx). Controlled: the
+            open tab comes from the address, and a click writes it there */}
+        {plan.days.length === 0
+          ? <p className="text-muted-foreground">{t('plans.detail.noDays')}</p>
+          : (
+              <Tabs value={String(dayIndex)} onValueChange={openDay}>
+                {/* The tab row scrolls sideways when the days do not fit,
+                    as on a phone with six days. h-auto and the larger tabs:
+                    48 px, the smallest a finger hits reliably (D1.5) */}
+                <div className="-mx-1 overflow-x-auto px-1 pb-1">
+                  <TabsList aria-label={t('plans.detail.daysLabel')} className="h-auto! rounded-xl p-1">
+                    {plan.days.map((day, index) => (
+                      <TabsTrigger key={day.id} value={String(index)} className="min-h-12 flex-none rounded-lg px-4 text-sm">
+                        {day.name}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
+                {plan.days.map((day, index) => (
+                  <TabsContent key={day.id} value={String(index)} className="text-base">
+                    <PlanDayView
+                      day={day}
+                      weightUnit={user?.weight_unit ?? 'kg'}
+                      defaultRestSeconds={user?.default_rest_seconds ?? FALLBACK_REST_SECONDS}
+                    />
+                  </TabsContent>
+                ))}
+              </Tabs>
+            )}
+      </div>
+    </>
+  )
+}
+
+/** Props of DeletePlanButton. */
+interface DeletePlanButtonProps {
+  /** The plan to delete. */
+  plan: Plan
+}
+
+/**
+ * Delete, with a confirmation first: a plan deleted cannot be brought back
+ * (D1.6). Archive is the gentle alternative. After it, the plan list.
+ */
+function DeletePlanButton({ plan }: DeletePlanButtonProps) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const remove = useDeletePlan(plan.id)
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="destructive" size="xl">
+          <Trash2 aria-hidden="true" />
+          {t('plans.detail.delete')}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t('plans.detail.deleteTitle', { name: plan.name })}</AlertDialogTitle>
+          <AlertDialogDescription>{t('plans.detail.deleteText')}</AlertDialogDescription>
+        </AlertDialogHeader>
+        {remove.isError && <FormBanner variant="error">{t('plans.detail.deleteError')}</FormBanner>}
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t('plans.detail.cancel')}</AlertDialogCancel>
+          {/* preventDefault() keeps the dialog open until the request is
+              done (ExerciseDetailPage explains it); `replace: true`: Back
+              does not return to the deleted plan */}
+          <AlertDialogAction
+            variant="destructive"
+            disabled={remove.isPending}
+            onClick={(event) => {
+              event.preventDefault()
+              remove.mutate(undefined, { onSuccess: () => void navigate('/plans', { replace: true }) })
+            }}
+          >
+            {t('plans.detail.delete')}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}

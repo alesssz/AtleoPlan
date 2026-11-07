@@ -12,7 +12,7 @@
  */
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
+import { ComingSoon } from '@/components/ComingSoon'
 import { cn } from '@/lib/utils'
 
 /** Props of EmptyState. */
@@ -37,7 +37,6 @@ interface EmptyStateProps {
 export function EmptyState({ icon: Icon, title, description, actions, comingSoon, className }: EmptyStateProps) {
   // `icon: Icon` in the parameter list renames the prop while destructuring:
   // JSX needs a capitalised name (<Icon />) to treat it as a component
-  const { t } = useTranslation()
 
   return (
     // The box: a card with the gradient border (border-glow, src/index.css),
@@ -59,12 +58,8 @@ export function EmptyState({ icon: Icon, title, description, actions, comingSoon
       </div>
 
       {/* "Coming soon": a small pill in the warning colour (amber), shown
-          only while the feature is missing */}
-      {comingSoon && (
-        <span className="mb-4 rounded-full bg-warning/15 px-3 py-1 text-xs font-bold tracking-wider text-warning uppercase">
-          {t('common.comingSoon')}
-        </span>
-      )}
+          only while the feature is missing (src/components/ComingSoon.tsx) */}
+      {comingSoon && <ComingSoon className="mb-4" />}
 
       {/* The headline and the sentence; text-balance spreads a long title
           over lines of similar length instead of leaving one word alone */}
