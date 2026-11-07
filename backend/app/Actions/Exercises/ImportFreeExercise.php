@@ -46,8 +46,9 @@ use InvalidArgumentException;
  *   level, category, equipment, muscles). Other languages, written by the
  *   translation or by an admin, are kept, and so are the logging type and
  *   the photos.
- * - **English only.** The other languages come from the translation (the
- *   second part of DATA-1). English is the original, so it is never in
+ * - **English only.** The other languages come from the translation, the
+ *   command `exercises:translate` that `make exercises-import` runs next
+ *   (TranslateExercise). English is the original, so it is never in
  *   `machine_translated`.
  * - **Photos are added when the exercise has none**, also on a later run: an
  *   import stopped halfway completes its photos the next time.

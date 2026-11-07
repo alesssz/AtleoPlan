@@ -12,8 +12,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [OPS](#ops)
   - [OPS-2 Check that the AtleoPlan name is free](#ops-2-check-that-the-atleoplan-name-is-free)
   - [OPS-3 Deploy to the free server](#ops-3-deploy-to-the-free-server)
-- [DATA](#data)
-  - [DATA-1 Import and translate free-exercise-db](#data-1-import-and-translate-free-exercise-db)
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
@@ -55,7 +53,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [D3. Data model](../design/D3-data-model.md).
 
-1. The exercise library: its API, import and screens are done; left are its admin screen and media ([BE-1](#be-1-exercise-library-api-and-admin)) and its translation ([DATA-1](#data-1-import-and-translate-free-exercise-db))
+1. The exercise library: its API, import, translation and screens are done; left are its admin screen, where translations are reviewed, and its media ([BE-1](#be-1-exercise-library-api-and-admin))
 2. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
 3. [FEAT-4](#feat-4-summary-and-history) summary and history
 
@@ -86,24 +84,6 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - Write the deployment section of the docs ([P1.3](P1-conventions.md#p13-documentation)).
 
 **Recommended.** Keep the local stack close to the production one (same Docker images, Postgres rather than SQLite), so that deploying is a configuration step and not a rewrite.
-
-## DATA
-
-### DATA-1 Import and translate free-exercise-db
-
-**Priority:** high · **Kind:** seed data · **Found:** 2026-11-05
-
-**Done:** the import, in English with muscles, equipment and photos: `make exercises-import` (`feat/exercise-import`, [C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import), [H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)).
-
-**What is missing.** The translation into Italian, Spanish and German of the names and instructions ([D2.3](../design/D2-decisions.md#d23-exercise-library)): Italian reviewed by hand, Spanish and German marked **Machine translated** until a native speaker reviews them.
-
-**Options.**
-- A) An Artisan command calling an LLM's API, one exercise at a time, writing each language with `setTranslation()` and adding it to `machine_translated`; it skips languages already there, so it can resume.
-- B) A script outside the app that writes a JSON file of translations, then a command that reads it.
-
-**To decide first:** which model and API, its cost for 876 exercises × 3 languages, and where the API key lives (`.env`, never in Git).
-
-**Recommended.** A: the same shape as the import, it can stop and resume, and nothing is written twice.
 
 ## UI
 
@@ -159,7 +139,7 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - `feat/exercise-media`: the photo and video uploads of personal exercises, with their limits, the conversion job and the order of the photos ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)); the resized photos (a 400 px thumbnail for the library's rows) and the videos in `ExerciseResource`, which already sends the photos as stored; in the editor, the media field of [D1.4.5](../design/D1-ui.md#d145-exercise-editor); **Duplicate as mine** for a public exercise ([D1.4.4](../design/D1-ui.md#d144-exercise-details)), which copies its photos too.
 - `feat/exercise-admin`: the Filament resource for the public library, one field per language ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)). Filament asks the model's policy, and `ExercisePolicy` refuses changes to public exercises, admins included, because the API must: the resource overrides `canEdit()`, `canDelete()` and `canCreate()` for admins, or the policy gains a separate ability for the panel.
 
-Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). DATA-1 then fills it.
+Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). The admin screen also takes a language out of an exercise's `machine_translated` when a person has reviewed it: every imported exercise has `it`, `es` and `de` there ([C2.14.4](../concepts/C2-backend.md#c2144-the-translation-of-the-library)).
 
 ### BE-2 Manage users in the admin panel
 

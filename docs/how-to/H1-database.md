@@ -11,6 +11,7 @@
 - Tables linked to each other, on the real code: [H1.10](#h110-the-exercise-library-as-built).
 - Filling the public exercise library from free-exercise-db: [H1.12](#h112-the-free-exercise-db-import-as-built).
 - Tables whose ids are UUIDs made on the device, four levels deep, and a column added to `users` afterwards: [H1.13](#h113-the-plan-tables-as-built).
+- Translating the imported library from files of the repository: [H1.14](#h114-the-translation-of-the-library-as-built).
 - Something broke: [H1.9](#h19-when-something-goes-wrong).
 - What migrations and models are, in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
 
@@ -73,6 +74,13 @@
   - [H1.13.5 The relations of four levels](#h1135-the-relations-of-four-levels)
   - [H1.13.6 What happens on delete, tried](#h1136-what-happens-on-delete-tried)
   - [H1.13.7 Factories four levels deep, and the tests](#h1137-factories-four-levels-deep-and-the-tests)
+- [H1.14 The translation of the library, as built](#h114-the-translation-of-the-library-as-built)
+  - [H1.14.1 Measuring the work](#h1141-measuring-the-work)
+  - [H1.14.2 How the texts were made](#h1142-how-the-texts-were-made)
+  - [H1.14.3 What the checks found, and the fixes](#h1143-what-the-checks-found-and-the-fixes)
+  - [H1.14.4 The command](#h1144-the-command)
+  - [H1.14.5 Look at the result](#h1145-look-at-the-result)
+  - [H1.14.6 The tests, and the errors met](#h1146-the-tests-and-the-errors-met)
 
 ---
 
@@ -732,7 +740,7 @@ Exercise::factory()->hasAttached(Muscle::factory(), ['role' => 'primary'])->crea
 |---|---|---|
 | **Fixed lists** the app needs in order to work | the 17 muscles, the 12 kinds of equipment | Its own seeder (`MuscleSeeder`), also run on the server |
 | **Development data**, for trying the app | the account `test@example.com` | `DatabaseSeeder`, never on the server |
-| **A large import** | the public exercise library ([DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db)) | An Artisan command that reads a file: `make exercises-import` ([H1.6.4](#h164-a-large-import), [H1.12](#h112-the-free-exercise-db-import-as-built)) |
+| **A large import** | the public exercise library (DATA-1) | An Artisan command that reads a file: `make exercises-import` ([H1.6.4](#h164-a-large-import), [H1.12](#h112-the-free-exercise-db-import-as-built)) |
 
 The tests do not use `DatabaseSeeder`: each test creates its rows with factories, or calls one seeder with `$this->seed(MuscleSeeder::class)`.
 
@@ -1137,7 +1145,8 @@ Tests:    16 passed (97 assertions)
 | A table, a model, the database | `make artisan c="db:table muscles"`, `c="model:show Muscle"`, `c="db:show"` |
 | Tests | `make test`, `make test f=Muscle` |
 | Format, then every check | `make fix`, `make check` |
-| Fill the public exercise library | `make exercises-import`; try with `o="--limit=5"`, refresh with `o="--update"` ([H1.12](#h112-the-free-exercise-db-import-as-built)) |
+| Fill the public exercise library, then translate it | `make exercises-import`; try with `o="--limit=5"`, refresh with `o="--update"` ([H1.12](#h112-the-free-exercise-db-import-as-built)) |
+| Translate it again, or one language | `make exercises-translate`, `o="--locale=it --force"` ([H1.14](#h114-the-translation-of-the-library-as-built)) |
 | Two example plans for every user who has none, after the import | `make plans-demo` ([H3.13.1](H3-frontend.md#h3131-plans-to-look-at)) |
 | A command of our own | `make artisan c="make:command ImportSomething"` |
 | The SQL of undoing the last migration, without running it | `make artisan c="migrate:rollback --step=1 --pretend"` |
@@ -1148,7 +1157,7 @@ Tests:    16 passed (97 assertions)
 
 ## H1.12 The free-exercise-db import, as built
 
-The first part of [DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db) fills the public library from [free-exercise-db](https://github.com/yuhonas/free-exercise-db): 876 exercises in English, with their muscles, equipment and 1,746 photos. The rules of the import, and why, are in [C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import); this section is the doing, with the real output of each command.
+The first part of DATA-1 fills the public library from [free-exercise-db](https://github.com/yuhonas/free-exercise-db): 876 exercises in English, with their muscles, equipment and 1,746 photos. The rules of the import, and why, are in [C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import); this section is the doing, with the real output of each command.
 
 | File | What it is |
 |---|---|
@@ -1156,7 +1165,7 @@ The first part of [DATA-1](../project/backlog.md#data-1-import-and-translate-fre
 | `app/Actions/Exercises/ImportFreeExercise.php` | The rules for one exercise: matching, translations, muscles, logging type, photos |
 | `app/Actions/Exercises/ImportResult.php`, `app/Enums/ImportOutcome.php` | What the action reports for each exercise |
 | `tests/Feature/ExerciseLibrary/ImportFreeExerciseTest.php` | 18 tests, on a small dataset written by the tests themselves |
-| `Makefile` | `make exercises-import`: clones the dataset once, then runs the command |
+| `Makefile` | `make exercises-import`: clones the dataset once, then runs the command (and, since H1.14, the translation) |
 
 ### H1.12.1 The files
 
@@ -1722,6 +1731,185 @@ The refusals are tested inside `DB::transaction()`, as in [H1.10.8](#h1108-testi
 | Message | Cause | Fix |
 |---|---|---|
 | `PARSE ERROR  PHP Parse error: Syntax error, unexpected '*'` in `tinker --execute` | `use App\Models\*;`: PHP has no wildcard imports | One `use` per class, or `use App\Models\{Plan, PlanDay};` |
+
+
+## H1.14 The translation of the library, as built
+
+The second part of DATA-1 gave the 876 imported exercises their Italian, Spanish and German names, other names and steps. The rules and the reasons are in [C2.14.4](../concepts/C2-backend.md#c2144-the-translation-of-the-library); this section is the doing, with the real output: how the texts were made and checked, and the command that writes them.
+
+| File | What it is |
+|---|---|
+| `database/data/exercise-translations/it.json`, `es.json`, `de.json` | The translations, about 730 kB each: 876 entries keyed by `external_id` |
+| `app/Console/Commands/TranslateExercises.php` | `exercises:translate` |
+| `app/Actions/Exercises/TranslateExercise.php` | One language of one exercise: the rules |
+| `tests/Feature/ExerciseLibrary/TranslateExercisesTest.php` | 10 tests, one of them on the three files |
+| `Makefile` | `make exercises-import` runs the translation after the import; `make exercises-translate` alone |
+
+**After pulling this branch on another computer:** `make exercises-translate` (or `make exercises-import`, which now does both).
+
+### H1.14.1 Measuring the work
+
+Before choosing how, how much text there is, in tinker:
+
+```php
+> $rows = App\Models\Exercise::whereNull('owner_id')->get();
+> $rows->sum(fn ($e) => mb_strlen($e->getTranslation('name', 'en')));
+18975
+> $rows->sum(fn ($e) => mb_strlen(implode(' ', $e->getTranslation('instructions', 'en', false) ?: [])));
+574571
+```
+
+About 19,000 characters of names and 575,000 of steps, 3,738 steps in all, and no descriptions: free-exercise-db has none. `getTranslation('instructions', 'en', false)`: the third argument, `false`, turns the fallback off, so a missing language gives an empty value instead of another language's.
+
+### H1.14.2 How the texts were made
+
+The translation was done by Claude in the session that built this command, not by a service called from the app. The steps, to repeat them for a future dataset:
+
+1. **The source in parts.** The English of `dist/exercises.json` (id, name, category, equipment, steps) was split into 12 files of 73 exercises.
+2. **One guide for every part**, so that parts translated side by side agree. It fixed:
+   - the format: one object per language keyed by `id`, with `name`, `aliases` (0 to 3 other names people search for) and `instructions`, **exactly one step for each English step**;
+   - the voice: informal imperative, *tu* (Italian), *tú* (Spanish), *du* (German), as the app speaks;
+   - a glossary of gym names in the three languages: Panca piana / Press de banca / Bankdrücken, Stacco rumeno / Peso muerto rumano / Rumänisches Kreuzheben, Lat machine / Jalón al pecho / Latziehen, Multipower / Multipower / Multipresse…, with the muscles and the equipment named as in `MuscleSeeder` and `EquipmentSeeder`;
+   - stock sentences: "This will be your starting position." → "Questa è la posizione di partenza." / "Esta es la posición inicial." / "Das ist die Ausgangsposition."
+3. **Twelve parts at once**, each by a Claude agent with the guide, writing three files.
+4. **A check script** on every part, which an agent had to pass before finishing: valid JSON, every id there and no other, the three keys, at most three aliases none equal to the name, the same number of steps as the English, no step left in English. All twelve parts printed `OK`.
+5. **Joined** into one file per language, in the source's order.
+
+The guide and the scripts were working files of that session and are not in the repository: the files they produced are.
+
+### H1.14.3 What the checks found, and the fixes
+
+**Steps the import had dropped.** The command compares the number of steps with the English **in the database**, not in the source. Comparing the two for every exercise:
+
+```
+876 in db; 2 differ
+[('Barbell_Squat_To_A_Bench', 8, 7), ('Clean', 6, 5)]
+steps with html or empty: [('Barbell_Squat_To_A_Bench', 1), ('Clean', 1)]
+```
+
+Two exercises have an empty step in the source, which the import removes (`ImportFreeExercise::cleanInstructions()`: tags stripped, spaces trimmed, empty steps dropped). The joining script applies the same rule to the translations, dropping the step at the same place. Without it, the command would have refused those two exercises with `8 steps in it, the English has 7`.
+
+**Units.** The source measures in inches, feet and pounds. Most parts gave the metric value, some with the original in brackets ("circa 104 cm (41 pollici)"). A search for a number followed by an imperial unit, in steps with no metric value, found 4 steps in each language, all in one part; they were given metric values by hand. A first replacement of "6 pollici" also changed "4-6 pollici" into "4-15 cm": replacing a text that another contains is a classic trap, and the result was read back and corrected to "10-15 cm".
+
+**The same name for two exercises.** 7 Italian, 7 Spanish and 5 German names were shared by two exercises: "Bench Press with Chains" and "Chain Press" were both "Panca piana con catene", although the second loads the chains on a cable. Reading the two exercises' steps, each pair got names that tell them apart ("Distensioni su panca con catene ai cavi"). Two exercises with one name in a list cannot be told apart.
+
+**Reading samples.** 45 random Italian names next to the English, and whole exercises in each language. The names are those of an Italian gym ("Scrollate con bilanciere", "Tirate al mento con bilanciere", "French press con manubri", "Cyclette"); 50 stay as in English because gyms say them so ("Face pull", "Goblet squat", "Leg press").
+
+**What to review first**, among the names the translators themselves doubted (Italian): Moving_Claw_Series "Corsa ad artiglio", Neck_Press "Panca piana al collo", Lying_Crossover "Allungamento in torsione da sdraiato con partner", Drop_Push "Piegamenti pliometrici con caduta dai rialzi", Dumbbell_Lying_Pronation "Pronazione da sdraiato con manubrio" (the movement is an external rotation), Band_Hip_Adductions "Adduzioni dell'anca con elastico" (the steps describe an abduction, the source's name says adduction), Cable_Incline_Pushdown "Pushdown al cavo su panca inclinata" (really a pullover), Groiners "Groiner", Otis-Up "Otis-up". Where the English is wrong, the translation kept it, as the guide asked; a few translators corrected a detail and said so (the palms' direction in two Smith machine exercises). The review is the admin screen's job ([BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin)); until then every language stays in `machine_translated`.
+
+### H1.14.4 The command
+
+```sh
+make artisan c="make:command TranslateExercises"
+make artisan c="make:class Actions/Exercises/TranslateExercise"
+make artisan c="make:test ExerciseLibrary/TranslateExercisesTest --pest"
+```
+
+```
+INFO  Console command [app/Console/Commands/TranslateExercises.php] created successfully.
+INFO  Class [app/Actions/Exercises/TranslateExercise.php] created successfully.
+INFO  Test [tests/Feature/ExerciseLibrary/TranslateExercisesTest.php] created successfully.
+```
+
+The command has the shape of `exercises:import` ([H1.12.1](#h1121-the-files)), with one new kind of option:
+
+```php
+#[Signature('exercises:translate
+    {--locale=* : Only these languages (it, es, de); all three when not given}
+    {--force : Overwrite the languages the exercises already have}
+    {--path= : The folder of the translation files (default: database/data/exercise-translations)}')]
+```
+
+`{--locale=*}`: the `*` makes the option a list, `--locale=it --locale=de` gives `['it', 'de']`. In `make`, `o="--locale=it"`.
+
+The action writes one language with `setTranslation()`, which changes one key of the JSON column and keeps the others, English included:
+
+```php
+$exercise->setTranslation('name', $locale, $entry['name']);
+$exercise->setTranslation('instructions', $locale, $steps);
+$exercise->machine_translated = array_values(array_unique([...$exercise->machine_translated, $locale]));
+$exercise->save();
+```
+
+Run on the development database, after the import:
+
+```sh
+make exercises-translate
+```
+
+```
+Translating into it: 876 exercises in the file
+Written: 876
+Kept, already in it: 0
+Not in the library: 0
+Translating into es: 876 exercises in the file
+Written: 876
+…
+Translating into de: 876 exercises in the file
+Written: 876
+```
+
+3.3 seconds for the three languages. Again, for one language:
+
+```sh
+make exercises-translate o="--locale=it"
+```
+
+```
+Written: 0
+Kept, already in it: 876
+Not in the library: 0
+```
+
+### H1.14.5 Look at the result
+
+In tinker, the library searched as an Italian reader would:
+
+```php
+> app()->setLocale('it');
+> Exercise::visibleTo(User::first())->search('lat machine')->count();
+8
+> Exercise::visibleTo(User::first())->search('stacco rumeno')->orderByName()->get()->pluck('name');
+["Stacco rumeno", "Stacco rumeno in deficit"]
+> $squat = Exercise::where('external_id', 'Barbell_Squat')->first();
+> $squat->name . ' / ' . $squat->getTranslation('name', 'es') . ' / ' . $squat->getTranslation('name', 'de');
+"Squat con bilanciere / Sentadilla con barra / Kniebeuge mit Langhantel"
+> $squat->machine_translated;
+["it", "es", "de"]
+```
+
+In the app nothing else is needed: switch the language in Profile, and the library, the exercise pages and the plans show the translated names and steps.
+
+### H1.14.6 The tests, and the errors met
+
+```sh
+make test f=TranslateExercises
+```
+
+```
+PASS  Tests\Feature\ExerciseLibrary\TranslateExercisesTest
+✓ it writes one language, keeps English, and marks it machine-translated
+✓ it keeps a language the exercise already has, unless forced
+✓ it refuses a translation whose steps do not match the English
+✓ it lists each language once, and leaves no old aliases on a forced run
+✓ it makes the exercise found by its Italian name and aliases
+✓ it translates every imported exercise from the files, and sums up
+✓ it translates only the languages asked for
+✓ it lists the exercises that failed, writes the others, and fails
+✓ it refuses a language that is not ours, and says when a file is missing
+✓ it ships the three languages for the same exercises, each entry complete
+Tests:    10 passed (15804 assertions)
+```
+
+The last test reads the real files and checks every one of the 2,628 entries, hence the assertions. The others write small files to the system's temporary folder, as the import's tests do ([H1.12.5](#h1125-the-tests)).
+
+**Errors met along the way:**
+
+| Message or symptom | Cause | Fix |
+|---|---|---|
+| The command's closure received the progress bar where the external_id was expected | `withProgressBar($items, fn …)` calls the function with **the value, the bar, the key**, in that order (read in `vendor/laravel/framework/src/Illuminate/Console/Concerns/InteractsWithIO.php`) | `function (array $entry, mixed $bar, int|string $externalId)` |
+| `Failed asserting that two arrays are identical`: `es` and `de` swapped in the names | Postgres's `jsonb` stores an object's keys in an order of its own (shorter keys first), not in the order they were written | The test compares with `toEqual()`, which ignores the order of keys, instead of `toBe()` |
+| `it ships the three languages…` failed with `File does not exist` while the texts were being made | The test reads the real files, which did not exist yet | Expected until the files were joined |
 
 ---
 

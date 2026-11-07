@@ -38,6 +38,7 @@ Every PHP file starts with a comment saying what it is and points to the section
   - [C2.14.1 A command class](#c2141-a-command-class)
   - [C2.14.2 Testing a command](#c2142-testing-a-command)
   - [C2.14.3 The free-exercise-db import](#c2143-the-free-exercise-db-import)
+  - [C2.14.4 The translation of the library](#c2144-the-translation-of-the-library)
 
 ---
 
@@ -103,10 +104,10 @@ PHP syntax as it appears in this project. A line in the code that looks strange 
 backend/
 ├── app/                    the application's own code (namespace App\)
 │   ├── Actions/              actions: one job of the app each, outside the controllers (C2.5.3)
-│   │   ├── Exercises/          SavePersonalExercise, ImportFreeExercise
+│   │   ├── Exercises/          SavePersonalExercise, ImportFreeExercise, TranslateExercise
 │   │   ├── Plans/              SavePlan: saves a whole plan (C2.5.5)
 │   │   └── Fortify/            what Fortify leaves to us: creating a user, setting a new password (C2.7)
-│   ├── Console/Commands/     our own Artisan commands: exercises:import (C2.14)
+│   ├── Console/Commands/     our own Artisan commands: exercises:import, exercises:translate (C2.14)
 │   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit, LoggingType, MuscleRole, SetType (D3.2.4), ImportOutcome
 │   ├── Http/
 │   │   ├── Controllers/        receive a request, return an answer (C2.5)
@@ -1003,7 +1004,8 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 | Tests | `make test`, `make test f=Name` |
 | Logs | `make logs`; the file `backend/storage/logs/laravel.log` |
 | A command of our own, generated | `make artisan c="make:command Name"` ([C2.14](#c214-artisan-commands-of-our-own)) |
-| Fill the public exercise library | `make exercises-import`, `make exercises-import o="--limit=5"` |
+| Fill the public exercise library, then translate it | `make exercises-import`, `make exercises-import o="--limit=5"` |
+| Translate the imported exercises again | `make exercises-translate`, `make exercises-translate o="--locale=it --force"` |
 
 **Official documentation**, worth reading next to this page:
 - Laravel: https://laravel.com/docs. The pages *Routing*, *Eloquent*, *Migrations*, *Validation*, *Authorization*, *Queues*, *Sanctum* and *Fortify* match the sections above; *Authentication* and *Resetting Passwords* cover the by-hand way of [C2.7](#c27-signing-in-sanctum).
@@ -1015,7 +1017,7 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 
 ## C2.14 Artisan commands of our own
 
-Artisan's commands are not only Laravel's: an app can add its own, for work that is not a web request, such as an import, a clean-up, or a task run every night. The first one in this project is `exercises:import`, which fills the public exercise library from free-exercise-db ([DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db)). How it was built and run: [H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built).
+Artisan's commands are not only Laravel's: an app can add its own, for work that is not a web request, such as an import, a clean-up, or a task run every night. The first one in this project is `exercises:import`, which fills the public exercise library from free-exercise-db; the second, `exercises:translate`, writes its Italian, Spanish and German texts ([C2.14.4](#c2144-the-translation-of-the-library)). How they were built and run: [H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built) and [H1.14](../how-to/H1-database.md#h114-the-translation-of-the-library-as-built).
 
 ### C2.14.1 A command class
 
@@ -1076,7 +1078,7 @@ Files the command reads are written by the test into the system's temporary fold
 | Source | Becomes | Notes |
 |---|---|---|
 | `id` (`Barbell_Bench_Press`) | `external_id` | How a second run finds the exercise again |
-| `name` | `name`, English | The other languages come from the translation (second part of DATA-1) |
+| `name` | `name`, English | The other languages come from the translation ([C2.14.4](#c2144-the-translation-of-the-library)) |
 | `instructions` | `instructions`, English | HTML tags and empty steps removed |
 | `level`, `category` | `level`, `category` | As they are; not shown yet |
 | `equipment` (`e-z curl bar`, or null) | `equipment_id` | Matched by slug: `Str::slug('e-z curl bar')` is `e-z-curl-bar`, the slug of `EquipmentSeeder` |
@@ -1097,6 +1099,41 @@ Files the command reads are written by the test into the system's temporary fold
 **One exercise that fails** (a muscle or kind of equipment not in our lists) is rolled back alone: the command lists it at the end, imports the others, and ends with a failure code.
 
 **Photos are stored as they come**, as the source's JPEGs. The conversions of [D2.5](../design/D2-decisions.md#d25-photos-and-videos) (WebP at 1600 px and a 400 px thumbnail) come with BE-1's `feat/exercise-media`, which can generate them for the photos already imported with medialibrary's `media-library:regenerate`.
+
+
+### C2.14.4 The translation of the library
+
+free-exercise-db is in English only. Its 876 names and 3,738 steps were translated into Italian, Spanish and German once, and the translations are **files of the repository**, `backend/database/data/exercise-translations/it.json`, `es.json` and `de.json`. A command writes them into the database: `php artisan exercises:translate`, which `make exercises-import` runs right after the import.
+
+**Why files, not a call to a translation service at every import.** The translations are part of the app, like the seeders' muscle names: versioned with the code, reviewed in a pull request, the same on every computer and on the server, and free to apply again after `make fresh`. A service would need a key, cost money at every run, and could give a different text each time. This is option B of DATA-1.
+
+**How they were made.** By Claude, in the session that built this command (Claude Code, with the work split in 12 parts done side by side), following one guide for all parts: the names gym-goers use in each country ("Panca piana", "Press de banca", "Bankdrücken"), the informal *tu*, *tú*, *du* the app uses, the muscles and equipment named as in the seeders, and exactly one translated step for each English step. A script checked every part before it was joined ([H1.14](../how-to/H1-database.md#h114-the-translation-of-the-library-as-built)).
+
+**One entry of a file**, keyed by the exercise's `external_id`:
+
+```json
+"Upright_Barbell_Row": {
+  "name": "Tirate al mento con bilanciere",
+  "aliases": ["rematore alto", "upright row"],
+  "instructions": ["Afferra un bilanciere con presa prona un po' più stretta della larghezza delle spalle. …", "…"]
+}
+```
+
+`aliases` are other names people search for, in that language: the library's search looks in them too ([D3.4.6](../design/D3-data-model.md#d346-searching)), so "rematore alto" finds the upright row, and "upright row" too, for those who know it by its English name. The English source had none.
+
+**The rules** (`app/Actions/Exercises/TranslateExercise.php`):
+
+| Rule | Why |
+|---|---|
+| Only the language being written changes: `setTranslation('name', 'it', …)` | English, the original, and the other languages stay. `replaceTranslations()`, used for personal exercises ([C2.5.4](#c254-the-exercise-librarys-endpoints)), would drop them |
+| A language the exercise already has is kept, unless `--force` | It may have been corrected by a person since, in the admin panel |
+| The steps must match the English one for one | A translation with a different number of steps was made from another version of the text, such as English refreshed by `exercises:import --update`: refused, and listed at the end |
+| The language joins `machine_translated` | Every language is marked as not reviewed, Italian included, until a person reviews it in the admin panel (BE-1, `feat/exercise-admin`; [D2.3](../design/D2-decisions.md#d23-exercise-library)) |
+| An exercise deleted by an admin is translated too | It stays deleted, and is ready if brought back |
+
+**Running it again** writes nothing new: every language is already there. `--locale=it` limits it to one language; `--force` rewrites, which undoes corrections made by hand, so it is for after a fix to the files themselves.
+
+**Where the texts show.** HasTranslations reads the request's language ([D3.4.5](../design/D3-data-model.md#d345-translations)), so with these files every screen that shows a public exercise is in the user's language: the library, its search and filters, the exercise's page, the plans. Nothing in the frontend changed.
 
 ---
 
