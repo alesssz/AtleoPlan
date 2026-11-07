@@ -148,6 +148,7 @@ Free tiers change often: they are checked again when the app is first deployed.
 - **Plans, sessions and logged sets get a UUID created on the device** ([D3.2](D3-data-model.md#d32-rules-for-every-table)). A workout logged offline is sent later, and sending it twice changes nothing (the server recognises the UUID): no duplicates, no conflicts.
 - Plans and exercises already opened are kept on the device (TanStack Query's persisted cache in IndexedDB); the photos of the active plan's exercises are downloaded ahead by the service worker.
 - Changes made offline wait in a queue and are sent in order when the network comes back; `SyncIndicator` shows their state ([D1.6](D1-ui.md#d16-states-and-edge-cases)).
+- **Where it stands:** finished workouts already have their queue, in `localStorage`, sent when the app opens and when the network returns ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)). The service worker, the persisted cache, the general queue and `SyncIndicator` come with the offline part of [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home).
 - For plans, the last change wins, with a warning when the plan was changed elsewhere in the meantime ([D3.5](D3-data-model.md#d35-plans)).
 
 ---
@@ -159,7 +160,7 @@ Free tiers change often: they are checked again when the app is first deployed.
 - **Set types from the MVP:** normal, warm-up, drop set, to failure.
 - **Warm-up sets count neither for volume nor for records**, or the statistics would be inflated.
 - **Estimated one-rep max:** Epley formula, weight × (1 + reps / 30), on every set that is not a warm-up.
-- **Volume:** sets × reps × weight, warm-up excluded, per exercise and per muscle group.
+- **Volume:** sets × reps × weight, warm-up excluded, per exercise and per muscle group. Only the weight that is known counts: a set with the body alone adds nothing, a weighted pull-up adds its added weight (+10 kg × 6 = 60 kg). The body's own weight is not known, so bodyweight work is followed by its reps rather than by volume.
 
 ---
 

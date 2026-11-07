@@ -30,6 +30,7 @@ import { ProgressPage } from '@/pages/ProgressPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { RouteErrorPage } from '@/pages/RouteErrorPage'
+import { WorkoutPage } from '@/pages/WorkoutPage'
 import { RequireAuth } from '@/routes/RequireAuth'
 import { RequireGuest } from '@/routes/RequireGuest'
 
@@ -98,8 +99,10 @@ export const router = createBrowserRouter([
           { path: '*', element: <NotFoundPage /> },
         ],
       },
+      // Workout mode (D1.4.9): full screen, so a sibling of AppLayout, not
+      // its child: no navigation around it. Still inside RequireAuth
+      { path: 'session/:id', element: <WorkoutPage /> },
     ],
   },
 
-  // Workout mode (/session/:id), full screen outside the frame, goes here (FEAT-3).
 ])

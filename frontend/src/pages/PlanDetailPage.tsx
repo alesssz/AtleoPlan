@@ -7,21 +7,30 @@
  * that the plan had been changed elsewhere: the page shows the warning of
  * docs/design/D3-data-model.md D3.5.7.
  *
- * Not here yet, with the feature that brings it: "Start this day" (FEAT-3,
- * workout mode), Share and Duplicate (phase 2).
+ * Each day has **Start this day**, which starts workout mode
+ * (docs/design/D1-ui.md D1.4.9; StartDayButton below). A workout in progress
+ * is shown at the top with Resume; after Done, the workout screen comes back
+ * here and says whether the workout was saved.
+ *
+ * Not here yet: Share and Duplicate (phase 2).
  *
  * The open day lives in the address, `?day=2` (from 1), so a reload or Back
  * from an exercise's page returns to the same day. How it was built:
  * docs/how-to/H3-frontend.md H3.13.
  */
-import { Archive, ArchiveRestore, ArrowLeft, Pencil, Star, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowLeft, Pencil, Play, Star, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useCurrentUser } from '@/api/auth'
-import { useDeletePlan, usePlan, usePlanAction, type Plan } from '@/api/plans'
+import { useDeletePlan, usePlan, usePlanAction, type Plan, type PlanDay } from '@/api/plans'
+import { fetchLastSets } from '@/api/sessions'
 import { FormBanner } from '@/components/FormBanner'
 import { PageHeader } from '@/components/PageHeader'
 import { PlanDayView } from '@/components/plans/PlanDayView'
+import { loadActiveSession, storeActiveSession } from '@/components/workout/session-storage'
+import { startSession } from '@/components/workout/workout-session'
+import type { WorkoutEndState } from '@/components/workout/WorkoutScreen'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -99,7 +108,11 @@ function PlanDetail({ plan }: PlanDetailProps) {
   // What the editor passed when it opened this page after a save; null when
   // the page was opened any other way. useLocation(): the current address,
   // with the `state` given to navigate()
-  const saved = useLocation().state as PlanSavedState | null
+  // The navigation's state: after a save of the editor, or after Done in
+  // workout mode; null when the page was opened any other way
+  const state = useLocation().state as (PlanSavedState & Partial<WorkoutEndState>) | null
+  // The workout in progress on this phone, if any, read once
+  const [active] = useState(loadActiveSession)
 
   // The open day, from `?day=` (1 for the first). Anything that is not one
   // of the plan's days, a hand-typed ?day=9 say, opens the first
@@ -128,7 +141,25 @@ function PlanDetail({ plan }: PlanDetailProps) {
 
       <div className="flex flex-col gap-6">
         {/* Saved over a version changed elsewhere: the last change won (D3.5.7) */}
-        {saved?.changedElsewhere && <FormBanner variant="error">{t('plans.detail.changedElsewhere')}</FormBanner>}
+        {state?.changedElsewhere && <FormBanner variant="error">{t('plans.detail.changedElsewhere')}</FormBanner>}
+
+        {/* After Done in workout mode: saved, waiting for the network, or refused */}
+        {state?.workout === 'saved' && <FormBanner variant="success">{t('workout.saved')}</FormBanner>}
+        {state?.workout === 'queued' && <FormBanner variant="success">{t('workout.queued')}</FormBanner>}
+        {state?.workout === 'refused' && <FormBanner variant="error">{t('workout.refused')}</FormBanner>}
+
+        {/* A workout left in progress on this phone, of any plan: Resume */}
+        {active && (
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/50 bg-primary/10 p-4">
+            <p className="flex-1 font-semibold">{t('workout.inProgress', { day: active.day_name ?? '' })}</p>
+            <Button asChild size="xl">
+              <Link to={`/session/${active.id}`}>
+                <Play aria-hidden="true" />
+                {t('workout.resume')}
+              </Link>
+            </Button>
+          </div>
+        )}
 
         {/* Its state, in words */}
         {(plan.is_active || archived) && (
@@ -189,6 +220,7 @@ function PlanDetail({ plan }: PlanDetailProps) {
                 </div>
                 {plan.days.map((day, index) => (
                   <TabsContent key={day.id} value={String(index)} className="text-base">
+                    <StartDayButton plan={plan} day={day} busy={active !== null} />
                     <PlanDayView
                       day={day}
                       weightUnit={user?.weight_unit ?? 'kg'}
@@ -200,6 +232,59 @@ function PlanDetail({ plan }: PlanDetailProps) {
             )}
       </div>
     </>
+  )
+}
+
+/** Props of StartDayButton. */
+interface StartDayButtonProps {
+  /** The plan. */
+  plan: Plan
+  /** The day to start. */
+  day: PlanDay
+  /** True when a workout is already in progress on this phone. */
+  busy: boolean
+}
+
+/**
+ * Start this day: builds the workout on the phone (startSession,
+ * src/components/workout/workout-session.ts) and opens workout mode.
+ *
+ * It first asks for last time's sets of the day's exercises; offline, the
+ * request fails and the workout starts with the plan's targets alone. While
+ * another workout is in progress it is disabled, with the reason: one
+ * workout at a time on a phone, and none is lost by starting another.
+ */
+function StartDayButton({ plan, day, busy }: StartDayButtonProps) {
+  const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
+  const { data: user } = useCurrentUser()
+  // True while last time's sets are being read
+  const [starting, setStarting] = useState(false)
+
+  /** Builds the workout, keeps it on the phone, opens it. */
+  async function start() {
+    setStarting(true)
+    // Last time's sets; an empty list when they cannot be read (offline)
+    const lastSets = await fetchLastSets(day.items.map(item => item.exercise_id)).catch(() => [])
+    const session = startSession(plan, day, {
+      unit: user?.weight_unit ?? 'kg',
+      defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS,
+      lastSets,
+      language: i18n.language,
+      now: new Date(),
+    })
+    storeActiveSession(session)
+    void navigate(`/session/${session.id}`)
+  }
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-3">
+      <Button size="xl" disabled={busy || starting || day.items.length === 0} onClick={() => void start()}>
+        <Play aria-hidden="true" />
+        {t('workout.start')}
+      </Button>
+      {busy && <p className="text-sm text-muted-foreground">{t('workout.busy')}</p>}
+    </div>
   )
 }
 

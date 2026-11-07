@@ -234,7 +234,7 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 
 ```
 ┌────────────────────────────────────┐
-│ ✕   Day A – Push        32:15  Done│
+│ ✕   Day A – Push      32:15  Finish│
 ├────────────────────────────────────┤
 │ ●●●○○○  exercise 3 of 6            │
 │                                    │
@@ -257,6 +257,7 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 └────────────────────────────────────┘
 ```
 
+- **Without kg:** a bodyweight exercise (pull-ups, dips, push-ups; logged as reps) shows **Reps** and a **+kg** column for added weight, left empty for the body alone. On a weighted exercise the kg may be left empty too, for a set done without weights. "Last" writes `+10×6` for added weight, `12` for the body alone.
 - **"Last" column:** what I did in that set last time. The kg and reps fields are filled with the target or with last time's values.
 - **Set types:** the first column shows the set's number, or its type letter (W, D, F); a tap changes it here too. **Warm-up sets count neither for volume nor for records.**
 - **A tap on ✓** completes the set and starts the rest timer. A tap on a number opens a large stepper (±2.5 kg, ±1 rep; the weight step is a setting).
@@ -265,8 +266,11 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 - **Supersets:** after a set of exercise A the view moves to B by itself; the rest starts only after B.
 - **Exercise menu:** swap (with alternatives for the same muscle), skip, add a note, watch the video.
 - **Live records:** a set that beats a record shows a **New record** badge.
+- **Like an app:** the top bar, the rest timer and Previous / Next stay put; only the middle scrolls, when an exercise is longer than the screen. The whole width of the window, on a laptop too, with the side margins of the other pages: 20 px on a phone, 32 px on a tablet, 48 px on a laptop. Buttons as in the rest of the app: lime for Finish workout only, outlined for the other actions.
+- **Finishing:** **Finish** at the top, outlined, at any moment, to stop early; **Finish workout**, lime (as wide as the bottom bar on a phone, its own width on a larger screen), takes Next's place on the last exercise or once every set is ticked. One lime button at a time. A confirmation says how many sets were done and that the sets not ticked will not be saved.
 - Closing with ✕ pauses the session; Home offers to resume it.
 - All of this works offline ([D1.6](#d16-states-and-edge-cases)).
+- Built in FEAT-3 (`feat/workout-mode`): Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with −15 / +15 / Skip, beep and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing with Resume on the plan's page; the column titles above the sets, the sets numbered from 1 after the warm-ups, Finish at the top (outlined) and Finish workout at the bottom when it is time; the workout kept on the phone and queued at Finish until the backend has it ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)). Waiting: the stepper and the exercise menu ([UI-6](../project/backlog.md#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu)), live records ([FEAT-5](../project/backlog.md#feat-5-new-records-during-a-workout)), the background notification and opening with no network (FEAT-3, offline), resuming from Home (FEAT-3, Home); the arrows stand in for the swipe.
 
 ### D1.4.10 Workout summary
 

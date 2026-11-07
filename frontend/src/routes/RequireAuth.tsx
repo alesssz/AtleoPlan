@@ -12,6 +12,7 @@ import { Navigate, Outlet, useLocation } from 'react-router'
 import { useCurrentUser } from '@/api/auth'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { usePendingSessions } from '@/lib/usePendingSessions'
 import { useAccountPreferences } from './useAccountPreferences'
 
 /** The signed-in app, once the server has confirmed who is asking. */
@@ -23,6 +24,10 @@ export function RequireAuth() {
   const location = useLocation()
   // The account's language and theme, applied to this device
   useAccountPreferences(currentUser.data)
+  // The finished workouts still waiting for the network, sent once the user
+  // is known, and again whenever the network comes back (FEAT-3).
+  // Boolean(x): true for a user, false for null and undefined
+  usePendingSessions(Boolean(currentUser.data))
 
   // 1. Waiting for the first answer: grey shapes, never a spinner over the page
   // (D1.6). Drawing the app or /login here would flash the wrong screen

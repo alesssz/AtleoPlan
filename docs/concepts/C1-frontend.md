@@ -47,6 +47,13 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.16.4 The draft kept in the browser](#c1164-the-draft-kept-in-the-browser)
   - [C1.16.5 Saving](#c1165-saving)
   - [C1.16.6 Testing it](#c1166-testing-it)
+- [C1.17 Workout mode](#c117-workout-mode)
+  - [C1.17.1 The pieces](#c1171-the-pieces)
+  - [C1.17.2 Starting: the plan becomes a workout](#c1172-starting-the-plan-becomes-a-workout)
+  - [C1.17.3 The workout and its reducer](#c1173-the-workout-and-its-reducer)
+  - [C1.17.4 The rest timer: a moment, not a countdown](#c1174-the-rest-timer-a-moment-not-a-countdown)
+  - [C1.17.5 The queue of workouts to send](#c1175-the-queue-of-workouts-to-send)
+  - [C1.17.6 Testing it](#c1176-testing-it)
 
 ---
 
@@ -99,6 +106,7 @@ frontend/
     │   ├── auth.ts           the account: useCurrentUser(), useSignIn(), useSignOut()… (C1.13)
     │   ├── exercises.ts      the library: useExercises() (pages), useExercise(), create, update, delete (C1.14)
     │   ├── plans.ts          the plans: usePlans(), usePlan(), usePlanAction() (activate, archive, unarchive), useDeletePlan() (C1.15), useCreatePlan(), useUpdatePlan() (C1.16)
+    │   ├── sessions.ts       the workouts: useLastSets(), fetchLastSets(), sendSession() (C1.17)
     │   └── muscles.ts, equipment.ts   the two fixed lists of the filters and the editor
     ├── components/
     │   ├── ui/               shadcn/ui components (generated, then ours to edit)
@@ -109,6 +117,8 @@ frontend/
     │   ├── plans/            pieces of the plan screens: PlanCard, PlanDayView, PlanItemRow, and plan-format.ts, the summary of an exercise (C1.15);
     │   │                     plan-draft.ts, the editor's draft and reducer, draft-storage.ts (C1.16)
     │   │   └── editor/         the plan editor: PlanEditor, EditorDay, EditorItem, EditorSet, ExercisePicker (C1.16)
+    │   ├── workout/          workout mode: WorkoutScreen, SetRow, RestBar, clock.ts; workout-session.ts, the workout and its reducer;
+    │   │                     session-storage.ts, the workout and the queue kept on the phone (C1.17)
     │   └── *.tsx             shared by several pages: PageHeader, EmptyState, ComingSoon, SettingRow, FormField, FormBanner, the pickers…
     ├── pages/              one component per screen (HomePage, LoginPage…), and auth-schemas.ts, the rules of the sign-in forms
     ├── routes/             the guards: RequireAuth, RequireGuest, useAccountPreferences (C1.13)
@@ -117,7 +127,9 @@ frontend/
     │   ├── languages.ts      the supported languages and their names
     │   ├── i18next.d.ts      makes translation keys type-checked
     │   └── locales/          it.json, en.json, es.json, de.json
-    ├── lib/                plain helpers: http (fetch wrapper), query-client, form (server errors on a form), format (numbers, dates), week, utils (cn); useDebouncedValue, a hook
+    ├── lib/                plain helpers: http (fetch wrapper), query-client, form (server errors on a form), format (numbers, dates), week, utils (cn);
+    │                       pending-sessions (sending the queued workouts), alarm (beep and vibration);
+    │                       hooks: useDebouncedValue, useNow, useWakeLock, usePendingSessions
     ├── theme/              dark / light theme: logic, context, provider, hook
     └── test/               setup.ts runs before every test file; auth-helpers.tsx: a fake API and full-page rendering (C1.13); exercise-helpers.ts: exercises and lists to fake (C1.14); plan-helpers.ts: plans to fake (C1.15)
 ```
@@ -249,9 +261,9 @@ useEffect(() => {
 ## C1.5 Routing
 
 - **The table** is `src/router.tsx`, made with `createBrowserRouter([...])`. A route has a `path` and an `element`. `children` nest routes inside a parent, which draws them at its `<Outlet />`. `index: true` marks the parent's own address.
-- **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([C1.13](#c113-signing-in-and-forms)). Workout mode and the public shared plan, both full screen, will be siblings of these branches. Comments in the file mark where.
+- **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([C1.13](#c113-signing-in-and-forms)). Workout mode, full screen, is a sibling of `AppLayout` inside `RequireAuth`: signed in, with no navigation around it ([C1.17](#c117-workout-mode)). The public shared plan, also full screen, will be a sibling of these branches. Comments in the file mark where.
 - **Links:** use `<Link to="/plans">`. Use `<NavLink>` in navigation: it knows whether it is the current page and then gets `aria-current="page"`. Use `useNavigate()` to move in code, for example after saving.
-- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`). A plan's id is a UUID, and stays a string (`PlanDetailPage`). `plans/new` and `plans/:id/edit` open the plan editor (C1.16).
+- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`). A plan's id is a UUID, and stays a string (`PlanDetailPage`). `plans/new` and `plans/:id/edit` open the plan editor (C1.16); `session/:id` a workout in progress (C1.17).
 - **The query string** (`?q=panca`) is read and written with `useSearchParams()` ([C1.14.3](#c1143-filters-in-the-address)): the library's filters, the plan list's view (`?archived=1`), a plan's open day (`?day=2`).
 - **A fixed segment wins over a parameter:** `exercises/new` and `exercises/:id` can both exist, and `/exercises/new` opens the editor, whatever their order in the table.
 - **Not found and crashes:** the last child, `path: '*'`, catches unknown addresses (`NotFoundPage`, inside the frame). `errorElement` (`RouteErrorPage`) replaces a screen that throws while rendering.
@@ -467,10 +479,13 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 | `pages/ExerciseEditorPage.test.tsx` | creating and changing an exercise, the form's and the server's messages |
 | `components/exercises/exercise-form.test.ts` | the editor's conversions and rules, without React |
 | `pages/PlansPage.test.tsx` | the plan cards, the two views in the address and the request, the empty states, an error |
-| `pages/PlanDetailPage.test.tsx` | a day's exercises summed up, the day tabs in the address, the weight unit, activate, archive, delete, a plan not found |
+| `pages/PlanDetailPage.test.tsx` | a day's exercises summed up, the day tabs in the address, the weight unit, activate, archive, delete, a plan not found; starting a workout, resuming one, the message after Done |
 | `components/plans/plan-format.test.ts` | the line that sums up an exercise, in two languages and two units; the supersets |
 | `components/plans/plan-draft.test.ts` | the editor's draft without React: reading what is typed, to and from the API, the rules, every action of the reducer |
 | `pages/PlanEditorPage.test.tsx` | creating from the library, saving with the version and the ids, the rules and the server's messages, the warning of a plan changed elsewhere, the draft kept and discarded, supersets, days |
+| `components/workout/workout-session.test.ts` | the workout without React: starting from a day with last time's values, ticking, the rest, supersets, the clock with its pauses, the body sent |
+| `lib/pending-sessions.test.ts` | the queue of finished workouts: what leaves it on each answer of the server, what stays |
+| `pages/WorkoutPage.test.tsx` | workout mode used as a person would: a set ticked and kept on the phone, the rest timer, Next and the dots, ✕ pausing, Done sending, the network down |
 
 **Commands:**
 
@@ -486,8 +501,9 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 
 ## C1.11 Known limits
 
-- **Bundle size.** The production build is one JavaScript file of 897 kB (279 kB compressed) since the plan editor, and Vite warns above 500 kB. The editor, with dnd-kit and the Dialog, is the first candidate for a page loaded only when opened. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
-- **A preference changed with no connection is not saved.** It stays on screen until the page reloads, then the account's value returns. The offline queue will save it (FEAT-3).
+- **Bundle size.** The production build is one JavaScript file of 921 kB (286 kB compressed) since workout mode, and Vite warns above 500 kB. The plan editor, with dnd-kit and the Dialog, is the first candidate for a page loaded only when opened. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
+- **A preference changed with no connection is not saved.** It stays on screen until the page reloads, then the account's value returns. Finished workouts already have a queue of their own ([C1.17.5](#c1175-the-queue-of-workouts-to-send)); preferences will join a general one with the offline work (FEAT-3).
+- **Workout mode needs the app loaded.** A workout in progress lives on the phone and survives a reload, but with no network the app itself does not open yet: the PWA's offline cache comes with FEAT-3.
 - **Not yet in place**, each with the feature that needs it:
   - the PWA and offline support (FEAT-3);
   - charts (phase 2).
@@ -979,6 +995,154 @@ const saved = useLocation().state as PlanSavedState | null
 - **The page** (`PlanEditorPage.test.tsx`) is used as a person would: it types, opens the picker (`findByRole('dialog', { name: 'Add exercises' })`), ticks, taps a set's number, saves; then `sentBody(fake, '/api/plans')` gives the body sent, compared with what the backend expects.
 - **The draft kept between visits:** the test draws the editor, types, calls `unmount()` (the editor disappears, as when leaving the page), draws it again, and finds the change and the banner. `src/test/setup.ts` empties `localStorage` after each test.
 - **Dragging is not drawn in tests:** jsdom has no layout, so the positions dnd-kit measures are all zero. What a drag does, `moveItem`, is tested in the reducer; the drag itself is checked in the browser ([H3.14.8](../how-to/H3-frontend.md#h3148-checking-in-the-browser)).
+
+## C1.17 Workout mode
+
+The first part of FEAT-3 on screen ([D1.4.9](../design/D1-ui.md#d149-workout-mode)): **Start** on a day of a plan opens `/session/:id`, a full screen where the user ticks the sets one by one, with the rest timer between them, and **Finish** sends the workout to `PUT /api/sessions/{id}` ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)). It is the screen used in the gym, with sweaty hands and a bad connection, so two rules come before everything else: **nothing is ever lost**, and **one tap per set**. How it was built, with the real output: [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built).
+
+### C1.17.1 The pieces
+
+```
+PlanDetailPage           a day's tab: Start (StartDayButton); a banner "Workout in progress: <day>" with Resume;
+│                        after Finish, "saved" / "will be sent" / "refused"
+└── navigate('/session/:id')
+WorkoutPage              /session/:id: reads the workout kept on the phone; none → a message
+└── WorkoutScreen        the workout (useReducer); top: ✕, the day, the clock, Finish; the dots;
+    │                    the exercise; Previous / Next (Finish workout when it is time); stores every change; keeps the screen on
+    ├── SetHeader        the titles above the sets: Set, Last, kg, Reps (or Sec, m)
+    ├── SetRow           a set: its number or type letter, last time, the fields, ✓
+    └── RestBar          the rest timer: time left, a shrinking bar, −15, +15, Skip
+```
+
+| File | Holds |
+|---|---|
+| `components/workout/workout-session.ts` | The workout's types, `startSession()`, the readers (clock, rest left, can a set be ticked), the reducer, `toSessionInput()`: no React |
+| `components/workout/session-storage.ts` | The workout in progress and the queue of finished ones, in `localStorage` |
+| `components/workout/WorkoutScreen.tsx`, `SetRow.tsx` (with `SetHeader`), `RestBar.tsx`, `clock.ts` | The screen and its pieces; `clock(245)` is `"4:05"` |
+| `components/workout/layout.ts` | `WORKOUT_COLUMN`, the side margins shared by the screen's parts |
+| `pages/WorkoutPage.tsx` | The route's page |
+| `api/sessions.ts` | The types of the API's workouts, `fetchLastSets()`, `sendSession()` |
+| `lib/pending-sessions.ts`, `lib/usePendingSessions.ts` | Sending the queue, and the hook that sends it when the app opens and when the network comes back |
+| `lib/useNow.ts`, `lib/useWakeLock.ts`, `lib/alarm.ts` | The current moment every second; the screen kept on; the beep and the vibration |
+
+**Full screen.** The route `session/:id` sits inside `RequireAuth` but beside `AppLayout`, not under it ([C1.5](#c15-routing)): signed in, with no tab bar or side navigation. It behaves like an app: the bars stay put and only the middle scrolls, and only when an exercise is longer than the screen; the page itself never scrolls. Every part (top bar, exercise, rest timer, Previous and Next) uses the same side margins, `WORKOUT_COLUMN` in `components/workout/layout.ts`: those of the app's other pages (`px-5 sm:px-8 lg:px-12`: 20, 32, 48 px), with the whole width of the window, on a laptop too. The spacing breathes a little and grows with the screen: rows of sets 8 px apart on a phone, 12 px from 640 px (`gap-2 sm:gap-3`), 20 to 24 px around the exercise, the bars a little taller on a tablet and a laptop. The buttons follow the app's look ([D1.5](../design/D1-ui.md#d15-design-system)): 48 px tall (`xl`), lime only for the main action (Finish workout), outlined for the others (Finish at the top, Previous, Next, Add set, −15, +15, Skip), plain only for icons (✕, a set's number). The middle is `relative`, so the hidden "Rest over" text (`sr-only`, absolutely positioned) stays inside it instead of stretching the page ([H3.15.11](../how-to/H3-frontend.md#h31511-fifth-pass-wide-on-a-laptop-an-app-on-a-phone)). The screen is a column as tall as the window (`h-dvh`, the height the browser really shows on a phone, toolbars excluded); only the middle scrolls, so ✕, Finish, the rest timer and Next are always in reach. `env(safe-area-inset-top)` keeps the top clear of a phone's notch.
+
+**What is not here yet,** each in the backlog: the big stepper on a tap of a number, the exercise menu (swap, skip, note, video), live records, a notification when the rest ends with the app in the background, the summary after Finish (D1.4.10), Home offering to resume, and the real offline app (FEAT-3).
+
+### C1.17.2 Starting: the plan becomes a workout
+
+**Start** (in `PlanDetailPage`, `StartDayButton`) does four things:
+
+1. **Asks for last time's sets** of the day's exercises, `GET /api/sessions/last-sets?exercises=12,40,7`, with `fetchLastSets()`. Without network the request fails, and `.catch(() => [])` turns the failure into "no last time": the workout starts anyway.
+2. **Builds the workout** with `startSession(plan, day, options)`: each item of the day becomes an exercise, each planned set a set to do. The fields are filled with **last time's values for the set in the same place**, else the **plan's target** (the lower end of `8-10`), so a set done as planned or as last time is a single tap on ✓. The weights are written in the user's unit and language (`82,5` in Italian).
+3. **Gives it a UUID** in the browser (`crypto.randomUUID()`), as every row of a workout gets one ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). The backend keeps these ids, which is what makes sending the same workout twice harmless (C1.17.5).
+4. **Stores it** on the phone and opens `/session/<id>`.
+
+The workout is not sent to the backend now: only at Finish. Until then it lives on the phone only. Start is disabled while another workout is in progress ("Finish or resume the workout in progress first."), and on a day with no exercises.
+
+### C1.17.3 The workout and its reducer
+
+The workout is one object, `ActiveSession`, and everything that happens to it is an action handled by `workoutReducer`, with `useReducer`, as the plan editor's draft ([C1.16.2](#c1162-the-draft-and-its-reducer)):
+
+```tsx
+const [session, dispatch] = useReducer(workoutReducer, initial)
+
+dispatch({ type: 'toggleSet', exercise: 0, set: 2, now: new Date().toISOString() })   // ✓ on set 3
+dispatch({ type: 'adjustRest', seconds: 15 })                                          // +15
+```
+
+- **The same ideas as the editor:** a plain function with no React, tested on its own (`workout-session.test.ts`); `structuredClone()` first, so React receives a new object; the actions a discriminated union (`WorkoutAction`).
+- **Moments are ISO 8601 text** (`"2026-11-09T18:01:00.000Z"`), not `Date` objects: the workout is turned into JSON for `localStorage`, and a `Date` would come back as text anyway.
+- **"Now" is a parameter.** An action that needs the time carries it (`now`), and the readers take it (`elapsedSeconds(session, now)`). The reducer never calls `new Date()` itself, so a test chooses the moment and the result is always the same: "tick at 60 s, the rest ends at 150 s".
+- **The clock counts the time trained without the pauses.** `accumulated_seconds` holds the seconds before the last pause, `running_since` the moment it started running again (null while paused): `elapsed = accumulated + (now − running_since)`. ✕ is a `pause`; opening the screen again a `resume`.
+- **Values are text, as typed,** like the editor's. A set can be ticked only when the values its exercise is logged with read as numbers (`canComplete()`): reps (with or without a weight), seconds or meters. ✓ is disabled otherwise, and the backend never receives a set it would refuse.
+- **The weight may stay empty.** On a weighted exercise, a set done with the body alone (lunges without dumbbells); on a bodyweight one (pull-ups, logged as `reps`), the column is **+kg**, the added weight, empty for the body alone. A weight that is typed must read as a number. `toSessionInput()` sends it for both, `null` when empty ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)).
+- **The one rule with some thought: ticking a set.**
+
+| The set's exercise is | ✓ does |
+|---|---|
+| on its own | the exercise stays on screen; the rest starts with its rest seconds |
+| in a superset, not its last | the screen moves to the next exercise of the superset; no rest |
+| the last of a superset | the rest starts, and the screen goes back to the superset's first exercise, for the next round |
+
+  A rest of 0 seconds starts no timer. `supersetOf(session, index)` finds the superset: the neighbours with the same `superset_group`, as the editor keeps them ([C1.16.2](#c1162-the-draft-and-its-reducer)).
+
+- **Numbers on screen** come from `setNumbers()`: warm-ups are counted apart, so the sets that count are numbered 1, 2, 3 whatever warm-ups come first, as D1.4.9 draws them (`W W 1 2 3`, not `W W 3 4 5`). A set whose type changes renumbers the ones after it. Screen readers hear the same names: "Set 1, kg", "Warm-up 2, Reps", "Tick: Set 1".
+- **The columns have titles** (`SetHeader`): Set, Last, then one per field, kg (or lb) and Reps, or Sec, or m. The header and the rows build their fields with the same function, `fieldsFor()`, and use the same widths (`w-12`, `w-16`, `flex-1`, `w-12`), so each number sits under its title.
+- **At Finish,** `toSessionInput()` builds the body: every exercise, **only the ticked sets**, only the values that fit how the exercise is logged, weights in kilograms. An exercise with no set ticked is sent with none: skipped, which the history can show.
+
+### C1.17.4 The rest timer: a moment, not a countdown
+
+A countdown that subtracts one every second drifts, and stops when the phone sleeps or the tab is in the background: browsers slow timers down there to save battery. So the rest is stored as **the moment it ends**, `rest.ends_at`, and the screen shows the difference with now:
+
+```tsx
+const now = useNow(1000)                  // a new Date every second: the screen draws again
+const left = restLeft(session, now)       // ends_at − now, in whole seconds, never below 0
+```
+
+- **`useNow(intervalMs)`** is a small custom hook ([L2.9](../learn/L2-react.md#l29-hooks-the-rules-and-your-own)): `useState` holds the moment, an effect starts `setInterval`, and its clean-up stops it. Each tick draws the screen again, and the clock and the timer read the new moment. A phone that slept 2 minutes shows the right time as soon as it wakes.
+- **±15 s** moves `ends_at`, and the bar's total with it. **Skip** is `endRest`.
+- **The end of the rest** is a `setTimeout` set for that moment, in an effect that depends on `session.rest`:
+
+```tsx
+useEffect(() => {
+  if (session.rest === null) return
+  const delay = Math.max(0, Date.parse(session.rest.ends_at) - Date.now())
+  const timer = setTimeout(() => {
+    restOver({ sound, vibration })        // the beep and the vibration
+    setAnnounce(t('workout.restOver'))     // read out by screen readers
+    dispatch({ type: 'endRest' })
+  }, delay)
+  return () => clearTimeout(timer)        // a new rest, or ±15: the old timer goes
+}, [session.rest, t, user])
+```
+
+  A new rest, or ±15 s, is a new `session.rest` object: React runs the clean-up, which clears the old timer, then the effect again, which sets a new one. Why not simply check `left === 0` on every tick? That was the first version, and React's rules refuse it: changing state directly inside an effect draws the screen twice for nothing ([H3.15.4](../how-to/H3-frontend.md#h3154-the-errors-met)). Inside a timer's function it is allowed, since the change happens later, as an event would.
+- **The beep** is made with the Web Audio API (`lib/alarm.ts`): an oscillator at 880 Hz, twice, faded out so it does not click. No sound file to download. **The vibration** is `navigator.vibrate([200, 100, 200])`, which iPhones ignore. Both follow the user's settings, `timer_sound` and `timer_vibration`.
+- **The screen stays on** with the **Wake Lock API** (`useWakeLock`): `navigator.wakeLock.request('screen')` while the screen is open. The browser drops the lock when the page is hidden, so the hook asks again when it shows (`visibilitychange`). A browser without the API simply lets the screen sleep.
+
+### C1.17.5 The queue of workouts to send
+
+The workout lives in `localStorage` (`session-storage.ts`), under two keys:
+
+| Key | Holds | Written |
+|---|---|---|
+| `atleoplan.activeSession` | the workout in progress, one at a time | after every action (an effect on `session`); removed at Finish |
+| `atleoplan.pendingSessions` | the finished workouts not yet on the server, by id: id → body | at Finish; an entry leaves when the server has it |
+
+**Finishing** has two buttons, opening the same confirmation (`FinishButton`), and only one of them is lime at a time:
+
+- **Finish** at the top, outlined, at any moment: to stop early;
+- **Finish workout** at the bottom, in place of Next when it is time: on the last exercise, or once every set is ticked. On a phone it spans the bar and Previous shrinks to its arrow, so it fits 360 px; from 640 px wide it has its own width, on the right, and Previous keeps its word (`flex-1 sm:flex-none`, `max-sm:sr-only`).
+
+The confirmation counts the sets that count (`countSets()`, warm-ups excluded): "3 of 7 sets done, warm-ups excluded. The 4 sets not ticked will not be saved." The second sentence appears only when some are left. **Finish and save**, in `WorkoutScreen.finish()`, then runs in this order:
+
+1. `finish` in the reducer: the clock stops, `finished_at` is set.
+2. **The body goes in the queue first**, then the workout in progress is forgotten. Whatever happens next (no network, the app closed during the request), the workout is on the phone.
+3. **`sendPendingSessions()`** tries every workout of the queue, this one included, with `PUT /api/sessions/{id}`.
+4. The plan's page opens, told through the navigation's `state` what happened: `saved`, `queued` or `refused`, and shows it.
+
+What each answer of the server does to a workout in the queue:
+
+| Answer | Meaning | In the queue |
+|---|---|---|
+| 2xx | saved (201 the first time, 200 after) | leaves |
+| 410 Gone | deleted elsewhere meanwhile ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)) | leaves: sending again will never work |
+| none (offline), 5xx | the network or the server is down | stays, tried again later |
+| other 4xx (403, 422) | refused | stays, so nothing is lost, and is reported: a person must look |
+
+**Sending twice is harmless.** The request is a `PUT` to the workout's own UUID, made on the phone: the first creates, the next ones replace it with the same content. A request that reached the server but whose answer was lost (the network dropped) is simply sent again, and the server does not end up with two workouts. This is why the ids are made in the browser.
+
+**Tried again when?** `usePendingSessions(enabled)`, in `RequireAuth`, sends the queue when a signed-in app opens, and on the browser's **`online`** event, when the network comes back. A round that sent something has the cached lists read again. This is the part of offline sync ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)) a workout needs; the PWA, IndexedDB and sending in the background come with the rest of FEAT-3.
+
+**Resuming.** ✕ pauses the workout, stores it and opens the plan's page, which shows "Workout in progress: Day A – Push" with **Resume**. A reload, a closed tab or a flat battery lead to the same place: the workout is read back from the phone, its clock running again only from when it is opened.
+
+### C1.17.6 Testing it
+
+- **The workout without React** (`workout-session.test.ts`), with the same `run(start, ...actions)` helper as the editor's. Every moment is chosen: `at(60)` is the start plus 60 seconds, so "tick at 60, 50 seconds of rest left at 100" is exact.
+- **The page** (`WorkoutPage.test.tsx`): a workout is started with `startSession()` and stored, as Start does, then the page is drawn at `/session/<id>`. The test ticks, reads the timer by its role (`getByRole('timer')`), reads `localStorage` back with `loadActiveSession()`, and sends Finish with a fake API that answers 201, or `'network'` to check that the workout stays in the queue.
+- **The queue** (`pending-sessions.test.ts`): five workouts queued, the fake API answering 201, 410, `'network'`, 503 and 422; the test checks which leave and which stay.
+- **What tests cannot show:** the beep, the vibration, the screen staying on, the timer firing with the phone asleep. jsdom has none of them; they are checked on a phone ([H3.15.7](../how-to/H3-frontend.md#h3157-checking-in-the-browser-and-on-a-phone)).
 
 ---
 
