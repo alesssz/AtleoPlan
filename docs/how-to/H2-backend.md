@@ -10,6 +10,7 @@
 - Later, when you need one thing: admin screens [H2.4](#h24-an-admin-screen), jobs [H2.5](#h25-work-in-the-background), translated messages [H2.6](#h26-messages-in-the-users-language), settings [H2.7](#h27-a-setting-from-the-environment), packages [H2.8](#h28-adding-a-package).
 - Something broke: [H2.9](#h29-finding-out-what-is-going-on) and [H2.10](#h210-when-something-goes-wrong).
 - A real, complete API, with a list, filters, pages, a policy and an action: [H2.12](#h212-the-exercise-library-api-as-built).
+- A body shaped as a tree, saved in one request, with a validation rule of our own: [H2.13](#h213-the-plans-api-as-built).
 - The same feature on the React side: [H3. Frontend: how to](H3-frontend.md).
 
 ## Contents
@@ -48,6 +49,15 @@
   - [H2.12.5 One language per exercise: the translations trap](#h2125-one-language-per-exercise-the-translations-trap)
   - [H2.12.6 Look at the JSON](#h2126-look-at-the-json)
   - [H2.12.7 The tests, and proving they can fail](#h2127-the-tests-and-proving-they-can-fail)
+- [H2.13 The plans API, as built](#h213-the-plans-api-as-built)
+  - [H2.13.1 Generate the files](#h2131-generate-the-files)
+  - [H2.13.2 The routes](#h2132-the-routes)
+  - [H2.13.3 The rules of a tree](#h2133-the-rules-of-a-tree)
+  - [H2.13.4 A rule of your own](#h2134-a-rule-of-your-own)
+  - [H2.13.5 The traps of nested validation](#h2135-the-traps-of-nested-validation)
+  - [H2.13.6 Saving a tree: the action](#h2136-saving-a-tree-the-action)
+  - [H2.13.7 Look at the JSON](#h2137-look-at-the-json)
+  - [H2.13.8 The tests, and proving they can fail](#h2138-the-tests-and-proving-they-can-fail)
 
 ---
 
@@ -697,6 +707,7 @@ Database errors: [H1.9](H1-database.md#h19-when-something-goes-wrong). Setup pro
 | Controller, resource | `make artisan c="make:controller MuscleController"`, `c="make:resource MuscleResource"` |
 | Controller with the five API methods | `make artisan c="make:controller ExerciseController --api --model=Exercise"` |
 | Form Request, policy | `make artisan c="make:request UpdateMuscleRequest"`, `c="make:policy MusclePolicy --model=Muscle"` |
+| A validation rule of our own | `make artisan c="make:rule SupersetsAreNeighbours"` |
 | An action, or any plain class | `make artisan c="make:class Actions/Exercises/SavePersonalExercise"` |
 | The SQL of a query | in tinker, `Exercise::visibleTo(User::first())->search('panca')->toRawSql()` |
 | Test | `make artisan c="make:test MuscleApiTest --pest"` |
@@ -704,6 +715,8 @@ Database errors: [H1.9](H1-database.md#h19-when-something-goes-wrong). Setup pro
 | Job | `make artisan c="make:job LogMuscleCount"` |
 | API routes | `make artisan c="route:list --path=api"` |
 | Tests, one file | `make test`, `make test f=MuscleApi` |
+| Tests, one folder | `make artisan c="test tests/Feature/Plans"` |
+| How many queries some code runs | in tinker, `DB::enableQueryLog();` … `count(DB::getQueryLog())` |
 | PHP console | `make tinker` |
 | Logs | `make logs`, `make logs s=queue`, `backend/storage/logs/laravel.log` |
 | One setting | `make artisan c="config:show app.frontend_url"` |
@@ -948,6 +961,354 @@ The second is worth a note. Without `with()`, one would expect the "N+1" problem
 | Message | Cause | Fix |
 |---|---|---|
 | ``Expecting 'validation.attributes.muscles.*.role' not to be 'validation.attributes.muscles.*.role'`` | `__('validation.attributes.muscles.*.role')` takes each dot for a level of the file, and finds nothing. Laravel's validator reads the key whole, so the message itself was right | The test reads `__('validation.attributes')` as an array, then the key `'muscles.*.role'` |
+
+
+## H2.13 The plans API, as built
+
+The first part of [FEAT-2](../project/backlog.md#feat-2-plans) built the plans' API on the tables of [H1.13](H1-database.md#h113-the-plan-tables-as-built). This section follows what was done, with the real output, as a tutorial for the next endpoint of this kind. It shows what [H2.12](#h212-the-exercise-library-api-as-built) does not: a request body shaped as a tree, a rule of our own, an abstract Form Request shared by two, an action that saves four levels in one transaction, routes for actions that are not CRUD, and a create that can be sent twice. The endpoints and the flow of a save are described in [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints), the validation in [C2.5.6](../concepts/C2-backend.md#c256-validating-nested-data).
+
+| File | What it is |
+|---|---|
+| `routes/api.php` | `apiResource('plans')` and three action routes |
+| `app/Http/Controllers/PlanController.php` | index, show, store, update, destroy, activate, archive, unarchive |
+| `app/Http/Requests/PlanRequest.php` | The rules of a whole plan, `abstract` |
+| `app/Http/Requests/StorePlanRequest.php`, `UpdatePlanRequest.php` | Extend it: the plan's `id` on create, `version` on save |
+| `app/Http/Requests/ListPlansRequest.php` | `?archived=1` |
+| `app/Rules/SupersetsAreNeighbours.php` | A rule of our own |
+| `app/Policies/PlanPolicy.php` | Only the owner; `activate` also refuses an archived plan |
+| `app/Actions/Plans/SavePlan.php` | Saving the whole tree |
+| `app/Http/Resources/Plan{,Day,Item,Set}Resource.php` | The JSON, one class per level |
+| `lang/{en,it,es,de}/validation.php` | The new rules' messages, the new fields' names |
+| `tests/Feature/Plans/` | Three files for the API, 41 tests |
+
+### H2.13.1 Generate the files
+
+```sh
+make artisan c="make:policy PlanPolicy --model=Plan"
+make artisan c="make:request ListPlansRequest"
+make artisan c="make:request PlanRequest"
+make artisan c="make:request StorePlanRequest"
+make artisan c="make:request UpdatePlanRequest"
+make artisan c="make:rule SupersetsAreNeighbours"
+make artisan c="make:class Actions/Plans/SavePlan"
+make artisan c="make:resource PlanResource"
+make artisan c="make:resource PlanDayResource"
+make artisan c="make:resource PlanItemResource"
+make artisan c="make:resource PlanSetResource"
+make artisan c="make:controller PlanController --api --model=Plan"
+make artisan c="make:test Plans/PlanListTest --pest"
+make artisan c="make:test Plans/SavePlanApiTest --pest"
+make artisan c="make:test Plans/PlanActionsTest --pest"
+```
+
+```
+INFO  Policy [app/Policies/PlanPolicy.php] created successfully.
+INFO  Request [app/Http/Requests/ListPlansRequest.php] created successfully.
+…
+INFO  Rule [app/Rules/SupersetsAreNeighbours.php] created successfully.
+INFO  Class [app/Actions/Plans/SavePlan.php] created successfully.
+…
+INFO  Controller [app/Http/Controllers/PlanController.php] created successfully.
+INFO  Test [tests/Feature/Plans/PlanListTest.php] created successfully.
+…
+```
+
+- **`make:rule`** creates `app/Rules/`, the first time, with a class that implements `ValidationRule` and one empty method, `validate()` ([H2.13.4](#h2134-a-rule-of-your-own)).
+- **`make:request PlanRequest`** writes an ordinary request; making it `abstract`, and the other two `extends PlanRequest` instead of `extends FormRequest`, is done by hand.
+- **What to delete from the generated files**, as in [H2.12.1](#h2121-generate-the-files): the policy's `viewAny`, `restore` and `forceDelete`; the requests' `authorize()` ([H2.3.6](#h236-the-trap-of-the-generated-authorize)).
+
+### H2.13.2 The routes
+
+```php
+Route::apiResource('plans', PlanController::class);
+Route::post('/plans/{plan}/activate', [PlanController::class, 'activate']);
+Route::post('/plans/{plan}/archive', [PlanController::class, 'archive']);
+Route::post('/plans/{plan}/unarchive', [PlanController::class, 'unarchive']);
+```
+
+```sh
+make artisan c="route:list --path=api/plans"
+```
+
+```
+GET|HEAD        api/plans ............... plans.index › PlanController@index
+POST            api/plans ............... plans.store › PlanController@store
+GET|HEAD        api/plans/{plan} .......... plans.show › PlanController@show
+PUT|PATCH       api/plans/{plan} ...... plans.update › PlanController@update
+DELETE          api/plans/{plan} .... plans.destroy › PlanController@destroy
+POST            api/plans/{plan}/activate .......... PlanController@activate
+POST            api/plans/{plan}/archive ............ PlanController@archive
+POST            api/plans/{plan}/unarchive ........ PlanController@unarchive
+
+                                                            Showing [8] routes
+```
+
+- **The three action routes are written by hand**, with the same `{plan}` parameter: route model binding loads the plan for them too, because the controller's method has `Plan $plan`.
+- **`{plan}` is a UUID.** A URL with something else, `/api/plans/12`, gets a 404 before any query: `HasUuids` checks the format first. Without that check, Postgres would answer `invalid input syntax for type uuid` and the request would end in a 500.
+- **`PUT|PATCH`:** both reach `update()`. The editor will use `PUT`, which in HTTP means "replace the whole thing", and that is what a save does.
+
+### H2.13.3 The rules of a tree
+
+The editor sends the whole plan in one body ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints)). `PlanRequest` describes every level with `.*`; the important lines:
+
+```php
+'days' => ['present', 'array', 'max:14'],
+'days.*.id' => ['sometimes', 'uuid', 'distinct', $this->dayIdIsFree()],
+'days.*.name' => ['required', 'string', 'max:50'],
+'days.*.items' => ['present', 'array', 'max:30', new SupersetsAreNeighbours],
+'days.*.items.*.exercise_id' => ['required', 'integer', Rule::exists('exercises', 'id')
+    ->where(fn (Builder $query) => $query
+        ->whereNull('owner_id')
+        ->orWhere('owner_id', $this->user()->id))],
+'days.*.items.*.sets.*.set_type' => ['required', Rule::enum(SetType::class)],
+'days.*.items.*.sets.*.target_reps_max' => ['nullable', 'integer', 'between:1,999',
+    'required_with:days.*.items.*.sets.*.target_reps_min',
+    'gte:days.*.items.*.sets.*.target_reps_min'],
+```
+
+Three ideas to take from it:
+
+1. **`present`, not `required`, on the lists.** `required` refuses an empty list, and a day with no exercises yet is fine. `present` only wants the key there: a body that forgot `items` is refused, rather than read as "this day has no exercises any more", which would delete them.
+2. **`*` in another field's name means "the same place".** In `gte:days.*.items.*.sets.*.target_reps_min`, Laravel fills each `*` with the indexes of the field being checked, so set 2 of item 0 of day 1 is compared with its own minimum.
+3. **`exists` with conditions.** `Rule::exists('exercises', 'id')` alone accepts anyone's personal exercise. The `where(fn …)` adds `(owner_id is null or owner_id = 5)`: Laravel wraps the function's conditions in parentheses, so its `or` cannot leak out. A deleted exercise passes, on purpose: a plan that already has one must still be saved.
+
+**Ids that may already exist.** The editor sends back the ids it received, so a day's id is fine when it belongs to **this** plan, and refused when it belongs to another:
+
+```php
+private function dayIdIsFree(): Unique
+{
+    $rule = Rule::unique('plan_days', 'id');
+    $planId = $this->planId();
+
+    return $planId === null ? $rule : $rule->whereNot('plan_id', $planId);
+}
+```
+
+`unique` is refused when a row has the value; `whereNot('plan_id', …)` leaves this plan's rows out of that search. For items, which point to a day and not to the plan, the condition is a subquery (`plan_day_id not in (select id from plan_days where plan_id = ?)`).
+
+**Which plan is "this plan"** depends on the request, so `PlanRequest` is `abstract` and leaves it to the two classes that extend it:
+
+```php
+abstract class PlanRequest extends FormRequest
+{
+    abstract protected function planId(): ?string;
+    // … rules() uses $this->planId()
+}
+
+class UpdatePlanRequest extends PlanRequest
+{
+    public function rules(): array
+    {
+        return ['version' => ['required', 'integer', 'min:1'], ...parent::rules()];
+    }
+
+    protected function planId(): ?string
+    {
+        return $this->route('plan')->id;      // the plan in the URL, already loaded
+    }
+}
+```
+
+`StorePlanRequest::planId()` answers with the `id` of the body, when it is a valid UUID: that is what lets a create be sent twice ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints)). Its own `id` rule refuses a plan id of another user: `Rule::unique('plans', 'id')->whereNot('user_id', $this->user()->id)`.
+
+### H2.13.4 A rule of your own
+
+"The exercises of a superset are next to each other, and there are at least two" is not a Laravel rule. The generated class:
+
+```php
+class SupersetsAreNeighbours implements ValidationRule
+{
+    public function validate(string $attribute, mixed $value, Closure $fail): void
+    {
+        //
+    }
+}
+```
+
+- **`$attribute`** is the field's real name, `days.0.items`; **`$value`** its value, here one day's list of items, since the rule sits on `days.*.items`.
+- **`$fail('…')`** refuses the value with that message. Given a key, `->translate()` looks it up in `lang/*/validation.php`, in the request's language:
+
+```php
+$fail('validation.superset_neighbours')->translate();
+```
+
+The message goes in the four files, English included, since Laravel's own English file does not have it:
+
+```php
+// lang/en/validation.php
+'superset_neighbours' => 'The exercises of a superset must be next to each other.',
+'superset_size' => 'A superset needs at least two exercises.',
+// lang/it/validation.php
+'superset_neighbours' => 'Gli esercizi di una superserie devono essere uno dopo l\'altro.',
+```
+
+The check itself walks the list once, remembering how many items each group has and the group of the item before: a group seen before but not on the previous item means its exercises are apart. The test runs the same body with three layouts, as a **dataset**:
+
+```php
+it('refuses supersets whose exercises are apart, or alone', function (array $groups, string $message) {
+    // … a day whose items have these superset_group values …
+        ->assertJsonValidationErrors(['days.0.items' => $message]);
+})->with([
+    'apart: 1 – 1' => [[1, null, 1], 'The exercises of a superset must be next to each other.'],
+    'apart: 1 2 1' => [[1, 2, 2, 1], 'The exercises of a superset must be next to each other.'],
+    'alone: 1 2 2' => [[1, 2, 2], 'A superset needs at least two exercises.'],
+]);
+```
+
+### H2.13.5 The traps of nested validation
+
+Three things went differently from what was expected; each is now in a test.
+
+**1. A list whose items have no validated field vanishes from `validated()`.** At first `set_type` was optional, and a set could be sent as `{}`. The test that did so failed in the action, not in the validation:
+
+```
+Undefined array key "sets"
+  at tests/Feature/Plans/SavePlanApiTest.php:99
+```
+
+`validated()` rebuilds the data from the rules. For a list whose items have rules of their own (`sets.*.set_type`…), it keeps the list only through those fields; a `{}` has none, so `sets: [{}]` came out with no `sets` key at all, while `sets: []` stayed. The fix is `required` on `set_type`: a set always has a type, and the editor always sends it.
+
+**2. The order of the rules decides whether a bad id is a 422 or a 500.** `'days.*.id' => ['sometimes', 'uuid', 'distinct', $this->dayIdIsFree()]`: with an id `"day-1"`, `uuid` fails, and Laravel then **skips** `unique` and `exists` on that field (`Validator::hasNotFailedPreviousRuleIfPresenceRule()`). It was tried the other way round, with the unique rule first:
+
+```
+⨯ it refuses an id that is not a UUID, without asking the database
+  Expected response status code [422] but received 500.
+PDOException: SQLSTATE[22P02]: Invalid text representation: 7 ERROR:  invalid input syntax for type uuid: "day-1"
+```
+
+Postgres answers a query on a `uuid` column with an error, not with "no rows". A first version of the rules had `bail` (stop at the first failure) for this reason; the test showed that Laravel already does it for these two rules, so `bail` was removed and the test stayed, to guard the order.
+
+**3. "This plan" is what the body says it is.** A first test expected a create with someone else's plan id, day id and item id to be refused on all three. It was refused only on `id`:
+
+```
+Failed to find a validation error in the response for key: 'days.0.items.0.id'
+Response has the following JSON validation errors:
+{ "id": ["The id has already been taken."] }
+```
+
+The days and items are checked against the plan with the id sent, which here is the other user's, so they pass. The request is refused all the same, which is what matters; the test now says so, and a second request with a new plan id shows the day and the item refused.
+
+### H2.13.6 Saving a tree: the action
+
+`SavePlan` has `create()` and `update()`, both in `DB::transaction()`, both ending in `saveDays()`. The steps of `saveDays()`:
+
+```php
+$existingDays = $plan->days()->get()->keyBy('id');     // what the plan has now, by id
+$existingItems = $plan->items()->get()->keyBy('id');   // hasManyThrough: every item of every day
+
+foreach (array_values($days) as $dayPosition => $dayData) {
+    $day = $existingDays->get($dayData['id'] ?? '')      // the same day…
+        ?? $plan->days()->make(['id' => $dayData['id'] ?? null]);   // …or a new one
+    $day->fill(['name' => $dayData['name'], 'position' => $dayPosition]);
+    $day->save();                                        // insert, update, or nothing
+    // … the same for its items, with $item->plan_day_id = $day->id
+    // … and every set collected into $sets
+}
+
+PlanItem::query()->whereIn('id', $existingItems->keys())->whereNotIn('id', $keptItemIds)->delete();
+$plan->days()->whereNotIn('id', $keptDayIds)->delete();
+PlanSet::query()->whereIn('plan_item_id', $keptItemIds)->delete();
+PlanSet::query()->insert($sets);                         // every set, one query
+```
+
+- **`keyBy('id')`** turns the collection into one keyed by id, so each id sent finds its row without another query.
+- **`save()` on a model that did not change does nothing**: Eloquent compares the values with those it read and writes only what changed.
+- **The order of the deletes:** items first. An item moved from a deleted day to a kept day already points to its new day, so deleting the old day, whose items go by cascade, does not take it along.
+- **`insert()`** writes many rows in one query, without models: no casts and no timestamps, so every row lists every column, as `setRow()` does.
+
+In `update()`, the version is read with a lock:
+
+```php
+$current = Plan::query()->whereKey($plan->id)->lockForUpdate()->value('version');
+```
+
+The query it writes ends in `for update`. Measured in tinker with `DB::enableQueryLog()`, on a plan of 3 days × 6 exercises × 4 sets:
+
+```
+create, 3 days x 6 exercises x 4 sets: 28 queries
+load the whole plan: 7 queries
+save again, nothing changed: 8 queries
+  select "version" from "plans" where "plans"."id" = ? limit 1 for update
+  update "plans" set "version" = ?, "updated_at" = ? where "id" = ?
+  select * from "plan_days" where "plan_days"."plan_id" = ? and "plan_days"."plan_id" is not null order by "posi…
+  select "plan_items".*, "plan_days"."plan_id" as "laravel_through_key" from "plan_items" inner join "plan_days"…
+  delete from "plan_items" where "id" in (?, ?, …) and "id" not in …
+  delete from "plan_days" where "plan_days"."plan_id" = ? and "plan_days"."plan_id" is not null and "id" not in …
+  delete from "plan_sets" where "plan_item_id" in (?, ?, …)
+  insert into "plan_sets" ("plan_item_id", "position", "set_type", …
+```
+
+A save that changed nothing but the version costs 8 queries whatever the plan's size: the 18 items did not change, so `save()` wrote none of them. A create writes one row per day and per item, then all the sets in one insert.
+
+**The controller around it** stays short: `store()` looks for a plan of this user with the id sent, and answers with it if there is one; `update()` passes the action's answer into `meta`:
+
+```php
+$changedElsewhere = $save->update($plan, $request->validated());
+
+return (new PlanResource($plan->load(self::TREE)))
+    ->additional(['meta' => ['changed_elsewhere' => $changedElsewhere]]);
+```
+
+`additional()` adds keys next to `data` in the answer. The status needs no code: a resource wrapping a model created in this request answers 201, any other 200.
+
+### H2.13.7 Look at the JSON
+
+In tinker, inside a transaction undone at the end ([H1.10.7](H1-database.md#h1107-trying-things-in-tinker-without-leaving-traces)):
+
+```php
+> DB::beginTransaction();
+> app()->setLocale('it');
+> $user = User::first();
+> $bench = Exercise::whereNull('owner_id')->first();
+> $plan = app(SavePlan::class)->create($user, ['name' => 'Push Pull Legs', 'goal' => 'Ipertrofia', 'days' => [['name' => 'Giorno A – Spinta', 'items' => [['exercise_id' => $bench->id, 'rest_seconds' => 120, 'sets' => [['set_type' => 'warm_up', 'target_reps_min' => 10, 'target_reps_max' => 10, 'target_weight_kg' => 40], ['set_type' => 'normal', 'target_reps_min' => 8, 'target_reps_max' => 10, 'target_weight_kg' => 80]]]]]]]);
+> request()->setUserResolver(fn () => $user);
+> echo json_encode((new PlanResource($plan->load(['days.items.sets', 'days.items.exercise.equipment', 'days.items.exercise.muscles', 'days.items.exercise.media'])))->resolve(request()), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+> DB::rollBack();
+```
+
+`app(SavePlan::class)` asks the service container for the action, as the controller's parameter does. The output, with fixed ids and the exercise shortened, is the JSON of [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints): weights as `"40.000"`, no positions, the day and item ids made by `HasUuids`.
+
+**A trap met while trying it:** shortening the exercise with `$json['days'][0]['items'][0]['exercise'] = …` on the result of `resolve()` failed with `Call to a member function isOwnedBy() on array`. `resolve()` turns only the top level into an array; `days` is still a collection of resources, turned into JSON later. `json_decode(json_encode(…), true)` first gives a plain array.
+
+### H2.13.8 The tests, and proving they can fail
+
+```sh
+make artisan c="test tests/Feature/Plans"
+```
+
+```
+PASS  Tests\Feature\Plans\PlanActionsTest
+PASS  Tests\Feature\Plans\PlanListTest
+PASS  Tests\Feature\Plans\PlanTablesTest
+PASS  Tests\Feature\Plans\SavePlanApiTest
+Tests:    53 passed (202 assertions)
+```
+
+| File | Covers |
+|---|---|
+| `PlanListTest.php` | 401; only my plans, active first, then by last change; `days_count`; archived apart; a whole plan in order with its exercise and sets; a deleted exercise still shown; the same queries for a small and a large plan; 403, 404, and 404 for an id that is not a UUID |
+| `SavePlanApiTest.php` | Creating with the device's ids or without; a retry answered 200; someone else's plan, day, item or exercise refused; supersets; wrong values and missing lists (422 on the exact field); a bad UUID as a 422 and not a 500; the same id twice; messages in Italian; saving again: ids kept, an item moved, rows deleted, sets rewritten, unchanged rows untouched, the version, `changed_elsewhere`; 403 |
+| `PlanActionsTest.php` | Delete, activate, archive, unarchive: what they change, and 403 on someone else's plan or an archived one |
+| `PlanTablesTest.php` | The tables without HTTP ([H1.13.7](H1-database.md#h1137-factories-four-levels-deep-and-the-tests)) |
+
+Two tools appear here for the first time:
+
+- **`$this->travel(5)->minutes()`** moves the test's clock forward, so that `updated_at` changes if a row is written: the test "leaves the rows that did not change as they were" compares them before and after a save.
+- **`DB::enableQueryLog()`** and **`DB::getQueryLog()`** count the queries of a request, to compare a plan of one exercise with one of twenty.
+
+Each delicate line was broken on purpose, to see a test fail, and then put back:
+
+| Line changed | Test that failed |
+|---|---|
+| `->withTrashed()` removed from `PlanItem::exercise()` | `it still shows an exercise deleted since it was put in the plan`: `Failed asserting that null is identical to 2.` |
+| `->whereNot('plan_id', $planId)` removed from `dayIdIsFree()` | three tests that save a plan again, or retry a create: `Expected response status code [200] but received 422.` The plan's own days were refused as "already taken" |
+| `uuid` moved after the unique rule | `it refuses an id that is not a UUID, without asking the database`: the 500 of [H2.13.5](#h2135-the-traps-of-nested-validation) |
+
+**Errors met along the way**, besides the three traps:
+
+| Message | Cause | Fix |
+|---|---|---|
+| `Expected response status code [200] but received 422` in the test of a save | The test's new set had no `set_type`, required since trap 1 | The test sends it |
 
 ---
 

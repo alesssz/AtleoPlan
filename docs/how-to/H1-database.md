@@ -10,6 +10,7 @@
 - Later, when you need one thing: [H1.3](#h13-migrations) to [H1.6](#h16-seeders) are organised by file type, and [H1.11](#h111-commands-at-a-glance) lists every command.
 - Tables linked to each other, on the real code: [H1.10](#h110-the-exercise-library-as-built).
 - Filling the public exercise library from free-exercise-db: [H1.12](#h112-the-free-exercise-db-import-as-built).
+- Tables whose ids are UUIDs made on the device, four levels deep, and a column added to `users` afterwards: [H1.13](#h113-the-plan-tables-as-built).
 - Something broke: [H1.9](#h19-when-something-goes-wrong).
 - What migrations and models are, in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
 
@@ -64,6 +65,14 @@
   - [H1.12.4 The whole library](#h1124-the-whole-library)
   - [H1.12.5 The tests](#h1125-the-tests)
   - [H1.12.6 When something goes wrong](#h1126-when-something-goes-wrong)
+- [H1.13 The plan tables, as built](#h113-the-plan-tables-as-built)
+  - [H1.13.1 Generate the files](#h1131-generate-the-files)
+  - [H1.13.2 UUIDs as ids](#h1132-uuids-as-ids)
+  - [H1.13.3 Check constraints, and a table without timestamps](#h1133-check-constraints-and-a-table-without-timestamps)
+  - [H1.13.4 A column added to a table that already exists](#h1134-a-column-added-to-a-table-that-already-exists)
+  - [H1.13.5 The relations of four levels](#h1135-the-relations-of-four-levels)
+  - [H1.13.6 What happens on delete, tried](#h1136-what-happens-on-delete-tried)
+  - [H1.13.7 Factories four levels deep, and the tests](#h1137-factories-four-levels-deep-and-the-tests)
 
 ---
 
@@ -1130,6 +1139,7 @@ Tests:    16 passed (97 assertions)
 | Format, then every check | `make fix`, `make check` |
 | Fill the public exercise library | `make exercises-import`; try with `o="--limit=5"`, refresh with `o="--update"` ([H1.12](#h112-the-free-exercise-db-import-as-built)) |
 | A command of our own | `make artisan c="make:command ImportSomething"` |
+| The SQL of undoing the last migration, without running it | `make artisan c="migrate:rollback --step=1 --pretend"` |
 
 **Official documentation:** the Laravel pages *Migrations*, *Eloquent* (with *Relationships* and *Mutators / Casts*), *Factories* (under *Eloquent*), *Seeding* and *Database Testing*, at https://laravel.com/docs; and https://spatie.be/docs/laravel-translatable.
 
@@ -1437,6 +1447,280 @@ They never read the real dataset. Each test writes a few exercises, in the same 
 | `Photos added: 0` on the first run | `o="--without-photos"`, or the dataset has no `exercises/` folder | Run again without the option: the missing photos are added |
 | `git: command not found` | Git is not on the path of the terminal | On Windows, run `make` from Git Bash ([S1.2](../start/S1-setup.md#s12-prerequisites)) |
 | In tinker, `Error  Class "Exercise" not found.` | Met on the first try. Tinker finds a class by its short name through Composer's class map (`vendor/composer/autoload_classmap.php`), written when the packages were installed; classes added since are missing from it | `use App\Models\Exercise;` first, or the full name `App\Models\Exercise::count()`. Or, once, `make composer c="dump-autoload"`, which rewrites the map (`Generated optimized autoload files containing 11202 classes`); tinker then says `[!] Aliasing 'Exercise' to 'App\Models\Exercise' for this Tinker session.` and the short name works |
+
+
+## H1.13 The plan tables, as built
+
+The first part of [FEAT-2](../project/backlog.md#feat-2-plans) created the four tables of a workout plan, `plans` → `plan_days` → `plan_items` → `plan_sets`, and the user's active plan ([D3.5](../design/D3-data-model.md#d35-plans)). This section follows what was done, with the real output, as a tutorial to repeat on the next table. It shows what [H1.10](#h110-the-exercise-library-as-built) does not: ids that are UUIDs made on the device, a column added to an existing table that points to a new one, check constraints, a table without timestamps, and a relation that skips a level. The API on top of these tables is [H2.13](H2-backend.md#h213-the-plans-api-as-built).
+
+| File | What it is |
+|---|---|
+| `database/migrations/2026_11_07_0857*_create_{plans,plan_days,plan_items,plan_sets}_table.php` | The four tables |
+| `database/migrations/2026_11_07_085803_add_active_plan_id_to_users_table.php` | `users.active_plan_id` |
+| `app/Models/Plan.php`, `PlanDay.php`, `PlanItem.php`, `PlanSet.php` | Their models, with the relations |
+| `app/Models/User.php` | Two new relations: `plans()`, `activePlan()` |
+| `app/Enums/SetType.php` | normal, warm_up, drop, failure |
+| `database/factories/Plan{,Day,Item,Set}Factory.php` | Fake rows for tests |
+| `tests/Feature/Plans/PlanTablesTest.php` | 12 tests of the tables, without HTTP |
+
+**After pulling this branch on another computer:** `make migrate`. No seeder: plans are made by users.
+
+### H1.13.1 Generate the files
+
+```sh
+make artisan c="make:enum SetType --string"
+make artisan c="make:model Plan -mf"
+make artisan c="make:model PlanDay -mf"
+make artisan c="make:model PlanItem -mf"
+make artisan c="make:model PlanSet -mf"
+make artisan c="make:migration add_active_plan_id_to_users_table"
+```
+
+```
+INFO  Enum [app/Enums/SetType.php] created successfully.
+INFO  Model [app/Models/Plan.php] created successfully.
+INFO  Factory [database/factories/PlanFactory.php] created successfully.
+INFO  Migration [database/migrations/2026_11_07_085754_create_plans_table.php] created successfully.
+INFO  Model [app/Models/PlanDay.php] created successfully.
+…
+INFO  Migration [database/migrations/2026_11_07_085801_create_plan_sets_table.php] created successfully.
+INFO  Migration [database/migrations/2026_11_07_085803_add_active_plan_id_to_users_table.php] created successfully.
+```
+
+- **The order of the commands is the order of the tables**, from the top: each level points to the one above, and a foreign key needs its table to exist ([H1.10.1](#h1101-generate-the-files-in-the-right-order)). The column on `users` comes last, because it points to `plans`.
+- **`-mf` and no `s`:** no seeder, since plans are made by users, not shipped with the app.
+- **`make:model PlanDay` names the table `plan_days`**: the class in snake case, plural ([D3.2.2](../design/D3-data-model.md#d322-table-names)).
+- **The migration's name sets its content:** `add_active_plan_id_to_users_table` ends in `_to_users_table`, so the file already holds `Schema::table('users', …)`, for changing a table, not creating one.
+
+### H1.13.2 UUIDs as ids
+
+The id of a plan, a day and an item is made on the phone, so that a plan can be built offline ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). Three changes from a table with numbers:
+
+```php
+// In the migration, instead of $table->id()
+$table->uuid('id')->primary();
+
+// A column pointing to a table whose id is a UUID: foreignUuid, not foreignId
+$table->foreignUuid('plan_id')->constrained()->cascadeOnDelete();
+
+// On the model
+use HasFactory, HasUuids;
+#[Fillable(['id', 'name', 'position'])]     // id fillable: the device's one is kept
+```
+
+`make artisan c="migrate --pretend"` shows what Postgres gets (the lines of `plans` and `plan_days`):
+
+```
+⇂ create table "plans" ("id" uuid not null, "user_id" bigint not null, "name" varchar(255) not null, "goal" varchar(255) null, "notes" text null, "version" integer not null default '1', "archived_at" timestamp(0) with time zone null, …)
+⇂ alter table "plans" add constraint "plans_user_id_foreign" foreign key ("user_id") references "users" ("id") on delete cascade
+⇂ alter table "plans" add primary key ("id")
+⇂ create table "plan_days" ("id" uuid not null, "plan_id" uuid not null, "name" varchar(255) not null, "position" integer not null, …)
+⇂ alter table "plan_days" add constraint "plan_days_plan_id_foreign" foreign key ("plan_id") references "plans" ("id") on delete cascade
+⇂ create index "plan_days_plan_id_position_index" on "plan_days" ("plan_id", "position")
+```
+
+- **`"id" uuid`**: Postgres has a type of its own for UUIDs, 16 bytes rather than 36 characters of text, and it refuses anything that is not one.
+- **`"plan_id" uuid`**: `foreignUuid()` made the column the same type as the id it points to. `foreignId()` would have made a `bigint`, and the foreign key would fail.
+- **No index of its own on `plan_id`**: the index on `(plan_id, position)` serves both "the days of this plan" and "in order" ([D3.2.6](../design/D3-data-model.md#d326-indexes)).
+
+In tinker, a plan created without an id gets one, and one sent is kept:
+
+```php
+> $plan = $user->plans()->create(['name' => 'Push Pull Legs']);
+> echo $plan->id, ' version ', $plan->version;
+01a1b53d-2107-7199-b80a-1e8a49d9d33f version 1
+```
+
+The id is a **UUIDv7**: its first characters are the time of creation, so ids made one after the other sort in that order. `version` reads 1 without reloading, because the model repeats the table's default in `$attributes` ([H1.10.4](#h1104-defaults-a-new-model-does-not-see)).
+
+### H1.13.3 Check constraints, and a table without timestamps
+
+`plan_sets` has two rules Postgres must enforce: the minimum reps not above the maximum, and the RPE between 1 and 10 ([D3.2.8](../design/D3-data-model.md#d328-check-constraints)). Laravel's `Blueprint` has no method for them, so they are SQL, right after `Schema::create()`:
+
+```php
+DB::statement('ALTER TABLE plan_sets ADD CONSTRAINT plan_sets_reps_range
+    CHECK (target_reps_min <= target_reps_max)');
+DB::statement('ALTER TABLE plan_sets ADD CONSTRAINT plan_sets_rpe_range
+    CHECK (target_rpe BETWEEN 1 AND 10)');
+```
+
+`down()` needs nothing for them: `dropIfExists('plan_sets')` takes the constraints along with the table. Trying them in tinker, each attempt in its own `DB::transaction()` ([H1.10.7](#h1107-trying-things-in-tinker-without-leaving-traces)):
+
+```php
+> try { DB::transaction(fn () => $item->sets()->create(['position' => 2, 'target_reps_min' => 10, 'target_reps_max' => 8])); } catch (Throwable $e) { echo $e->getMessage(); }
+SQLSTATE[23514]: Check violation: 7 ERROR:  new row for relation "plan_sets" violates check constraint "plan_sets_reps_r…
+> try { DB::transaction(fn () => $item->sets()->create(['position' => 2, 'target_rpe' => 11])); } catch (Throwable $e) { echo $e->getMessage(); }
+SQLSTATE[23514]: Check violation: 7 ERROR:  new row for relation "plan_sets" violates check constraint "plan_sets_rpe_ra…
+```
+
+The constraint's name in the message says which rule fired: that is why they are named.
+
+**No timestamps on `plan_sets`.** Its rows are deleted and written again on every save ([D3.5.6](../design/D3-data-model.md#d356-saving-a-plan)), so a `created_at` would always say "now". The migration has no `$table->timestamps()`, and the model says so:
+
+```php
+public $timestamps = false;
+```
+
+Without that line, the first `create()` fails with `column "updated_at" of relation "plan_sets" does not exist`: Eloquent fills the two columns on every model unless told not to.
+
+### H1.13.4 A column added to a table that already exists
+
+`users.active_plan_id` points to `plans`, so it cannot be in the `users` migration, which runs long before `plans` exists. It is a migration of its own, after the plans ones:
+
+```php
+public function up(): void
+{
+    Schema::table('users', function (Blueprint $table) {
+        $table->foreignUuid('active_plan_id')->nullable()->index()->constrained('plans')->nullOnDelete();
+    });
+}
+
+public function down(): void
+{
+    Schema::table('users', function (Blueprint $table) {
+        $table->dropConstrainedForeignId('active_plan_id');
+    });
+}
+```
+
+```
+⇂ alter table "users" add column "active_plan_id" uuid null
+⇂ alter table "users" add constraint "users_active_plan_id_foreign" foreign key ("active_plan_id") references "plans" ("id") on delete set null
+⇂ create index "users_active_plan_id_index" on "users" ("active_plan_id")
+```
+
+- **`nullable()`**: users who exist already have no active plan, so the column must accept empty cells. A required column added to a table with rows needs a default instead.
+- **`nullOnDelete()`** writes `on delete set null`: deleting the active plan empties the cell and keeps the user ([D3.7](../design/D3-data-model.md#d37-what-happens-on-delete)).
+- **`constrained('plans')`**: the name `active_plan_id` does not say the table, so it is given.
+- **`down()` must undo it**, and the order matters: the foreign key first, then the column. `dropConstrainedForeignId()` does both. Check it without running it:
+
+```sh
+make artisan c="migrate:rollback --step=1 --pretend"
+```
+
+```
+⇂ alter table "users" drop constraint "users_active_plan_id_foreign"
+⇂ alter table "users" drop column "active_plan_id"
+```
+
+(The index goes with the column, by itself.) Then `make migrate`:
+
+```
+2026_11_07_085754_create_plans_table .......................... 69.05ms DONE
+2026_11_07_085757_create_plan_days_table ....................... 8.21ms DONE
+2026_11_07_085759_create_plan_items_table ...................... 9.82ms DONE
+2026_11_07_085801_create_plan_sets_table ....................... 9.56ms DONE
+2026_11_07_085803_add_active_plan_id_to_users_table ............ 2.81ms DONE
+```
+
+On the model, the column is a `belongsTo` with its name given, and it is not fillable, so no request can point it at someone else's plan:
+
+```php
+public function activePlan(): BelongsTo
+{
+    return $this->belongsTo(Plan::class, 'active_plan_id');
+}
+
+$user->activePlan()->associate($plan)->save();     // sets active_plan_id
+$user->activePlan()->dissociate()->save();         // empties it
+```
+
+### H1.13.5 The relations of four levels
+
+Each level is a `hasMany` sorted by `position` on the way down, and a `belongsTo` on the way up. Two need care:
+
+- **`PlanItem::day()`** is named `day`, not `planDay`, so the column is given: `belongsTo(PlanDay::class, 'plan_day_id')`. Laravel would otherwise look for `day_id`.
+- **`PlanItem::exercise()`** reads deleted exercises too: `belongsTo(Exercise::class)->withTrashed()`. An exercise is soft-deleted, and the plan must keep showing it ([D3.11](../design/D3-data-model.md#d311-traps-to-avoid)).
+
+**A relation that skips a level.** Saving a plan needs every item of every day. `Plan::items()` is a `hasManyThrough`:
+
+```php
+public function items(): HasManyThrough
+{
+    return $this->hasManyThrough(PlanItem::class, PlanDay::class);
+}
+```
+
+```php
+> echo $plan->items()->toRawSql();
+select * from "plan_items" inner join "plan_days" on "plan_days"."id" = "plan_items"."plan_day_id" where "plan_days"."plan_id" = '01a1b53d-2107-7199-b80a-1e8a49d9d33f'
+```
+
+One query with a join. Laravel worked out the two columns from the class names (`plan_days.plan_id`, `plan_items.plan_day_id`). When it reads rows it selects `plan_items.*` and the plan's id as `laravel_through_key`, so the items' `id` is not mixed up with the days' `id`. A `pluck()` or `where()` on such a query must still name the table, `plan_items.id`, or Postgres answers `column reference "id" is ambiguous`.
+
+**The whole tree in one line**, one query per level:
+
+```php
+> $loaded = Plan::with('days.items.sets')->find($plan->id);
+> echo json_encode($loaded->days[0]->items[0]->sets->map(fn ($s) => [$s->set_type->value, $s->target_weight_kg]));
+[["warm_up","40.000"],["normal","80.000"]]
+```
+
+The weights come back as exact text, `"40.000"`, from the cast `decimal:3` ([D3.11](../design/D3-data-model.md#d311-traps-to-avoid)).
+
+### H1.13.6 What happens on delete, tried
+
+In one tinker session inside `DB::beginTransaction()` … `DB::rollBack()`, a plan of one day, one item and two sets, made the active plan, then the exercise and the plan deleted:
+
+```php
+> $bench->delete();          // soft delete
+> echo $item->fresh()->exercise->name, ' trashed: ', var_export($item->fresh()->exercise->trashed(), true);
+Barbell bench press trashed: true
+> try { DB::transaction(fn () => $bench->forceDelete()); } catch (Throwable $e) { echo $e->getMessage(); }
+SQLSTATE[23503]: Foreign key violation: 7 ERROR:  update or delete on table "exercises" violates foreign key c…
+> $user->activePlan()->associate($plan)->save();
+> $plan->delete();
+> echo 'active_plan_id ', var_export($user->fresh()->active_plan_id, true), ', days ', PlanDay::count(), ', items ', PlanItem::count(), ', sets ', PlanSet::count();
+active_plan_id NULL, days 0, items 0, sets 0
+```
+
+Each line is a rule of [D3.7](../design/D3-data-model.md#d37-what-happens-on-delete): the plan keeps a deleted exercise; deleting it for good is refused while a plan uses it; the plan takes its days, items and sets with it (cascade); the user stays, with no active plan (set to empty).
+
+### H1.13.7 Factories four levels deep, and the tests
+
+`has()` builds the rows of a `hasMany`, with the foreign key filled; the second argument is the relation's name:
+
+```php
+Plan::factory()
+    ->has(PlanDay::factory()->has(PlanItem::factory()->has(PlanSet::factory()->count(2), 'sets'), 'items'), 'days')
+    ->create();
+```
+
+This makes a user (from `PlanFactory`), a plan, a day, a public exercise (from `PlanItemFactory`), an item and two sets. Two more tools are used in the tests:
+
+```php
+PlanDay::factory()->for($plan)->count(3)
+    ->sequence(['position' => 2], ['position' => 0], ['position' => 1])   // each row takes the next values
+    ->create();
+PlanItem::factory()->for($push, 'day')->for($bench)->create();            // for(): a belongsTo; 'day' names the relation
+```
+
+```sh
+make test f=PlanTablesTest
+```
+
+```
+PASS  Tests\Feature\Plans\PlanTablesTest
+✓ it makes a UUID for a plan, or keeps the one sent by the device
+✓ it reads days, items and sets in the order of their position
+✓ it reads the set type as an enum and the weights as exact text
+✓ it deletes the days, items and sets with their plan, and empties th…
+✓ it deletes a user's plans with the user
+✓ it refuses to delete for good an exercise that a plan uses
+✓ it keeps showing an exercise deleted after it was put in a plan
+✓ it refuses a range of reps upside down, and an RPE outside 1–10 wit… (×3, one per case)
+✓ it reaches every item of a plan through its days in one query
+✓ it gives each user at most one active plan
+Tests:    12 passed (24 assertions)
+```
+
+The refusals are tested inside `DB::transaction()`, as in [H1.10.8](#h1108-testing-what-the-database-refuses). The case "reps 10–8", "RPE 11", "RPE 0.5" is one test with a **dataset**: `->with([...])` after the test runs it once per entry, and the entry's name appears in the output.
+
+**Errors met along the way:**
+
+| Message | Cause | Fix |
+|---|---|---|
+| `PARSE ERROR  PHP Parse error: Syntax error, unexpected '*'` in `tinker --execute` | `use App\Models\*;`: PHP has no wildcard imports | One `use` per class, or `use App\Models\{Plan, PlanDay};` |
 
 ---
 

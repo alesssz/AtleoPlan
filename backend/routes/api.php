@@ -23,6 +23,7 @@ use App\Http\Controllers\CurrentUserController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ExerciseController;
 use App\Http\Controllers\MuscleController;
+use App\Http\Controllers\PlanController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -57,4 +58,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // PUT|PATCH /exercises/{exercise} (update), DELETE /exercises/{exercise}
     // (destroy). Their names are exercises.index, exercises.store…
     Route::apiResource('exercises', ExerciseController::class);
+
+    // The workout plans (docs/concepts/C2-backend.md C2.5.5): the five
+    // routes of a resource, as for the exercises…
+    Route::apiResource('plans', PlanController::class);
+    // …and three actions that are not create, read, update or delete. Each
+    // gets a verb after the plan's address, and POST, since it changes
+    // something. {plan} is loaded by route model binding, as in apiResource
+    Route::post('/plans/{plan}/activate', [PlanController::class, 'activate']);
+    Route::post('/plans/{plan}/archive', [PlanController::class, 'archive']);
+    Route::post('/plans/{plan}/unarchive', [PlanController::class, 'unarchive']);
 });

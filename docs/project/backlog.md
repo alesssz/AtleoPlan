@@ -54,7 +54,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [D3. Data model](../design/D3-data-model.md).
 
 1. The exercise library: its API, import and screens are done; left are its admin screen and media ([BE-1](#be-1-exercise-library-api-and-admin)) and its translation ([DATA-1](#data-1-import-and-translate-free-exercise-db))
-2. [FEAT-2](#feat-2-plans) plans
+2. [FEAT-2](#feat-2-plans) plans: the tables and the API are done; left are the screens
 3. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
 4. [FEAT-4](#feat-4-summary-and-history) summary and history
 
@@ -108,7 +108,11 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 
 **Priority:** high · **Kind:** feature · **Found:** 2026-11-05
 
-**What is missing.** Plan list, details and editor: days, exercises with sets, reps, rest, set types (W, D, F) and supersets, reordering by drag and drop (dnd-kit), the one active plan ([D1.4.6](../design/D1-ui.md#d146-plan-list)–[D1.4.8](../design/D1-ui.md#d148-plan-editor), [D2.8](../design/D2-decisions.md#d28-workout-rules)). Tables: [D3.5](../design/D3-data-model.md#d35-plans). Needs BE-1.
+**Done:** the four tables, `users.active_plan_id`, and the API: list, whole plan, create and save a whole plan with its version, delete, activate, archive (`feat/plan-api`, [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints), [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built)).
+
+**What is missing.** The screens, each on its own branch:
+- **List and details** ([D1.4.6](../design/D1-ui.md#d146-plan-list), [D1.4.7](../design/D1-ui.md#d147-plan-details)): the cards with the Active badge, the Archived filter, the days as tabs with "4 × 8–10 · 90 s" and "+ 2 warm-up", supersets joined by a bar; Set as active, Archive, Delete. The Templates section, Share and Duplicate are phase 2 ([D3.9](../design/D3-data-model.md#d39-left-for-later)).
+- **Editor** ([D1.4.8](../design/D1-ui.md#d148-plan-editor)): days and exercises reordered by drag and drop (dnd-kit), exercises added from the library in its select mode ([D1.4.3](../design/D1-ui.md#d143-exercise-library)), sets with their types (W, D, F), supersets, the draft kept on the device and **Discard changes**, the warning when `meta.changed_elsewhere` is true ([D2.8](../design/D2-decisions.md#d28-workout-rules), [D3.5.7](../design/D3-data-model.md#d357-when-a-plan-is-changed-in-two-places)).
 
 ### FEAT-3 Workout mode and Home
 

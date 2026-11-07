@@ -7,24 +7,39 @@
  */
 return [
     'array' => 'Il campo :attribute deve essere un elenco.',
+    'between' => [
+        'numeric' => 'Il campo :attribute deve essere tra :min e :max.',
+    ],
+    'boolean' => 'Il campo :attribute deve essere vero o falso.',
     'confirmed' => 'La conferma di :attribute non coincide.',
+    'decimal' => 'Il campo :attribute deve avere :decimal decimali.',
     'distinct' => 'Il campo :attribute contiene un valore ripetuto.',
     'email' => 'Il campo :attribute deve essere un indirizzo email valido.',
     'enum' => 'Il valore di :attribute non è valido.',
     'exists' => 'Il valore scelto per :attribute non esiste.',
+    'gte' => [
+        'numeric' => 'Il campo :attribute deve essere almeno :value.',
+    ],
     'integer' => 'Il campo :attribute deve essere un numero intero.',
     'max' => [
         'array' => 'Il campo :attribute non può avere più di :max elementi.',
         'string' => 'Il campo :attribute non può superare :max caratteri.',
     ],
     'min' => [
+        'numeric' => 'Il campo :attribute deve essere almeno :min.',
         'string' => 'Il campo :attribute deve avere almeno :min caratteri.',
     ],
+    'numeric' => 'Il campo :attribute deve essere un numero.',
+    'present' => 'Il campo :attribute deve essere presente.',
     'regex' => 'Il formato di :attribute non è valido.',
     'required' => 'Il campo :attribute è obbligatorio.',
+    'required_with' => 'Il campo :attribute è obbligatorio quando c\'è :values.',
     'string' => 'Il campo :attribute deve essere un testo.',
+    'superset_neighbours' => 'Gli esercizi di una superserie devono essere uno dopo l\'altro.',
+    'superset_size' => 'Una superserie deve avere almeno due esercizi.',
     'unique' => 'Questo valore di :attribute è già in uso.',
     'url' => 'Il campo :attribute deve essere un indirizzo web valido.',
+    'uuid' => 'Il campo :attribute deve essere un UUID valido.',
 
     // How each field is called inside a message
     'attributes' => [
@@ -44,5 +59,28 @@ return [
         'muscles' => 'muscoli',
         'muscles.*.id' => 'muscolo',
         'muscles.*.role' => 'ruolo del muscolo',
+
+        // The workout plans (PlanRequest)
+        'archived' => 'archiviati',
+        'goal' => 'obiettivo',
+        'notes' => 'note',
+        'version' => 'versione',
+        'days' => 'giorni',
+        'days.*.id' => 'id del giorno',
+        'days.*.name' => 'nome del giorno',
+        'days.*.items' => 'esercizi del giorno',
+        'days.*.items.*.id' => 'id dell\'esercizio nella scheda',
+        'days.*.items.*.exercise_id' => 'esercizio',
+        'days.*.items.*.superset_group' => 'superserie',
+        'days.*.items.*.rest_seconds' => 'recupero',
+        'days.*.items.*.notes' => 'note',
+        'days.*.items.*.sets' => 'serie',
+        'days.*.items.*.sets.*.set_type' => 'tipo di serie',
+        'days.*.items.*.sets.*.target_reps_min' => 'ripetizioni minime',
+        'days.*.items.*.sets.*.target_reps_max' => 'ripetizioni massime',
+        'days.*.items.*.sets.*.target_weight_kg' => 'peso',
+        'days.*.items.*.sets.*.target_rpe' => 'RPE',
+        'days.*.items.*.sets.*.target_duration_seconds' => 'durata',
+        'days.*.items.*.sets.*.target_distance_meters' => 'distanza',
     ],
 ];
