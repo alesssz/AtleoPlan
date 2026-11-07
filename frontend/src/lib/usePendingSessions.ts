@@ -9,6 +9,7 @@
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
+import { homeKeys } from '@/api/home'
 import { sessionKeys } from '@/api/sessions'
 import { sendPendingSessions } from './pending-sessions'
 
@@ -28,7 +29,7 @@ export function usePendingSessions(enabled: boolean): void {
       void sendPendingSessions().then((report) => {
         if (report.sent.length > 0) {
           void queryClient.invalidateQueries({ queryKey: sessionKeys.all })
-          void queryClient.invalidateQueries({ queryKey: ['home'] })
+          void queryClient.invalidateQueries({ queryKey: homeKeys.all })
         }
       })
     }

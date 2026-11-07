@@ -14,8 +14,9 @@
  * language. A whole plan holds its exercises, whose names arrive in the
  * user's language, so its key has one, as the library's keys do.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import type { Exercise } from '@/api/exercises'
+import { homeKeys } from '@/api/home'
 import { request } from '@/lib/http'
 
 /**
@@ -149,8 +150,32 @@ export function usePlans(archived: boolean) {
 export function usePlan(id: string, language: string) {
   return useQuery({
     queryKey: planKeys.detail(id, language),
-    queryFn: ({ signal }) => request<{ data: Plan }>(`/api/plans/${id}`, { signal }).then(answer => answer.data),
+    queryFn: ({ signal }) => fetchPlan(id, signal),
   })
+}
+
+/**
+ * Reads one whole plan. A function of its own, besides usePlan(), for Home's
+ * Start, which needs the plan only when tapped (src/components/workout/useStartWorkout.ts).
+ * @param id the plan's UUID
+ * @param signal optional cancel signal
+ */
+export function fetchPlan(id: string, signal?: AbortSignal): Promise<Plan> {
+  return request<{ data: Plan }>(`/api/plans/${id}`, { signal }).then(answer => answer.data)
+}
+
+/**
+ * Reads again every plan and list, and Home: a plan saved, made active,
+ * archived or deleted changes Home's card and its suggested day too
+ * (src/api/home.ts). Called by every hook below after it succeeds.
+ * @param queryClient TanStack Query's cache
+ * @returns a promise that ends when the active queries are read again
+ */
+function refreshPlans(queryClient: QueryClient): Promise<unknown> {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: planKeys.all }),
+    queryClient.invalidateQueries({ queryKey: homeKeys.all }),
+  ])
 }
 
 /** One set, as the editor sends it (backend PlanRequest); weights in kilograms. */
@@ -236,7 +261,7 @@ export function useCreatePlan() {
     mutationFn: (input: PlanInput): Promise<PlanSaved> =>
       request<{ data: Plan }>('/api/plans', { method: 'POST', body: input })
         .then(answer => ({ plan: answer.data, changedElsewhere: false })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: planKeys.all }),
+    onSuccess: () => refreshPlans(queryClient),
   })
 }
 
@@ -252,7 +277,7 @@ export function useUpdatePlan(id: string) {
     mutationFn: (input: PlanInput): Promise<PlanSaved> =>
       request<{ data: Plan, meta: { changed_elsewhere: boolean } }>(`/api/plans/${id}`, { method: 'PUT', body: input })
         .then(answer => ({ plan: answer.data, changedElsewhere: answer.meta.changed_elsewhere })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: planKeys.all }),
+    onSuccess: () => refreshPlans(queryClient),
   })
 }
 
@@ -280,7 +305,7 @@ export function usePlanAction(id: string) {
   return useMutation({
     mutationFn: (action: PlanAction) =>
       request<{ data: PlanSummary }>(`/api/plans/${id}/${action}`, { method: 'POST' }).then(answer => answer.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: planKeys.all }),
+    onSuccess: () => refreshPlans(queryClient),
   })
 }
 
@@ -298,7 +323,7 @@ export function useDeletePlan(id: string) {
       // Every cached copy of this plan, in any language: the key
       // ['plans', 'detail', id] is a prefix of each of them
       queryClient.removeQueries({ queryKey: ['plans', 'detail', id] })
-      return queryClient.invalidateQueries({ queryKey: planKeys.all })
+      return refreshPlans(queryClient)
     },
   })
 }

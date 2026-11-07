@@ -13,14 +13,21 @@
  * once every set is ticked. Both ask for a confirmation, then finish the
  * workout, put it in the queue of workouts to send, and try to send it at
  * once (src/lib/pending-sessions.ts).
+ *
+ * Exercises can be added on the way (Add exercises, the plan editor's
+ * picker): in any workout, and in a free workout (Home), which starts with
+ * none and shows only that until the first is added.
  */
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Dumbbell, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Dumbbell, ListPlus, Plus, X } from 'lucide-react'
 import { useEffect, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useCurrentUser } from '@/api/auth'
-import { sessionKeys } from '@/api/sessions'
+import type { Exercise } from '@/api/exercises'
+import { homeKeys } from '@/api/home'
+import { fetchLastSets, sessionKeys } from '@/api/sessions'
+import { ExercisePicker } from '@/components/plans/editor/ExercisePicker'
 import { itemSummary } from '@/components/plans/plan-format'
 import {
   AlertDialog,
@@ -44,16 +51,14 @@ import { WORKOUT_COLUMN } from './layout'
 import { RestBar } from './RestBar'
 import { addPending, storeActiveSession } from './session-storage'
 import { SetHeader, SetRow } from './SetRow'
-import { allSetsDone, countSets, elapsedSeconds, restLeft, setNumbers, toSessionInput, workoutReducer, type ActiveSession, type SetCount } from './workout-session'
+import { FALLBACK_REST_SECONDS } from './useStartWorkout'
+import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, toSessionInput, workoutReducer, type ActiveSession, type SetCount } from './workout-session'
 
-/** What the plan's page is told after Finish, through the navigation's state. */
+/** What the plan's page (or Home) is told after Finish, through the navigation's state. */
 export interface WorkoutEndState {
   /** Saved on the server; waiting for the network; refused by the server. */
   workout: 'saved' | 'queued' | 'refused'
 }
-
-/** The user's rest when the user is not loaded yet: the backend's default. */
-const FALLBACK_REST_SECONDS = 90
 
 /** Props of WorkoutScreen. */
 interface WorkoutScreenProps {
@@ -128,8 +133,30 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   // What the two Finish buttons share: the count, busy, the action
   const finishProps = { count, disabled: finishing, onFinish: () => void finish() }
   // Time to finish: the last exercise, or nothing left to tick. The bottom
-  // bar then offers Finish workout instead of Next
-  const finishTime = index >= total - 1 || allSetsDone(session)
+  // bar then offers Finish workout instead of Next. Never with no exercise
+  // at all: a free workout just started has nothing to finish
+  const finishTime = total > 0 && (index >= total - 1 || allSetsDone(session))
+  // A free workout with no exercise yet: the screen shows only how to add one
+  const empty = total === 0
+  // The settings an added exercise needs
+  const addOptions = { unit, language: i18n.language, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS }
+
+  /**
+   * The exercises picked in the library, added at the end with last time's
+   * sets (none offline), and the first of them opened.
+   * @param exercises the exercises ticked, in order
+   */
+  async function addExercises(exercises: Exercise[]) {
+    // Last time's sets of these exercises; an empty list offline
+    const lastSets = await fetchLastSets(exercises.map(exercise => exercise.id)).catch(() => [])
+    dispatch({ type: 'addExercises', exercises: exercises.map(exercise => exerciseFrom(exercise, lastSets, addOptions)) })
+  }
+
+  /** Cancel, on an empty free workout: nothing was done, so nothing is kept. */
+  function cancel() {
+    storeActiveSession(null)
+    void navigate('/', { replace: true })
+  }
 
   /** ✕: pauses the workout, keeps it on the phone, and leaves. */
   function pauseAndLeave() {
@@ -148,8 +175,10 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
     storeActiveSession(null)
     // What happened to every queued workout, this one included
     const report = await sendPendingSessions()
-    // The lists that show workouts are read again
+    // The lists that show workouts are read again, and Home (the week, the
+    // suggested day)
     void queryClient.invalidateQueries({ queryKey: sessionKeys.all })
+    void queryClient.invalidateQueries({ queryKey: homeKeys.all })
     // What happened to this workout, for the plan's page
     const outcome: WorkoutEndState['workout'] = report.sent.includes(finished.id)
       ? 'saved'
@@ -166,13 +195,14 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
           <Button variant="ghost" size="icon-xl" aria-label={t('workout.close')} onClick={pauseAndLeave}>
             <X aria-hidden="true" />
           </Button>
-          <h1 className="min-w-0 flex-1 truncate font-heading text-lg font-extrabold">{session.day_name}</h1>
+          {/* The day's name; a free workout has none */}
+          <h1 className="min-w-0 flex-1 truncate font-heading text-lg font-extrabold">{session.day_name ?? t('workout.free')}</h1>
           <p className="font-semibold text-muted-foreground tabular-nums">
             <span className="sr-only">{`${t('workout.clock')}: `}</span>
             {clock(elapsedSeconds(session, now))}
           </p>
           {/* Outlined: there to stop early, not the next thing to do */}
-          <FinishButton {...finishProps} label={t('workout.done')} variant="outline" className="px-4" />
+          {!empty && <FinishButton {...finishProps} label={t('workout.done')} variant="outline" className="px-4" />}
         </div>
       </header>
 
@@ -183,27 +213,51 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
           screen (docs/how-to/H3-frontend.md H3.15.11) */}
       <main className="relative flex-1 overflow-y-auto py-5 sm:py-6">
         <div className={WORKOUT_COLUMN}>
+          {/* A free workout with no exercise yet: what to do, and the way
+              back for a workout started by mistake */}
+          {empty && (
+            <div className="flex flex-col items-start gap-4 py-6">
+              <h2 className="font-heading text-xl font-extrabold">{t('workout.emptyTitle')}</h2>
+              <p className="max-w-prose text-muted-foreground">{t('workout.emptyText')}</p>
+              <div className="flex flex-wrap gap-3">
+                {/* Lime: the one thing to do here */}
+                <ExercisePicker
+                  trigger={(
+                    <Button size="xl">
+                      <ListPlus aria-hidden="true" />
+                      {t('workout.addExercises')}
+                    </Button>
+                  )}
+                  onAdd={exercises => void addExercises(exercises)}
+                />
+                <Button variant="outline" size="xl" onClick={cancel}>{t('workout.cancel')}</Button>
+              </div>
+            </div>
+          )}
+
           {/* Where we are: a dot per exercise, each a button to jump to it */}
-          <nav aria-label={t('workout.exerciseOf', { number: index + 1, total })} className="mb-5">
-            <ol className="mb-2 flex flex-wrap gap-1.5">
-              {session.exercises.map((exercise, position) => (
-                <li key={exercise.id}>
-                  <button
-                    type="button"
-                    aria-label={t('workout.jumpTo', { number: position + 1, name: exercise.exercise.name })}
-                    // aria-current="step": the step being done, for screen readers
-                    aria-current={position === index ? 'step' : undefined}
-                    onClick={() => dispatch({ type: 'goTo', exercise: position })}
-                    className={cn(
-                      'size-3 rounded-full',
-                      position === index ? 'bg-primary ring-2 ring-primary/40' : exercise.sets.some(set => set.done) ? 'bg-primary/60' : 'bg-muted',
-                    )}
-                  />
-                </li>
-              ))}
-            </ol>
-            <p className="text-sm text-muted-foreground">{t('workout.exerciseOf', { number: index + 1, total })}</p>
-          </nav>
+          {!empty && (
+            <nav aria-label={t('workout.exerciseOf', { number: index + 1, total })} className="mb-5">
+              <ol className="mb-2 flex flex-wrap gap-1.5">
+                {session.exercises.map((exercise, position) => (
+                  <li key={exercise.id}>
+                    <button
+                      type="button"
+                      aria-label={t('workout.jumpTo', { number: position + 1, name: exercise.exercise.name })}
+                      // aria-current="step": the step being done, for screen readers
+                      aria-current={position === index ? 'step' : undefined}
+                      onClick={() => dispatch({ type: 'goTo', exercise: position })}
+                      className={cn(
+                        'size-3 rounded-full',
+                        position === index ? 'bg-primary ring-2 ring-primary/40' : exercise.sets.some(set => set.done) ? 'bg-primary/60' : 'bg-muted',
+                      )}
+                    />
+                  </li>
+                ))}
+              </ol>
+              <p className="text-sm text-muted-foreground">{t('workout.exerciseOf', { number: index + 1, total })}</p>
+            </nav>
+          )}
 
           {item && (
             <section aria-labelledby="exercise-name">
@@ -240,10 +294,24 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                 ))}
               </ol>
               {/* Outlined and 48 px tall, like the plan editor's Add set */}
-              <Button variant="outline" size="xl" className="mt-4" onClick={() => dispatch({ type: 'addSet', exercise: index })}>
-                <Plus aria-hidden="true" />
-                {t('plans.editor.addSet')}
-              </Button>
+              {/* Add set, and Add exercises: the library's picker, as in the
+                  plan editor (src/components/plans/editor/ExercisePicker.tsx).
+                  flex-wrap: on a narrow phone the second goes under the first */}
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button variant="outline" size="xl" onClick={() => dispatch({ type: 'addSet', exercise: index })}>
+                  <Plus aria-hidden="true" />
+                  {t('plans.editor.addSet')}
+                </Button>
+                <ExercisePicker
+                  trigger={(
+                    <Button variant="outline" size="xl">
+                      <ListPlus aria-hidden="true" />
+                      {t('workout.addExercises')}
+                    </Button>
+                  )}
+                  onAdd={exercises => void addExercises(exercises)}
+                />
+              </div>
             </section>
           )}
 
@@ -262,31 +330,33 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         />
       )}
 
-      {/* Previous and Next */}
-      <footer className="border-t pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className={cn(WORKOUT_COLUMN, 'flex justify-between gap-2')}>
-          {/* Previous and Next are outlined, as the app's other actions that
+      {/* Previous and Next; not on an empty free workout, with nowhere to go */}
+      {!empty && (
+        <footer className="border-t pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className={cn(WORKOUT_COLUMN, 'flex justify-between gap-2')}>
+            {/* Previous and Next are outlined, as the app's other actions that
               are not the main one; lime is kept for Finish workout.
               Previous: on a phone, when Finish workout needs the room, an
               arrow alone: its word is hidden below 640 px only
               (max-sm:sr-only), and screen readers still hear it */}
-          <Button variant="outline" size="xl" className={cn('px-4', finishTime && 'max-sm:px-3.5')} disabled={index === 0} onClick={() => dispatch({ type: 'goTo', exercise: index - 1 })}>
-            <ChevronLeft aria-hidden="true" />
-            <span className={cn(finishTime && 'max-sm:sr-only')}>{t('workout.previous')}</span>
-          </Button>
-          {/* Next, or, when it is time, Finish workout: across the bar on a
+            <Button variant="outline" size="xl" className={cn('px-4', finishTime && 'max-sm:px-3.5')} disabled={index === 0} onClick={() => dispatch({ type: 'goTo', exercise: index - 1 })}>
+              <ChevronLeft aria-hidden="true" />
+              <span className={cn(finishTime && 'max-sm:sr-only')}>{t('workout.previous')}</span>
+            </Button>
+            {/* Next, or, when it is time, Finish workout: across the bar on a
               phone (flex-1), its own width from 640 px (sm:flex-none), where
               a button as wide as a laptop's window would be absurd */}
-          {finishTime
-            ? <FinishButton {...finishProps} label={t('workout.finishWorkout')} className="min-w-0 flex-1 sm:flex-none" />
-            : (
-                <Button variant="outline" size="xl" className="px-4" onClick={() => dispatch({ type: 'goTo', exercise: index + 1 })}>
-                  {t('workout.next')}
-                  <ChevronRight aria-hidden="true" />
-                </Button>
-              )}
-        </div>
-      </footer>
+            {finishTime
+              ? <FinishButton {...finishProps} label={t('workout.finishWorkout')} className="min-w-0 flex-1 sm:flex-none" />
+              : (
+                  <Button variant="outline" size="xl" className="px-4" onClick={() => dispatch({ type: 'goTo', exercise: index + 1 })}>
+                    {t('workout.next')}
+                    <ChevronRight aria-hidden="true" />
+                  </Button>
+                )}
+          </div>
+        </footer>
+      )}
     </div>
   )
 }

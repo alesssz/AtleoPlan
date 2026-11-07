@@ -1,7 +1,9 @@
 /*
  * "This week" on Home (docs/design/D1-ui.md D1.4.2): the seven days, Monday
- * to Sunday, with today highlighted. Days trained will be marked when
- * workouts exist (FEAT-3); for now none is, which is also the truth.
+ * to Sunday, with today highlighted and the days trained marked: a lime
+ * tint and a dot under the number, and the words "workout done" for screen
+ * readers. Home works the days out from the recent workouts
+ * (week-summary.ts).
  * Day names and numbers come from Intl in the user's language
  * (src/lib/format.ts); the week itself from src/lib/week.ts.
  */
@@ -14,9 +16,11 @@ import { getWeekDays, isBeforeDay, isSameDay } from '@/lib/week'
 interface WeekStripProps {
   /** "Today", passed in so tests can fix a date; the real now by default. */
   today?: Date
+  /** The days with a workout this week; none by default. */
+  trainedDays?: Date[]
 }
 
-export function WeekStrip({ today = new Date() }: WeekStripProps) {
+export function WeekStrip({ today = new Date(), trainedDays = [] }: WeekStripProps) {
   // i18n.language: the current language, for the day names
   const { t, i18n } = useTranslation()
   // The seven dates of this week
@@ -30,6 +34,8 @@ export function WeekStrip({ today = new Date() }: WeekStripProps) {
         // Today, a past day, or a day still to come: each looks different
         const isToday = isSameDay(day, today)
         const isPast = isBeforeDay(day, today)
+        // A workout was finished on this day
+        const trained = trainedDays.some(done => isSameDay(done, day))
         // "gio" and "5" in Italian, "Thu" and "5" in English
         const { weekday, day: dayNumber } = formatDayParts(day, i18n.language)
 
@@ -42,20 +48,27 @@ export function WeekStrip({ today = new Date() }: WeekStripProps) {
               {weekday}
             </span>
             {/* The day number in a circle: today filled with lime and
-                glowing, past days on a faint surface, future days with a
-                dashed outline (still to come). tabular-nums: same-width digits */}
+                glowing, a day trained tinted lime with a lime ring, other
+                past days on a faint surface, future days with a dashed
+                outline (still to come). tabular-nums: same-width digits */}
             <span
               className={cn(
                 'grid aspect-square w-full max-w-11 place-items-center rounded-full text-sm font-bold tabular-nums',
                 isToday && 'bg-primary text-primary-foreground glow-primary',
-                !isToday && isPast && 'bg-muted text-muted-foreground',
+                !isToday && trained && 'bg-primary/20 text-foreground ring-1 ring-primary/60',
+                !isToday && !trained && isPast && 'bg-muted text-muted-foreground',
                 !isToday && !isPast && 'border border-dashed border-border text-muted-foreground',
               )}
             >
               {dayNumber}
             </span>
-            {/* Spoken only: "today", since colour alone must never carry meaning (D1.7) */}
+            {/* A lime dot under a day trained, an empty space of the same
+                size under the others, so every column stays the same height */}
+            <span aria-hidden="true" className={cn('size-1.5 rounded-full', trained ? 'bg-primary' : 'bg-transparent')} />
+            {/* Spoken only: "today" and "workout done", since colour alone
+                must never carry meaning (D1.7) */}
             {isToday && <span className="sr-only">{t('home.today')}</span>}
+            {trained && <span className="sr-only">{t('home.trained')}</span>}
           </li>
         )
       })}
