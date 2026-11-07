@@ -149,7 +149,7 @@ So a session copies nothing from the future: it records what happened, and it su
 | Tables | Created by |
 |---|---|
 | New columns on `users` | Done; `active_plan_id` in its own migration after `plans`, with FEAT-2 |
-| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, the public exercises by the import of [DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db), `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
+| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, the public exercises by the import of DATA-1, `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
 | `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of [FEAT-2](../project/backlog.md#feat-2-plans), with their API ([H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built)) |
 | `workout_sessions`, `session_exercises`, `logged_sets` | [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home) |
 

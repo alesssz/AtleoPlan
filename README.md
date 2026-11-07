@@ -6,7 +6,7 @@ A workout app for building training plans out of a library of exercises, followi
 
 It works on phones and desktop as a PWA, offline during workouts, in Italian, English, Spanish and German. Backend in Laravel (API), frontend in React + TypeScript, hosted for free on a single server ([D2.6](docs/design/D2-decisions.md#d26-hosting)).
 
-**Status:** early. The Laravel and React apps run locally, with signing in, the app's frame, four languages and the two themes; the exercise library is filled from free-exercise-db in English, with its screens: list, search, filters, details and the editor of personal exercises. Workout plans are done: list, page and editor, with days, sets, supersets and drag and drop; `make plans-demo` adds two examples. The other features come next, in the order of the [road to the MVP](docs/project/backlog.md#road-to-the-mvp). Deploying comes later ([OPS-3](docs/project/backlog.md#ops-3-deploy-to-the-free-server)).
+**Status:** early. The Laravel and React apps run locally, with signing in, the app's frame, four languages and the two themes; the exercise library is filled from free-exercise-db and translated into Italian, Spanish and German, with its screens: list, search, filters, details and the editor of personal exercises. Workout plans are done: list, page and editor, with days, sets, supersets and drag and drop; `make plans-demo` adds two examples. The other features come next, in the order of the [road to the MVP](docs/project/backlog.md#road-to-the-mvp). Deploying comes later ([OPS-3](docs/project/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ## Contents
 
@@ -31,7 +31,7 @@ Ports on your computer are each service's standard port + 500, so they never cla
 ```sh
 make setup        # first time on a new clone
 make fresh        # the fixed lists (muscles, equipment) and the development account
-make exercises-import   # the public exercise library, from free-exercise-db
+make exercises-import   # the public exercise library, from free-exercise-db, translated
 make up           # start the backend stack;  make dev  starts React
 make help         # every command
 make down         # stop (data is kept)
