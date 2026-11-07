@@ -23,6 +23,7 @@ use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -129,6 +130,34 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
     public function exercises(): HasMany
     {
         return $this->hasMany(Exercise::class, 'owner_id');
+    }
+
+    /**
+     * The user's workout plans (docs/design/D3-data-model.md D3.5.1).
+     * Creating through it fills user_id: `$user->plans()->make([...])`.
+     *
+     * @return HasMany<Plan, $this>
+     */
+    public function plans(): HasMany
+    {
+        return $this->hasMany(Plan::class);
+    }
+
+    /**
+     * The one active plan, or none (users.active_plan_id; D3.3).
+     *
+     * A belongsTo: this table holds the column pointing to the plan. The
+     * column's name is not the plan_id Laravel would guess, so it is given.
+     * Setting it: `$user->activePlan()->associate($plan)->save()`; emptying
+     * it: `->dissociate()`. active_plan_id is not fillable, so no request can
+     * point it at someone else's plan: PlanController::activate() sets it,
+     * after PlanPolicy::activate() has said yes.
+     *
+     * @return BelongsTo<Plan, $this>
+     */
+    public function activePlan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class, 'active_plan_id');
     }
 
     /**

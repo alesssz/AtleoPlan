@@ -17,6 +17,8 @@ Every PHP file starts with a comment saying what it is and points to the section
   - [C2.5.2 Lists: filters and pages](#c252-lists-filters-and-pages)
   - [C2.5.3 Actions: the work outside the controller](#c253-actions-the-work-outside-the-controller)
   - [C2.5.4 The exercise library's endpoints](#c254-the-exercise-librarys-endpoints)
+  - [C2.5.5 The plans' endpoints](#c255-the-plans-endpoints)
+  - [C2.5.6 Validating nested data](#c256-validating-nested-data)
 - [C2.6 Database: migrations, models, factories, seeders](#c26-database-migrations-models-factories-seeders)
 - [C2.7 Signing in: Sanctum](#c27-signing-in-sanctum)
   - [C2.7.1 How a session works](#c271-how-a-session-works)
@@ -102,16 +104,18 @@ backend/
 ├── app/                    the application's own code (namespace App\)
 │   ├── Actions/              actions: one job of the app each, outside the controllers (C2.5.3)
 │   │   ├── Exercises/          SavePersonalExercise, ImportFreeExercise
+│   │   ├── Plans/              SavePlan: saves a whole plan (C2.5.5)
 │   │   └── Fortify/            what Fortify leaves to us: creating a user, setting a new password (C2.7)
 │   ├── Console/Commands/     our own Artisan commands: exercises:import (C2.14)
-│   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit, LoggingType, MuscleRole (D3.2.4), ImportOutcome
+│   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit, LoggingType, MuscleRole, SetType (D3.2.4), ImportOutcome
 │   ├── Http/
 │   │   ├── Controllers/        receive a request, return an answer (C2.5)
 │   │   ├── Middleware/         steps every request crosses: SetLocaleFromRequest (C2.7.7)
 │   │   ├── Requests/           Form Requests: the validation of an endpoint (C2.5)
 │   │   └── Resources/          API Resources: the JSON shape of a model (C2.5)
-│   ├── Models/               Eloquent models, one class per table: User, Muscle, Equipment, Exercise, ExerciseMuscle (C2.6)
-│   ├── Policies/             who may do what to a row: ExercisePolicy (C2.5.1)
+│   ├── Models/               Eloquent models, one class per table: User, Muscle, Equipment, Exercise, ExerciseMuscle, Plan, PlanDay, PlanItem, PlanSet (C2.6)
+│   ├── Policies/             who may do what to a row: ExercisePolicy, PlanPolicy (C2.5.1)
+│   ├── Rules/                validation rules of our own: SupersetsAreNeighbours (C2.5.6)
 │   └── Providers/            service providers: set things up when the app starts
 │       └── Filament/           the admin panel's configuration (C2.8)
 │   (to come: Jobs background work, Filament/Resources admin screens)
@@ -201,7 +205,7 @@ Our rule for an endpoint ([P1.2](../project/P1-conventions.md#p12-code)): **the 
 2. lets a **Form Request** validate the input, which answers 422 with one message per invalid field when the input is not valid;
 3. calls the code that does the work and returns an **API Resource**, a class that decides the JSON shape of a model.
 
-The rules themselves live in services or actions, tested without HTTP. The smallest real example is `CurrentUserController`, with `UpdatePreferencesRequest` and `UserResource`: it needs no policy, because it only touches the user asking. The complete one is `ExerciseController`, explained in the four sections below; [C2.12](#c212-recipes) has the recipe, and [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built) how it was built.
+The rules themselves live in services or actions, tested without HTTP. The smallest real example is `CurrentUserController`, with `UpdatePreferencesRequest` and `UserResource`: it needs no policy, because it only touches the user asking. The complete one is `ExerciseController`, explained in the four sections below; [C2.12](#c212-recipes) has the recipe, and [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built) how it was built. `PlanController` is the second, for data shaped as a tree: a plan with its days, exercises and sets, saved in one request ([C2.5.5](#c255-the-plans-endpoints), [C2.5.6](#c256-validating-nested-data)).
 
 ### C2.5.1 Permissions: policies
 
@@ -320,6 +324,142 @@ The library's API, all under `auth:sanctum` ([D1.4.3](../design/D1-ui.md#d143-ex
 
 The photos are read as stored (the imported ones, so far). Uploading them, their resized versions and the videos come with `feat/exercise-media` ([BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin)).
 
+### C2.5.5 The plans' endpoints
+
+The workout plans' API, all under `auth:sanctum` ([D1.4.6](../design/D1-ui.md#d146-plan-list)–[D1.4.8](../design/D1-ui.md#d148-plan-editor)). A plan is only ever seen by its owner (`PlanPolicy`). How it was built, step by step: [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built) for the tables, [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built) for the API.
+
+| Method and path | What it does | Answers |
+|---|---|---|
+| `GET /api/plans` | My plans in use: the active one first, then the most recently changed, each with `days_count`. `?archived=1`: the archived ones instead | 200; 422 for a wrong `archived` |
+| `GET /api/plans/{id}` | One whole plan: days, exercises, sets | 200; 403 someone else's; 404, also for an id that is not a UUID |
+| `POST /api/plans` | Creates a whole plan | 201; 200 when the same id is sent again; 422 |
+| `PUT /api/plans/{id}` | Saves the whole plan again | 200, with `meta.changed_elsewhere`; 403; 422 |
+| `DELETE /api/plans/{id}` | Deletes it, with its days, exercises and sets | 204; 403 |
+| `POST /api/plans/{id}/activate` | Makes it the active plan, replacing the one before | 200; 403 someone else's or archived |
+| `POST /api/plans/{id}/archive` | Archives it; if it was the active plan, there is none any more | 200; 403 |
+| `POST /api/plans/{id}/unarchive` | Brings it back to the list, not active | 200; 403 |
+
+**Actions as routes of their own.** `apiResource` gives the five routes that create, read, update and delete. Activating and archiving are none of those, so each gets a verb after the plan's address and `POST`, since it changes something. The alternative, `PATCH /api/plans/{id}` with `{"archived": true}`, would mix them into the whole-plan save, which has its own rules.
+
+**A whole plan in JSON**, as `PlanResource` sends it (from tinker, [H2.13.7](../how-to/H2-backend.md#h2137-look-at-the-json)):
+
+```json
+{
+  "id": "0192f4a7-3c1e-7d2a-9b4f-8e6a1c5d3f20",
+  "name": "Push Pull Legs",
+  "goal": "Ipertrofia",
+  "notes": null,
+  "version": 1,
+  "is_active": false,
+  "archived_at": null,
+  "updated_at": "2026-11-07T09:11:10.000000Z",
+  "days": [
+    {
+      "id": "0192f4a7-3c1e-7d2a-9b4f-8e6a1c5d3f21",
+      "name": "Giorno A – Spinta",
+      "items": [
+        {
+          "id": "0192f4a7-3c1e-7d2a-9b4f-8e6a1c5d3f22",
+          "exercise_id": 47,
+          "superset_group": null,
+          "rest_seconds": 120,
+          "notes": null,
+          "exercise": { "id": 47, "name": "Barbell Bench Press - Medium Grip", "…": "as in C2.5.4" },
+          "sets": [
+            { "set_type": "warm_up", "target_reps_min": 10, "target_reps_max": 10, "target_weight_kg": "40.000", "target_rpe": null, "target_duration_seconds": null, "target_distance_meters": null },
+            { "set_type": "normal", "target_reps_min": 8, "target_reps_max": 10, "target_weight_kg": "80.000", "target_rpe": null, "target_duration_seconds": null, "target_distance_meters": null }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+- **The list** sends the same keys, without `days` and with `days_count`: one resource class, and `whenLoaded()` and `whenCounted()` decide.
+- **No `position`:** the order of each list is the order of the rows.
+- **`exercise`** is the library's JSON ([C2.5.4](#c254-the-exercise-librarys-endpoints)), also for an exercise deleted after it was put in the plan: `PlanItem::exercise()` reads deleted ones too ([D3.11](../design/D3-data-model.md#d311-traps-to-avoid)).
+- **Weights and RPE are text** (`"40.000"`, `"8.5"`), exact, as `weight_step` on the user; the app sends numbers back. Always in kilograms ([D3.2.3](../design/D3-data-model.md#d323-weights-are-always-in-kilograms)).
+- **The whole plan costs 8 queries**, whatever its size: the plan itself, then one per relation loaded by `$plan->load([...])` (days, items, sets, exercises, and the exercises' equipment, muscles and photos). A test checks that a plan of 20 exercises costs as many as a plan of one.
+
+**What the editor sends** to create or save: the same tree, without the `exercise` objects, `is_active` and the dates. Each item has `exercise_id`, each set a required `set_type`; on `PUT`, the body also has `version`, the version the editor started from. [C2.5.6](#c256-validating-nested-data) has the rules.
+
+**The flow of a save.** What happens to `PUT /api/plans/{id}`, in order:
+
+```
+PUT /api/plans/0192…f20  { version: 3, name, days: [ … ] }
+│
+├─ auth:sanctum ............ signed in? otherwise 401
+├─ route model binding ..... the Plan with this UUID; otherwise 404
+├─ UpdatePlanRequest ....... the whole tree valid? otherwise 422, one message per field
+├─ Gate::authorize('update') my plan? otherwise 403
+└─ SavePlan::update(), in one transaction
+   ├─ read the version, locking the row ........ 4 > 3: changed elsewhere
+   ├─ the plan's fields, version 5
+   ├─ days and items: matched by UUID .......... updated, created, or (not sent) deleted
+   ├─ sets: all deleted, all written again ..... 2 queries
+   └─ commit, or nothing at all
+→ 200 { data: the plan as it is now, meta: { changed_elsewhere: true } }
+```
+
+Four ideas are behind it:
+
+- **The body is the whole plan.** The editor holds the plan as a draft and sends all of it when saving ([D3.5.6](../design/D3-data-model.md#d356-saving-a-plan)). There is no endpoint per day or per set: one request, one transaction, and the server never holds half a change. Days and items left out are deleted, and a field left out is emptied.
+- **Days and items keep their UUIDs; sets do not.** The workout sessions of FEAT-3 will point to days and items, so a save updates them in place, by id, and an item can even move to another day. Nothing points to a set, so the sets are deleted and inserted again, which is simpler than working out which one changed.
+- **The version.** `SavePlan` reads it with `lockForUpdate()`, which adds `for update` to the query: Postgres makes any other save of the same plan wait until this one ends, so two saves arriving together cannot both read 4. When the editor started from an older version, the save still goes through (the last change wins) and `meta.changed_elsewhere` tells the app to warn ([D3.5.7](../design/D3-data-model.md#d357-when-a-plan-is-changed-in-two-places)).
+- **A create can be sent twice.** The ids are UUIDs made on the device ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). If the answer to `POST` is lost and the device sends it again, the controller finds a plan of this user with that id and answers 200 with it, writing nothing. The same id on someone else's plan is a 422.
+
+**The active plan** is `users.active_plan_id`, one cell, so two plans can never be active at once ([D3.3](../design/D3-data-model.md#d33-users-and-preferences)). `activate` sets it with `$user->activePlan()->associate($plan)->save()`; `PlanPolicy::activate()` checks what the column cannot: that the plan is mine and not archived. Archiving the active plan empties it, and deleting it empties it by itself, through the foreign key's `nullOnDelete()`.
+
+**What is not checked:** that a set's targets fit how the exercise is logged (a weight on a timed plank, say). The editor shows only the fields that make sense, and a stray value does no harm.
+
+### C2.5.6 Validating nested data
+
+A plan arrives as a tree: a plan has days, a day has items, an item has sets. A Form Request reaches every level with **`.*`**, "each item of the list":
+
+```php
+'days' => ['present', 'array', 'max:14'],
+'days.*.name' => ['required', 'string', 'max:50'],                          // every day's name
+'days.*.items.*.exercise_id' => ['required', 'integer', /* … */],            // every item of every day
+'days.*.items.*.sets.*.set_type' => ['required', Rule::enum(SetType::class)], // every set
+```
+
+An error names the exact place: `days.0.items.2.sets.1.target_reps_max`, and the message names the field by its entry in `lang/*/validation.php`, `days.*.items.*.sets.*.target_reps_max` → "ripetizioni massime".
+
+The tools used in `PlanRequest`, each for a reason:
+
+| Rule | Does | Used for |
+|---|---|---|
+| `present` | The key must be there, even as `[]` | `days`, `items`, `sets`: a forgotten key must not read as "delete them all" |
+| `distinct` | No value twice, across the whole body | `days.*.items.*.id`: the same id in two different days is refused |
+| `required_with:other` | Required when the other field is there | The reps: both or neither |
+| `gte:other` | At least the other field's value | `target_reps_max` ≥ `target_reps_min`. A `*` in `other` means "of this same set" |
+| `decimal:0,3` | At most three decimals | Kilograms, stored as `numeric(7,3)` |
+| `Rule::exists(…)->where(fn …)` | The row exists, with extra conditions | An exercise that is public or mine. The function's conditions are wrapped in parentheses, so its `or` cannot leak out |
+| `Rule::unique(…)->whereNot(…)` | No row has this value, leaving some rows out | A day's id: not used by another plan, but this plan's own days do not count |
+| A class of our own | Any check | Supersets (below) |
+
+**An abstract base class for two requests.** `StorePlanRequest` and `UpdatePlanRequest` share the tree's rules through `PlanRequest`, an `abstract` class: never used by itself, it leaves one method, `planId()`, to the two classes that extend it. The update answers "the plan in the URL"; the create answers "the plan with the id sent". `...parent::rules()` spreads the shared rules into each class's own array.
+
+**A rule of our own.** "The exercises of a superset are next to each other, and there are at least two" is not one of Laravel's rules. `make artisan c="make:rule SupersetsAreNeighbours"` creates `app/Rules/SupersetsAreNeighbours.php`, with one method:
+
+```php
+public function validate(string $attribute, mixed $value, Closure $fail): void
+{
+    // $value: one day's list of items, since the rule is on 'days.*.items'
+    // … when something is wrong:
+    $fail('validation.superset_neighbours')->translate();
+}
+```
+
+It is used like any rule: `'days.*.items' => ['present', 'array', new SupersetsAreNeighbours]`. `$fail()` refuses the value, and `->translate()` reads the message from `lang/*/validation.php` in the request's language. English needs the message too, in `lang/en/validation.php`, since Laravel's own file does not have it.
+
+**Three behaviours that matter here**, all met while building it ([H2.13.5](../how-to/H2-backend.md#h2135-the-traps-of-nested-validation)):
+
+- **`unique` and `exists` are skipped once an earlier rule of the field has failed.** A day id `"day-1"` fails `uuid`, and Laravel does not run the `unique` query, which Postgres would answer with an error ("invalid input syntax for type uuid"), not with a "no". The order of the rules is what matters: `uuid` before `unique`.
+- **`validated()` keeps a list only through its items' validated fields.** A set sent as `{}` has no field with a rule, so the list `sets: [{}]` vanished from the validated data. Hence `set_type` is required.
+- **An id checked against "this plan" trusts what "this plan" is.** On a create, the days' ids are checked against the plan with the id sent; if that id is someone else's, the request is refused on `id` anyway.
+
 ---
 
 ## C2.6 Database: migrations, models, factories, seeders
@@ -371,6 +511,7 @@ $plan->days;                                 // a relation: the plan's days (ano
 | **belongsTo**: this table has the column pointing to the other | `Exercise::equipment()`, `Exercise::owner()` | "an exercise belongs to one kind of equipment" |
 | **hasMany**: the other table points here | `Equipment::exercises()`, `User::exercises()` | "a kind of equipment has many exercises" |
 | **belongsToMany**: a pivot table in between holds the pairs | `Exercise::muscles()`, `Muscle::exercises()` | "an exercise works many muscles, a muscle is worked by many exercises" |
+| **hasManyThrough**: skips a level in between | `Plan::items()`, through the days | "a plan has many items, through its days": one query with a join |
 
 ```php
 $exercise->equipment->name;                  // the equipment's name (one more query)
@@ -382,6 +523,9 @@ $muscle->pivot->role;                         // a column of the pivot row, as a
 - **The pivot's own columns**, such as `role`, are loaded only when listed with `withPivot('role')`.
 - **A cast on a pivot column** needs a small *pivot class* (`ExerciseMuscle extends Pivot`), named on the relation with `using()`.
 - **When the column's name does not follow the convention**, it is given: `belongsTo(User::class, 'owner_id')`, because Laravel would look for `user_id`.
+- **Setting a belongsTo** without touching the column by hand: `$user->activePlan()->associate($plan)->save()` fills `active_plan_id`; `->dissociate()` empties it.
+- **An order inside the relation**, `hasMany(PlanDay::class)->orderBy('position')`, applies to every read of it, eager loading included.
+- **Loading levels in one go:** `$plan->load(['days.items.sets'])` follows the dots, one query per level for all the rows ([C2.5.5](#c255-the-plans-endpoints)).
 
 **Query scopes** are named pieces of a query, written on the model and used like any query method:
 
@@ -404,11 +548,12 @@ Exercise::visibleTo($user)->search('panca')->orderByName()->get();   // scopes c
 
 **Traits that change how a model behaves**, added with `use` inside the class:
 
+- **`HasUuids`**: the id is a UUID instead of a number. Laravel makes one (a UUIDv7) only when the id is empty, so one made on the device is kept; the plans' four tables use it, except `plan_sets` ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). A `{plan}` in a URL that is not a UUID gets a 404 before any query.
 - **`SoftDeletes`**: `delete()` fills `deleted_at` instead of removing the row, and every query leaves those rows out. `withTrashed()` brings them back, and `forceDelete()` removes the row for real. An exercise uses it, so that plans and history pointing to it keep working ([D3.7.2](../design/D3-data-model.md#d372-deleting-an-exercise-a-soft-delete)).
 - **`HasTranslations`** (spatie/laravel-translatable): the columns listed in `$translatable` hold one value per language, as JSON. `$muscle->name` gives the current language's value. When that language is missing, it falls back to English, then to any language there is; this is set once in `AppServiceProvider` ([D3.4.5](../design/D3-data-model.md#d345-translations)).
 - **`InteractsWithMedia`** (spatie/laravel-medialibrary), with `implements HasMedia`: files belong to the model, stored as rows of the `media` table, in named *collections* (`photos`, `videos`) declared in `registerMediaCollections()`. Attaching one: `$exercise->addMedia($path)->preservingOriginal()->toMediaCollection('photos')`, which copies the file to the media disk (`public`, `storage/app/public`); without `preservingOriginal()` the file is moved instead. Reading them: `$exercise->getMedia('photos')`, in their order. The import does both ([C2.14.3](#c2143-the-free-exercise-db-import)).
 
-How these were built step by step, with the real output: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built).
+How these were built step by step, with the real output: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built) for the exercise library, [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built) for the plans.
 
 **Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data: the fixed lists the app needs (the 17 muscles and the 12 kinds of equipment) and the development account. `make fresh` runs them. The public exercise library is not a seeder but an Artisan command, `make exercises-import`, because it reads a dataset from outside, takes options and reports what failed ([C2.14](#c214-artisan-commands-of-our-own)); after `make fresh`, run it again.
 
@@ -813,7 +958,7 @@ The short versions. [H2. Backend: how to](../how-to/H2-backend.md) builds a real
 4. In the factory, describe what realistic fake data looks like.
 5. Add the TypeScript type of the model in `frontend/src/api/`.
 
-**A new endpoint.** For example, list the user's plans:
+**A new endpoint.** For example, list the user's plans (`PlanController` is the real one, [C2.5.5](#c255-the-plans-endpoints)):
 
 1. **Route** in `routes/api.php`, inside an `auth:sanctum` group: `Route::get('/plans', [PlanController::class, 'index']);`
 2. **Controller:** `make artisan c="make:controller PlanController"`. It stays thin ([C2.5](#c25-routes-and-controllers)).
@@ -823,6 +968,8 @@ The short versions. [H2. Backend: how to](../how-to/H2-backend.md) builds a real
 6. **The work**, when it is more than a line: an action, `make artisan c="make:class Actions/Plans/SavePlan"` ([C2.5.3](#c253-actions-the-work-outside-the-controller)). A list with filters: a scope per filter on the model, and `QueryBuilder` in the controller ([C2.5.2](#c252-lists-filters-and-pages)).
 7. **Test** in `tests/Feature/`. It covers success, invalid input (422), signed out (401) and someone else's record (403).
 8. **Frontend:** the `src/api/` file and its hooks ([C1.9](C1-frontend.md#c19-recipes)).
+
+**A body shaped as a tree** (a plan with its days, exercises and sets): rules with `.*` for every level, `present` on the lists, an action that saves it all in one transaction ([C2.5.6](#c256-validating-nested-data)). **A check Laravel has no rule for:** `make artisan c="make:rule Name"`, then `validate()` calling `$fail('validation.key')->translate()`, and the message in the four `lang/*/validation.php`.
 
 **Work in the background.**
 
@@ -846,7 +993,7 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 |---|---|
 | Any Artisan command | `make artisan c="…"` |
 | The list of Artisan commands, and help on one | `make artisan c="list"`, `make artisan c="help make:model"` |
-| Generate a class (model, controller, request, policy, resource, job, test) | `make artisan c="make:model Plan -mf"`, `make:controller`, `make:request`, `make:policy`, `make:resource`, `make:job`, `make:test --pest` |
+| Generate a class (model, controller, request, policy, resource, rule, job, test) | `make artisan c="make:model Plan -mf"`, `make:controller`, `make:request`, `make:policy`, `make:resource`, `make:rule`, `make:job`, `make:test --pest` |
 | Migrations | `make migrate`, `make fresh`, `make artisan c="migrate:status"`, `make artisan c="migrate:rollback"` (undoes the last batch) |
 | A PHP console with the app loaded | `make tinker` |
 | The routes | `make routes` |

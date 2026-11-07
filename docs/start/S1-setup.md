@@ -40,10 +40,11 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - **Exercise library, API** (second part of BE-1): the list with search, filters and pages, reading, creating, changing and deleting personal exercises ([C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints)).
 - **Exercise library, screens** (UI-1): the list with search and filters, an exercise's page, the editor of personal exercises, with the imported photos ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)).
 - **Exercise library, import** (first part of DATA-1): `make exercises-import` downloads free-exercise-db and fills the public library with its exercises in English, their muscles, equipment and photos ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)).
+- **Plans, tables and API** (first part of FEAT-2): `plans`, `plan_days`, `plan_items`, `plan_sets` and the user's active plan; the API lists, reads, creates and saves a whole plan, deletes, activates and archives ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints), [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built)). After pulling it: `make migrate`.
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([S1.6](#s16-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
 
-**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the translation of the library, its admin screen and photo uploads, plans, workout mode, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
+**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the translation of the library, its admin screen and photo uploads, the plans' screens, workout mode, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 

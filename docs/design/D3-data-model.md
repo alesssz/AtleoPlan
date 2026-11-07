@@ -148,9 +148,9 @@ So a session copies nothing from the future: it records what happened, and it su
 
 | Tables | Created by |
 |---|---|
-| New columns on `users` | Done, except `active_plan_id`, which needs `plans` and comes with FEAT-2 |
+| New columns on `users` | Done; `active_plan_id` in its own migration after `plans`, with FEAT-2 |
 | `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, the public exercises by the import of [DATA-1](../project/backlog.md#data-1-import-and-translate-free-exercise-db), `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
-| `plans`, `plan_days`, `plan_items`, `plan_sets` | [FEAT-2](../project/backlog.md#feat-2-plans) |
+| `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of [FEAT-2](../project/backlog.md#feat-2-plans), with their API ([H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built)) |
 | `workout_sessions`, `session_exercises`, `logged_sets` | [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home) |
 
 ### D3.1.5 How to read the column tables
@@ -329,7 +329,7 @@ Schema::table('users', function (Blueprint $table) {    // table(), not create()
     $table->boolean('timer_vibration')->default(true);
 });
 
-// In a later migration, once `plans` exists (FEAT-2)
+// In a later migration, once `plans` exists: …_add_active_plan_id_to_users_table.php (H1.13.4)
 Schema::table('users', function (Blueprint $table) {
     $table->foreignUuid('active_plan_id')->nullable()->index()->constrained('plans')->nullOnDelete();
 });
@@ -556,6 +556,8 @@ The "tips and common mistakes" of [D1.4.4](D1-ui.md#d144-exercise-details). free
 
 ## D3.5 Plans
 
+**In the code:** the migrations `…_create_{plans,plan_days,plan_items,plan_sets}_table.php` and `…_add_active_plan_id_to_users_table.php`, the models `Plan`, `PlanDay`, `PlanItem` and `PlanSet`, the enum `SetType`. How they were built: [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built). The API that reads and saves them: [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints).
+
 A plan has four levels, because each level holds different facts:
 
 ```
@@ -728,6 +730,13 @@ class PlanItem extends Model
 }
 ```
 
+The real models (`app/Models/Plan*.php`) add:
+- the way back up: `PlanDay::plan()`, `PlanItem::day()`, `PlanSet::item()`, `Plan::user()`, and on `User`, `plans()` and `activePlan()`;
+- `Plan::items()`, a *has many through* that reaches every item of every day in one query ([H1.13.5](../how-to/H1-database.md#h1135-the-relations-of-four-levels));
+- the casts: `set_type` to the enum `SetType`, the weight and the RPE to exact decimals, `archived_at` to a date;
+- `$timestamps = false` on `PlanSet`, whose table has no `created_at` and `updated_at`;
+- `isOwnedBy($user)`, `isArchived()`, and the scopes of the plan list, `archived()` and `activeFirst()`.
+
 Loading a whole plan is one line. The dots follow the relations, and Laravel loads each level with one query rather than one per row ("eager loading"):
 
 ```php
@@ -747,6 +756,8 @@ The editor sends the whole plan at once, and the server does this in one transac
 1. **Days and items** are created or updated by their UUID, and the ones no longer sent are deleted.
 2. **Each item's `plan_sets`** are deleted and written again.
 3. **`version`** goes up by 1.
+
+In the code this is the action `SavePlan`, called by `POST` and `PUT /api/plans` ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints)). The positions are not sent: each row's place in its list is its position.
 
 The two levels differ on purpose. Days and items **keep their UUIDs** across saves, because sessions point to them: a session done last week stays linked to the same `plan_items` row even after its reps change. Nothing points to `plan_sets`, so rewriting them is simpler than working out which set changed. That is why they have a plain number as their id.
 

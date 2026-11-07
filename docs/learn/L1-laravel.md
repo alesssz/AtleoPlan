@@ -598,7 +598,7 @@ foreach (Note::with('user')->get() as $note) {
 
 On a model already loaded, `$note->load('user')` does the same. [C2.5.2](../concepts/C2-backend.md#c252-lists-filters-and-pages) shows how the exercise list does it, and how the API Resource guards against forgetting.
 
-**In AtleoPlan:** `Exercise::owner()`, `equipment()`, `muscles()`; `User::exercises()`; `Equipment::exercises()`. [H1.10.3](../how-to/H1-database.md#h1103-a-pivot-with-a-column-of-its-own) builds the pivot with its own column.
+**In AtleoPlan:** `Exercise::owner()`, `equipment()`, `muscles()`; `User::exercises()`; `Equipment::exercises()`; the four levels of a plan, `Plan::days()` → `PlanDay::items()` → `PlanItem::sets()`, and `Plan::items()`, a *has many through* ([H1.13.5](../how-to/H1-database.md#h1135-the-relations-of-four-levels)). [H1.10.3](../how-to/H1-database.md#h1103-a-pivot-with-a-column-of-its-own) builds the pivot with its own column.
 
 **Recap**
 - `belongsTo` where the key is here, `hasMany` where it is there, `belongsToMany` through a pivot.
@@ -907,7 +907,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 **Names** let code build a URL without writing it: `->name('health')`, then `route('health')`. `apiResource` names its routes itself: `notes.index`, `notes.show`…
 
-**In AtleoPlan:** `routes/api.php`, with the health check, the user's routes and the exercise library. Fortify registers the sign-in routes itself, under `/api/auth` ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)).
+**In AtleoPlan:** `routes/api.php`, with the health check, the user's routes, the exercise library and the plans. Fortify registers the sign-in routes itself, under `/api/auth` ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)).
 
 **Recap**
 - `Route::get|post|patch|delete(path, code)`; `apiResource` for the five of a resource.
@@ -989,7 +989,7 @@ class NoteController extends Controller
 
 **A thin controller.** Each method does three things: check permission, take validated data, call the work and return the answer. When the work grows beyond a few lines, it moves to a class of its own (an **action**, an AtleoPlan convention: [C2.5.3](../concepts/C2-backend.md#c253-actions-the-work-outside-the-controller)), which a test can call without HTTP.
 
-**In AtleoPlan:** `CurrentUserController` (the smallest), `ExerciseController` (the complete one), `MuscleController`.
+**In AtleoPlan:** `CurrentUserController` (the smallest), `ExerciseController` (the complete one), `MuscleController`, `PlanController` (three routes beyond the five of `apiResource`).
 
 **Recap**
 - One method per action: `index`, `store`, `show`, `update`, `destroy`.
@@ -1066,7 +1066,7 @@ The React app reads `errors` and shows each message under its field.
 
 Adding `'title' => 'titolo'` to `attributes` in `lang/it/validation.php` fixes it ([L1.19](#l119-translations)).
 
-**In AtleoPlan:** `UpdatePreferencesRequest` (two rules), `StoreExerciseRequest` (lists, enums, `exists`, `regex`), `UpdateExerciseRequest` (the same with `sometimes`), `ListExercisesRequest` (the query string of a `GET`).
+**In AtleoPlan:** `UpdatePreferencesRequest` (two rules), `StoreExerciseRequest` (lists, enums, `exists`, `regex`), `UpdateExerciseRequest` (the same with `sometimes`), `ListExercisesRequest` (the query string of a `GET`), `PlanRequest` (a body four levels deep, and a rule of our own: [C2.5.6](../concepts/C2-backend.md#c256-validating-nested-data)).
 
 **Recap**
 - A Form Request among the parameters = validated before the method; 422 with `errors` otherwise.
@@ -1144,7 +1144,7 @@ Failed asserting that 204 is identical to 403.
 
 **Lists are not checked row by row.** Asking the policy for every row would mean loading them all. A list restricts the query instead: `$request->user()->notes()` in `index()`, or a scope like `Exercise::visibleTo($user)`.
 
-**In AtleoPlan:** `app/Policies/ExercisePolicy.php`, and why public exercises are refused even to admins: [C2.5.1](../concepts/C2-backend.md#c251-permissions-policies).
+**In AtleoPlan:** `app/Policies/ExercisePolicy.php`, `app/Policies/PlanPolicy.php` (with an `activate` method of its own), and why public exercises are refused even to admins: [C2.5.1](../concepts/C2-backend.md#c251-permissions-policies).
 
 **Recap**
 - 401 = not signed in; 403 = signed in, not allowed.
@@ -1217,7 +1217,7 @@ class NoteResource extends JsonResource
 
 **Relations, only when loaded:** `'user' => new UserResource($this->whenLoaded('user'))` sends the author only if the controller loaded it with `with()`/`load()`; otherwise the key is left out, and the resource never runs a query by itself.
 
-**In AtleoPlan:** `UserResource` (a user, without the password), `ExerciseResource` (translations, `whenLoaded`, the muscles sorted), `MuscleResource`.
+**In AtleoPlan:** `UserResource` (a user, without the password), `ExerciseResource` (translations, `whenLoaded`, the muscles sorted), `MuscleResource`, `PlanResource` and the three below it (resources inside resources, `whenCounted`).
 
 **Recap**
 - List the fields by hand; never `parent::toArray()`.
@@ -1513,7 +1513,7 @@ Tests:    6 passed (14 assertions)
 - `->with([...])` runs the same test with several inputs (a **dataset**).
 - `make test f=Word` runs the tests whose file or name contains `Word`.
 
-**In AtleoPlan:** `tests/Feature/Auth/` and `tests/Feature/ExerciseLibrary/`, the models to copy; [C2.11](../concepts/C2-backend.md#c211-tests-with-pest).
+**In AtleoPlan:** `tests/Feature/Auth/`, `tests/Feature/ExerciseLibrary/` and `tests/Feature/Plans/`, the models to copy; [C2.11](../concepts/C2-backend.md#c211-tests-with-pest).
 
 **Recap**
 - `uses(RefreshDatabase::class)`, factories for the data, `actingAs()` to sign in.
