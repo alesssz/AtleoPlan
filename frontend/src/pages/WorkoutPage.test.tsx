@@ -1,16 +1,17 @@
 /*
  * Workout mode (docs/design/D1-ui.md D1.4.9), used as a person would: a set
  * ticked, the rest timer, Next, pause with ✕, Finish sending the workout,
- * early or from the last exercise, and a workout kept on the phone when the
- * network is down.
+ * early or from the last exercise, a workout kept on the phone when the
+ * network is down, and a free workout, whose exercises are added on the way.
  */
 import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { SessionInput } from '@/api/sessions'
 import { loadActiveSession, loadPending, storeActiveSession } from '@/components/workout/session-storage'
-import { startSession } from '@/components/workout/workout-session'
+import { startFreeSession, startSession } from '@/components/workout/workout-session'
 import { fakeApi, renderRoutes, sentBody, signedInAs } from '@/test/auth-helpers'
+import { exercisePage, testExercise } from '@/test/exercise-helpers'
 import { testPlan } from '@/test/plan-helpers'
 import { WorkoutPage } from './WorkoutPage'
 
@@ -18,6 +19,7 @@ import { WorkoutPage } from './WorkoutPage'
 const routes = [
   { path: 'session/:id', element: <WorkoutPage /> },
   { path: 'plans/:id', element: <p>the plan page</p> },
+  { path: '/', element: <p>home</p> },
 ]
 
 /** Day A of the test plan, started now and kept on the phone, as Start does. */
@@ -143,6 +145,50 @@ describe('WorkoutPage', () => {
     expect(await screen.findByText('the plan page')).toBeInTheDocument()
     expect(router.state.location.state).toEqual({ workout: 'queued' })
     expect(Object.keys(loadPending())).toEqual([session.id])
+  })
+
+  it('starts a free workout empty, adds exercises from the library with last time\'s sets', async () => {
+    const session = startFreeSession(new Date())
+    storeActiveSession(session)
+    const lastSquat = { exercise_id: 40, session_id: 'old', started_at: '2026-11-02T18:00:00Z', sets: [{ id: 'old-1', set_type: 'normal', weight_kg: '100.000', reps: 5, duration_seconds: null, distance_meters: null, completed_at: '2026-11-02T18:05:00Z' }] }
+    fakeApi({
+      'GET /api/user': signedInAs(),
+      'GET /api/exercises': exercisePage([testExercise(), testExercise({ id: 40, name: 'Barbell Squat', photos: [] })]),
+      'GET /api/sessions/last-sets': { status: 200, body: { data: [lastSquat] } },
+    })
+    renderRoutes(routes, `/session/${session.id}`)
+    const user = userEvent.setup()
+
+    // Nothing to do yet but add: no Finish, no Previous or Next
+    expect(await screen.findByRole('heading', { level: 1, name: 'Free workout' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'No exercises yet' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Finish' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Next/ })).not.toBeInTheDocument()
+
+    // The library's picker, as in the plan editor
+    await user.click(screen.getByRole('button', { name: 'Add exercises' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Add exercises' })
+    await user.click(await within(dialog).findByRole('checkbox', { name: 'Choose Barbell Squat' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Add (1)' }))
+
+    // The squat, filled with last time's 100 × 5, kept on the phone
+    expect(await screen.findByRole('heading', { level: 2, name: 'Barbell Squat' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Set 1, kg')).toHaveValue('100')
+    expect(screen.getByLabelText('Set 1, Reps')).toHaveValue('5')
+    expect(loadActiveSession()?.exercises).toHaveLength(1)
+  })
+
+  it('cancels an empty free workout, keeping nothing', async () => {
+    const session = startFreeSession(new Date())
+    storeActiveSession(session)
+    fakeApi({ 'GET /api/user': signedInAs() })
+    const { router } = renderRoutes(routes, `/session/${session.id}`)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancel workout' }))
+
+    expect(router.state.location.pathname).toBe('/')
+    expect(loadActiveSession()).toBeNull()
+    expect(loadPending()).toEqual({})
   })
 
   it('says so for a workout that is not on this phone', async () => {

@@ -83,7 +83,25 @@
     "today": "hoy",
     "statWorkouts": "Entrenos",
     "statSets": "Series",
-    "statVolume": "Volumen"
+    "statVolume": "Volumen ({{unit}})",
+    "activePlan": "Plan activo",
+    "suggested": "Sugerido",
+    "exercises_one": "{{count}} ejercicio",
+    "exercises_other": "{{count}} ejercicios",
+    "minutes_one": "unos {{count}} min",
+    "minutes_other": "unos {{count}} min",
+    "lastTime": "La última vez hiciste {{day}}",
+    "start": "Empezar",
+    "startError": "No se pudo cargar el plan. Revisa la conexión y vuelve a intentarlo.",
+    "otherDays": "O elige otro día",
+    "noDays": "Este plan aún no tiene días.",
+    "editPlan": "Editar el plan",
+    "loading": "Cargando tu plan…",
+    "loadError": "No se pudo cargar el inicio.",
+    "freeTitle": "Entrenamiento libre",
+    "freeText": "Sin plan: añade los ejercicios sobre la marcha.",
+    "freeStart": "Empezar un entrenamiento libre",
+    "trained": "entrenamiento hecho"
   },
   "plans": {
     "new": "Nueva rutina",
@@ -398,6 +416,11 @@
     "keepGoing": "Seguir",
     "saved": "Entrenamiento guardado en tu historial.",
     "queued": "Entrenamiento guardado en este teléfono: se enviará en cuanto tengas conexión.",
-    "refused": "No se pudo guardar el entrenamiento. Se queda en este teléfono."
+    "refused": "No se pudo guardar el entrenamiento. Se queda en este teléfono.",
+    "free": "Entrenamiento libre",
+    "emptyTitle": "Aún no hay ejercicios",
+    "emptyText": "Añade los ejercicios que haces, uno o varios a la vez. Podrás añadir más después.",
+    "addExercises": "Añadir ejercicios",
+    "cancel": "Cancelar el entrenamiento"
   }
 }

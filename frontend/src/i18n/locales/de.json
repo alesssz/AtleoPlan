@@ -83,7 +83,25 @@
     "today": "heute",
     "statWorkouts": "Trainings",
     "statSets": "Sätze",
-    "statVolume": "Volumen"
+    "statVolume": "Volumen ({{unit}})",
+    "activePlan": "Aktiver Plan",
+    "suggested": "Vorgeschlagen",
+    "exercises_one": "{{count}} Übung",
+    "exercises_other": "{{count}} Übungen",
+    "minutes_one": "etwa {{count}} Min.",
+    "minutes_other": "etwa {{count}} Min.",
+    "lastTime": "Zuletzt hast du {{day}} gemacht",
+    "start": "Starten",
+    "startError": "Der Plan konnte nicht geladen werden. Prüfe die Verbindung und versuche es erneut.",
+    "otherDays": "Oder wähle einen anderen Tag",
+    "noDays": "Dieser Plan hat noch keine Tage.",
+    "editPlan": "Plan bearbeiten",
+    "loading": "Dein Plan wird geladen …",
+    "loadError": "Die Startseite konnte nicht geladen werden.",
+    "freeTitle": "Freies Training",
+    "freeText": "Ohne Plan: Füge die Übungen unterwegs hinzu.",
+    "freeStart": "Freies Training starten",
+    "trained": "Training erledigt"
   },
   "plans": {
     "new": "Neuer Plan",
@@ -398,6 +416,11 @@
     "keepGoing": "Weitermachen",
     "saved": "Training im Verlauf gespeichert.",
     "queued": "Training auf diesem Handy gespeichert: Es wird gesendet, sobald du online bist.",
-    "refused": "Das Training konnte nicht gespeichert werden. Es bleibt auf diesem Handy."
+    "refused": "Das Training konnte nicht gespeichert werden. Es bleibt auf diesem Handy.",
+    "free": "Freies Training",
+    "emptyTitle": "Noch keine Übungen",
+    "emptyText": "Füge die Übungen hinzu, die du machst, eine oder mehrere auf einmal. Später kannst du weitere hinzufügen.",
+    "addExercises": "Übungen hinzufügen",
+    "cancel": "Training abbrechen"
   }
 }

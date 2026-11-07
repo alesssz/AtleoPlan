@@ -54,6 +54,12 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.17.4 The rest timer: a moment, not a countdown](#c1174-the-rest-timer-a-moment-not-a-countdown)
   - [C1.17.5 The queue of workouts to send](#c1175-the-queue-of-workouts-to-send)
   - [C1.17.6 Testing it](#c1176-testing-it)
+- [C1.18 Home](#c118-home)
+  - [C1.18.1 The pieces](#c1181-the-pieces)
+  - [C1.18.2 Starting from Home: one hook for two pages](#c1182-starting-from-home-one-hook-for-two-pages)
+  - [C1.18.3 The card: choose, then start](#c1183-the-card-choose-then-start)
+  - [C1.18.4 This week, by the device's clock](#c1184-this-week-by-the-devices-clock)
+  - [C1.18.5 Testing it](#c1185-testing-it)
 
 ---
 
@@ -107,18 +113,20 @@ frontend/
     │   ├── exercises.ts      the library: useExercises() (pages), useExercise(), create, update, delete (C1.14)
     │   ├── plans.ts          the plans: usePlans(), usePlan(), usePlanAction() (activate, archive, unarchive), useDeletePlan() (C1.15), useCreatePlan(), useUpdatePlan() (C1.16)
     │   ├── sessions.ts       the workouts: useLastSets(), fetchLastSets(), sendSession() (C1.17)
+    │   ├── home.ts           Home's one request: useHome() (C1.18)
     │   └── muscles.ts, equipment.ts   the two fixed lists of the filters and the editor
     ├── components/
     │   ├── ui/               shadcn/ui components (generated, then ours to edit)
     │   ├── layout/           the frames: AppLayout (navigation), AuthLayout (sign-in screens); SideNav, BottomTabBar, nav-items
     │   ├── brand/            the logo: BrandMark and Wordmark
-    │   ├── home/             pieces of Home: WeekStrip, WeekStats
+    │   ├── home/             pieces of Home: ActivePlanCard, WeekStrip, WeekStats; week-summary.ts, this week's numbers (C1.18)
     │   ├── exercises/        pieces of the library: ExerciseListItem, ExerciseFilters, ExercisePhotos, ExerciseForm and exercise-form.ts (C1.14)
     │   ├── plans/            pieces of the plan screens: PlanCard, PlanDayView, PlanItemRow, and plan-format.ts, the summary of an exercise (C1.15);
     │   │                     plan-draft.ts, the editor's draft and reducer, draft-storage.ts (C1.16)
     │   │   └── editor/         the plan editor: PlanEditor, EditorDay, EditorItem, EditorSet, ExercisePicker (C1.16)
     │   ├── workout/          workout mode: WorkoutScreen, SetRow, RestBar, clock.ts; workout-session.ts, the workout and its reducer;
-    │   │                     session-storage.ts, the workout and the queue kept on the phone (C1.17)
+    │   │                     session-storage.ts, the workout and the queue kept on the phone (C1.17);
+    │   │                     useStartWorkout.ts and ResumeBanner, shared with Home (C1.18)
     │   └── *.tsx             shared by several pages: PageHeader, EmptyState, ComingSoon, SettingRow, FormField, FormBanner, the pickers…
     ├── pages/              one component per screen (HomePage, LoginPage…), and auth-schemas.ts, the rules of the sign-in forms
     ├── routes/             the guards: RequireAuth, RequireGuest, useAccountPreferences (C1.13)
@@ -1003,12 +1011,13 @@ The first part of FEAT-3 on screen ([D1.4.9](../design/D1-ui.md#d149-workout-mod
 ### C1.17.1 The pieces
 
 ```
-PlanDetailPage           a day's tab: Start (StartDayButton); a banner "Workout in progress: <day>" with Resume;
+PlanDetailPage, HomePage Start (useStartWorkout); the banner "Workout in progress: <day>" with Resume (ResumeBanner);
 │                        after Finish, "saved" / "will be sent" / "refused"
 └── navigate('/session/:id')
 WorkoutPage              /session/:id: reads the workout kept on the phone; none → a message
 └── WorkoutScreen        the workout (useReducer); top: ✕, the day, the clock, Finish; the dots;
-    │                    the exercise; Previous / Next (Finish workout when it is time); stores every change; keeps the screen on
+    │                    the exercise, Add set, Add exercises; Previous / Next (Finish workout when it is time);
+    │                    stores every change; keeps the screen on
     ├── SetHeader        the titles above the sets: Set, Last, kg, Reps (or Sec, m)
     ├── SetRow           a set: its number or type letter, last time, the fields, ✓
     └── RestBar          the rest timer: time left, a shrinking bar, −15, +15, Skip
@@ -1016,10 +1025,11 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 
 | File | Holds |
 |---|---|
-| `components/workout/workout-session.ts` | The workout's types, `startSession()`, the readers (clock, rest left, can a set be ticked), the reducer, `toSessionInput()`: no React |
+| `components/workout/workout-session.ts` | The workout's types, `startSession()`, `startFreeSession()`, `exerciseFrom()`, the readers (clock, rest left, can a set be ticked), the reducer, `toSessionInput()`: no React |
 | `components/workout/session-storage.ts` | The workout in progress and the queue of finished ones, in `localStorage` |
 | `components/workout/WorkoutScreen.tsx`, `SetRow.tsx` (with `SetHeader`), `RestBar.tsx`, `clock.ts` | The screen and its pieces; `clock(245)` is `"4:05"` |
 | `components/workout/layout.ts` | `WORKOUT_COLUMN`, the side margins shared by the screen's parts |
+| `components/workout/useStartWorkout.ts`, `ResumeBanner.tsx` | Starting a workout, and the banner with Resume: shared by the plan's page and Home ([C1.18](#c118-home)) |
 | `pages/WorkoutPage.tsx` | The route's page |
 | `api/sessions.ts` | The types of the API's workouts, `fetchLastSets()`, `sendSession()` |
 | `lib/pending-sessions.ts`, `lib/usePendingSessions.ts` | Sending the queue, and the hook that sends it when the app opens and when the network comes back |
@@ -1027,11 +1037,11 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 
 **Full screen.** The route `session/:id` sits inside `RequireAuth` but beside `AppLayout`, not under it ([C1.5](#c15-routing)): signed in, with no tab bar or side navigation. It behaves like an app: the bars stay put and only the middle scrolls, and only when an exercise is longer than the screen; the page itself never scrolls. Every part (top bar, exercise, rest timer, Previous and Next) uses the same side margins, `WORKOUT_COLUMN` in `components/workout/layout.ts`: those of the app's other pages (`px-5 sm:px-8 lg:px-12`: 20, 32, 48 px), with the whole width of the window, on a laptop too. The spacing breathes a little and grows with the screen: rows of sets 8 px apart on a phone, 12 px from 640 px (`gap-2 sm:gap-3`), 20 to 24 px around the exercise, the bars a little taller on a tablet and a laptop. The buttons follow the app's look ([D1.5](../design/D1-ui.md#d15-design-system)): 48 px tall (`xl`), lime only for the main action (Finish workout), outlined for the others (Finish at the top, Previous, Next, Add set, −15, +15, Skip), plain only for icons (✕, a set's number). The middle is `relative`, so the hidden "Rest over" text (`sr-only`, absolutely positioned) stays inside it instead of stretching the page ([H3.15.11](../how-to/H3-frontend.md#h31511-fifth-pass-wide-on-a-laptop-an-app-on-a-phone)). The screen is a column as tall as the window (`h-dvh`, the height the browser really shows on a phone, toolbars excluded); only the middle scrolls, so ✕, Finish, the rest timer and Next are always in reach. `env(safe-area-inset-top)` keeps the top clear of a phone's notch.
 
-**What is not here yet,** each in the backlog: the big stepper on a tap of a number, the exercise menu (swap, skip, note, video), live records, a notification when the rest ends with the app in the background, the summary after Finish (D1.4.10), Home offering to resume, and the real offline app (FEAT-3).
+**What is not here yet,** each in the backlog: the big stepper on a tap of a number, the exercise menu (swap, skip, note, video), live records, a notification when the rest ends with the app in the background, the summary after Finish (D1.4.10), and the real offline app (FEAT-3).
 
 ### C1.17.2 Starting: the plan becomes a workout
 
-**Start** (in `PlanDetailPage`, `StartDayButton`) does four things:
+**Start** (in `PlanDetailPage`, `StartDayButton`, and on Home) calls `startDay(plan, day)` of the hook `useStartWorkout` ([C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)), which does four things:
 
 1. **Asks for last time's sets** of the day's exercises, `GET /api/sessions/last-sets?exercises=12,40,7`, with `fetchLastSets()`. Without network the request fails, and `.catch(() => [])` turns the failure into "no last time": the workout starts anyway.
 2. **Builds the workout** with `startSession(plan, day, options)`: each item of the day becomes an exercise, each planned set a set to do. The fields are filled with **last time's values for the set in the same place**, else the **plan's target** (the lower end of `8-10`), so a set done as planned or as last time is a single tap on ✓. The weights are written in the user's unit and language (`82,5` in Italian).
@@ -1069,6 +1079,8 @@ dispatch({ type: 'adjustRest', seconds: 15 })                                   
 
 - **Numbers on screen** come from `setNumbers()`: warm-ups are counted apart, so the sets that count are numbered 1, 2, 3 whatever warm-ups come first, as D1.4.9 draws them (`W W 1 2 3`, not `W W 3 4 5`). A set whose type changes renumbers the ones after it. Screen readers hear the same names: "Set 1, kg", "Warm-up 2, Reps", "Tick: Set 1".
 - **The columns have titles** (`SetHeader`): Set, Last, then one per field, kg (or lb) and Reps, or Sec, or m. The header and the rows build their fields with the same function, `fieldsFor()`, and use the same widths (`w-12`, `w-16`, `flex-1`, `w-12`), so each number sits under its title.
+- **Exercises added on the way.** **Add exercises**, under Add set, opens the plan editor's picker (`ExercisePicker`, [C1.16](#c116-the-plan-editor)); the exercises ticked are added at the end, the first of them opened. Each is built by `exerciseFrom()`: one set per set of last time, with its values and types, or one empty set for an exercise never done; the user's default rest; no plan item. They are built *outside* the reducer and handed to it ready (`{ type: 'addExercises', exercises }`), because building one makes new UUIDs: a reducer must give the same result every time it gets the same action, and React may call it twice to check (StrictMode, [C1.4](#c14-react-from-scratch)).
+- **A free workout** (Home, [C1.18](#c118-home)) is `startFreeSession(now)`: no plan, no day's name, no exercises. The screen shows "Free workout" as its title and, until the first exercise is added, only **Add exercises** (lime) and **Cancel workout**, which forgets it: nothing was done. No Finish, no Previous or Next, with nothing to finish or move to; `finishTime` is false with no exercise.
 - **At Finish,** `toSessionInput()` builds the body: every exercise, **only the ticked sets**, only the values that fit how the exercise is logged, weights in kilograms. An exercise with no set ticked is sent with none: skipped, which the history can show.
 
 ### C1.17.4 The rest timer: a moment, not a countdown
@@ -1120,7 +1132,7 @@ The confirmation counts the sets that count (`countSets()`, warm-ups excluded): 
 1. `finish` in the reducer: the clock stops, `finished_at` is set.
 2. **The body goes in the queue first**, then the workout in progress is forgotten. Whatever happens next (no network, the app closed during the request), the workout is on the phone.
 3. **`sendPendingSessions()`** tries every workout of the queue, this one included, with `PUT /api/sessions/{id}`.
-4. The plan's page opens, told through the navigation's `state` what happened: `saved`, `queued` or `refused`, and shows it.
+4. The plan's page opens (Home, for a free workout), told through the navigation's `state` what happened: `saved`, `queued` or `refused`, and shows it. The cached workouts and Home are marked stale, so the week and the suggested day are read again.
 
 What each answer of the server does to a workout in the queue:
 
@@ -1135,7 +1147,7 @@ What each answer of the server does to a workout in the queue:
 
 **Tried again when?** `usePendingSessions(enabled)`, in `RequireAuth`, sends the queue when a signed-in app opens, and on the browser's **`online`** event, when the network comes back. A round that sent something has the cached lists read again. This is the part of offline sync ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)) a workout needs; the PWA, IndexedDB and sending in the background come with the rest of FEAT-3.
 
-**Resuming.** ✕ pauses the workout, stores it and opens the plan's page, which shows "Workout in progress: Day A – Push" with **Resume**. A reload, a closed tab or a flat battery lead to the same place: the workout is read back from the phone, its clock running again only from when it is opened.
+**Resuming.** ✕ pauses the workout, stores it and opens the plan's page (Home, for a free workout); both show "Workout in progress: Day A – Push" with **Resume** (`ResumeBanner`), and so does Home whatever page the workout was left from. A reload, a closed tab or a flat battery lead to the same place: the workout is read back from the phone, its clock running again only from when it is opened.
 
 ### C1.17.6 Testing it
 
@@ -1143,6 +1155,91 @@ What each answer of the server does to a workout in the queue:
 - **The page** (`WorkoutPage.test.tsx`): a workout is started with `startSession()` and stored, as Start does, then the page is drawn at `/session/<id>`. The test ticks, reads the timer by its role (`getByRole('timer')`), reads `localStorage` back with `loadActiveSession()`, and sends Finish with a fake API that answers 201, or `'network'` to check that the workout stays in the queue.
 - **The queue** (`pending-sessions.test.ts`): five workouts queued, the fake API answering 201, 410, `'network'`, 503 and 422; the test checks which leave and which stay.
 - **What tests cannot show:** the beep, the vibration, the screen staying on, the timer firing with the phone asleep. jsdom has none of them; they are checked on a phone ([H3.15.7](../how-to/H3-frontend.md#h3157-checking-in-the-browser-and-on-a-phone)).
+
+## C1.18 Home
+
+The second part of FEAT-3 on screen ([D1.4.2](../design/D1-ui.md#d142-home)): the first screen of every visit says **what to do today** and starts it in one tap. How it was built, with the real output: [H3.16](../how-to/H3-frontend.md#h316-home-as-built).
+
+### C1.18.1 The pieces
+
+```
+HomePage                 route `/`, inside AppLayout
+├── useHome()            GET /api/home: the active plan, its days, the suggested day, the day done last, the recent workouts
+├── FormBanner           after a free workout's Finish: "saved" / "will be sent" / "refused"
+├── ResumeBanner         a workout in progress on this phone: "Workout in progress: Day A – Push", Resume
+├── ActivePlanCard       the plan, the day chosen (the suggested one at first), Start, a chip per day
+│   or EmptyState        no active plan: Create a plan, Browse exercises
+├── Free workout         a workout with no plan: startFree()
+└── This week            WeekStrip (the days trained) and WeekStats (workouts, sets, volume), from weekSummary()
+```
+
+| File | Holds |
+|---|---|
+| `api/home.ts` | The answer's types (`HomeData`, `HomeDay`), `homeKeys`, `useHome()` |
+| `pages/HomePage.tsx` | The page: its four states (loading, failed, a plan, none), the banners, Free workout, the week |
+| `components/home/ActivePlanCard.tsx` | The active plan's card: the day chosen, its numbers, Start, the chips |
+| `components/home/week-summary.ts` | `weekSummary()`: this week's workouts by the device's clock, summed up; no React |
+| `components/home/WeekStrip.tsx`, `WeekStats.tsx` | The seven days, the three numbers |
+| `components/workout/useStartWorkout.ts` | The steps that start a workout, shared with the plan's page |
+| `components/workout/ResumeBanner.tsx` | The banner with Resume, shared with the plan's page |
+
+**One request.** Home needs five things (the active plan, its days with a duration, the suggested day, the day done last, the week's workouts); the backend sends them in one answer, `GET /api/home`, built by `HomeSummary` ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)). Home is opened on every visit, often on a phone's network, where one answer arrives sooner than five. The days come **without their exercises**: a name, a count and an estimate in minutes are all the card shows.
+
+**The four states** of the plan's place, as every screen has ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)): grey shapes while loading (`Skeleton`), a message with **Try again** when the request fails, the card when a plan is active, the empty state otherwise. Free workout and the week are shown in every state: Free workout needs no request.
+
+**Read again when something changes it.** `homeKeys.all` (`['home']`) is marked stale after a workout is sent (`WorkoutScreen.finish()` and `usePendingSessions`) and after any change to a plan (`refreshPlans()` in `api/plans.ts`: made active, archived, saved, deleted), since both change the card or the suggested day. Marking a key stale (`invalidateQueries`) makes TanStack Query read it again the next time a component shows it ([C1.6](#c16-server-data)).
+
+### C1.18.2 Starting from Home: one hook for two pages
+
+Start on Home and Start this day on the plan's page do the same steps, so they are written once, in a **custom hook**, `useStartWorkout()` ([L2.9](../learn/L2-react.md#l29-hooks-the-rules-and-your-own)): a function whose name starts with `use` and that calls other hooks (`useNavigate`, `useCurrentUser`, `useState`). Each page calls it and gets back the actions and their state:
+
+```tsx
+const start = useStartWorkout()
+// start.startDay(plan, day)           the plan's page: the plan is already loaded
+// start.startPlanDay(planId, dayId)   Home: reads the plan first
+// start.startFree()                   Home: Free workout
+// start.starting, start.failed        to disable Start, and to say the plan could not be read
+```
+
+**Home does not have the plan,** only its days' names. `startPlanDay()` reads it first with `queryClient.fetchQuery()`, with the same key and function as `usePlan()`:
+
+```tsx
+const plan = await queryClient.fetchQuery({
+  queryKey: planKeys.detail(planId, i18n.language),
+  queryFn: ({ signal }) => fetchPlan(planId, signal),
+})
+```
+
+`fetchQuery()` is the imperative cousin of `useQuery()`: called in an event handler rather than while drawing, it gives the cached plan when it is fresh (the plan's page was opened a moment ago), otherwise asks the API and puts the answer in the cache, where the plan's page finds it. Then `startDay()` runs as on the plan's page: last time's sets, `startSession()`, stored, opened ([C1.17.2](#c1172-starting-the-plan-becomes-a-workout)). When the plan cannot be read (offline, never opened on this phone), `failed` becomes true and the card says so; nothing is started.
+
+**Free workout** needs no request: `startFreeSession(now)` makes an empty workout, and the workout screen offers **Add exercises** ([C1.17.3](#c1173-the-workout-and-its-reducer)). It works offline.
+
+### C1.18.3 The card: choose, then start
+
+- **The day on the card** is held in `useState`, starting from `suggested_day_id`: the day after the last one done, worked out by the backend ([D2.8](../design/D2-decisions.md#d28-workout-rules)). When the day on the card is the suggested one, a **Suggested** badge says so; "Last time you did Day A – Push" comes from `last_day`.
+- **A chip per day** chooses it: the card shows that day, and **Start** starts it. D1.4.2 asked for a chip that starts at once; one tap that starts a workout is too easy to make by mistake on a phone, and a workout started by mistake stays in progress until it is finished, so a chip chooses and Start starts. `aria-pressed` tells screen readers which chip is chosen.
+- **A chosen chip's look** has to beat the outline button's own dark-theme classes (`dark:border-input dark:bg-input/30`): a class with the `dark:` prefix wins over the same property without it, so the chosen look repeats its border and tint with `dark:` ([H3.16.4](../how-to/H3-frontend.md#h3164-the-errors-met)).
+- **Start is disabled** while a workout is in progress on the phone (the banner above offers Resume, and the reason is written under Start), while starting, and on a day with no exercises. A plan with no days shows a sentence and **Edit the plan** instead.
+- **Only one lime button:** Start. Free workout and the chips are outlined; Resume, above, is lime too, but then Start is disabled.
+
+### C1.18.4 This week, by the device's clock
+
+A week starts on Monday at midnight **in the user's time zone**, which only the device knows; the backend stores moments in UTC ([D3.2.5](../design/D3-data-model.md#d325-times)). So it sends the finished workouts of the **last 8 days**, which always cover the whole week in any zone, and the app picks this week's:
+
+```ts
+const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
+// { workouts: 2, sets: 29, volumeKg: 9640, trainedDays: [Thu 5, Sat 7] }
+```
+
+`isInWeek(moment, today)` (`lib/week.ts`) compares with Monday at midnight and the Monday after, both built with the local `Date` constructor, as `getWeekDays()` does. Two workouts on the same day mark it once. Totals come from the backend, warm-ups excluded (`sets_done`, `volume_kg`, [D2.8](../design/D2-decisions.md#d28-workout-rules)); the volume is shown in the user's unit, whole, with the unit in its label ("Volume (kg)") so that a week's "12,480" fits a third of a phone's width. A day trained gets a lime ring and a dot in `WeekStrip`, and the words "workout done" for screen readers: colour alone never carries meaning ([D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility)).
+
+**Not here yet:** the last three personal records (they come with Progress, phase 2) and finishing a workout from Home's banner, which opens it with Resume instead.
+
+### C1.18.5 Testing it
+
+- **The week without React** (`week-summary.test.ts`, `week.test.ts`): a Thursday chosen as "today", workouts on Thursday, twice on Tuesday and on the Sunday before; the test checks that the Sunday is left out and Tuesday is marked once.
+- **The page** (`HomePage.test.tsx`), with the fake API of [C1.10](#c110-tests-and-checks): `GET /api/home` answers with `homeAnswer()`, the test plan active and Day B suggested. The tests read the card by its name (`getByRole('region', { name: 'Push Pull Legs' })`, the `<section>` named by its heading), tap Start and check that the plan and last time's sets were asked for and that workout mode opened on the right day; tap a chip, then Start; make the plan's request fail; store a workout first and check Resume; start a free workout; and read the week's numbers.
+- **Reading a number by its label:** in `WeekStats`, each label (`<dt>`) comes before its number (`<dd>`) in the page, though drawn under it (`flex-col-reverse`), so a test finds the label and reads its `nextSibling`.
 
 ---
 

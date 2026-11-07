@@ -101,6 +101,8 @@ export interface WorkoutSession {
   started_at: string
   /** When it was finished; null while in progress. */
   finished_at: string | null
+  /** Exercises with at least one set done, when the answer has totals. */
+  exercises_done?: number
   /** Sets done, warm-ups excluded. */
   sets_done?: number
   /** Weight × reps, warm-ups excluded, in kilograms, as exact text. */

@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest'
 import type { LastSets } from '@/api/sessions'
 import { testPlan } from '@/test/plan-helpers'
 import { clock } from './clock'
-import { allSetsDone, canComplete, countSets, elapsedSeconds, restLeft, setNumbers, startSession, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
+import { testExercise } from '@/test/exercise-helpers'
+import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, startFreeSession, startSession, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
 
 /** The moment the workout starts: 18:00 UTC. */
 const START = new Date('2026-11-09T18:00:00Z')
@@ -74,6 +75,32 @@ describe('startSession', () => {
     const session = startSession(plan, plan.days[0]!, { unit: 'lb', defaultRestSeconds: 90, lastSets: [], language: 'it', now: START })
 
     expect(session.exercises[0]?.sets[2]?.weight).toBe('176,37')
+  })
+})
+
+describe('startFreeSession and exerciseFrom', () => {
+  it('starts a workout with no plan and no exercises, its clock running', () => {
+    const session = startFreeSession(START)
+
+    expect(session).toMatchObject({ plan_id: null, plan_day_id: null, day_name: null, exercises: [], started_at: START.toISOString(), running_since: START.toISOString() })
+  })
+
+  it('adds exercises from the library: last time\'s sets when there were some, one empty set otherwise', () => {
+    const options = { unit: 'kg' as const, defaultRestSeconds: 120, language: 'it' }
+    const bench = exerciseFrom(testExercise({ id: 12 }), [lastBench], options)
+    const squat = exerciseFrom(testExercise({ id: 40, name: 'Barbell Squat' }), [lastBench], options)
+
+    // Last time's two sets, the warm-up kept, in Italian
+    expect(bench.sets.map(set => [set.set_type, set.weight, set.reps])).toEqual([['warm_up', '40', '10'], ['normal', '82,5', '8']])
+    expect(bench).toMatchObject({ plan_item: null, superset_group: null, rest_seconds: 120 })
+    expect(squat.sets.map(set => [set.set_type, set.weight, set.reps])).toEqual([['normal', '', '']])
+
+    // Added at the end of the workout, and the first of them opened
+    const session = run(startFreeSession(START), { type: 'addExercises', exercises: [bench, squat] })
+    expect(session.exercises.map(item => item.exercise.name)).toEqual(['Barbell Bench Press', 'Barbell Squat'])
+    expect(session.current).toBe(0)
+    const more = run(dayA(), { type: 'addExercises', exercises: [squat] })
+    expect(more.current).toBe(3)
   })
 })
 

@@ -57,7 +57,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [D3. Data model](../design/D3-data-model.md).
 
 1. The exercise library: its API, import, translation and screens are done; left are its admin screen, where translations are reviewed, and its media ([BE-1](#be-1-exercise-library-api-and-admin))
-2. [FEAT-3](#feat-3-workout-mode-and-home) Home and working offline (workout mode is done)
+2. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
 3. [FEAT-4](#feat-4-summary-and-history) summary and history
 
 The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout).
@@ -149,10 +149,10 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Done:**
 - the three tables and the API: saving a whole workout sent by the phone, late and twice, listing and reading with totals, deleting, the sets of last time, and Home's data with the suggested day (`feat/workout-api`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints), [H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built));
-- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode), [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built)). Its refinements are in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end belongs to FEAT-4.
+- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode), [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built)). Its refinements are in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end belongs to FEAT-4;
+- Home: the active plan's card with the suggested day, Start and a chip per day, the banner with Resume, Free workout (with Add exercises in workout mode), the week strip and its numbers (`feat/home`, [C1.18](../concepts/C1-frontend.md#c118-home), [H3.16](../how-to/H3-frontend.md#h316-home-as-built)). The recent records wait for Progress (phase 2).
 
-**What is missing.** Two parts, each on its own branch:
-- **Home** ([D1.4.2](../design/D1-ui.md#d142-home)) from `GET /api/home`: the active plan's card with the suggested day and Start (the same `startSession()` as the plan's page), the other days as chips, the banner of a workout left open with Resume (`loadActiveSession()`), the week strip with its numbers, Free workout (a workout with no plan: `startSession()` needs a variant with no day).
+**What is missing.** One part, on its own branch:
 - **Working offline** ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)): the PWA (vite-plugin-pwa), so the app opens with no network; the query cache kept in IndexedDB; the queue of workouts, today in `localStorage` ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)), moved to IndexedDB if it grows, and sent by the service worker in the background (Background Sync, where the browser has it); a notification when a rest ends with the app in the background.
 
 ### FEAT-4 Summary and history

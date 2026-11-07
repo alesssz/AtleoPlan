@@ -55,3 +55,16 @@ export function isBeforeDay(day: Date, today: Date): boolean {
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
+
+/**
+ * True when a moment falls in the week (Monday to Sunday, local time) that
+ * contains `today`: Home's "This week" counts the workouts with it.
+ * @param moment the moment to check, such as a workout's start
+ * @param today any moment of the week; the device's own time zone decides
+ */
+export function isInWeek(moment: Date, today: Date): boolean {
+  // Monday at midnight, and the Monday after: the week is [monday, next)
+  const monday = getWeekDays(today)[0] ?? startOfDay(today)
+  const next = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7)
+  return moment.getTime() >= monday.getTime() && moment.getTime() < next.getTime()
+}

@@ -1,12 +1,13 @@
 /*
  * Three numbers of the current week on Home, under the week strip:
- * workouts done, sets logged and volume lifted (sets × reps × weight).
- * They are true today: zero, since no workout can be logged yet. When
- * workout mode exists (FEAT-3), Home will pass the real totals through the
- * props, and warm-up sets will not count (docs/design/D2-decisions.md D2.8).
+ * workouts done, sets logged and volume lifted (weight × reps), warm-up
+ * sets excluded (docs/design/D2-decisions.md D2.8). Home works them out
+ * from the recent workouts (week-summary.ts); the volume is shown in the
+ * user's unit.
  */
 import { useTranslation } from 'react-i18next'
-import { formatNumber, formatWeight } from '@/lib/format'
+import { weightIn } from '@/components/plans/plan-format'
+import { formatNumber, type WeightUnit } from '@/lib/format'
 
 /** Props of WeekStats: the week's totals. */
 interface WeekStatsProps {
@@ -16,13 +17,15 @@ interface WeekStatsProps {
   sets?: number
   /** Volume this week in kg: the sum of reps × weight of every set. */
   volumeKg?: number
+  /** The user's weight unit, for the volume; kg by default. */
+  unit?: WeightUnit
 }
 
 /**
- * Default values (`= 0`) apply when a prop is not passed: Home passes none
- * for now, so every number is 0.
+ * Default values (`= 0`) apply when a prop is not passed: a week with no
+ * workout shows zeros.
  */
-export function WeekStats({ workouts = 0, sets = 0, volumeKg = 0 }: WeekStatsProps) {
+export function WeekStats({ workouts = 0, sets = 0, volumeKg = 0, unit = 'kg' }: WeekStatsProps) {
   const { t, i18n } = useTranslation()
 
   // The three tiles as data: a label and the already-formatted value
@@ -30,7 +33,10 @@ export function WeekStats({ workouts = 0, sets = 0, volumeKg = 0 }: WeekStatsPro
   const stats = [
     { label: t('home.statWorkouts'), value: formatNumber(workouts, i18n.language) },
     { label: t('home.statSets'), value: formatNumber(sets, i18n.language) },
-    { label: t('home.statVolume'), value: formatWeight(volumeKg, i18n.language) },
+    // In the user's unit, without decimals, the unit in the label: "12.480"
+    // under "Volume (kg)". With the unit beside it, a week's volume did
+    // not fit a third of a phone's width and went over two lines
+    { label: t('home.statVolume', { unit }), value: formatNumber(Math.round(weightIn(volumeKg, unit)), i18n.language) },
   ]
 
   return (
@@ -43,8 +49,9 @@ export function WeekStats({ workouts = 0, sets = 0, volumeKg = 0 }: WeekStatsPro
         // HTML keeps the right order for screen readers (label, then value)
         <div key={stat.label} className="flex flex-col-reverse gap-1 rounded-2xl bg-muted/60 p-3">
           <dt className="text-xs font-semibold text-muted-foreground">{stat.label}</dt>
-          {/* The number: heavy, same-width digits (tabular-nums) */}
-          <dd className="font-heading text-2xl font-black tracking-tight tabular-nums">{stat.value}</dd>
+          {/* The number: heavy, same-width digits (tabular-nums), never
+              broken over two lines (whitespace-nowrap) */}
+          <dd className="font-heading text-2xl font-black tracking-tight whitespace-nowrap tabular-nums">{stat.value}</dd>
         </div>
       ))}
     </dl>

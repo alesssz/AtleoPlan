@@ -24,12 +24,12 @@ import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useCurrentUser } from '@/api/auth'
 import { useDeletePlan, usePlan, usePlanAction, type Plan, type PlanDay } from '@/api/plans'
-import { fetchLastSets } from '@/api/sessions'
 import { FormBanner } from '@/components/FormBanner'
 import { PageHeader } from '@/components/PageHeader'
 import { PlanDayView } from '@/components/plans/PlanDayView'
-import { loadActiveSession, storeActiveSession } from '@/components/workout/session-storage'
-import { startSession } from '@/components/workout/workout-session'
+import { ResumeBanner } from '@/components/workout/ResumeBanner'
+import { loadActiveSession } from '@/components/workout/session-storage'
+import { FALLBACK_REST_SECONDS, useStartWorkout } from '@/components/workout/useStartWorkout'
 import type { WorkoutEndState } from '@/components/workout/WorkoutScreen'
 import {
   AlertDialog,
@@ -48,12 +48,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ApiError } from '@/lib/http'
 import type { PlanSavedState } from '@/pages/PlanEditorPage'
-
-/**
- * The user's rest when an exercise sets none and the user is not loaded
- * yet: the backend's own default (users.default_rest_seconds).
- */
-const FALLBACK_REST_SECONDS = 90
 
 /** The plan page (route `/plans/:id`). */
 export function PlanDetailPage() {
@@ -149,17 +143,7 @@ function PlanDetail({ plan }: PlanDetailProps) {
         {state?.workout === 'refused' && <FormBanner variant="error">{t('workout.refused')}</FormBanner>}
 
         {/* A workout left in progress on this phone, of any plan: Resume */}
-        {active && (
-          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/50 bg-primary/10 p-4">
-            <p className="flex-1 font-semibold">{t('workout.inProgress', { day: active.day_name ?? '' })}</p>
-            <Button asChild size="xl">
-              <Link to={`/session/${active.id}`}>
-                <Play aria-hidden="true" />
-                {t('workout.resume')}
-              </Link>
-            </Button>
-          </div>
-        )}
+        {active && <ResumeBanner session={active} />}
 
         {/* Its state, in words */}
         {(plan.is_active || archived) && (
@@ -246,40 +230,22 @@ interface StartDayButtonProps {
 }
 
 /**
- * Start this day: builds the workout on the phone (startSession,
- * src/components/workout/workout-session.ts) and opens workout mode.
+ * Start this day: builds the workout on the phone and opens workout mode,
+ * through useStartWorkout (src/components/workout/useStartWorkout.ts), the
+ * same steps as Home's Start. Last time's sets are asked first; offline, the
+ * workout starts with the plan's targets alone.
  *
- * It first asks for last time's sets of the day's exercises; offline, the
- * request fails and the workout starts with the plan's targets alone. While
- * another workout is in progress it is disabled, with the reason: one
+ * While another workout is in progress it is disabled, with the reason: one
  * workout at a time on a phone, and none is lost by starting another.
  */
 function StartDayButton({ plan, day, busy }: StartDayButtonProps) {
-  const { t, i18n } = useTranslation()
-  const navigate = useNavigate()
-  const { data: user } = useCurrentUser()
-  // True while last time's sets are being read
-  const [starting, setStarting] = useState(false)
-
-  /** Builds the workout, keeps it on the phone, opens it. */
-  async function start() {
-    setStarting(true)
-    // Last time's sets; an empty list when they cannot be read (offline)
-    const lastSets = await fetchLastSets(day.items.map(item => item.exercise_id)).catch(() => [])
-    const session = startSession(plan, day, {
-      unit: user?.weight_unit ?? 'kg',
-      defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS,
-      lastSets,
-      language: i18n.language,
-      now: new Date(),
-    })
-    storeActiveSession(session)
-    void navigate(`/session/${session.id}`)
-  }
+  const { t } = useTranslation()
+  // The shared steps, and whether they are running
+  const { starting, startDay } = useStartWorkout()
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3">
-      <Button size="xl" disabled={busy || starting || day.items.length === 0} onClick={() => void start()}>
+      <Button size="xl" disabled={busy || starting || day.items.length === 0} onClick={() => void startDay(plan, day)}>
         <Play aria-hidden="true" />
         {t('workout.start')}
       </Button>

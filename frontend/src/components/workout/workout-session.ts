@@ -1,6 +1,7 @@
 /*
  * The workout in progress (docs/design/D1-ui.md D1.4.9): its shape, how it
- * starts from a day of a plan, everything that happens to it (a set ticked,
+ * starts from a day of a plan or empty (Home's Free workout), the exercises
+ * added on the way, everything that happens to it (a set ticked,
  * the rest timer, a pause), and the body sent to the backend at the end.
  * Plain functions with no React, tested on their own (workout-session.test.ts),
  * like the plan editor's draft (src/components/plans/plan-draft.ts).
@@ -145,7 +146,8 @@ function setFrom(planned: PlanSet | null, last: LoggedSet | null, options: Pick<
   const plannedWeight = planned?.target_weight_kg ? weightIn(Number(planned.target_weight_kg), unit) : null
   return {
     id: newId(),
-    set_type: planned?.set_type ?? 'normal',
+    // The plan's type; with no plan, last time's (a warm-up stays one)
+    set_type: planned?.set_type ?? last?.set_type ?? 'normal',
     weight: text(lastWeight, plannedWeight),
     reps: text(last?.reps, planned?.target_reps_min),
     seconds: text(last?.duration_seconds, planned?.target_duration_seconds),
@@ -164,20 +166,12 @@ function setFrom(planned: PlanSet | null, last: LoggedSet | null, options: Pick<
  * @param options unit, default rest, last time, language, now
  */
 export function startSession(plan: Plan, day: PlanDay, options: StartOptions): ActiveSession {
-  // The start, as ISO 8601 text: the clock runs from here
-  const now = options.now.toISOString()
   return {
-    id: newId(),
+    ...emptySession(options.now),
     plan_id: plan.id,
     plan_day_id: day.id,
     plan_name: plan.name,
     day_name: day.name,
-    started_at: now,
-    accumulated_seconds: 0,
-    running_since: now,
-    finished_at: null,
-    current: 0,
-    rest: null,
     exercises: day.items.map((item) => {
       // Last time's sets of this exercise, if it was done before
       const last = options.lastSets.find(entry => entry.exercise_id === item.exercise_id)?.sets ?? []
@@ -192,6 +186,69 @@ export function startSession(plan: Plan, day: PlanDay, options: StartOptions): A
         sets: planned.map((set, index) => setFrom(set, last[index] ?? null, options)),
       }
     }),
+  }
+}
+
+/**
+ * A workout with no plan and no exercises yet, its clock running: Home's
+ * Free workout (D1.4.2). The exercises are added on the workout screen
+ * (exerciseFrom below, and the `addExercises` action). No day name: the
+ * screen shows "Free workout", in the user's language, and history will
+ * show the same.
+ * @param now the moment of the start
+ */
+export function startFreeSession(now: Date): ActiveSession {
+  return emptySession(now)
+}
+
+/**
+ * The fields every new workout starts with: a new UUID, the clock running
+ * from `now`, nothing done. `startSession` adds the plan's day to it.
+ * @param now the moment of the start
+ */
+function emptySession(now: Date): ActiveSession {
+  // The start, as ISO 8601 text: the clock runs from here
+  const start = now.toISOString()
+  return {
+    id: newId(),
+    plan_id: null,
+    plan_day_id: null,
+    plan_name: null,
+    day_name: null,
+    started_at: start,
+    accumulated_seconds: 0,
+    running_since: start,
+    finished_at: null,
+    current: 0,
+    rest: null,
+    exercises: [],
+  }
+}
+
+/**
+ * An exercise added during the workout, from the library: not in any plan,
+ * so its sets come from last time, one per set done then, with its values;
+ * one empty set when it was never done. Rest: the user's default.
+ *
+ * Built here, outside the reducer, because it makes new UUIDs: a reducer
+ * must give the same result every time it is called with the same action
+ * (React may call it twice to check), and newId() never does.
+ * @param exercise the exercise, as the library sends it
+ * @param lastSets the sets of last time, from GET /api/sessions/last-sets; empty when offline
+ * @param options unit, default rest, language
+ */
+export function exerciseFrom(exercise: Exercise, lastSets: LastSets[], options: Pick<StartOptions, 'unit' | 'language' | 'defaultRestSeconds'>): WorkoutExercise {
+  // Last time's sets of this exercise; empty when it was never done
+  const last = lastSets.find(entry => entry.exercise_id === exercise.id)?.sets ?? []
+  return {
+    id: newId(),
+    exercise,
+    plan_item: null,
+    superset_group: null,
+    rest_seconds: options.defaultRestSeconds,
+    // One set per set of last time, or a single empty one. `[null]`: a
+    // list with one "no last set", so map() makes one row
+    sets: (last.length > 0 ? last : [null]).map(set => setFrom(null, set, options)),
   }
 }
 
@@ -305,6 +362,7 @@ export type WorkoutAction
     | { type: 'setField', exercise: number, set: number, field: SetField, value: string }
     | { type: 'cycleSetType', exercise: number, set: number }
     | { type: 'addSet', exercise: number }
+    | { type: 'addExercises', exercises: WorkoutExercise[] }
     | { type: 'goTo', exercise: number }
     | { type: 'adjustRest', seconds: number }
     | { type: 'endRest' }
@@ -400,6 +458,13 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       })
       break
     }
+    case 'addExercises':
+      // Added at the end, and the first of them opened: the user picked
+      // them to do them now
+      if (action.exercises.length === 0) break
+      next.current = next.exercises.length
+      next.exercises.push(...structuredClone(action.exercises))
+      break
     case 'goTo':
       if (action.exercise >= 0 && action.exercise < next.exercises.length) next.current = action.exercise
       break

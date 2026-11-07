@@ -73,6 +73,13 @@
   - [H3.15.12 Sixth pass: the app's margins and buttons](#h31512-sixth-pass-the-apps-margins-and-buttons)
   - [H3.15.13 Seventh pass: a button as wide as a laptop](#h31513-seventh-pass-a-button-as-wide-as-a-laptop)
   - [H3.15.14 Eighth pass: some breathing room](#h31514-eighth-pass-some-breathing-room)
+- [H3.16 Home, as built](#h316-home-as-built)
+  - [H3.16.1 The order of building](#h3161-the-order-of-building)
+  - [H3.16.2 One hook for two pages](#h3162-one-hook-for-two-pages)
+  - [H3.16.3 A workout with no plan](#h3163-a-workout-with-no-plan)
+  - [H3.16.4 The errors met](#h3164-the-errors-met)
+  - [H3.16.5 The tests, proving they can fail, and the build](#h3165-the-tests-proving-they-can-fail-and-the-build)
+  - [H3.16.6 Checking in the browser](#h3166-checking-in-the-browser)
 
 ---
 
@@ -1876,6 +1883,185 @@ Spacing now grows with the screen, with the `sm:` prefix of [H3.15.13](#h31513-s
 ```
 
 The page itself never scrolls; on a phone and a laptop a long exercise scrolls in the middle, the bars staying put, which is the trade for the room. The preview was deleted afterwards.
+
+## H3.16 Home, as built
+
+The third part of FEAT-3: Home shows the active plan with the suggested day and **Start**, a chip per day, **Resume** for a workout left open, **Free workout**, and this week's days and numbers. How it works is in [C1.18](../concepts/C1-frontend.md#c118-home); this section is the doing, with the real output. What it shows that the earlier screens do not: one hook shared by two pages, `fetchQuery()` to read data in a click rather than while drawing, and dates worked out in the device's time zone.
+
+| File | What it is |
+|---|---|
+| `src/api/home.ts` (new) | The types of `GET /api/home`, `homeKeys`, `useHome()` |
+| `src/api/plans.ts` | `fetchPlan()` taken out of `usePlan()`; `refreshPlans()`, which marks Home stale after any change to a plan |
+| `src/api/sessions.ts` | `exercises_done` in `WorkoutSession` |
+| `src/components/workout/useStartWorkout.ts` (new) | Starting a workout: `startDay()`, `startPlanDay()`, `startFree()` |
+| `src/components/workout/ResumeBanner.tsx` (new) | "Workout in progress", Resume |
+| `src/components/workout/workout-session.ts` | `startFreeSession()`, `exerciseFrom()`, the action `addExercises` |
+| `src/components/workout/WorkoutScreen.tsx` | "Free workout" as title, the empty screen, Add exercises, Home marked stale at Finish |
+| `src/components/home/ActivePlanCard.tsx` (new), `week-summary.ts` (new) | The card; this week's numbers |
+| `src/components/home/WeekStrip.tsx`, `WeekStats.tsx` | The days trained; the real numbers, the volume in the user's unit |
+| `src/lib/week.ts` | `isInWeek()` |
+| `src/lib/usePendingSessions.ts` | `homeKeys.all` instead of the written-out `['home']` |
+| `src/pages/HomePage.tsx`, `PlanDetailPage.tsx` | Home rebuilt; the plan's page using the shared hook and banner |
+| `src/i18n/locales/*.json` | 18 keys under `home.*`, 5 under `workout.*`, `home.statVolume` with the unit |
+| 5 test files, 14 new tests | `HomePage.test.tsx` (new, 7), `week-summary.test.ts` (new, 2), `week.test.ts` (1), `workout-session.test.ts` (2), `WorkoutPage.test.tsx` (2) |
+
+No package was added and the backend did not change: `GET /api/home` was built with the API ([H2.14](H2-backend.md#h214-the-workouts-api-as-built)).
+
+### H3.16.1 The order of building
+
+1. **Read the answer first.** `GET /api/home` is described, with a real answer, in [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints) and in the header of `backend/app/Actions/Workouts/HomeSummary.php`. Its types in `api/home.ts` copy it field by field. The days come without exercises: that decided step 2.
+2. **The shared hook,** by moving the steps out of the plan's page's `StartDayButton` into `useStartWorkout.ts`, then the plan's page using it. Its tests (`PlanDetailPage.test.tsx`) passed unchanged: the move changed nothing a user sees, which is what they proved.
+3. **The free workout,** in `workout-session.ts` with its tests, then on the workout screen.
+4. **The week,** `isInWeek()` and `weekSummary()` with their tests, then the strip and the numbers.
+5. **The card, the page,** the translations, the page's tests.
+6. **Photos** of the page at a phone's, a tablet's and a laptop's width (H3.16.4), as in [H3.15.10](#h31510-fourth-pass-looking-at-the-screen-for-real).
+
+### H3.16.2 One hook for two pages
+
+Before, the plan's page started a workout in its own `StartDayButton`: `useNavigate`, `useCurrentUser`, a `useState` for "starting", `fetchLastSets()`, `startSession()`, `storeActiveSession()`, `navigate()`. Home needs the same steps. Copying them would make two places to fix the next time; a **custom hook** keeps them in one ([C1.18.2](../concepts/C1-frontend.md#c1182-starting-from-home-one-hook-for-two-pages)):
+
+```tsx
+// src/components/workout/useStartWorkout.ts
+export function useStartWorkout(): StartWorkout {
+  const navigate = useNavigate()
+  const { data: user } = useCurrentUser()
+  const [starting, setStarting] = useState(false)
+  …
+  return { starting, failed, startDay, startPlanDay, startFree }
+}
+
+// in StartDayButton, what is left
+const { starting, startDay } = useStartWorkout()
+<Button disabled={busy || starting} onClick={() => void startDay(plan, day)}>
+```
+
+**Home has only the plan's id.** `startPlanDay(planId, dayId)` reads the whole plan with `queryClient.fetchQuery()`. It needs the same function `usePlan()` uses, so that function was taken out of the hook and exported:
+
+```ts
+// src/api/plans.ts
+export function fetchPlan(id: string, signal?: AbortSignal): Promise<Plan> {
+  return request<{ data: Plan }>(`/api/plans/${id}`, { signal }).then(answer => answer.data)
+}
+```
+
+To see the cache at work: open a plan's page, go back to Home, tap Start. DevTools → Network shows `last-sets` only, no `GET /api/plans/…`: the plan came from the cache. After a reload of Home, Start asks for both.
+
+**Keeping Home fresh.** Home's answer changes when a workout is saved and when a plan changes (made active, archived, deleted). Every hook of `api/plans.ts` now ends with `refreshPlans(queryClient)`, which marks both `planKeys.all` and `homeKeys.all` stale; `WorkoutScreen.finish()` and `usePendingSessions` mark `homeKeys.all` too. Try: make another plan active on its page, then open Home: the card shows it at once.
+
+### H3.16.3 A workout with no plan
+
+Free workout starts with no exercises, so the workout screen needed a way to add them, which planned workouts can use too:
+
+- **`startFreeSession(now)`** returns the empty workout. `startSession()` now starts from the same `emptySession(now)`, adding the plan's day.
+- **`exerciseFrom(exercise, lastSets, options)`** turns a library exercise into a workout exercise: one set per set of last time, else one empty set.
+- **The action `addExercises`** receives exercises already built. A first idea was to pass the library's exercises and build them inside the reducer; but building makes UUIDs (`newId()`), and a reducer called twice with the same action must give the same result: StrictMode calls it twice in development to check ([C1.4](../concepts/C1-frontend.md#c14-react-from-scratch)).
+- **On screen,** `ExercisePicker` is the plan editor's own, reused as is: `trigger` is the button that opens it, `onAdd` receives the exercises ticked. With no exercise yet, the screen shows only **Add exercises** and **Cancel workout**; `finishTime` was changed to be false with no exercise, otherwise an empty free workout offered **Finish workout** at once (`index >= total - 1` is `0 >= -1`, true).
+
+### H3.16.4 The errors met
+
+**The new texts, before the translations existed.** TypeScript knows every translation key (`src/i18n/i18next.d.ts`), so a key not yet in `en.json` is an error, not a blank on screen:
+
+```sh
+npx tsc -b --noEmit
+```
+
+```
+src/components/workout/ResumeBanner.tsx(31,97): error TS2345: Argument of type '["workout.free"]' is not assignable to parameter of type …
+      Type '"workout.free"' is not assignable to type '"nav.label" | "nav.progress" | … 324 more …'. Did you mean '"workout.resume"'?
+src/components/workout/WorkoutScreen.tsx(220,70): error TS2345: Argument of type '["workout.emptyTitle"]' …
+```
+
+Expected: the keys were added to the four languages next, and the errors went. `locales.test.ts` checks that the four files have the same keys.
+
+**A test reading the wrong neighbour.** The first test of the week's numbers looked for the number before its label, as it is drawn:
+
+```
+FAIL  src/pages/HomePage.test.tsx > HomePage > marks the days trained this week, with the week's numbers
+Error: expect(received).toHaveTextContent()
+received value must be a Node.
+Received has type:  Null
+ ❯ src/pages/HomePage.test.tsx:139:64
+    139|     expect(within(week).getByText('Workouts').previousSibling).toHaveT…
+```
+
+`WeekStats` writes the label (`<dt>`) first and the number (`<dd>`) after it, and draws them the other way round with `flex-col-reverse`, so that screen readers read "Workouts, 2". In the page the number is the label's **next** sibling: `nextSibling` fixed the test.
+
+**The photos.** The page was photographed with the temporary preview of [H3.15.10](#h31510-fourth-pass-looking-at-the-screen-for-real): `HomePage` inside the real `AppLayout`, Home's answer put in the cache with `queryClient.setQueryData(homeKeys.all, home)`, and `?state=` choosing an active plan, a workout in progress, no plan, or a free workout. Three things were found:
+
+- **Dark text on a dark page, white buttons.** The preview's `index.html` lacked `class="dark"` on `<html>`, which the real `index.html` has (with its script that applies the saved theme before React starts). The colour tokens came out half dark, half light. A fault of the preview only; the real app was fine.
+- **The chosen chip did not look chosen.** It had `border-primary bg-primary/10`, but the outline button carries `dark:border-input dark:bg-input/30`: in the dark theme the `dark:` classes win over the plain ones for the same property. The chosen look now repeats itself with `dark:` (`dark:border-primary dark:bg-primary/15`).
+- **"9,640 kg" over two lines** in the volume's tile, a third of a phone's width. The unit moved to the label ("Volume (kg)"), the number stays whole on one line (`whitespace-nowrap`).
+
+The photos again at 375 px, 820 px and 1280 px: the chosen chip lime-bordered, the week's numbers on one line each, one lime button (Start; Resume when a workout is in progress, with Start disabled). The preview was deleted afterwards.
+
+### H3.16.5 The tests, proving they can fail, and the build
+
+```sh
+npx vitest run src/pages/HomePage.test.tsx src/components/home src/lib/week.test.ts src/components/workout/workout-session.test.ts src/pages/WorkoutPage.test.tsx src/pages/PlanDetailPage.test.tsx --reporter=verbose
+```
+
+The new tests, among the older ones of those files:
+
+```
+✓ src/lib/week.test.ts > isInWeek > takes the moments from Monday at midnight to the end of Sunday
+✓ src/components/home/week-summary.test.ts > weekSummary > adds up this week's workouts and marks each day trained once
+✓ src/components/home/week-summary.test.ts > weekSummary > gives zeros for an empty week
+✓ src/components/workout/workout-session.test.ts > startFreeSession and exerciseFrom > starts a workout with no plan and no exercises, its clock running
+✓ src/components/workout/workout-session.test.ts > startFreeSession and exerciseFrom > adds exercises from the library: last time's sets when there were some, one empty set otherwise
+✓ src/pages/HomePage.test.tsx > HomePage > shows the active plan with the suggested day, and starts it
+✓ src/pages/HomePage.test.tsx > HomePage > chooses another day with its chip; Start then starts that one
+✓ src/pages/HomePage.test.tsx > HomePage > says so when the plan cannot be read to start
+✓ src/pages/HomePage.test.tsx > HomePage > offers to resume a workout in progress, and starts no other
+✓ src/pages/HomePage.test.tsx > HomePage > starts a free workout, with no plan and no exercises
+✓ src/pages/HomePage.test.tsx > HomePage > marks the days trained this week, with the week's numbers
+✓ src/pages/HomePage.test.tsx > HomePage > offers to try again when Home cannot be read
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > starts a free workout empty, adds exercises from the library with last time's sets
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > cancels an empty free workout, keeping nothing
+ Test Files  6 passed (6)
+      Tests  55 passed (55)
+```
+
+- **Dates in the week's tests** are built with the local constructor, `new Date(2026, 10, 5, 18, 0)` (months from 0: 10 is November), as the app's own code builds them, so they pass in any time zone the computer is in.
+- **The page's week test** uses workouts finished "now", which are always in this week, whatever day the tests run.
+
+**Proving they can fail.** Two lines broken on purpose, then put back:
+
+| Line changed | Tests that failed |
+|---|---|
+| `weekSummary()` keeping every workout, not only this week's | `adds up this week's workouts and marks each day trained once` |
+| `startPlanDay()` starting the plan's second day whatever the chip | `chooses another day with its chip; Start then starts that one` |
+
+```
+     × adds up this week's workouts and marks each day trained once 6ms
+     × chooses another day with its chip; Start then starts that one 42ms
+      Tests  2 failed | 7 passed (9)
+```
+
+**The build:**
+
+```sh
+npm run build
+```
+
+```
+dist/assets/index-BBr9FzfE.css                              84.57 kB │ gzip:  14.46 kB
+dist/assets/index-DGIFdlnm.js                              933.46 kB │ gzip: 289.07 kB
+✓ built in 532ms
+```
+
+12 kB more than after workout mode ([C1.11](../concepts/C1-frontend.md#c111-known-limits)).
+
+### H3.16.6 Checking in the browser
+
+With `make start`, signed in, at http://localhost:5673:
+
+- **No active plan** (a new account): the empty state with **Create a plan** and **Browse exercises**, then Free workout, then the week with zeros and "No workouts yet this week".
+- **An active plan:** `make plans-demo` adds two plans and makes Push Pull Legs the active one; then Home: the card shows its first day as **Suggested** (nothing was done yet), its exercises and minutes. Tap another day's chip: the card shows that one, the badge goes. **Start** opens workout mode on that day.
+- **The suggestion moving on:** finish that workout (**Finish**, **Finish and save**), back to Home: the day after it is now **Suggested**, "Last time you did …" names the one just done, and today's circle in the week has a lime dot; the numbers count it. DevTools → Network shows `GET /api/home` read again after the save.
+- **A workout left open:** start one, ✕: Home shows **Workout in progress** with **Resume**; Start and Free workout are disabled, with the reason under Start.
+- **Free workout:** "Free workout" as the title, only **Add exercises** and **Cancel workout**. Add two exercises: the first opens, with last time's sets if they were done before. **Cancel workout** on an empty one goes back to Home and leaves nothing in `atleoplan.activeSession` (DevTools → Application → Local storage). Finished, a free workout comes back to Home, which says it was saved.
+- **Without the network** (DevTools → Network → Offline): Free workout still starts. Start on a plan works when the plan was opened before (it is in the cache), else the card says the plan could not be loaded.
+- **The widths:** Chrome's device mode ([H3.8.1](#h381-phone-tablet-and-desktop-widths)) at 375 px (one column: banner, card, Free workout, week), 820 px, and a laptop (the card and the week side by side from 1024 px).
 
 ---
 

@@ -4,7 +4,7 @@
  * src/lib/format.test.ts and docs/concepts/C1-frontend.md C1.10.
  */
 import { describe, expect, it } from 'vitest'
-import { getWeekDays, isBeforeDay, isSameDay } from './week'
+import { getWeekDays, isBeforeDay, isInWeek, isSameDay } from './week'
 
 /**
  * A date as 'YYYY-MM-DD', readable in test failures. getMonth() counts from
@@ -50,5 +50,18 @@ describe('isSameDay and isBeforeDay', () => {
   it('tells days before today apart from today', () => {
     expect(isBeforeDay(yesterday, evening)).toBe(true)
     expect(isBeforeDay(new Date(2026, 10, 5), evening)).toBe(false)
+  })
+})
+
+describe('isInWeek', () => {
+  it('takes the moments from Monday at midnight to the end of Sunday', () => {
+    // Thursday 5 November 2026: its week runs from Monday 2 to Sunday 8
+    const today = new Date(2026, 10, 5, 15, 30)
+
+    expect(isInWeek(new Date(2026, 10, 2, 0, 0), today)).toBe(true)
+    expect(isInWeek(new Date(2026, 10, 8, 23, 59), today)).toBe(true)
+    // Sunday before, late in the evening; Monday after, at midnight
+    expect(isInWeek(new Date(2026, 10, 1, 23, 59), today)).toBe(false)
+    expect(isInWeek(new Date(2026, 10, 9, 0, 0), today)).toBe(false)
   })
 })

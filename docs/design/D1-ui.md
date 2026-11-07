@@ -171,12 +171,13 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 
 - **Active plan card** at the top. Only one plan is active at a time ([D2.8](D2-decisions.md#d28-workout-rules)).
   - The **suggested day** stands out: the day after the last one completed, in the plan's order, back to the first after the last ("Suggested: Day 2 · last time you did Day 1"). Number of exercises and estimated duration; a large **Start** button.
-  - Under it, a chip for each of the other days: one tap starts that one instead. The suggestion is only a suggestion: the choice is always the user's.
-- **Session in progress** banner when a session was left open: Resume or Finish.
-- **This week:** a strip of 7 days with the days trained highlighted.
+  - Under it, a chip for each day: one tap puts that day on the card, and Start starts it. The suggestion is only a suggestion: the choice is always the user's. (The first sketch had a chip start the day at once; one tap is too easy to make by mistake on a phone, and a workout started by mistake stays in progress until it is finished.)
+- **Session in progress** banner when a session was left open on this phone: Resume. Start and Free workout are disabled meanwhile, with the reason.
+- **This week:** a strip of 7 days with the days trained highlighted, and three numbers: workouts, sets, volume (warm-ups excluded).
 - **Recent records:** the last 3 personal records.
-- **Free workout** shortcut (no plan).
+- **Free workout** shortcut (no plan): an empty workout, whose exercises are added on the way.
 - No active plan: the empty state of [D1.6](#d16-states-and-edge-cases).
+- Built in FEAT-3 (`feat/home`): the card with the suggested day, the day done last, the number of exercises and the estimated minutes, Start and the chips; the banner with Resume; Free workout; the week strip and its numbers ([C1.18](../concepts/C1-frontend.md#c118-home)). Waiting: the recent records, which come with Progress (phase 2); Finish from the banner (Resume, then Finish, does it).
 
 ### D1.4.3 Exercise library
 
@@ -268,9 +269,10 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 - **Live records:** a set that beats a record shows a **New record** badge.
 - **Like an app:** the top bar, the rest timer and Previous / Next stay put; only the middle scrolls, when an exercise is longer than the screen. The whole width of the window, on a laptop too, with the side margins of the other pages: 20 px on a phone, 32 px on a tablet, 48 px on a laptop. Buttons as in the rest of the app: lime for Finish workout only, outlined for the other actions.
 - **Finishing:** **Finish** at the top, outlined, at any moment, to stop early; **Finish workout**, lime (as wide as the bottom bar on a phone, its own width on a larger screen), takes Next's place on the last exercise or once every set is ticked. One lime button at a time. A confirmation says how many sets were done and that the sets not ticked will not be saved.
-- Closing with ✕ pauses the session; Home offers to resume it.
+- **Add exercises,** under Add set, opens the library's picker; the exercises chosen are added at the end, with last time's sets. A free workout (from Home) starts with none: the screen then shows only Add exercises and Cancel workout.
+- Closing with ✕ pauses the session; Home and the plan's page offer to resume it.
 - All of this works offline ([D1.6](#d16-states-and-edge-cases)).
-- Built in FEAT-3 (`feat/workout-mode`): Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with −15 / +15 / Skip, beep and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing with Resume on the plan's page; the column titles above the sets, the sets numbered from 1 after the warm-ups, Finish at the top (outlined) and Finish workout at the bottom when it is time; the workout kept on the phone and queued at Finish until the backend has it ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)). Waiting: the stepper and the exercise menu ([UI-6](../project/backlog.md#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu)), live records ([FEAT-5](../project/backlog.md#feat-5-new-records-during-a-workout)), the background notification and opening with no network (FEAT-3, offline), resuming from Home (FEAT-3, Home); the arrows stand in for the swipe.
+- Built in FEAT-3 (`feat/workout-mode`): Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with −15 / +15 / Skip, beep and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing with Resume on the plan's page; the column titles above the sets, the sets numbered from 1 after the warm-ups, Finish at the top (outlined) and Finish workout at the bottom when it is time; the workout kept on the phone and queued at Finish until the backend has it ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)). Waiting: the stepper and the exercise menu ([UI-6](../project/backlog.md#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu)), live records ([FEAT-5](../project/backlog.md#feat-5-new-records-during-a-workout)), the background notification and opening with no network (FEAT-3, offline); the arrows stand in for the swipe. With Home (`feat/home`): Add exercises, the free workout, and Resume on Home.
 
 ### D1.4.10 Workout summary
 

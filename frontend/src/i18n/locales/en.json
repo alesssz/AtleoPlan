@@ -83,7 +83,25 @@
     "today": "today",
     "statWorkouts": "Workouts",
     "statSets": "Sets",
-    "statVolume": "Volume"
+    "statVolume": "Volume ({{unit}})",
+    "activePlan": "Active plan",
+    "suggested": "Suggested",
+    "exercises_one": "{{count}} exercise",
+    "exercises_other": "{{count}} exercises",
+    "minutes_one": "about {{count}} min",
+    "minutes_other": "about {{count}} min",
+    "lastTime": "Last time you did {{day}}",
+    "start": "Start",
+    "startError": "The plan could not be loaded. Check the connection and try again.",
+    "otherDays": "Or choose another day",
+    "noDays": "This plan has no days yet.",
+    "editPlan": "Edit the plan",
+    "loading": "Loading your plan…",
+    "loadError": "Home could not be loaded.",
+    "freeTitle": "Free workout",
+    "freeText": "No plan: add the exercises as you go.",
+    "freeStart": "Start a free workout",
+    "trained": "workout done"
   },
   "plans": {
     "new": "New plan",
@@ -398,6 +416,11 @@
     "keepGoing": "Keep going",
     "saved": "Workout saved to your history.",
     "queued": "Workout saved on this phone: it will be sent as soon as you are online.",
-    "refused": "The workout could not be saved. It is kept on this phone."
+    "refused": "The workout could not be saved. It is kept on this phone.",
+    "free": "Free workout",
+    "emptyTitle": "No exercises yet",
+    "emptyText": "Add the exercises you are doing, one or more at a time. You can add more later.",
+    "addExercises": "Add exercises",
+    "cancel": "Cancel workout"
   }
 }
