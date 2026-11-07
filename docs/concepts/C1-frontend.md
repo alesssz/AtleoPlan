@@ -27,6 +27,13 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.13.4 Language and theme on the account](#c1134-language-and-theme-on-the-account)
   - [C1.13.5 Details that are easy to miss](#c1135-details-that-are-easy-to-miss)
   - [C1.13.6 Testing a screen with the API](#c1136-testing-a-screen-with-the-api)
+- [C1.14 The exercise library screens](#c114-the-exercise-library-screens)
+  - [C1.14.1 The pages and their pieces](#c1141-the-pages-and-their-pieces)
+  - [C1.14.2 A list one page at a time](#c1142-a-list-one-page-at-a-time)
+  - [C1.14.3 Filters in the address](#c1143-filters-in-the-address)
+  - [C1.14.4 The editor's form](#c1144-the-editors-form)
+  - [C1.14.5 Photos](#c1145-photos)
+  - [C1.14.6 Testing it](#c1146-testing-it)
 
 ---
 
@@ -76,12 +83,15 @@ frontend/
     ├── index.css           Tailwind + the colour tokens of both themes
     ├── api/                one file per API resource: types, cache keys, hooks
     │   ├── health.ts         GET /api/health → useHealth()
-    │   └── auth.ts           the account: useCurrentUser(), useSignIn(), useSignOut()… (C1.13)
+    │   ├── auth.ts           the account: useCurrentUser(), useSignIn(), useSignOut()… (C1.13)
+    │   ├── exercises.ts      the library: useExercises() (pages), useExercise(), create, update, delete (C1.14)
+    │   └── muscles.ts, equipment.ts   the two fixed lists of the filters and the editor
     ├── components/
     │   ├── ui/               shadcn/ui components (generated, then ours to edit)
     │   ├── layout/           the frames: AppLayout (navigation), AuthLayout (sign-in screens); SideNav, BottomTabBar, nav-items
     │   ├── brand/            the logo: BrandMark and Wordmark
     │   ├── home/             pieces of Home: WeekStrip, WeekStats
+    │   ├── exercises/        pieces of the library: ExerciseListItem, ExerciseFilters, ExercisePhotos, ExerciseForm and exercise-form.ts (C1.14)
     │   └── *.tsx             shared by several pages: PageHeader, EmptyState, SettingRow, FormField, FormBanner, the pickers…
     ├── pages/              one component per screen (HomePage, LoginPage…), and auth-schemas.ts, the rules of the sign-in forms
     ├── routes/             the guards: RequireAuth, RequireGuest, useAccountPreferences (C1.13)
@@ -90,9 +100,9 @@ frontend/
     │   ├── languages.ts      the supported languages and their names
     │   ├── i18next.d.ts      makes translation keys type-checked
     │   └── locales/          it.json, en.json, es.json, de.json
-    ├── lib/                plain helpers, no React: http (fetch wrapper), query-client, form (server errors on a form), format (numbers, dates), week, utils (cn)
+    ├── lib/                plain helpers: http (fetch wrapper), query-client, form (server errors on a form), format (numbers, dates), week, utils (cn); useDebouncedValue, a hook
     ├── theme/              dark / light theme: logic, context, provider, hook
-    └── test/               setup.ts runs before every test file; auth-helpers.tsx: a fake API and full-page rendering (C1.13)
+    └── test/               setup.ts runs before every test file; auth-helpers.tsx: a fake API and full-page rendering (C1.13); exercise-helpers.ts: exercises and lists to fake (C1.14)
 ```
 
 **Naming.**
@@ -224,7 +234,9 @@ useEffect(() => {
 - **The table** is `src/router.tsx`, made with `createBrowserRouter([...])`. A route has a `path` and an `element`. `children` nest routes inside a parent, which draws them at its `<Outlet />`. `index: true` marks the parent's own address.
 - **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([C1.13](#c113-signing-in-and-forms)). Workout mode and the public shared plan, both full screen, will be siblings of these branches. Comments in the file mark where.
 - **Links:** use `<Link to="/plans">`. Use `<NavLink>` in navigation: it knows whether it is the current page and then gets `aria-current="page"`. Use `useNavigate()` to move in code, for example after saving.
-- **Parameters:** a route `plans/:id` gives the page `const { id } = useParams()`.
+- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`).
+- **The query string** (`?q=panca`) is read and written with `useSearchParams()` ([C1.14.3](#c1143-filters-in-the-address)).
+- **A fixed segment wins over a parameter:** `exercises/new` and `exercises/:id` can both exist, and `/exercises/new` opens the editor, whatever their order in the table.
 - **Not found and crashes:** the last child, `path: '*'`, catches unknown addresses (`NotFoundPage`, inside the frame). `errorElement` (`RouteErrorPage`) replaces a screen that throws while rendering.
 - **The full map** of planned routes is [D1.3](../design/D1-ui.md#d13-information-architecture-and-navigation). Each feature adds its routes there and here.
 
@@ -364,7 +376,7 @@ New screens add their own group (`plans.editor.*`, …).
 
 Utilities like these are written in `index.css` with `@utility name { … }` and then work like Tailwind's own classes, prefixes included (`lg:border-glow`, `group-aria-[current=page]:glow-primary`).
 
-**Seeing the result.** Screen size changes the layout: test every change at phone width (the browser's device toolbar, about 390 px wide) and on a wide screen, in both themes (Profile → Theme).
+**Seeing the result.** Screen size changes the layout: test every change at phone width (the browser's device toolbar, about 390 px wide, [H3.8.1](../how-to/H3-frontend.md#h381-phone-tablet-and-desktop-widths)) and on a wide screen, in both themes (Profile → Theme).
 
 **Icons** come from Lucide: `import { Dumbbell } from 'lucide-react'`, used as `<Dumbbell aria-hidden="true" className="size-5" />`.
 
@@ -398,6 +410,12 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 4. `showRequestError` in `onError`, and a `FormBanner` for `errors.root`.
 5. A test with `fakeApi` and `userEvent`.
 
+**A list with filters, pages and an editor,** copying the exercise library ([C1.14](#c114-the-exercise-library-screens)):
+
+1. `useInfiniteQuery` in `src/api/`, with the language in the key and `placeholderData: keepPreviousData`.
+2. The filters in the address with `useSearchParams` (`replace: true`), the search through `useDebouncedValue`.
+3. The form's own shape in a plain file (`exercise-form.ts`), with the conversions to and from the API, tested alone.
+
 **A new shared component:**
 
 1. `src/components/Thing.tsx`, with a header comment, typed props, and doc comments.
@@ -427,6 +445,10 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 | `routes/guards.test.tsx` | who is sent where, and a server that is down not being taken for signed out |
 | `pages/auth-pages.test.tsx` | the four sign-in screens, used as a person would (the model of a form's test) |
 | `pages/ProfilePage.test.tsx` | shows the account, signs out |
+| `pages/ExercisesPage.test.tsx` | the library: rows, search after a pause, filters in the address and the request, pages, empty states, an error |
+| `pages/ExerciseDetailPage.test.tsx` | an exercise's facts and photos, the owner's actions, deleting after a confirmation |
+| `pages/ExerciseEditorPage.test.tsx` | creating and changing an exercise, the form's and the server's messages |
+| `components/exercises/exercise-form.test.ts` | the editor's conversions and rules, without React |
 
 **Commands:**
 
@@ -442,7 +464,7 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 
 ## C1.11 Known limits
 
-- **Bundle size.** The production build is one JavaScript file of about 560 kB (180 kB compressed), and Vite warns above 500 kB. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
+- **Bundle size.** The production build is one JavaScript file of 783 kB (246 kB compressed) since the exercise library's screens, and Vite warns above 500 kB. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
 - **A preference changed with no connection is not saved.** It stays on screen until the page reloads, then the account's value returns. The offline queue will save it (FEAT-3).
 - **Not yet in place**, each with the feature that needs it:
   - drag and drop (FEAT-2);
@@ -641,6 +663,94 @@ Tests never call a real server. `src/test/auth-helpers.tsx` gives them:
 `src/pages/auth-pages.test.tsx` uses them with `userEvent`, typing and clicking as a person would. Prefer `findBy…`, which waits, when the element appears after an answer.
 
 **What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers. Before calling a feature done, try it in a browser against the real stack, as [C1.13.4](#c1134-language-and-theme-on-the-account) shows.
+
+---
+
+## C1.14 The exercise library screens
+
+The first feature screens of the app (UI-1, [D1.4.3](../design/D1-ui.md#d143-exercise-library)–[D1.4.5](../design/D1-ui.md#d145-exercise-editor)), on the API of [C2.5.4](C2-backend.md#c254-the-exercise-librarys-endpoints) and the 876 exercises imported from free-exercise-db. How they were built, with the real output: [H3.12](../how-to/H3-frontend.md#h312-the-exercise-library-screens-as-built).
+
+### C1.14.1 The pages and their pieces
+
+| Route | Page | Made of |
+|---|---|---|
+| `/exercises` | `ExercisesPage` | `ExerciseFilters`, `ExerciseListItem`, `EmptyState`; `useExercises()` |
+| `/exercises/:id` | `ExerciseDetailPage` | `ExercisePhotos`, the facts as a description list, `AlertDialog` to confirm a delete; `useExercise()`, `useDeleteExercise()` |
+| `/exercises/new`, `/exercises/:id/edit` | `ExerciseEditorPage` | `ExerciseForm`, with the rules and conversions of `exercise-form.ts`; `useCreateExercise()`, `useUpdateExercise()` |
+
+**What is not here yet,** with the feature that brings it: the list's select mode and "Add to plan" (FEAT-2), the "My history" tab (FEAT-4), photo uploads, videos and "Duplicate as mine" (BE-1, `feat/exercise-media`), the buttons disabled offline (FEAT-3).
+
+### C1.14.2 A list one page at a time
+
+The library has 876 exercises; the API sends 50 per page ([C2.5.2](C2-backend.md#c252-lists-filters-and-pages)). `useExercises()` uses **`useInfiniteQuery`**, TanStack Query's hook for a list read in pages:
+
+```ts
+useInfiniteQuery({
+  queryKey: exerciseKeys.list(filters, language),
+  queryFn: ({ pageParam, signal }) => fetchExercisePage(filters, pageParam, signal),
+  initialPageParam: 1,                                            // the first page read
+  getNextPageParam: last => (last.meta.current_page < last.meta.last_page
+    ? last.meta.current_page + 1 : undefined),                    // undefined: no more pages
+  placeholderData: keepPreviousData,
+})
+```
+
+- **`data.pages`** holds every page read so far; the page joins their rows with `pages.flatMap(page => page.data)`.
+- **`fetchNextPage()`** reads the next one; `hasNextPage` says whether there is one. The page shows a **Show more** button rather than an endless scroll: the end of the page stays reachable, for the keyboard and the tab bar.
+- **`placeholderData: keepPreviousData`** keeps the old list on screen while the list of new filters loads, with `isPlaceholderData` true; the page dims it. Without it every letter typed would flash a skeleton.
+- **The language is part of every key** (`['exercises', 'list', 'it', {…}]`), because the names arrive translated: switching language reads the library again instead of showing Italian names to an English reader. `useMuscles()` and `useEquipment()` do the same.
+- **After a change,** the mutations invalidate `['exercises']`: every list and every exercise, in every language, is marked old ([L2.13](../learn/L2-react.md#l213-changing-data-mutations)).
+
+### C1.14.3 Filters in the address
+
+The filters live in the address: `/exercises?q=panca&muscle=chest&source=mine`. React Router's **`useSearchParams()`** reads it and writes it, like `useState` for the query string:
+
+```tsx
+const [searchParams, setSearchParams] = useSearchParams()
+const muscle = searchParams.get('muscle') ?? ''        // '' when the parameter is missing
+setSearchParams(next, { replace: true })               // next: a URLSearchParams with the change
+```
+
+- **Why the address and not state:** the browser's Back returns to the list as it was, a reload keeps the filters, a filtered list can be bookmarked or shared.
+- **`replace: true`** changes the current history entry instead of adding one: otherwise Back would undo the search one letter at a time.
+- **A filter back to its default is removed** from the address, so the plain list is plain `/exercises`.
+- **The search and the filters stay at the top** while the list scrolls: `sticky top-0` on the block that holds them all. From 640 px they fit in about 120 px (the search box, then one row of filters). On phones the filters are stacked and would take a quarter of the screen, so only the search box sticks there. The trick is `max-sm:contents` on the block: `display: contents` makes the browser draw the children as if the block were not there, so the block's own `sticky` does nothing, and the search box's `max-sm:sticky` takes over. The search box cannot simply be sticky *inside* the block, because a sticky element sticks only within its parent, and the block is short: the box would scroll away with it.
+- **The search waits for a pause.** The box shows every letter at once (its value is in the address), but the request uses **`useDebouncedValue(search, 300)`** (`src/lib/useDebouncedValue.ts`): a value that follows another one 300 ms after it stops changing. Typing "panca" sends one request, not five.
+
+### C1.14.4 The editor's form
+
+The form's fields are shaped for the screen, not for the API:
+
+| On screen | Sent to the API |
+|---|---|
+| Instructions: one text, a step per line | `instructions`: a list, blank lines dropped |
+| Main muscle: a select; secondary muscles: ticks | `muscles`: one list of `{ id, role }`, the main one never repeated as secondary |
+| Equipment: a select whose "None" is `''` | `equipment_id`: a number or `null` |
+| Empty texts | `null`, which empties the field on the backend |
+
+`toExerciseInput()` and `formValuesFrom()` (`exercise-form.ts`) convert one way and the other. They are plain functions, tested without drawing anything (`exercise-form.test.ts`). The tools new in this form:
+
+- **Native selects** (`components/ui/native-select.tsx`) instead of Radix's: on a phone they open the system's own picker, they work with `register()` like an input, and tests use `userEvent.selectOptions()`.
+- **`Controller`** connects a field that `register()` cannot, such as the list of ticks: it hands the render function `field.value` and `field.onChange`.
+- **`useWatch({ control, name: 'primary_muscle' })`** re-renders the form when one field changes: the tick of the main muscle is disabled at once.
+- **`mutateAsync`** instead of `mutate`: the form awaits the request, so `isSubmitting` covers it, and `catch` hands a 422 to `showRequestError`, which puts each message under its field. The form's field names are the backend's (`equipment_id`, `youtube_url`) for that reason.
+- **Editing waits for the data,** then draws the form: `useForm()` reads `defaultValues` only once, when the form first appears.
+
+### C1.14.5 Photos
+
+The API sends each photo as a path on the app's own address, `/storage/12/0.jpg`. In development Vite forwards `/storage` to Laravel (`vite.config.ts`), in production Caddy; Laravel's `public/storage` is a link to `storage/app/public`, created by `make setup` (`storage:link`). Why a path and not a full URL: [C2.5.4](C2-backend.md#c254-the-exercise-librarys-endpoints).
+
+- **In the list,** the first photo is the row's cover: `alt=""`, since the name next to it says the same, and `loading="lazy"`, so the browser downloads it only when the row comes near the screen.
+- **On the page,** both photos side by side, each with an `alt` such as "Barbell Bench Press, photo 1".
+
+### C1.14.6 Testing it
+
+The library's tests use the helpers of [C1.13.6](#c1136-testing-a-screen-with-the-api), with three additions:
+
+- **`fakeApi` with query strings.** `'GET /api/exercises'` answers every page and filter; an exact key, `'GET /api/exercises?page=2&per_page=50'`, answers one. The test then reads what was asked from `fake.mock.calls`.
+- **`sentBody(fake, path)`** gives the first call to `path` **that sent a body**: the editor first reads an exercise (GET), then saves it (PATCH).
+- **`ResizeObserver`** does not exist in jsdom, and Radix's Checkbox needs it: `src/test/setup.ts` gives the tests one that does nothing.
+- **`src/test/exercise-helpers.ts`** builds exercises and pages shaped as the API sends them.
 
 ---
 

@@ -37,11 +37,11 @@ class ExerciseController extends Controller
     /**
      * The relations sent with every exercise, loaded in one query each for
      * the whole page rather than one per exercise (ExerciseResource explains
-     * why).
+     * why). `media` holds the photos (spatie/laravel-medialibrary).
      *
      * @var list<string>
      */
-    private const RELATIONS = ['equipment', 'muscles'];
+    private const RELATIONS = ['equipment', 'muscles', 'media'];
 
     /**
      * GET /api/exercises: the library, one page at a time. Public exercises

@@ -22,8 +22,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-1 Exercise library: API and admin](#be-1-exercise-library-api-and-admin)
   - [BE-2 Manage users in the admin panel](#be-2-manage-users-in-the-admin-panel)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
-- [UI](#ui)
-  - [UI-1 Exercise library screens](#ui-1-exercise-library-screens)
 
 ## How this page works
 
@@ -55,11 +53,10 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [D3. Data model](../design/D3-data-model.md).
 
-1. [BE-1](#be-1-exercise-library-api-and-admin) exercise library API, then [DATA-1](#data-1-import-and-translate-free-exercise-db) its import
-2. [UI-1](#ui-1-exercise-library-screens) exercise library screens
-3. [FEAT-2](#feat-2-plans) plans
-4. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
-5. [FEAT-4](#feat-4-summary-and-history) summary and history
+1. The exercise library: its API, import and screens are done; left are its admin screen and media ([BE-1](#be-1-exercise-library-api-and-admin)) and its translation ([DATA-1](#data-1-import-and-translate-free-exercise-db))
+2. [FEAT-2](#feat-2-plans) plans
+3. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
+4. [FEAT-4](#feat-4-summary-and-history) summary and history
 
 ## OPS
 
@@ -136,7 +133,7 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 - the API without media: the policy, the list with search, filters and pages, reading, creating, changing and deleting personal exercises, the lists of muscles and equipment (`feat/exercise-api`, [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints), [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built)).
 
 **What is missing.** Two parts, each on its own branch:
-- `feat/exercise-media`: the photo and video uploads of personal exercises, with their limits, the conversion job and the order of the photos ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)); the photos and videos in `ExerciseResource`; **Duplicate as mine** for a public exercise ([D1.4.4](../design/D1-ui.md#d144-exercise-details)), which copies its photos too.
+- `feat/exercise-media`: the photo and video uploads of personal exercises, with their limits, the conversion job and the order of the photos ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)); the resized photos (a 400 px thumbnail for the library's rows) and the videos in `ExerciseResource`, which already sends the photos as stored; in the editor, the media field of [D1.4.5](../design/D1-ui.md#d145-exercise-editor); **Duplicate as mine** for a public exercise ([D1.4.4](../design/D1-ui.md#d144-exercise-details)), which copies its photos too.
 - `feat/exercise-admin`: the Filament resource for the public library, one field per language ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)). Filament asks the model's policy, and `ExercisePolicy` refuses changes to public exercises, admins included, because the API must: the resource overrides `canEdit()`, `canDelete()` and `canCreate()` for admins, or the policy gains a separate ability for the panel.
 
 Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). DATA-1 then fills it.
@@ -164,11 +161,3 @@ Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). DATA-1 then fil
 - B) Leave as it is while the app is personal.
 
 **Recommended.** B for now and A before opening to other users (phase 2): with a single user nothing is at stake, and signing up will still need to say that an email is taken, unless it moves to verifying the address by email.
-
-## UI
-
-### UI-1 Exercise library screens
-
-**Priority:** high · **Kind:** missing screens · **Found:** 2026-11-05
-
-**What is missing.** The library with search and filters, the exercise details and the editor of personal exercises with photos ([D1.4.3](../design/D1-ui.md#d143-exercise-library)–[D1.4.5](../design/D1-ui.md#d145-exercise-editor)), replacing the empty state at `/exercises`. The API is ready ([C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints)); the TypeScript types of its answers go in `frontend/src/api/` with the screens. Photos need BE-1's `feat/exercise-media`.

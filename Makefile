@@ -51,6 +51,9 @@ setup: ## New clone: Git hook, backend/.env and its key, image, Composer and npm
 	$(NPM) install
 	$(MAKE) --no-print-directory test-db
 	$(ARTISAN) migrate
+	# public/storage → storage/app/public: the web server can then serve the
+	# photos, at /storage/… (docs/how-to/H3-frontend.md H3.12)
+	$(ARTISAN) storage:link
 	@echo ""
 	@echo "✔ Ready. Laravel: http://localhost:8500 · React: make dev (http://localhost:5673)"
 	@echo "  Set the Git identity once if not done: docs/start/S1-setup.md S1.3 · then: make doctor"

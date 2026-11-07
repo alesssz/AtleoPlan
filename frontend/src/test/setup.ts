@@ -12,6 +12,22 @@ import { afterEach, beforeEach, vi } from 'vitest'
 // (no braces). src/i18n/index.ts ends with `export default i18n`.
 import i18n from '@/i18n'
 
+// jsdom, the fake browser of the tests, has no ResizeObserver, the browser's
+// way to be told when an element changes size. Radix's Checkbox
+// (src/components/ui/checkbox.tsx) uses one, so without this every test
+// drawing the exercise editor fails with "ResizeObserver is not defined"
+// (docs/how-to/H3-frontend.md H3.12.7). Real browsers all have it; here a
+// version that does nothing is enough, since tests never resize anything.
+// globalThis is the global object: in a browser, `window`
+globalThis.ResizeObserver ??= class {
+  /** Starts watching an element: nothing to do in tests. */
+  observe() {}
+  /** Stops watching an element. */
+  unobserve() {}
+  /** Stops watching everything. */
+  disconnect() {}
+}
+
 // beforeEach(fn) runs fn before each test (`it(…)`) of every file.
 // `async () => { … }` is an arrow function (a short way to write a function)
 // marked async: inside it, `await` pauses until a Promise (a value that

@@ -180,9 +180,11 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 
 ### D1.4.3 Exercise library
 
-- Search bar fixed at the top; matches names in the user's language and their aliases ("bench" finds "Barbell bench press"; "panca" finds "Panca piana con bilanciere").
-- **Filter chips:** muscle group, equipment, source (All / Mine / Public).
-- Row: thumbnail, name, main muscle, **Mine** badge for personal exercises.
+- Search bar fixed at the top, with the filters too from 640 px (on phones they are stacked, and fixing them would take a quarter of the screen); matches names in the user's language and their aliases ("bench" finds "Barbell bench press"; "panca" finds "Panca piana con bilanciere"). It asks the server once typing pauses.
+- **Filters:** muscle group and equipment as lists that open the phone's own picker (17 and 12 values are too many for chips), source as three buttons (All / Mine / Public). The muscle filter matches the main muscles only.
+- **Filters and search live in the address** (`/exercises?q=panca&muscle=chest`): Back returns to the same list, a reload keeps it.
+- Row: thumbnail, name, main muscle, **Mine** badge for personal exercises. 50 rows at a time, then **Show more**.
+- Built in UI-1, without the select mode below, which comes with the plan editor ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)).
 - **Select mode** (opened from the plan editor): a checkbox on every row and a bar at the bottom, "Add (3)".
 - **+** creates an exercise.
 

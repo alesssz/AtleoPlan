@@ -781,9 +781,9 @@ export function MusclePage() {
 | `children`, `<Outlet />` | A parent draws its child where `<Outlet />` is | `AppLayout` |
 | `<Link to="/x">` | A link that changes the page without reloading | sign-in screens |
 | `<NavLink>` | A link that knows if it is the current page | `BottomTabBar`, `SideNav` |
-| `useParams()` | The `:parameters` of the address | Not yet: the plan pages (`/plans/:id`, FEAT-2) will be the first |
-| `useSearchParams()` | The `?query=string` | `ResetPasswordPage` reads the token of the email's link |
-| `useNavigate()` | Going somewhere from code | `ResetPasswordPage`, after the new password is saved |
+| `useParams()` | The `:parameters` of the address | `ExerciseDetailPage`, `ExerciseEditorPage` |
+| `useSearchParams()` | The `?query=string` | `ResetPasswordPage` reads the token of the email's link; `ExercisesPage` keeps its filters there |
+| `useNavigate()` | Going somewhere from code | `ResetPasswordPage`, after the new password is saved; the exercise editor, after saving |
 | `<Navigate to="/login" />` | Going somewhere while drawing | `RequireAuth` |
 | `useLocation()` | The current address, and its `state` | `AppLayout`, `LoginPage` |
 | `errorElement` | What to draw if a page crashes | `RouteErrorPage` |
@@ -876,7 +876,7 @@ export function useMuscles() {
 
 **Keys** are arrays, from general to specific: `['muscles']`, later `['exercises', { search: 'panca' }]`. Keeping them in one object per file (`muscleKeys`) avoids typos and lets other code refresh them ([L2.13](#l213-changing-data-mutations)).
 
-**In AtleoPlan:** `src/api/health.ts` (the simplest), `src/api/auth.ts` (who is signed in is a query too), `src/components/ServerStatus.tsx` (the three states), `src/lib/query-client.ts` (the defaults). [C1.6](../concepts/C1-frontend.md#c16-server-data) and [H3.3](../how-to/H3-frontend.md#h33-reading-data-from-the-api) explain the pattern in this app.
+**In AtleoPlan:** `src/api/health.ts` (the simplest), `src/api/auth.ts` (who is signed in is a query too), `src/api/exercises.ts` (a list read in pages with `useInfiniteQuery`, the language in every key: [C1.14.2](../concepts/C1-frontend.md#c1142-a-list-one-page-at-a-time)), `src/components/ServerStatus.tsx` (the three states), `src/lib/query-client.ts` (the defaults). [C1.6](../concepts/C1-frontend.md#c16-server-data) and [H3.3](../how-to/H3-frontend.md#h33-reading-data-from-the-api) explain the pattern in this app.
 
 **Recap**
 - Server data lives in TanStack Query's cache, under a key; never in `useState`.
@@ -1190,7 +1190,7 @@ then `make fix`, to bring the copied file to the project's code style ([H3.9](..
 
 **Icons** come from **lucide-react**, one component per icon: `<Dumbbell aria-hidden="true" className="size-5" />`. `aria-hidden` when a text next to it already says the same.
 
-**In AtleoPlan:** `src/components/ui/` (button, card, input, label, select, separator, skeleton); `LanguageSelect` (a Radix select); `BottomTabBar` (lucide icons stored in data).
+**In AtleoPlan:** `src/components/ui/` (alert-dialog, badge, button, card, checkbox, input, label, native-select, select, separator, skeleton, textarea); `LanguageSelect` (a Radix select); `ExerciseDetailPage` (an alert dialog to confirm a delete); `BottomTabBar` (lucide icons stored in data).
 
 **Recap**
 - shadcn/ui copies sources into `src/components/ui/`; they are ours.
