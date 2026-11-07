@@ -151,7 +151,7 @@ So a session copies nothing from the future: it records what happened, and it su
 | New columns on `users` | Done; `active_plan_id` in its own migration after `plans`, with FEAT-2 |
 | `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, the public exercises by the import of DATA-1, `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
 | `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of [FEAT-2](../project/backlog.md#feat-2-plans), with their API ([H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built)) |
-| `workout_sessions`, `session_exercises`, `logged_sets` | [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home) |
+| `workout_sessions`, `session_exercises`, `logged_sets` | Done, in the first part of [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home), with their API ([H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built)) |
 
 ### D3.1.5 How to read the column tables
 
@@ -782,6 +782,8 @@ At step 4, the phone started from 3 but the server is at 4, so someone else got 
 
 ## D3.6 Workouts
 
+**In the code:** the migrations `…_create_{workout_sessions,session_exercises,logged_sets}_table.php`, the models `WorkoutSession`, `SessionExercise` and `LoggedSet`, `Plan::suggestedDay()`. How they were built: [H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built). The API that saves and reads them: [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints).
+
 ### D3.6.1 `workout_sessions`
 
 **What it stands for.** One workout, from the moment Start is tapped. Created on the phone, usually sent to the server later.
@@ -953,7 +955,7 @@ return $index === false ? $days->first() : ($days[$index + 1] ?? $days->first())
 
 ### D3.6.5 Sending a session to the server
 
-The phone sends the whole session, with its exercises and sets, when the network is back, and may send it more than once. The server must therefore end up in the same state however many times it receives it ([D2.7](D2-decisions.md#d27-offline-and-sync)). This is the idea; FEAT-3 writes the real endpoint, with its Form Request:
+The phone sends the whole session, with its exercises and sets, when the network is back, and may send it more than once. The server must therefore end up in the same state however many times it receives it ([D2.7](D2-decisions.md#d27-offline-and-sync)). This is the idea; the real endpoint is `PUT /api/sessions/{id}` with `SaveWorkoutSession` ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)), which differs in three ways: a session deleted elsewhere answers **410 Gone** instead of returning silently, so the phone knows to stop sending it; the links to the plan, its day and its items are kept only if they still exist and are the user's, so a workout is never refused because the plan changed meanwhile; and every moment is turned into UTC before it is written ([H2.14.5](../how-to/H2-backend.md#h2145-the-trap-of-the-moments)). The sketch:
 
 ```php
 DB::transaction(function () use ($user, $data) {

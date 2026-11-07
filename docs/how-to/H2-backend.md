@@ -11,6 +11,7 @@
 - Something broke: [H2.9](#h29-finding-out-what-is-going-on) and [H2.10](#h210-when-something-goes-wrong).
 - A real, complete API, with a list, filters, pages, a policy and an action: [H2.12](#h212-the-exercise-library-api-as-built).
 - A body shaped as a tree, saved in one request, with a validation rule of our own: [H2.13](#h213-the-plans-api-as-built).
+- Data sent by a phone that may be offline, late and twice; totals worked out by the database: [H2.14](#h214-the-workouts-api-as-built).
 - The same feature on the React side: [H3. Frontend: how to](H3-frontend.md).
 
 ## Contents
@@ -58,6 +59,15 @@
   - [H2.13.6 Saving a tree: the action](#h2136-saving-a-tree-the-action)
   - [H2.13.7 Look at the JSON](#h2137-look-at-the-json)
   - [H2.13.8 The tests, and proving they can fail](#h2138-the-tests-and-proving-they-can-fail)
+- [H2.14 The workouts API, as built](#h214-the-workouts-api-as-built)
+  - [H2.14.1 Generate the files](#h2141-generate-the-files)
+  - [H2.14.2 The routes](#h2142-the-routes)
+  - [H2.14.3 A check after the rules](#h2143-a-check-after-the-rules)
+  - [H2.14.4 The save](#h2144-the-save)
+  - [H2.14.5 The trap of the moments](#h2145-the-trap-of-the-moments)
+  - [H2.14.6 Totals and "last time" in the database](#h2146-totals-and-last-time-in-the-database)
+  - [H2.14.7 Look at Home](#h2147-look-at-home)
+  - [H2.14.8 The tests, and proving they can fail](#h2148-the-tests-and-proving-they-can-fail)
 
 ---
 
@@ -680,6 +690,8 @@ How each package of the project was installed: [S1.6](../start/S1-setup.md#s16-c
 | Message or symptom | Cause | Fix |
 |---|---|---|
 | `Class "Laravel\…" not found` after a `git pull` | A package added on another computer is not installed here | `make composer c=install` ([H2.8](#h28-adding-a-package)) |
+| A moment saved an hour (or more) off | A date sent with an offset (`18:00+01:00`) reached the model as it was: Laravel writes dates without the offset | Turn it into UTC first: `Carbon::parse($value)->utc()` ([H2.14.5](#h2145-the-trap-of-the-moments)) |
+| A test of a visitor gets a 422 or a 200 instead of a 401 | An earlier `actingAs()` in the same test still signs in every request | The visitor's request first, or in a test of its own |
 | 403 for everyone, admins included | `authorize()` from `make:request` returns `false` | Delete it ([H2.3.6](#h236-the-trap-of-the-generated-authorize)) |
 | 403 for an admin, or 200 for anyone | The policy method is missing or wrong, or `Gate::authorize()` was forgotten | A test for each case ([H2.3.5](#h235-the-tests-success-and-every-refusal)) |
 | 401 in a test | No `actingAs($user)` | Add it |
@@ -1309,6 +1321,231 @@ Each delicate line was broken on purpose, to see a test fail, and then put back:
 | Message | Cause | Fix |
 |---|---|---|
 | `Expected response status code [200] but received 422` in the test of a save | The test's new set had no `set_type`, required since trap 1 | The test sends it |
+
+
+## H2.14 The workouts API, as built
+
+The first part of FEAT-3 built the server side of workout mode and Home, on three new tables ([H1.15](H1-database.md#h115-the-workout-tables-as-built)). The endpoints and the flow of a save are described in [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints); this section is the doing, with the real output. It shows what H2.12 and H2.13 do not: a `PUT` that creates, a 410, links that are kept only if they still hold, a Form Request's `after()` check, a moment that lost an hour, totals as subqueries, and Postgres's `distinct on`.
+
+| File | What it is |
+|---|---|
+| `routes/api.php` | Five `/sessions` routes, one by one, and `/home` |
+| `app/Http/Controllers/WorkoutSessionController.php`, `HomeController.php` | The endpoints |
+| `app/Http/Requests/SaveSessionRequest.php`, `ListSessionsRequest.php`, `LastSetsRequest.php` | The checks |
+| `app/Actions/Workouts/SaveWorkoutSession.php`, `HomeSummary.php` | Saving a whole workout; Home's data |
+| `app/Policies/WorkoutSessionPolicy.php` | Only the owner |
+| `app/Http/Resources/WorkoutSessionResource.php`, `SessionExerciseResource.php`, `LoggedSetResource.php` | The JSON |
+| `app/Models/Plan.php` | `suggestedDay()`, `lastDoneDayId()`, `workoutSessions()` |
+| `lang/{en,it,es,de}/validation.php` | `date`, `after_or_equal`, `logged_value_mismatch`, the new fields' names |
+| `tests/Feature/Workouts/` | Three files for the API, 29 tests |
+
+### H2.14.1 Generate the files
+
+```sh
+make artisan c="make:policy WorkoutSessionPolicy --model=WorkoutSession"
+make artisan c="make:request SaveSessionRequest"
+make artisan c="make:request ListSessionsRequest"
+make artisan c="make:request LastSetsRequest"
+make artisan c="make:class Actions/Workouts/SaveWorkoutSession"
+make artisan c="make:class Actions/Workouts/HomeSummary"
+make artisan c="make:resource WorkoutSessionResource"
+make artisan c="make:resource SessionExerciseResource"
+make artisan c="make:resource LoggedSetResource"
+make artisan c="make:controller WorkoutSessionController"
+make artisan c="make:controller HomeController"
+make artisan c="make:test Workouts/SaveSessionApiTest --pest"
+make artisan c="make:test Workouts/SessionReadApiTest --pest"
+make artisan c="make:test Workouts/HomeApiTest --pest"
+```
+
+```
+INFO  Policy [app/Policies/WorkoutSessionPolicy.php] created successfully.
+INFO  Request [app/Http/Requests/SaveSessionRequest.php] created successfully.
+…
+INFO  Controller [app/Http/Controllers/HomeController.php] created successfully.
+INFO  Test [tests/Feature/Workouts/HomeApiTest.php] created successfully.
+```
+
+`make:controller` without `--api`: the methods are not those of a resource (no `store`, a `save` instead, a `lastSets`), so they are written by hand.
+
+### H2.14.2 The routes
+
+```php
+Route::get('/sessions', [WorkoutSessionController::class, 'index']);
+Route::get('/sessions/last-sets', [WorkoutSessionController::class, 'lastSets']);
+Route::get('/sessions/{session}', [WorkoutSessionController::class, 'show'])->whereUuid('session');
+Route::put('/sessions/{session}', [WorkoutSessionController::class, 'save'])->whereUuid('session');
+Route::delete('/sessions/{session}', [WorkoutSessionController::class, 'destroy'])->whereUuid('session');
+Route::get('/home', [HomeController::class, 'show']);
+```
+
+```sh
+make artisan c="route:list --path=api/sessions"
+```
+
+```
+GET|HEAD  api/sessions ...................... WorkoutSessionController@index
+GET|HEAD  api/sessions/last-sets ......... WorkoutSessionController@lastSets
+GET|HEAD  api/sessions/{session} ............. WorkoutSessionController@show
+PUT       api/sessions/{session} ............. WorkoutSessionController@save
+DELETE    api/sessions/{session} .......... WorkoutSessionController@destroy
+
+                                                          Showing [5] routes
+```
+
+- **`whereUuid('session')`** limits `{session}` to UUIDs: `/api/sessions/12` is a 404 before any code runs, and `last-sets` can never be read as a session's id, whatever the order of the lines.
+- **`show` and `destroy` type their parameter**, `WorkoutSession $session`, so route model binding loads the row (a soft-deleted one is a 404). **`save` takes `string $session`**: a new session has no row to load yet.
+
+### H2.14.3 A check after the rules
+
+Which values a set must have depends on its exercise's `logging_type`, which is in another table. No rule of Laravel reads another table that way, so `SaveSessionRequest` has an `after()` method:
+
+```php
+public function after(): array
+{
+    return [function (Validator $validator) {
+        // How each exercise is logged, in one query
+        $loggingTypes = Exercise::withTrashed()->whereIn('id', $ids)->pluck('logging_type', 'id');
+        // … for each set, each value field:
+        $validator->errors()->add($key, __('validation.logged_value_mismatch', ['attribute' => $name]));
+    }];
+}
+```
+
+- Laravel calls each function **after** the rules, **also when a rule failed**: the function must not trust the data, so it reads only whole numbers into its query, and `$loggingTypes->get($id)`, which gives `null` for an unknown id where `$loggingTypes[$id]` would warn.
+- **`$validator->getDisplayableAttribute($key)`** gives the field's name in the request's language, from `lang/*/validation.php`, so the message reads "Il campo peso non si usa per come è registrato questo esercizio." in Italian.
+- The new message is in the four files, English included, as for the superset rule ([H2.13.4](#h2134-a-rule-of-your-own)).
+
+### H2.14.4 The save
+
+`SaveWorkoutSession::save()` follows [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints): find the UUID with `withTrashed()`, refuse someone else's with `throw new AuthorizationException` (Laravel answers 403, as for a policy), return `null` for a deleted one (the controller answers 410), keep only the plan links that still hold, then match exercises and sets by UUID and delete those not sent. Two lines worth reading:
+
+```php
+// ??= assigns only when the left side is null: an unknown UUID is a new session of this user
+$session ??= $user->workoutSessions()->make(['id' => $id]);
+```
+
+```php
+// The plan items sent that are still in one of the user's plans, in one query
+PlanItem::query()->whereIn('plan_items.id', $sent)
+    ->join('plan_days', 'plan_days.id', '=', 'plan_items.plan_day_id')
+    ->join('plans', 'plans.id', '=', 'plan_days.plan_id')
+    ->where('plans.user_id', $user->id)
+    ->pluck('plan_items.id');
+```
+
+The second names every column with its table: three tables have an `id`.
+
+### H2.14.5 The trap of the moments
+
+The first test of a save failed:
+
+```
+⨯ it saves a new workout with the ids of the phone, and answers 201
+Failed asserting that two strings are identical.
+```
+
+The phone sent `"started_at": "2026-11-09T18:00:00+01:00"`, 18:00 in Rome, 17:00 in UTC; the test read back 18:00 UTC. In tinker, inside a transaction undone at the end:
+
+```php
+> $s = WorkoutSession::factory()->create(['started_at' => '2026-11-09T18:00:00+01:00']);
+> $s->getDateFormat();
+"Y-m-d H:i:s"
+> DB::table('workout_sessions')->where('id', $s->id)->value('started_at');
+"2026-11-09 18:00:00+00"
+> DB::selectOne('show timezone')->TimeZone . ' / ' . config('app.timezone');
+"UTC / UTC"
+```
+
+Laravel reads the offset when it parses the text, but it writes a date with `getDateFormat()`, `Y-m-d H:i:s`, which has no offset: the hour 18:00 reaches Postgres alone, and Postgres, in UTC, stores 18:00 UTC. An hour late, silently. The fix is to move each moment to UTC before handing it to the model:
+
+```php
+private function utc(?string $moment): ?Carbon
+{
+    return $moment === null ? null : Carbon::parse($moment)->utc();
+}
+```
+
+Then 18:00+01:00 becomes 17:00 UTC, written as `17:00:00`, and stored right. Every moment the phone sends goes through it: `started_at`, `finished_at`, each set's `completed_at`. Moments made on the server, such as `now()`, are already in UTC (`config/app.php`), which is why the plans never met this.
+
+### H2.14.6 Totals and "last time" in the database
+
+**Totals** are subqueries added by the scope `withTotals()`, one `selectSub()` each:
+
+```php
+$query->selectSub(fn (QueryBuilder $q) => $sets($q)
+    ->selectRaw('coalesce(sum(logged_sets.weight_kg * logged_sets.reps), 0)'), 'volume_kg');
+```
+
+In tinker, `echo WorkoutSession::query()->withTotals()->toRawSql();` prints one `select` with three subqueries, `exercises_done`, `sets_done` and `volume_kg`, and the soft delete's `where "workout_sessions"."deleted_at" is null` at the end. The volume's part:
+
+```sql
+(select coalesce(sum(logged_sets.weight_kg * logged_sets.reps), 0) from "logged_sets"
+  inner join "session_exercises" on "session_exercises"."id" = "logged_sets"."session_exercise_id"
+  where "session_exercises"."workout_session_id" = "workout_sessions"."id"
+  and "logged_sets"."set_type" != 'warm_up') as "volume_kg"
+```
+
+`whereColumn()` compares two columns instead of a column and a value: it ties the subquery to the session of the row being read. Postgres multiplies two `numeric(7,3)` into a value with six decimals, `640.000000`; the resource keeps three.
+
+**Last time** keeps, for each exercise, the most recent row:
+
+```php
+DB::table('session_exercises')
+    ->join('workout_sessions', …)
+    ->selectRaw('distinct on (session_exercises.exercise_id) session_exercises.id, session_exercises.exercise_id, …')
+    ->orderBy('session_exercises.exercise_id')
+    ->orderByDesc('workout_sessions.started_at')
+```
+
+`distinct on (x)` is Postgres's: of the rows sorted by `x` and then by the next orders, it keeps the first of each `x`. Here: the newest workout of each exercise. The `order by` must start with the same column. This query uses `DB::table()`, not the model, so SoftDeletes does not apply: `whereNull('workout_sessions.deleted_at')` is written by hand ([D3.11](../design/D3-data-model.md#d311-traps-to-avoid)), and a test checks it.
+
+### H2.14.7 Look at Home
+
+In tinker, on the development database, a workout of Day A saved through the action, then Home's data, all inside `DB::beginTransaction()` … `DB::rollBack()`:
+
+```php
+> app(SaveWorkoutSession::class)->save($user, '0192f4a7-3c1e-7d2a-9b4f-8e6a1c5d3f30', [ /* Day A, two sets */ ]);
+> echo json_encode(app(HomeSummary::class)->for($user), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+```
+
+The output, shortened, is the JSON of [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints): the three days of Push Pull Legs with 36, 41 and 42 estimated minutes, `suggested_day_id` on Day B since Day A was done, and the workout among `recent_sessions` with `"volume_kg": "640.000"`: its warm-up of 40 × 10 left out, 80 × 8 counted.
+
+### H2.14.8 The tests, and proving they can fail
+
+```sh
+make artisan c="test tests/Feature/Workouts"
+```
+
+```
+PASS  Tests\Feature\Workouts\HomeApiTest
+PASS  Tests\Feature\Workouts\SaveSessionApiTest
+PASS  Tests\Feature\Workouts\SessionReadApiTest
+PASS  Tests\Feature\Workouts\WorkoutTablesTest
+Tests:    39 passed (134 assertions)
+```
+
+| File | Covers |
+|---|---|
+| `SaveSessionApiTest.php` | The five situations of D3.6.5 (new, again, someone else's, sets unticked, deleted elsewhere); the plan's links kept, emptied after a delete, never someone else's; the values for each way of logging; messages in Italian; the ids of another workout; dates and feeling; 404 and 401 |
+| `SessionReadApiTest.php` | The list with totals and its filter; a whole workout; 403, 404 for a deleted one; deleting softly; last time, newest first, ignoring workouts in progress, deleted, skipped or someone else's |
+| `HomeApiTest.php` | No active plan; the days with their estimate, the suggested day, the day done last; the workout left open; the recent workouts with their totals |
+| `WorkoutTablesTest.php` | The tables without HTTP ([H1.15](H1-database.md#h115-the-workout-tables-as-built)) |
+
+Three lines broken on purpose, then put back:
+
+| Line changed | Test that failed |
+|---|---|
+| `->utc()` removed from `utc()` | `it saves a new workout with the ids of the phone, and answers 201` (the trap of H2.14.5) |
+| `if ($session?->trashed()) return null;` removed | `it leaves a workout deleted elsewhere deleted, and answers 410`: `Expected response status code [410] but received 200.` The late send brought the workout back |
+| `->whereNull('workout_sessions.deleted_at')` removed from last time | `it does not count a workout in progress, deleted, skipped or someone else's` |
+
+**Errors met along the way:**
+
+| Message | Cause | Fix |
+|---|---|---|
+| `Expected response status code [401] but received 422` | The test signed in with `actingAs()`, then expected a visitor: `actingAs()` holds for every request after it in the same test | The visitor's request first |
+| (none: caught while writing) | `$this->lastDoneDayId()` inside the function given to `search()` would have run one query per day | Read once, before |
 
 ---
 

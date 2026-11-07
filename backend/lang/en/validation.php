@@ -14,6 +14,8 @@ return [
     // The messages of SupersetsAreNeighbours, a rule of our own
     'superset_neighbours' => 'The exercises of a superset must be next to each other.',
     'superset_size' => 'A superset needs at least two exercises.',
+    // The message of a value SaveSessionRequest refuses for this kind of exercise
+    'logged_value_mismatch' => 'The :attribute field does not fit how this exercise is logged.',
 
     // How each field is called inside a message
     'attributes' => [
@@ -42,5 +44,25 @@ return [
         'days.*.items.*.sets.*.target_rpe' => 'RPE',
         'days.*.items.*.sets.*.target_duration_seconds' => 'duration',
         'days.*.items.*.sets.*.target_distance_meters' => 'distance',
+
+        // The workouts (SaveSessionRequest)
+        'plan_name' => 'plan name',
+        'day_name' => 'day name',
+        'started_at' => 'start',
+        'finished_at' => 'end',
+        'duration_seconds' => 'duration',
+        'exercises.*.id' => 'session exercise id',
+        'exercises.*.exercise_id' => 'exercise',
+        'exercises.*.plan_item_id' => 'plan exercise',
+        'exercises.*.superset_group' => 'superset',
+        'exercises.*.notes' => 'notes',
+        'exercises.*.sets' => 'sets',
+        'exercises.*.sets.*.id' => 'set id',
+        'exercises.*.sets.*.set_type' => 'set type',
+        'exercises.*.sets.*.weight_kg' => 'weight',
+        'exercises.*.sets.*.reps' => 'reps',
+        'exercises.*.sets.*.duration_seconds' => 'duration',
+        'exercises.*.sets.*.distance_meters' => 'distance',
+        'exercises.*.sets.*.completed_at' => 'set time',
     ],
 ];

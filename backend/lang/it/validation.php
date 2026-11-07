@@ -7,11 +7,13 @@
  */
 return [
     'array' => 'Il campo :attribute deve essere un elenco.',
+    'after_or_equal' => 'Il campo :attribute deve essere una data uguale o successiva a :date.',
     'between' => [
         'numeric' => 'Il campo :attribute deve essere tra :min e :max.',
     ],
     'boolean' => 'Il campo :attribute deve essere vero o falso.',
     'confirmed' => 'La conferma di :attribute non coincide.',
+    'date' => 'Il campo :attribute deve essere una data valida.',
     'decimal' => 'Il campo :attribute deve avere :decimal decimali.',
     'distinct' => 'Il campo :attribute contiene un valore ripetuto.',
     'email' => 'Il campo :attribute deve essere un indirizzo email valido.',
@@ -21,6 +23,7 @@ return [
         'numeric' => 'Il campo :attribute deve essere almeno :value.',
     ],
     'integer' => 'Il campo :attribute deve essere un numero intero.',
+    'logged_value_mismatch' => 'Il campo :attribute non si usa per come è registrato questo esercizio.',
     'max' => [
         'array' => 'Il campo :attribute non può avere più di :max elementi.',
         'string' => 'Il campo :attribute non può superare :max caratteri.',
@@ -82,5 +85,27 @@ return [
         'days.*.items.*.sets.*.target_rpe' => 'RPE',
         'days.*.items.*.sets.*.target_duration_seconds' => 'durata',
         'days.*.items.*.sets.*.target_distance_meters' => 'distanza',
+
+        // The workouts (SaveSessionRequest)
+        'plan_name' => 'nome della scheda',
+        'day_name' => 'nome del giorno',
+        'started_at' => 'inizio',
+        'finished_at' => 'fine',
+        'duration_seconds' => 'durata',
+        'feeling' => 'sensazione',
+        'exercises' => 'esercizi',
+        'exercises.*.id' => 'id dell\'esercizio della sessione',
+        'exercises.*.exercise_id' => 'esercizio',
+        'exercises.*.plan_item_id' => 'esercizio della scheda',
+        'exercises.*.superset_group' => 'superserie',
+        'exercises.*.notes' => 'note',
+        'exercises.*.sets' => 'serie',
+        'exercises.*.sets.*.id' => 'id della serie',
+        'exercises.*.sets.*.set_type' => 'tipo di serie',
+        'exercises.*.sets.*.weight_kg' => 'peso',
+        'exercises.*.sets.*.reps' => 'ripetizioni',
+        'exercises.*.sets.*.duration_seconds' => 'durata',
+        'exercises.*.sets.*.distance_meters' => 'distanza',
+        'exercises.*.sets.*.completed_at' => 'momento della serie',
     ],
 ];

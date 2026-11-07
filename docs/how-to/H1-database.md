@@ -12,6 +12,7 @@
 - Filling the public exercise library from free-exercise-db: [H1.12](#h112-the-free-exercise-db-import-as-built).
 - Tables whose ids are UUIDs made on the device, four levels deep, and a column added to `users` afterwards: [H1.13](#h113-the-plan-tables-as-built).
 - Translating the imported library from files of the repository: [H1.14](#h114-the-translation-of-the-library-as-built).
+- The workout tables: soft deletes on rows made by the phone, links that survive a deleted plan: [H1.15](#h115-the-workout-tables-as-built).
 - Something broke: [H1.9](#h19-when-something-goes-wrong).
 - What migrations and models are, in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
 
@@ -81,6 +82,10 @@
   - [H1.14.4 The command](#h1144-the-command)
   - [H1.14.5 Look at the result](#h1145-look-at-the-result)
   - [H1.14.6 The tests, and the errors met](#h1146-the-tests-and-the-errors-met)
+- [H1.15 The workout tables, as built](#h115-the-workout-tables-as-built)
+  - [H1.15.1 Generate and run](#h1151-generate-and-run)
+  - [H1.15.2 The models](#h1152-the-models)
+  - [H1.15.3 The tests](#h1153-the-tests)
 
 ---
 
@@ -1910,6 +1915,96 @@ The last test reads the real files and checks every one of the 2,628 entries, he
 | The command's closure received the progress bar where the external_id was expected | `withProgressBar($items, fn …)` calls the function with **the value, the bar, the key**, in that order (read in `vendor/laravel/framework/src/Illuminate/Console/Concerns/InteractsWithIO.php`) | `function (array $entry, mixed $bar, int|string $externalId)` |
 | `Failed asserting that two arrays are identical`: `es` and `de` swapped in the names | Postgres's `jsonb` stores an object's keys in an order of its own (shorter keys first), not in the order they were written | The test compares with `toEqual()`, which ignores the order of keys, instead of `toBe()` |
 | `it ships the three languages…` failed with `File does not exist` while the texts were being made | The test reads the real files, which did not exist yet | Expected until the files were joined |
+
+
+## H1.15 The workout tables, as built
+
+The first part of FEAT-3 created the three tables of a workout, `workout_sessions` → `session_exercises` → `logged_sets` ([D3.6](../design/D3-data-model.md#d36-workouts)). They follow the plan tables of [H1.13](#h113-the-plan-tables-as-built), UUIDs made on the device included; this section shows only what is new. The API on top of them is [H2.14](H2-backend.md#h214-the-workouts-api-as-built).
+
+| File | What it is |
+|---|---|
+| `database/migrations/2026_11_07_1545*_create_{workout_sessions,session_exercises,logged_sets}_table.php` | The three tables |
+| `app/Models/WorkoutSession.php`, `SessionExercise.php`, `LoggedSet.php` | Their models; the scopes `finished()` and `withTotals()` |
+| `app/Models/User.php`, `Plan.php` | `workoutSessions()`; on Plan also `suggestedDay()` |
+| `database/factories/{WorkoutSession,SessionExercise,LoggedSet}Factory.php` | Fake rows; `open()` and `warmUp()` states |
+| `tests/Feature/Workouts/WorkoutTablesTest.php` | 10 tests of the tables |
+
+**After pulling this branch on another computer:** `make migrate`.
+
+### H1.15.1 Generate and run
+
+```sh
+make artisan c="make:model WorkoutSession -mf"
+make artisan c="make:model SessionExercise -mf"
+make artisan c="make:model LoggedSet -mf"
+make artisan c="make:test Workouts/WorkoutTablesTest --pest"
+make artisan c="migrate --pretend"
+make migrate
+```
+
+```
+2026_11_07_154507_create_workout_sessions_table ............... 46.21ms DONE
+2026_11_07_154509_create_session_exercises_table ............... 7.62ms DONE
+2026_11_07_154511_create_logged_sets_table ..................... 8.87ms DONE
+```
+
+The lines of `migrate --pretend` that the plan tables did not have:
+
+```
+⇂ alter table "workout_sessions" add constraint "workout_sessions_plan_id_foreign" foreign key ("plan_id") references "plans" ("id") on delete set null
+⇂ alter table "workout_sessions" add constraint "workout_sessions_plan_day_id_foreign" foreign key ("plan_day_id") references "plan_days" ("id") on delete set null
+⇂ alter table "session_exercises" add constraint "session_exercises_plan_item_id_foreign" foreign key ("plan_item_id") references "plan_items" ("id") on delete set null
+⇂ ALTER TABLE logged_sets ADD CONSTRAINT logged_sets_weight_not_negative CHECK (weight_kg >= 0)
+```
+
+- **`on delete set null` three times**: deleting a plan, a day or an item empties the session's link and keeps the session. This is the whole point of keeping the plan and the workouts apart ([D3.1.3](../design/D3-data-model.md#d313-the-main-idea-what-i-mean-to-do-and-what-i-did)).
+- **No index of its own on `workout_sessions.user_id`**: the index on `(user_id, started_at)`, history by date, serves it ([D3.2.6](../design/D3-data-model.md#d326-indexes)).
+- **`softDeletesTz()`** on the sessions, as on the exercises, but for another reason: a deleted session's row is the marker that stops a late send from bringing it back ([D3.7.3](../design/D3-data-model.md#d373-deleting-a-session-a-soft-delete)).
+
+### H1.15.2 The models
+
+Three things the plan models did not need:
+
+- **A relation named for what it holds.** `WorkoutSession::sessionExercises()`, not `exercises()`: each row is an exercise *as done*, which points to an `Exercise` of the library. The belongsTo back is `SessionExercise::session()`, whose column is given, `workout_session_id`, since Laravel would look for `session_id`.
+- **Deleted sessions are hidden by every query on the model**, by `SoftDeletes`. Questions about history start from `WorkoutSession` ([D3.11](../design/D3-data-model.md#d311-traps-to-avoid)); the one query of the API that does not, "last time", leaves deleted sessions out by hand.
+- **A scope that adds columns.** `withTotals()` adds `exercises_done`, `sets_done` and `volume_kg` to each row, as subqueries worked out by Postgres ([H2.14.6](H2-backend.md#h2146-totals-and-last-time-in-the-database)). Tried on Ada's Monday of [D3.10](../design/D3-data-model.md#d310-the-full-story-one-week-of-training), a warm-up of 40 × 10 then 80 × 8 and 80 × 7:
+
+```php
+> $session = WorkoutSession::query()->withTotals()->first();
+> [(float) $session->volume_kg, $session->sets_done, $session->exercises_done];
+[1200.0, 2, 1]
+```
+
+The 1200 kg of D3.10, the warm-up left out; a second exercise with no sets, skipped, does not count among those done.
+
+**The suggested day** is a method of `Plan`, `suggestedDay()`, the query of [D3.6.4](../design/D3-data-model.md#d364-how-the-screens-use-these-tables) with the day done last read once:
+
+```php
+$days = $this->days()->get()->values();
+$lastDoneId = $this->lastDoneDayId();
+$index = $days->search(fn (PlanDay $day) => $day->id === $lastDoneId);
+
+return $index === false ? $days->first() : ($days[$index + 1] ?? $days->first());
+```
+
+A first version called `$this->lastDoneDayId()` inside the function given to `search()`, which runs once per day: one query per day for the same answer. A function passed to a collection's method runs for every item; anything that does not depend on the item goes before it.
+
+### H1.15.3 The tests
+
+```
+PASS  Tests\Feature\Workouts\WorkoutTablesTest
+✓ it keeps the workout when its plan is deleted, with the names it copied
+✓ it hides a deleted workout, and deletes its rows only for good
+✓ it refuses to delete for good an exercise that a workout used
+✓ it refuses a feeling outside 1–5, and a negative weight or reps (×3)
+✓ it works out the totals in the database, warm-ups excluded
+✓ it suggests the day after the last one done, back to the first after the last
+✓ it suggests the first day when the last one done was deleted
+✓ it keeps a workout of an exercise deleted since
+Tests:    10 passed (26 assertions)
+```
+
+The suggested-day test walks a plan of three days through a week: nothing done (A), A done (B), C done (back to A), then a session left open and one deleted, which do not count.
 
 ---
 

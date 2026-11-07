@@ -22,8 +22,10 @@
 use App\Http\Controllers\CurrentUserController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MuscleController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\WorkoutSessionController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -68,4 +70,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/plans/{plan}/activate', [PlanController::class, 'activate']);
     Route::post('/plans/{plan}/archive', [PlanController::class, 'archive']);
     Route::post('/plans/{plan}/unarchive', [PlanController::class, 'unarchive']);
+
+    // The workouts (docs/concepts/C2-backend.md C2.5.7). Written one by one:
+    // saving is a PUT to the session's own UUID, made on the phone, which
+    // creates the session when it is new (so no POST). whereUuid(): a
+    // {session} that is not a UUID gets a 404 before any code runs, which
+    // also keeps 'last-sets' from being read as a session's id
+    Route::get('/sessions', [WorkoutSessionController::class, 'index']);
+    Route::get('/sessions/last-sets', [WorkoutSessionController::class, 'lastSets']);
+    Route::get('/sessions/{session}', [WorkoutSessionController::class, 'show'])->whereUuid('session');
+    Route::put('/sessions/{session}', [WorkoutSessionController::class, 'save'])->whereUuid('session');
+    Route::delete('/sessions/{session}', [WorkoutSessionController::class, 'destroy'])->whereUuid('session');
+
+    // Home's data in one request (D1.4.2)
+    Route::get('/home', [HomeController::class, 'show']);
 });
