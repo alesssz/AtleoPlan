@@ -161,6 +161,17 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
     }
 
     /**
+     * The user's workouts (docs/design/D3-data-model.md D3.6.1). Deleted ones
+     * are left out, as by every query on WorkoutSession (SoftDeletes).
+     *
+     * @return HasMany<WorkoutSession, $this>
+     */
+    public function workoutSessions(): HasMany
+    {
+        return $this->hasMany(WorkoutSession::class);
+    }
+
+    /**
      * The language of emails sent to this user, such as "reset your password".
      * Laravel asks for it before writing the email, because the request that
      * triggers it may come from a browser in another language.

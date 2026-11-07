@@ -98,6 +98,50 @@ class Plan extends Model
     }
 
     /**
+     * The workouts done following this plan (docs/design/D3-data-model.md D3.6.1).
+     *
+     * @return HasMany<WorkoutSession, $this>
+     */
+    public function workoutSessions(): HasMany
+    {
+        return $this->hasMany(WorkoutSession::class);
+    }
+
+    /**
+     * The id of the day done in the last finished workout of this plan, or
+     * null when none was done yet. Deleted workouts do not count.
+     */
+    public function lastDoneDayId(): ?string
+    {
+        // latest('started_at'): the most recent first; value(): one column
+        // of the first row, with no model built
+        return $this->workoutSessions()->finished()->latest('started_at')->value('plan_day_id');
+    }
+
+    /**
+     * The suggested day (docs/design/D2-decisions.md D2.8): the one after the
+     * last day done, in the plan's order, back to the first after the last.
+     * The first day when nothing was done yet, or when the last day done has
+     * been deleted since. Null for a plan with no days.
+     *
+     * It is only a suggestion: Home shows every day, and the choice is the
+     * user's (docs/design/D1-ui.md D1.4.2).
+     */
+    public function suggestedDay(): ?PlanDay
+    {
+        // The days in order; the relation sorts them by position
+        $days = $this->days()->get()->values();
+        // Read once, here: inside the function below it would be one query per day
+        $lastDoneId = $this->lastDoneDayId();
+        // search(): the index of the first day the function accepts, or false
+        $index = $days->search(fn (PlanDay $day) => $day->id === $lastDoneId);
+
+        // `$days[$index + 1] ?? …`: the next day, or the first when the last
+        // was the last of the plan
+        return $index === false ? $days->first() : ($days[$index + 1] ?? $days->first());
+    }
+
+    /**
      * Whether it is this user's plan.
      *
      * @param  User|null  $user  the user asking; null owns nothing

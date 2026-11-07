@@ -19,6 +19,7 @@ Every PHP file starts with a comment saying what it is and points to the section
   - [C2.5.4 The exercise library's endpoints](#c254-the-exercise-librarys-endpoints)
   - [C2.5.5 The plans' endpoints](#c255-the-plans-endpoints)
   - [C2.5.6 Validating nested data](#c256-validating-nested-data)
+  - [C2.5.7 The workouts' endpoints](#c257-the-workouts-endpoints)
 - [C2.6 Database: migrations, models, factories, seeders](#c26-database-migrations-models-factories-seeders)
 - [C2.7 Signing in: Sanctum](#c27-signing-in-sanctum)
   - [C2.7.1 How a session works](#c271-how-a-session-works)
@@ -106,6 +107,7 @@ backend/
 │   ├── Actions/              actions: one job of the app each, outside the controllers (C2.5.3)
 │   │   ├── Exercises/          SavePersonalExercise, ImportFreeExercise, TranslateExercise
 │   │   ├── Plans/              SavePlan: saves a whole plan (C2.5.5)
+│   │   ├── Workouts/           SaveWorkoutSession, HomeSummary (C2.5.7)
 │   │   └── Fortify/            what Fortify leaves to us: creating a user, setting a new password (C2.7)
 │   ├── Console/Commands/     our own Artisan commands: exercises:import, exercises:translate (C2.14)
 │   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit, LoggingType, MuscleRole, SetType (D3.2.4), ImportOutcome
@@ -114,8 +116,8 @@ backend/
 │   │   ├── Middleware/         steps every request crosses: SetLocaleFromRequest (C2.7.7)
 │   │   ├── Requests/           Form Requests: the validation of an endpoint (C2.5)
 │   │   └── Resources/          API Resources: the JSON shape of a model (C2.5)
-│   ├── Models/               Eloquent models, one class per table: User, Muscle, Equipment, Exercise, ExerciseMuscle, Plan, PlanDay, PlanItem, PlanSet (C2.6)
-│   ├── Policies/             who may do what to a row: ExercisePolicy, PlanPolicy (C2.5.1)
+│   ├── Models/               Eloquent models, one class per table: User, Muscle, Equipment, Exercise, ExerciseMuscle, Plan, PlanDay, PlanItem, PlanSet, WorkoutSession, SessionExercise, LoggedSet (C2.6)
+│   ├── Policies/             who may do what to a row: ExercisePolicy, PlanPolicy, WorkoutSessionPolicy (C2.5.1)
 │   ├── Rules/                validation rules of our own: SupersetsAreNeighbours (C2.5.6)
 │   └── Providers/            service providers: set things up when the app starts
 │       └── Filament/           the admin panel's configuration (C2.8)
@@ -206,7 +208,7 @@ Our rule for an endpoint ([P1.2](../project/P1-conventions.md#p12-code)): **the 
 2. lets a **Form Request** validate the input, which answers 422 with one message per invalid field when the input is not valid;
 3. calls the code that does the work and returns an **API Resource**, a class that decides the JSON shape of a model.
 
-The rules themselves live in services or actions, tested without HTTP. The smallest real example is `CurrentUserController`, with `UpdatePreferencesRequest` and `UserResource`: it needs no policy, because it only touches the user asking. The complete one is `ExerciseController`, explained in the four sections below; [C2.12](#c212-recipes) has the recipe, and [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built) how it was built. `PlanController` is the second, for data shaped as a tree: a plan with its days, exercises and sets, saved in one request ([C2.5.5](#c255-the-plans-endpoints), [C2.5.6](#c256-validating-nested-data)).
+The rules themselves live in services or actions, tested without HTTP. The smallest real example is `CurrentUserController`, with `UpdatePreferencesRequest` and `UserResource`: it needs no policy, because it only touches the user asking. The complete one is `ExerciseController`, explained in the four sections below; [C2.12](#c212-recipes) has the recipe, and [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built) how it was built. `PlanController` is the second, for data shaped as a tree: a plan with its days, exercises and sets, saved in one request ([C2.5.5](#c255-the-plans-endpoints), [C2.5.6](#c256-validating-nested-data)). `WorkoutSessionController` is the third, for data sent by a phone that may be offline ([C2.5.7](#c257-the-workouts-endpoints)).
 
 ### C2.5.1 Permissions: policies
 
@@ -460,6 +462,73 @@ It is used like any rule: `'days.*.items' => ['present', 'array', new SupersetsA
 - **`unique` and `exists` are skipped once an earlier rule of the field has failed.** A day id `"day-1"` fails `uuid`, and Laravel does not run the `unique` query, which Postgres would answer with an error ("invalid input syntax for type uuid"), not with a "no". The order of the rules is what matters: `uuid` before `unique`.
 - **`validated()` keeps a list only through its items' validated fields.** A set sent as `{}` has no field with a rule, so the list `sets: [{}]` vanished from the validated data. Hence `set_type` is required.
 - **An id checked against "this plan" trusts what "this plan" is.** On a create, the days' ids are checked against the plan with the id sent; if that id is someone else's, the request is refused on `id` anyway.
+
+
+### C2.5.7 The workouts' endpoints
+
+The first part of FEAT-3: the server side of workout mode and Home ([D1.4.2](../design/D1-ui.md#d142-home), [D1.4.9](../design/D1-ui.md#d149-workout-mode)), on the tables of [D3.6](../design/D3-data-model.md#d36-workouts). How it was built: [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built).
+
+| Method and path | What it does | Answers |
+|---|---|---|
+| `PUT /api/sessions/{uuid}` | Saves a whole workout, new or not | 201 new; 200 saved again; 410 deleted elsewhere; 403 someone else's; 422 |
+| `GET /api/sessions` | My workouts, the most recent first, 20 per page, each with its totals. `?status=open` or `finished` | 200; 422 |
+| `GET /api/sessions/{uuid}` | One whole workout: exercises, sets, totals | 200; 403; 404, also when deleted |
+| `DELETE /api/sessions/{uuid}` | Deletes it, softly | 204; 403 |
+| `GET /api/sessions/last-sets?exercises=12,40` | For each exercise, the sets of the last finished workout in which it was done | 200; 422 |
+| `GET /api/home` | Home in one request: the active plan's days with an estimated duration, the suggested day, the day done last, the workout left open, the finished workouts of the last 8 days | 200 |
+
+**Why a `PUT` to the session's own address, and no `POST`.** The phone makes the session's UUID when Start is tapped, possibly offline ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). Sending it is "put this session at this address": the first time creates it (201), every later time replaces it (200). `PUT` is the HTTP method that means exactly this, and it is safe to repeat: the phone's queue can resend after a lost answer without making a second workout. `{session}` is not loaded by route model binding, since there may be no row yet; `whereUuid('session')` on the route answers 404 to anything that is not a UUID.
+
+**The flow of a save**, `SaveWorkoutSession`, in one transaction ([D3.6.5](../design/D3-data-model.md#d365-sending-a-session-to-the-server)):
+
+```
+PUT /api/sessions/0192…f30  { started_at, finished_at, exercises: [ { sets: [ … ] } ] }
+│
+├─ SaveSessionRequest ........... the shape, the ids, the values that fit each exercise; 422 otherwise
+└─ SaveWorkoutSession
+   ├─ find the UUID, deleted ones included
+   │   ├─ someone else's ........ 403
+   │   ├─ deleted ............... nothing written → 410 Gone: the phone stops resending
+   │   └─ unknown ............... a new session of this user
+   ├─ the plan, its day, each item: kept if still the user's, emptied otherwise
+   ├─ moments turned into UTC
+   ├─ exercises and sets matched by UUID; those not sent are deleted
+   └─ commit
+→ 201 or 200 { data: the whole session }
+```
+
+- **A workout is never refused because a plan changed.** The phone may have trained offline while the plan was edited or deleted on the laptop. The request checks only the format of `plan_id`, `plan_day_id` and `plan_item_id`; the action keeps the links that still exist and belong to the user, empties the others, and the session keeps the names it copied ("Push Pull Legs · Day A"). Someone else's plan id is emptied the same way, so it reveals nothing.
+- **A deleted session stays deleted.** Its row stays, soft-deleted ([D3.7.3](../design/D3-data-model.md#d373-deleting-a-session-a-soft-delete)), so a late send finds it and answers **410 Gone**: the session is gone for good, and the phone's queue reads this as done. D3.6.5's sketch returned silently; a status the phone can read is better.
+- **Exercises and sets are a whole list each, as for a plan.** An exercise taken out or a set unticked on the phone is simply not sent, and its row is deleted. Unlike a plan's sets, a logged set has a UUID made on the phone and is updated in place.
+- **The values fit how the exercise is logged** ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)): weight and reps for `weight_reps`, reps for `reps`, a time or a distance. The rule spans two tables, which a check constraint cannot see, so the Form Request checks it in an `after()` method, which Laravel calls after the rules with the validator, to add errors of its own ("The weight field does not fit how this exercise is logged.").
+- **Moments are stored in UTC.** The phone sends `2026-11-09T18:00:00+01:00`. Laravel writes a date as `Y-m-d H:i:s`, without the offset, so the moment was stored as 18:00 UTC, an hour late, until the action turned every moment into UTC first ([H2.14.5](../how-to/H2-backend.md#h2145-the-trap-of-the-moments)).
+
+**Totals, worked out by the database** ([D3.8](../design/D3-data-model.md#d38-computed-never-stored)). The list, a whole session and Home's recent workouts carry `exercises_done`, `sets_done` and `volume_kg` (weight × reps), warm-ups excluded. The scope `WorkoutSession::withTotals()` adds them as subqueries of the `SELECT`, so a page of 20 sessions is still one query, and the sum is exact. The resource sends them with `whenHas()`, only when the query added them. `volume_kg` is text with three decimals, like every weight.
+
+**Last time** (`last-sets`): for each exercise of the day, the sets of the last finished, not deleted workout of this user in which it had at least one set, in any plan ([D3.6.4](../design/D3-data-model.md#d364-how-the-screens-use-these-tables)). Two queries for any number of exercises; the first uses Postgres's `distinct on (exercise_id)`, which keeps the first row of each exercise among rows sorted newest first.
+
+**Home** (`HomeSummary`), from the real development database with Day A done yesterday:
+
+```json
+{
+  "active_plan": { "id": "01a1…802", "name": "Push Pull Legs", "is_active": true, "days_count": 3, "…": "…" },
+  "days": [
+    { "id": "01a1…cdd", "name": "Day A – Push", "exercises": 5, "estimated_minutes": 36 },
+    { "id": "01a1…856", "name": "Day B – Pull", "exercises": 5, "estimated_minutes": 41 },
+    { "id": "01a1…027", "name": "Day C – Legs", "exercises": 5, "estimated_minutes": 42 }
+  ],
+  "suggested_day_id": "01a1…856",
+  "last_day": { "id": "01a1…cdd", "name": "Day A – Push", "finished_at": "2026-11-06T19:02:00.000000Z" },
+  "open_session": null,
+  "recent_sessions": [
+    { "id": "0192…f30", "day_name": "Day A – Push", "exercises_done": 1, "sets_done": 1, "volume_kg": "640.000", "…": "…" }
+  ]
+}
+```
+
+- **The suggested day** is `Plan::suggestedDay()`: the day after the last one done in a finished, not deleted workout of the plan, back to the first after the last; the first day when nothing was done yet, or when the last day done was deleted ([D2.8](../design/D2-decisions.md#d28-workout-rules)).
+- **The estimate** counts, for each planned set, 40 seconds of work plus its exercise's rest (the user's default when none). An estimate, never stored.
+- **The week** is the app's to work out: the recent workouts cover the last 8 days, enough for this week in any time zone, and the phone groups them by its own Monday ([D3.2.5](../design/D3-data-model.md#d325-times)).
 
 ---
 
@@ -971,6 +1040,8 @@ The short versions. [H2. Backend: how to](../how-to/H2-backend.md) builds a real
 8. **Frontend:** the `src/api/` file and its hooks ([C1.9](C1-frontend.md#c19-recipes)).
 
 **A body shaped as a tree** (a plan with its days, exercises and sets): rules with `.*` for every level, `present` on the lists, an action that saves it all in one transaction ([C2.5.6](#c256-validating-nested-data)). **A check Laravel has no rule for:** `make artisan c="make:rule Name"`, then `validate()` calling `$fail('validation.key')->translate()`, and the message in the four `lang/*/validation.php`.
+
+**Data a phone sends later, maybe twice** (a workout): a `PUT` to the row's own UUID, made on the phone, which creates or replaces; every row of the body matched by its UUID; a deleted row answered with 410 so the phone stops resending ([C2.5.7](#c257-the-workouts-endpoints)).
 
 **Work in the background.**
 

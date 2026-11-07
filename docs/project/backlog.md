@@ -117,7 +117,12 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Priority:** high · **Kind:** feature · **Found:** 2026-11-05
 
-**What is missing.** Home with the suggested day ([D1.4.2](../design/D1-ui.md#d142-home)); workout mode with the rest timer, last time's values and one-tap sets ([D1.4.9](../design/D1-ui.md#d149-workout-mode)); working offline: the PWA (vite-plugin-pwa), the persisted query cache, sessions and sets with UUIDs synced later ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)). Tables: [D3.6](../design/D3-data-model.md#d36-workouts). Its sessions point to the plans' days and items, done.
+**Done:** the three tables and the API: saving a whole workout sent by the phone, late and twice, listing and reading with totals, deleting, the sets of last time, and Home's data with the suggested day (`feat/workout-api`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints), [H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built)).
+
+**What is missing.** The screens, each on its own branch:
+- **Workout mode** ([D1.4.9](../design/D1-ui.md#d149-workout-mode)): full screen, the day's exercises with the "Last" column from `last-sets`, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous and Next, swap and skip; the session kept on the device and sent with `PUT /api/sessions/{id}`; the screen kept on (Wake Lock). The summary at the end belongs to FEAT-4.
+- **Home** ([D1.4.2](../design/D1-ui.md#d142-home)) from `GET /api/home`: the active plan's card with the suggested day and Start, the other days as chips, the banner of a workout left open, the week strip with its numbers, Free workout.
+- **Working offline** ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)): the PWA (vite-plugin-pwa), the query cache kept in IndexedDB, the queue of workouts to send, retried until a 2xx or a 410.
 
 ### FEAT-4 Summary and history
 

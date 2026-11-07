@@ -7,11 +7,13 @@
  */
 return [
     'array' => 'Das Feld :attribute muss eine Liste sein.',
+    'after_or_equal' => 'Das Feld :attribute muss ein Datum gleich oder nach :date sein.',
     'between' => [
         'numeric' => 'Das Feld :attribute muss zwischen :min und :max liegen.',
     ],
     'boolean' => 'Das Feld :attribute muss wahr oder falsch sein.',
     'confirmed' => 'Die Bestätigung von :attribute stimmt nicht überein.',
+    'date' => 'Das Feld :attribute muss ein gültiges Datum sein.',
     'decimal' => 'Das Feld :attribute muss :decimal Nachkommastellen haben.',
     'distinct' => 'Das Feld :attribute enthält einen doppelten Wert.',
     'email' => 'Das Feld :attribute muss eine gültige E-Mail-Adresse sein.',
@@ -21,6 +23,7 @@ return [
         'numeric' => 'Das Feld :attribute muss mindestens :value sein.',
     ],
     'integer' => 'Das Feld :attribute muss eine ganze Zahl sein.',
+    'logged_value_mismatch' => 'Das Feld :attribute passt nicht dazu, wie diese Übung erfasst wird.',
     'max' => [
         'array' => 'Das Feld :attribute darf höchstens :max Einträge haben.',
         'string' => 'Das Feld :attribute darf höchstens :max Zeichen haben.',
@@ -82,5 +85,27 @@ return [
         'days.*.items.*.sets.*.target_rpe' => 'RPE',
         'days.*.items.*.sets.*.target_duration_seconds' => 'Dauer',
         'days.*.items.*.sets.*.target_distance_meters' => 'Distanz',
+
+        // The workouts (SaveSessionRequest)
+        'plan_name' => 'Name des Plans',
+        'day_name' => 'Name des Tages',
+        'started_at' => 'Beginn',
+        'finished_at' => 'Ende',
+        'duration_seconds' => 'Dauer',
+        'feeling' => 'Befinden',
+        'exercises' => 'Übungen',
+        'exercises.*.id' => 'ID der Übung der Einheit',
+        'exercises.*.exercise_id' => 'Übung',
+        'exercises.*.plan_item_id' => 'Übung des Plans',
+        'exercises.*.superset_group' => 'Supersatz',
+        'exercises.*.notes' => 'Notizen',
+        'exercises.*.sets' => 'Sätze',
+        'exercises.*.sets.*.id' => 'ID des Satzes',
+        'exercises.*.sets.*.set_type' => 'Satztyp',
+        'exercises.*.sets.*.weight_kg' => 'Gewicht',
+        'exercises.*.sets.*.reps' => 'Wiederholungen',
+        'exercises.*.sets.*.duration_seconds' => 'Dauer',
+        'exercises.*.sets.*.distance_meters' => 'Distanz',
+        'exercises.*.sets.*.completed_at' => 'Zeitpunkt des Satzes',
     ],
 ];
