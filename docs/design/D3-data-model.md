@@ -898,14 +898,14 @@ DB::statement('ALTER TABLE logged_sets ADD CONSTRAINT logged_sets_reps_not_negat
 
 **Which values a set fills** depends on the exercise's `logging_type`:
 
-| `logging_type` | Filled | Example |
-|---|---|---|
-| `weight_reps` | `weight_kg`, `reps` | Bench press, 80 kg × 8 |
-| `reps` | `reps` | Pull-ups, 12 |
-| `time` | `duration_seconds` | Plank, 60 s |
-| `distance` | `distance_meters` | Rowing, 500 m |
+| `logging_type` | Filled | May be filled | Example |
+|---|---|---|---|
+| `weight_reps` | `reps` | `weight_kg`; empty for a set with the body alone | Bench press, 80 kg × 8; lunges without dumbbells, 12 |
+| `reps` | `reps` | `weight_kg`, the **added** weight (a belt with a plate); empty for the body alone | Pull-ups, 12; weighted pull-ups, +10 kg × 6 |
+| `time` | `duration_seconds` | – | Plank, 60 s |
+| `distance` | `distance_meters` | – | Rowing, 500 m |
 
-The rule lies across two tables, which a check constraint cannot see, so the Form Request enforces it.
+Every other value field stays empty. On a `reps` exercise `weight_kg` is what was added to the body, never the body's weight, which the app does not know. The rule lies across two tables, which a check constraint cannot see, so the Form Request enforces it.
 
 **Why the set type is here as well as in `plan_sets`.** The type can be changed during a workout ([D1.4.9](D1-ui.md#d149-workout-mode)), and what counts for statistics is what was really done.
 

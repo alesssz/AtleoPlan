@@ -13,10 +13,10 @@ namespace App\Enums;
  */
 enum LoggingType: string
 {
-    /** A weight and a number of repetitions: most strength exercises. */
+    /** A weight and a number of repetitions: most strength exercises. The weight may be empty: a set done with the body alone. */
     case WeightReps = 'weight_reps';
 
-    /** Repetitions only, with the body's own weight: push-ups, pull-ups. */
+    /** Repetitions with the body's own weight: push-ups, pull-ups; maybe an added weight (a belt with a plate), stored in weight_kg. */
     case Reps = 'reps';
 
     /** A duration: plank, wall sit. */

@@ -49,9 +49,11 @@ use Illuminate\Validation\Validator;
  *   never be refused because the plan changed while it was being done,
  *   offline: SaveWorkoutSession keeps the links that still exist and are the
  *   user's, and empties the others (D3.7.1).
- * - **The values fit how the exercise is logged** (D3.6.3): weight and reps
- *   for weight_reps, reps for reps, a time or a distance. The rule spans two
- *   tables, so it is an after-check, below.
+ * - **The values fit how the exercise is logged** (D3.6.3): reps for
+ *   weight_reps and reps, with a weight that may be left out (a weighted
+ *   exercise done with the body alone; a pull-up with or without added
+ *   weight), a time or a distance. The rule spans two tables, so it is an
+ *   after-check, below.
  *
  * The generated authorize() method was removed: permissions are checked by
  * SaveWorkoutSession and WorkoutSessionPolicy (docs/how-to/H2-backend.md H2.3.6).
@@ -59,16 +61,30 @@ use Illuminate\Validation\Validator;
 class SaveSessionRequest extends FormRequest
 {
     /**
-     * The fields each way of logging fills, and must fill (D3.6.3). The
-     * other value fields of the set must be empty.
+     * The fields each way of logging must fill (D3.6.3).
      *
      * @var array<string, list<string>>
      */
-    private const VALUES_BY_LOGGING = [
-        'weight_reps' => ['weight_kg', 'reps'],
+    private const REQUIRED_BY_LOGGING = [
+        'weight_reps' => ['reps'],
         'reps' => ['reps'],
         'time' => ['duration_seconds'],
         'distance' => ['distance_meters'],
+    ];
+
+    /**
+     * The fields each way of logging may fill or leave empty. The weight is
+     * one: on weight_reps, empty for a set done with the body alone (lunges
+     * without dumbbells); on reps, the added weight of a weighted pull-up or
+     * dip, empty for the body alone. Any field in neither list must be empty.
+     *
+     * @var array<string, list<string>>
+     */
+    private const OPTIONAL_BY_LOGGING = [
+        'weight_reps' => ['weight_kg'],
+        'reps' => ['weight_kg'],
+        'time' => [],
+        'distance' => [],
     ];
 
     /**
@@ -146,8 +162,10 @@ class SaveSessionRequest extends FormRequest
                 if (! $type instanceof LoggingType || ! is_array($exercise['sets'] ?? null)) {
                     continue;
                 }
-                // The value fields this exercise's sets must fill
-                $expected = self::VALUES_BY_LOGGING[$type->value];
+                // The value fields this exercise's sets must fill, and
+                // those they may fill
+                $required = self::REQUIRED_BY_LOGGING[$type->value];
+                $optional = self::OPTIONAL_BY_LOGGING[$type->value];
 
                 foreach ($exercise['sets'] as $s => $set) {
                     foreach (['weight_kg', 'reps', 'duration_seconds', 'distance_meters'] as $field) {
@@ -158,9 +176,9 @@ class SaveSessionRequest extends FormRequest
                         // getDisplayableAttribute(): the field's name in the
                         // request's language, from lang/*/validation.php
                         $name = $validator->getDisplayableAttribute($key);
-                        if (in_array($field, $expected, true) && $value === null) {
+                        if (in_array($field, $required, true) && $value === null) {
                             $validator->errors()->add($key, __('validation.required', ['attribute' => $name]));
-                        } elseif (! in_array($field, $expected, true) && $value !== null) {
+                        } elseif (! in_array($field, $required, true) && ! in_array($field, $optional, true) && $value !== null) {
                             $validator->errors()->add($key, __('validation.logged_value_mismatch', ['attribute' => $name]));
                         }
                     }

@@ -212,11 +212,36 @@ it('asks for the values that fit how the exercise is logged, and only those', fu
         ->assertUnprocessable()
         ->assertJsonValidationErrors(array_map(fn (string $field) => "exercises.0.sets.0.{$field}", $errors));
 })->with([
-    'weight and reps, no weight' => [LoggingType::WeightReps, ['weight_kg' => null], ['weight_kg']],
-    'reps only, with a weight' => [LoggingType::Reps, [], ['weight_kg']],
+    'weight and reps, no reps' => [LoggingType::WeightReps, ['reps' => null], ['reps']],
+    'reps only, with a time' => [LoggingType::Reps, ['duration_seconds' => 30], ['duration_seconds']],
     'time, with reps and no time' => [LoggingType::Time, ['weight_kg' => null], ['reps', 'duration_seconds']],
     'distance, with nothing' => [LoggingType::Distance, ['weight_kg' => null, 'reps' => null], ['distance_meters']],
 ]);
+
+it('takes the weight as optional: none for the body alone, an added weight on a pull-up', function () {
+    $lunge = Exercise::factory()->create(['logging_type' => LoggingType::WeightReps]);
+    $pullup = Exercise::factory()->create(['logging_type' => LoggingType::Reps]);
+    $body = phoneSession($lunge);
+    $body['exercises'][0]['sets'] = [phoneSet(['weight_kg' => null, 'reps' => 12])];
+    $body['exercises'][1] = [
+        'id' => phoneId(),
+        'exercise_id' => $pullup->id,
+        'plan_item_id' => null,
+        'superset_group' => null,
+        'notes' => null,
+        'sets' => [phoneSet(['weight_kg' => null, 'reps' => 10]), phoneSet(['weight_kg' => 10, 'reps' => 6])],
+    ];
+
+    $this->actingAs($user = User::factory()->create())->putJson('/api/sessions/'.phoneId(), $body)
+        ->assertCreated()
+        ->assertJsonPath('data.exercises.0.sets.0.weight_kg', null)
+        ->assertJsonPath('data.exercises.1.sets.0.weight_kg', null)
+        ->assertJsonPath('data.exercises.1.sets.1.weight_kg', '10.000');
+
+    // The volume counts the weight that is known: the added 10 kg × 6
+    $this->actingAs($user)->getJson('/api/sessions')
+        ->assertJsonPath('data.0.volume_kg', '60.000');
+});
 
 it('accepts a timed set with its time alone', function () {
     $plank = Exercise::factory()->create(['logging_type' => LoggingType::Time]);
@@ -229,7 +254,7 @@ it('accepts a timed set with its time alone', function () {
 });
 
 it('says in the user\'s language what does not fit', function () {
-    $exercise = Exercise::factory()->create(['logging_type' => LoggingType::Reps]);
+    $exercise = Exercise::factory()->create(['logging_type' => LoggingType::Time]);
     $body = phoneSession($exercise);
     $body['exercises'][0]['sets'] = [phoneSet()];
 

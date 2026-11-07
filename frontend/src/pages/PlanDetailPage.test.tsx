@@ -6,6 +6,8 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { loadActiveSession, storeActiveSession } from '@/components/workout/session-storage'
+import { startSession } from '@/components/workout/workout-session'
 import { fakeApi, renderRoutes, signedInAs, testUser } from '@/test/auth-helpers'
 import { testPlan } from '@/test/plan-helpers'
 import { PlanDetailPage } from './PlanDetailPage'
@@ -15,6 +17,7 @@ const routes = [
   { path: 'plans', element: <p>the list</p> },
   { path: 'plans/:id', element: <PlanDetailPage /> },
   { path: 'exercises/:id', element: <p>an exercise</p> },
+  { path: 'session/:id', element: <p>workout mode</p> },
 ]
 
 /** The answer of GET /api/plans/plan-ppl: the test plan, changed as asked. */
@@ -149,6 +152,46 @@ describe('PlanDetailPage', () => {
     renderPlan()
 
     expect(await screen.findByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/plans/plan-ppl/edit')
+  })
+
+  it('starts a workout of the open day, with last time\'s sets, and opens workout mode', async () => {
+    const fake = fakeApi({
+      'GET /api/user': signedInAs(),
+      'GET /api/plans/plan-ppl': planAnswer(),
+      'GET /api/sessions/last-sets': { status: 200, body: { data: [] } },
+    })
+    const { router } = renderRoutes(routes, '/plans/plan-ppl')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Start this day' }))
+
+    expect(await screen.findByText('workout mode')).toBeInTheDocument()
+    const session = loadActiveSession()
+    expect(router.state.location.pathname).toBe(`/session/${session?.id}`)
+    expect(session?.day_name).toBe('Day A – Push')
+    // Last time was asked for the day's three exercises
+    expect(fake.mock.calls.map(([path]) => path)).toContain('/api/sessions/last-sets?exercises=12,30,31')
+  })
+
+  it('offers to resume a workout in progress, and does not start another', async () => {
+    const plan = testPlan()
+    const session = startSession(plan, plan.days[1]!, { unit: 'kg', defaultRestSeconds: 90, lastSets: [], language: 'en', now: new Date() })
+    storeActiveSession(session)
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })
+    renderRoutes(routes, '/plans/plan-ppl')
+
+    expect(await screen.findByText('Workout in progress: Day B – Legs')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Resume' })).toHaveAttribute('href', `/session/${session.id}`)
+    expect(screen.getByRole('button', { name: 'Start this day' })).toBeDisabled()
+  })
+
+  it('says a workout was saved when workout mode comes back', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })
+    const { router } = renderRoutes(routes, '/plans/plan-ppl')
+    await screen.findByRole('heading', { level: 1 })
+
+    await router.navigate('/plans/plan-ppl', { state: { workout: 'queued' } })
+
+    expect(await screen.findByText('Workout saved on this phone: it will be sent as soon as you are online.')).toBeInTheDocument()
   })
 
   it('says so for a plan that is not there, or not the user\'s', async () => {

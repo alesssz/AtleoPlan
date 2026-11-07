@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), workout mode [H3.15](#h315-workout-mode-as-built).
 
 ## Contents
 
@@ -58,6 +58,21 @@
   - [H3.14.6 The tests, and the errors met](#h3146-the-tests-and-the-errors-met)
   - [H3.14.7 The production build](#h3147-the-production-build)
   - [H3.14.8 Checking in the browser](#h3148-checking-in-the-browser)
+- [H3.15 Workout mode, as built](#h315-workout-mode-as-built)
+  - [H3.15.1 The order of building](#h3151-the-order-of-building)
+  - [H3.15.2 A route outside the frame](#h3152-a-route-outside-the-frame)
+  - [H3.15.3 The browser's own APIs](#h3153-the-browsers-own-apis)
+  - [H3.15.4 The errors met](#h3154-the-errors-met)
+  - [H3.15.5 The timer that showed 1:31](#h3155-the-timer-that-showed-131)
+  - [H3.15.6 The tests, proving they can fail, and the build](#h3156-the-tests-proving-they-can-fail-and-the-build)
+  - [H3.15.7 Checking in the browser and on a phone](#h3157-checking-in-the-browser-and-on-a-phone)
+  - [H3.15.8 Second pass: what was not clear on screen](#h3158-second-pass-what-was-not-clear-on-screen)
+  - [H3.15.9 Third pass: exercises without kg, and margins](#h3159-third-pass-exercises-without-kg-and-margins)
+  - [H3.15.10 Fourth pass: looking at the screen for real](#h31510-fourth-pass-looking-at-the-screen-for-real)
+  - [H3.15.11 Fifth pass: wide on a laptop, an app on a phone](#h31511-fifth-pass-wide-on-a-laptop-an-app-on-a-phone)
+  - [H3.15.12 Sixth pass: the app's margins and buttons](#h31512-sixth-pass-the-apps-margins-and-buttons)
+  - [H3.15.13 Seventh pass: a button as wide as a laptop](#h31513-seventh-pass-a-button-as-wide-as-a-laptop)
+  - [H3.15.14 Eighth pass: some breathing room](#h31514-eighth-pass-some-breathing-room)
 
 ---
 
@@ -1338,6 +1353,529 @@ With `make start`, at http://localhost:5673/plans:
 - **Supersets:** **Make a superset**, tick two, **Join in superset (2)**: they move together, with the lime bar. Drag one away: it leaves the superset, and the other is alone again.
 - **The kept draft:** change something, open another page, come back: the change is there, with the banner. **Discard changes** brings back the plan as it was. In DevTools → Application → Local storage, the key `atleoplan.planDraft.<id>` appears and disappears.
 - **Changed elsewhere:** open the same plan's editor in two tabs; save in the first, then in the second: the plan's page warns that it was changed somewhere else.
+
+## H3.15 Workout mode, as built
+
+The first screen of FEAT-3: **Start** on a plan's day, sets ticked one by one with the rest timer between them, **Finish** sending the workout, which is kept on the phone until the backend has it. How it works is in [C1.17](../concepts/C1-frontend.md#c117-workout-mode); this section is the doing, with the real output. What it shows that the earlier screens do not: a full-screen route outside the frame, time on screen (a clock, a timer), the browser's own APIs (Wake Lock, Web Audio, vibration), and data that must survive with no network.
+
+| File | What it is |
+|---|---|
+| `src/api/sessions.ts` | The types of `GET /api/sessions/last-sets` and `PUT /api/sessions/{id}`; `fetchLastSets()`, `useLastSets()`, `sendSession()` |
+| `src/components/workout/workout-session.ts` | The workout: types, `startSession()`, readers, reducer, `toSessionInput()` |
+| `src/components/workout/session-storage.ts` | The workout in progress and the queue, in `localStorage` |
+| `src/components/workout/WorkoutScreen.tsx`, `SetRow.tsx` (and `SetHeader`), `RestBar.tsx`, `clock.ts`, `layout.ts` | The screen |
+| `src/pages/WorkoutPage.tsx` | `/session/:id`; the route in `src/router.tsx` |
+| `src/lib/pending-sessions.ts`, `usePendingSessions.ts` | Sending the queue; the hook, called in `src/routes/RequireAuth.tsx` |
+| `src/lib/useNow.ts`, `useWakeLock.ts`, `alarm.ts` | The moment every second; the screen kept on; beep and vibration |
+| `src/pages/PlanDetailPage.tsx` | **Start this day**, the Resume banner, the message after Finish |
+| `src/i18n/locales/*.json` | `workout.*`, 40 keys in each language |
+| 4 test files, 24 tests | `workout-session.test.ts`, `pending-sessions.test.ts`, `WorkoutPage.test.tsx`, three new in `PlanDetailPage.test.tsx` |
+
+No package was added: everything here is React, the libraries already in place, and the browser.
+
+### H3.15.1 The order of building
+
+From the inside out, as the plan editor ([H3.14.3](#h3143-the-draft-first-with-its-tests)), so each step can be tested before the next one uses it:
+
+1. **`api/sessions.ts`:** the types copied from what the backend sends ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)); `sendSession(id, body)` is one line, `api.put(`/api/sessions/${id}`, body)`.
+2. **`workout-session.ts` and its tests**, with no screen: start a workout, tick, rest, supersets, the clock, the body. `npx vitest run src/components/workout` after each function.
+3. **`session-storage.ts`**, a copy of the plan editor's `draft-storage.ts` with two keys.
+4. **`pending-sessions.ts` and its test:** the queue, with a fake API answering 201, 410, no network, 503, 422.
+5. **The three hooks and `alarm.ts`.**
+6. **The components**, then the page and its route, then the Start button on the plan's page; the page's tests last.
+
+### H3.15.2 A route outside the frame
+
+Every signed-in page so far was a child of `AppLayout`, drawn inside its `<Outlet />` with the navigation around it. Workout mode must fill the screen, so its route is a **sibling** of `AppLayout`, still a child of `RequireAuth` (which checks the user is signed in):
+
+```tsx
+{
+  element: <RequireAuth />,
+  children: [
+    { element: <AppLayout />, children: [ /* Home, plans, exercises… */ ] },
+    // Workout mode (D1.4.9): full screen, so a sibling of AppLayout, not
+    // its child: no navigation around it. Still inside RequireAuth
+    { path: 'session/:id', element: <WorkoutPage /> },
+  ],
+},
+```
+
+Open http://localhost:5673/session/anything signed in: the page says "This workout is not on this device.", with no tab bar. The page draws the workout only when its id matches the one kept on the phone:
+
+```tsx
+const { id } = useParams()
+const [session] = useState(loadActiveSession)     // read once, when the page opens
+if (session === null || session.id !== id) return <NotOnThisDevice />
+return <WorkoutScreen initial={session} />
+```
+
+`useState(loadActiveSession)` passes the function itself, not `loadActiveSession()`: React calls it only for the first draw, and `localStorage` is not read again on every tick of the clock.
+
+### H3.15.3 The browser's own APIs
+
+Three features come from the browser, not from a library. Each is tried in DevTools' Console first ([H3.8](#h38-checking-in-the-browser)), on http://localhost:5673:
+
+```js
+'wakeLock' in navigator                        // true in Chrome, Edge, Safari 16.4+
+await navigator.wakeLock.request('screen')     // WakeLockSentinel {released: false, type: 'screen'}
+typeof navigator.vibrate                       // 'function' in Chrome; 'undefined' in Safari
+```
+
+Then each goes in its own small file, which **checks before using**: a browser without the feature, and the tests (jsdom has none of the three), simply get nothing, and nothing breaks.
+
+```ts
+// useWakeLock.ts
+if (!active || !('wakeLock' in navigator)) return
+// alarm.ts
+if (options.vibration && typeof navigator.vibrate === 'function') navigator.vibrate([200, 100, 200])
+if (options.sound && typeof AudioContext === 'function') beep(new AudioContext())
+```
+
+- **TypeScript already knows them:** `navigator.wakeLock`, `WakeLockSentinel`, `AudioContext` are in the DOM types that come with TypeScript; no `@types` package.
+- **A beep without a sound file:** an `OscillatorNode` makes a tone at a frequency, a `GainNode` sets its volume, fading it in 0.3 s so it does not click; connected to `audio.destination`, the speakers. To hear it without waiting a whole rest: start a workout, tick a set, and tap **−15** until the rest ends.
+- **Browsers allow sound only after a tap on the page.** In workout mode the user has always tapped ✓ before a rest ends, so the beep plays; the `try`/`catch` covers the rare case it does not.
+
+### H3.15.4 The errors met
+
+The first `npx eslint src` on the new files:
+
+```
+src/components/workout/WorkoutScreen.tsx
+   95:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+> 95 |       setAnnounce(t('workout.restOver'))
+     |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  96 |       dispatch({ type: 'endRest' })
+  97 |     }
+  98 |   }, [left, session.rest, t, user])  react-hooks/set-state-in-effect
+  141:37  error  `{t('workout.clock')}` must be placed on a new line  @stylistic/jsx-one-expression-per-line
+  141:57  error  `: ` must be placed on a new line                   @stylistic/jsx-one-expression-per-line
+
+src/components/workout/session-storage.ts
+  89:17  error  '_sent' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+src/components/workout/workout-session.ts
+  262:27  error  '=' should be placed at the beginning of the line  @stylistic/operator-linebreak
+
+src/lib/useWakeLock.ts
+  28:61  error  This line has 3 statements. Maximum allowed is 1  @stylistic/max-statements-per-line
+
+✖ 7 problems (7 errors, 0 warnings)
+  4 errors and 0 warnings potentially fixable with the `--fix` option.
+```
+
+One at a time:
+
+- **`react-hooks/set-state-in-effect`**, the one worth understanding. The first version watched the seconds left, and ended the rest when they reached 0:
+
+  ```tsx
+  useEffect(() => {
+    if (session.rest !== null && left === 0) {
+      restOver(…)
+      setAnnounce(t('workout.restOver'))   // ← here
+      dispatch({ type: 'endRest' })
+    }
+  }, [left, session.rest, t, user])
+  ```
+
+  An effect runs **after** React has drawn the screen; changing state inside it at once makes React draw everything again, straight away. Here it worked, but it is a common source of loops and flicker, and the React team's lint rule refuses it. The fix is the better design anyway: **one `setTimeout` set for the moment the rest ends** ([C1.17.4](../concepts/C1-frontend.md#c1174-the-rest-timer-a-moment-not-a-countdown)). The state now changes inside the timer's function, later, like in a click handler, which the rule accepts; and the effect runs once per rest instead of once per second.
+- **`jsx-one-expression-per-line`:** `<span>{t('workout.clock')}: </span>` mixes an expression and text on one line. A template string makes it one expression: `` {`${t('workout.clock')}: `} ``.
+- **`'_sent' is assigned a value but never used`:** removing a key from an object by destructuring, `const { [id]: _sent, ...others } = pending`, leaves an unused variable. Rewritten as `Object.fromEntries(Object.entries(pending).filter(([key]) => key !== id))`: the pairs, minus one, back into an object.
+- **`max-statements-per-line`:** `.then((lock) => { sentinel = lock }).catch(() => { sentinel = null })` on one line; `.then` and `.catch` each on their own lines.
+- **`operator-linebreak`:** fixed by `npx eslint --fix src`.
+
+`npx tsc -b` passed at the first run.
+
+### H3.15.5 The timer that showed 1:31
+
+The page's test ticks a set and expects the rest timer at the user's 90 seconds:
+
+```tsx
+expect(within(rest).getByRole('timer')).toHaveTextContent('1:30')
+```
+
+It failed: the timer said `1:31`. A temporary `console.log(rest.textContent)` in the test printed the whole bar:
+
+```
+REST Rest1:31−15+15Skip
+```
+
+The tempting move is to loosen the test (`/1:(30|31)/`), and it was the first one tried. But a person would see 1:31 too, for a second, on a rest of 1:30, so the test was right. Why:
+
+- `useNow(1000)` refreshes `now` **once a second**. When ✓ is tapped, the screen draws again at once, with the `now` of the last tick: a moment **older** than the tap, up to a second.
+- The rest ends 90 s after the tap. Seen from that older `now`, it is 90.4 s away, say; `Math.ceil` rounds up to 91: `1:31`.
+
+The fix is in `restLeft()`: never more than the rest's length.
+
+```ts
+return Math.min(session.rest.total, Math.max(0, left))
+```
+
+With an assertion in the reducer's tests that keeps it fixed: a `now` one second before the tap still reads 90.
+
+```ts
+expect(restLeft(ticked, new Date(at(59)))).toBe(90)
+```
+
+**The lesson:** a test that fails on a value "off by a little" is often showing a real, small bug. Look for the cause before widening the assertion.
+
+### H3.15.6 The tests, proving they can fail, and the build
+
+```sh
+npx vitest run src/components/workout src/pages/WorkoutPage.test.tsx src/lib/pending-sessions.test.ts src/pages/PlanDetailPage.test.tsx --reporter=verbose
+```
+
+The new tests, among the plan page's older ones:
+
+```
+✓ src/components/workout/workout-session.test.ts > startSession > makes a set to do for each planned set, filled with last time's values, else the target
+✓ src/components/workout/workout-session.test.ts > startSession > writes the weights in the user's unit and language
+✓ src/components/workout/workout-session.test.ts > setNumbers > counts warm-ups apart, so the sets that count start from 1
+✓ src/components/workout/workout-session.test.ts > workoutReducer > ticks a set, which starts the rest; unticking leaves the rest alone
+✓ src/components/workout/workout-session.test.ts > workoutReducer > does not tick a set whose values do not read
+✓ src/components/workout/workout-session.test.ts > workoutReducer > moves through a superset with no rest, then rests and goes back to its first exercise
+✓ src/components/workout/workout-session.test.ts > workoutReducer > moves the rest by ±15 seconds, and ends it
+✓ src/components/workout/workout-session.test.ts > workoutReducer > adds a set copying the last one's values
+✓ src/components/workout/workout-session.test.ts > workoutReducer > cycles a set's type
+✓ src/components/workout/workout-session.test.ts > workoutReducer > counts the time trained without the pauses
+✓ src/components/workout/workout-session.test.ts > toSessionInput > sends every exercise, the ticked sets only, in kilograms, with the time trained
+✓ src/components/workout/workout-session.test.ts > toSessionInput > sends pounds as kilograms
+✓ src/lib/pending-sessions.test.ts > sendPendingSessions > takes off the queue what the backend has or will never take, and keeps the rest
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > shows the first exercise with its sets, filled with the targets, under their column titles
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > ticks a set, which starts the rest timer, and keeps it on the phone
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > goes to the next exercise, and to any one through its dot; the last offers to finish
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > offers to finish once every set is ticked
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > pauses with ✕ and goes back to the plan, the workout kept
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > finishes early: says what will not be saved, sends the workout, opens the plan saying it is saved
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > keeps a finished workout on the phone when the network is down
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > says so for a workout that is not on this phone
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > starts a workout of the open day, with last time's sets, and opens workout mode
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > offers to resume a workout in progress, and does not start another
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > says a workout was saved when workout mode comes back
+Test Files  4 passed (4)
+     Tests  35 passed (35)
+```
+
+Two techniques new in this screen:
+
+- **Time chosen by the test.** The reducer's tests never read the clock: `START` is a fixed moment and `at(60)` is 60 seconds later, so the rest left at `at(100)` is exactly 50. The page's tests, which do run the real clock, start the workout with `now: new Date()` and only check what does not depend on the second (the timer shows 1:30 right after the tap, thanks to H3.15.5).
+- **`localStorage` read back in a test:** `loadActiveSession()` after a tap proves the workout was written to the phone, as a reload would find it. `src/test/setup.ts` empties `localStorage` after each test.
+
+**Proving they can fail.** Three lines broken on purpose, then put back:
+
+| Line changed | Tests that failed |
+|---|---|
+| The effect `storeActiveSession(session)` removed | `ticks a set, which starts the rest timer, and keeps it on the phone`: the workout on the phone still had set 3 not done |
+| `addPending()` removed from Finish | `finishes early: …` and `keeps a finished workout on the phone when the network is down`: nothing was sent, nothing was queued |
+| `supersetOf()` returning `[index]` (supersets ignored) | `moves through a superset with no rest, then rests and goes back to its first exercise` |
+
+**The build:**
+
+```sh
+npm run build
+```
+
+```
+dist/assets/index-asoYRVKR.js                              921.01 kB │ gzip: 285.99 kB
+✓ built in 1.74s
+```
+
+24 kB more than after the plan editor ([C1.11](../concepts/C1-frontend.md#c111-known-limits)).
+
+### H3.15.7 Checking in the browser and on a phone
+
+With `make start`, signed in, at http://localhost:5673/plans, open a plan with exercises:
+
+- **Start:** on a day's tab, **Start this day**. Workout mode opens full screen: the day's name, the clock running, the first exercise, its sets filled with the plan's targets. In DevTools → Application → Local storage, the key `atleoplan.activeSession` appears.
+- **A set:** tap ✓ on a set: it turns green, the rest bar appears at the bottom with the time left. **+15**, **−15**: the time moves. Let it end: two beeps, the bar goes. With the sound on and the volume up.
+- **The numbers:** above the sets, the titles Set, Last, kg, Reps, each above its column. With two warm-ups the rows read W, W, 1, 2, 3; tap a "1" to make it a warm-up: it becomes W and the numbers after it move up.
+- **A value that does not read:** clear a set's reps: its ✓ is disabled.
+- **Finishing:** on the last exercise, **Finish workout** stands where Next was. Tick every set: a box says **All sets done.** with the same button. **Finish** at the top, with sets left, says how many will not be saved; **Keep going** closes the question.
+- **Supersets:** on a plan with a superset, tick a set of its first exercise: the screen moves to the second with no rest; tick there: the rest starts and the screen goes back to the first.
+- **Pause:** ✕ goes back to the plan, with the banner "Workout in progress" and **Resume**; Start is disabled. **Resume** (or a reload of the workout's page): the sets ticked are still ticked, and the clock did not count the pause.
+- **Finish with no network:** DevTools → Network → **Offline**, then **Finish**, **Finish and save**: the plan's page says the workout will be sent when online, and `atleoplan.pendingSessions` holds it. Back **Online** (No throttling): the `online` event sends it; the Network tab shows `PUT /api/sessions/<id>` with 201, and the key disappears. In TablePlus ([H4](H4-database-tools.md)), the workout is in `workout_sessions`, its exercises in `session_exercises`, its sets in `logged_sets`.
+- **On a phone** (where the screen staying on and the vibration can be seen): the phone must reach the computer's Vite server on the local network, which is not set up yet ([OPS-4](../project/backlog.md#ops-4-open-the-development-app-from-a-phone)). Until then, Chrome's device mode ([H3.8.1](#h381-phone-tablet-and-desktop-widths)) shows the layout; the wake lock and the vibration wait for the phone.
+
+### H3.15.8 Second pass: what was not clear on screen
+
+The first try of the screen in the browser brought two remarks: **the numbers inside an exercise were not clear**, and **there was no way to complete the day, or to stop early**. All the tests passed; both were real. Tests check what the code does, not whether a person understands it.
+
+**The numbers.** Each row showed a number, "80×8", then two boxes, "80" and "8", and ✓. The titles above the rows were only Set and Last: which box was the weight and which the reps was left to guess. The boxes had a name, but only for screen readers (`aria-label="Set 3, kg"`). And the rows were numbered by position: the bench press, with two warm-ups, read W, W, 3, 4, 5, 6.
+
+- `SetHeader`, in `SetRow.tsx`, draws a title for every column. To keep the titles above their columns, the header and the rows get their fields from one function, `fieldsFor(loggingType, unit, t)`, and use the same widths: `w-12` for the number (the 48 px button), `w-16` for Last, `flex-1` for each field, `w-12` for ✓. Two lists written by hand would drift apart the day a field is added.
+- `setNumbers(sets)`, in `workout-session.ts`, counts warm-ups apart: W, W, 1, 2, 3, 4, as D1.4.9 draws. The names for screen readers follow ("Set 1, kg", "Warm-up 2, kg", "Tick: Set 1"), so a person who sees and a person who listens count the same way.
+
+**Finishing.** The only way was a small "Fine" (Italian for Done) at the top right, which reads as "end" but not as a button to press; on the last exercise, Next was simply greyed out. Now:
+
+- the top button says **Finish** (**Concludi**);
+- on the last exercise **Finish workout** takes Next's place, where the thumb already is;
+- once every set is ticked, a box says **All sets done.** with **Finish workout**;
+- the three open the same confirmation (`FinishButton`, with a `label` and a `className`), which counts the sets with `countSets()`: "1 of 7 sets done, warm-ups excluded. The 6 sets not ticked will not be saved." Its button says **Finish and save**: what it does, and not the same word as the button that opened it.
+
+The texts changed in the four languages (`workout.done`, `tick`, `untick`, `finishText_one`/`_other`, `finishConfirm`) and seven are new (`setName`, `warmUpName`, `typeButton`, `finishWorkout`, `allDone`, `finishLeft_one`/`_other`). Then the tests: the names they looked for ("Tick set 3", "Done") were changed to the new ones, and three tests were added (the column titles and numbers, Finish workout on the last exercise, the All sets done box). The first run found one mistake, in the expected numbers:
+
+```
+AssertionError: expected { done: 1, total: 7 } to deeply equal { done: 1, total: 6 }
+```
+
+Day A has 4 bench sets that count, **2** rows (not 1) and 1 pull-up: 7. The code was right, the expectation wrong.
+
+**Proving the new tests can fail:**
+
+| Line changed | Tests that failed |
+|---|---|
+| `setNumbers()` numbering by position again | four: `counts warm-ups apart…`, `shows the first exercise… under their column titles`, `ticks a set…`, `finishes early…` (no "Set 1" to find) |
+| Next kept on the last exercise | `goes to the next exercise… the last offers to finish`: `expect(element).not.toBeInTheDocument()`, Next still there |
+
+**What was not checked:** the screen itself, in a browser. An automatic look at the page at a phone's width (Playwright, with the API faked) was planned, but reaching the development server from the assistant's tools was not allowed in this session; [H3.15.7](#h3157-checking-in-the-browser-and-on-a-phone) lists what to look at by hand.
+
+### H3.15.9 Third pass: exercises without kg, and margins
+
+Two more remarks, from someone who trains with calisthenics: **what about exercises without kg** (pull-ups, dips, mostly with the body alone, sometimes with a belt and a plate), and **more margin around the screens, on phones too**.
+
+**First, what the data said.** A question to the database, read only, through Tinker ([H1.7](H1-database.md#h17-looking-at-the-data)): how are the library's bodyweight exercises logged?
+
+```sh
+docker compose exec -T backend php artisan tinker --execute '…the public exercises whose English name has pull, chin, dip, push-up…, with logging type and equipment'
+```
+
+```
+reps         Body weight    Chin-Up
+reps         Body weight    Dips - Triceps Version
+reps         Body weight    Pullups
+reps         Body weight    Pushups
+…
+weight_reps  Machine        Dip Machine
+TOTAL 102 reps / 876
+```
+
+The import already logs "body only" exercises by reps ([H1.12](H1-database.md#h112-the-free-exercise-db-import-as-built)), so pull-ups showed a Reps column and no kg. Two cases were left out, and the user chose to cover both:
+
+| Case | Before | Now |
+|---|---|---|
+| A weighted pull-up or dip | no way to write the plate: the backend refused any weight on a `reps` exercise | a **+kg** column, the added weight, empty for the body alone |
+| Lunges without dumbbells, on a weighted exercise | ✓ disabled until a weight was typed (0 worked, awkwardly) | the kg may stay empty |
+
+**The backend first**, since it refused both. In `SaveSessionRequest`, one list (`VALUES_BY_LOGGING`, "the fields each way of logging must fill") became two: `REQUIRED_BY_LOGGING` (reps for `weight_reps` and `reps`) and `OPTIONAL_BY_LOGGING` (`weight_kg` for both). The after-check now refuses a missing required field, and a filled field that is in neither list. The tests' table of refusals changed with it (no weight is no longer an error; no reps is), the Italian message test moved to a timed exercise, and one test was added: a lunge with no weight, a pull-up with none and one with +10 kg, then the list's volume.
+
+```sh
+docker compose exec -T backend php artisan test --filter=SaveSessionApiTest
+```
+
+```
+✓ it asks for the values that fit how the exercise is logged, and onl… (×4)
+✓ it takes the weight as optional: none for the body alone, an added…
+✓ it accepts a timed set with its time alone
+Tests:    18 passed (69 assertions)
+```
+
+The volume needed no change: the database sums `weight_kg * reps`, and a `null` weight makes that product `null`, which `sum()` skips. The +10 kg × 6 counts 60 kg; the body's own weight is unknown and counts nothing ([D2.8](../design/D2-decisions.md#d28-workout-rules)).
+
+**Then the screen,** in three places:
+
+- `canComplete()`: for `weight_reps` and `reps`, the reps must read; the weight may be empty, and when typed must read (`"8o"` keeps ✓ disabled).
+- `fieldsFor()` in `SetRow.tsx`: `reps` gets two fields, **+kg** and **Reps**. Each field now has a `label` (the column's title, `+kg`) and a `spoken` name (`added weight, kg`: "+kg" read aloud means little), and a `–` placeholder where it may stay empty.
+- `toSessionInput()`: the weight goes with both ways of logging, `null` when empty. The Last column writes `+10×6`, or `12` with no weight.
+
+A new text in four languages, `workout.addedWeight` ("zavorra, {{unit}}" in Italian).
+
+**The margins.** The app's pages already have them, from `AppLayout`: `px-5` (20 px) on a phone, `sm:px-8` from 640 px, a column at most `max-w-5xl` on a laptop. Workout mode is outside that frame ([H3.15.2](#h3152-a-route-outside-the-frame)) and had its own: 16 px in the middle, 8 px on the bars, and no maximum width, so on a laptop the fields of a set were a whole screen wide. Now a single list of classes, `WORKOUT_COLUMN` in `src/components/workout/layout.ts`:
+
+```ts
+export const WORKOUT_COLUMN = 'mx-auto w-full max-w-2xl px-5 sm:px-8'
+```
+
+is used by the four parts, each drawing its border as wide as the screen and its content inside the column:
+
+```tsx
+<header className="border-b pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
+  <div className={cn(WORKOUT_COLUMN, 'flex items-center gap-2')}>
+    …
+```
+
+`cn()` joins the column's classes with the part's own. One constant rather than the same classes copied four times: a later change of margin is one line, and the four parts cannot drift apart. `npx eslint --fix` then re-indented the JSX inside the new `<div>`s.
+
+**Tests and failures on purpose.**
+
+```sh
+npx vitest run src/components/workout src/pages/WorkoutPage.test.tsx src/i18n
+```
+
+```
+Tests  32 passed (32)
+```
+
+New: `ticks a set with no weight: the body alone, or no added weight`, `sends an empty weight as none, and the added weight of a pull-up`, a weight that does not read, and, on the page, the **+kg** title and the field `Set 1, added weight, kg` on the pull-ups.
+
+| Line changed | Tests that failed |
+|---|---|
+| The weight required again in `canComplete()` | three: the new one, `sends an empty weight as none…`, and `moves through a superset…` (its pull-up had no weight) |
+| The weight sent only for `weight_reps` | `sends an empty weight as none…`: `expected { …(7) } to match object { weight_kg: 10, reps: 6 }` |
+| The backend's `'reps' => []` (added weight refused again) | `it takes the weight as optional…`: `Expected response status code [201] but received 422.` |
+
+**Not checked:** the margins and the new column on a real screen ([H3.15.7](#h3157-checking-in-the-browser-and-on-a-phone)): open workout mode at 375 px and on a laptop, and a day with pull-ups: +kg, Reps, an empty +kg ticked.
+
+### H3.15.10 Fourth pass: looking at the screen for real
+
+After H3.15.9 the verdict was blunt: **the desktop view broken, the phone view senseless**. Every test passed, again: tests find buttons by their names, and do not see that a button sticks out of the screen or that three of them shout at once. The first three passes had been checked by tests only ([H3.15.8](#h3158-second-pass-what-was-not-clear-on-screen)); this time the screen was photographed.
+
+**Photographing a screen without the server.** The assistant could not open the development server, but Playwright's copy of Chrome was on the Mac (`~/Library/Caches/ms-playwright/chromium-1248/`), and Chrome can take a screenshot by itself. The steps, worth repeating whenever a layout must be checked at several widths:
+
+1. A **temporary page** in `frontend/preview-tmp/`: an `index.html`, and a `main.tsx` that draws the real `WorkoutScreen` with a workout made by `startSession()` from the tests' plan (`src/test/plan-helpers.ts`), a signed-in user put straight into the query cache (`queryClient.setQueryData(authKeys.user, user)`), a memory router, the theme, Italian. A `?state=` in the address picks the moment: start, pull-ups resting, every set ticked. No API, no database.
+2. **Built as static files** with its own Vite config: `npx vite build --config preview-tmp/vite.config.ts`, with `base: './'` so the files work opened from disk.
+3. **Photographed** with Chrome without a window:
+
+```sh
+"…/Google Chrome for Testing" --headless=new --allow-file-access-from-files --hide-scrollbars \
+  --window-size=1280,800 --virtual-time-budget=4000 --screenshot=start-1280.png \
+  "file://…/preview/preview-tmp/index.html?state=start"
+```
+
+`--allow-file-access-from-files` lets a page opened from disk load its JavaScript modules; `--virtual-time-budget` waits for React to draw.
+
+4. The folder deleted afterwards (`rm -r frontend/preview-tmp`).
+
+**Two traps met on the way.**
+
+- **The first photo had no style at all:** plain text, no columns, no buttons. The cause was the preview, not the app: Tailwind's Vite plugin looks for class names in the files under Vite's `root`, and the first config set `root` to `preview-tmp/`, so it never saw `src/` and generated almost no classes. With `root` set to `frontend/` (the page given as `build.rolldownOptions.input`) the classes came back. To be sure the real app did not have the same problem, `npm run build` showed its CSS at its usual size: `index-….css 82.89 kB`.
+- **A window of 390 px is not a phone of 390 px:** Chrome without a window keeps a minimum width of about 500 px, and the screenshot was only cut to 390. The fix is a page holding `<iframe width="390">`s side by side: each frame is truly 390 px wide, and one photo compares three phones (360, 375, 390 px).
+
+**What the photos showed** at 390 px:
+
+- at the bottom, **Finish workout ran off the right edge** of the screen: "Precedente" and "Concludi l'allenamento" side by side need about 380 px, and the bar has 350;
+- on the last exercise with every set ticked, **three lime buttons at once**: Finish at the top, the "All sets done" box, Finish workout at the bottom. Three ways of doing the same thing, all shouting, made the screen read as nonsense.
+
+On a laptop the screen itself was fine, but the same three buttons were there.
+
+**The fix: one lime button at a time.**
+
+- Finish at the top becomes **outlined** (`variant="outline"`, a new prop of `FinishButton`): still there to stop early, no longer the next thing to do.
+- The "All sets done" box is gone, with its text `workout.allDone`.
+- The bottom bar shows **Finish workout** when it is time, on the last exercise **or** once every set is ticked (`finishTime` in `WorkoutScreen`), as wide as the bar (`flex-1`); Previous then shrinks to its arrow (`size="icon-xl"`, with its name kept in `aria-label` for screen readers).
+
+The page's test of the box became `offers to finish at the bottom once every set is ticked, on any exercise`: the first exercise shows Next; the same workout with every set ticked, drawn again (`cleanup()` removes the first drawing), shows Finish workout instead.
+
+```
+Tests  32 passed (32)
+```
+
+The photos again, at 360, 375 and 390 px and at 1280 px: nothing leaves the screen, the columns sit under their titles, one lime button. At 360 px a long day name is cut with "…", which is what `truncate` is for.
+
+**The lesson:** a screen is not done when its tests pass. Whatever the tests cannot see (size, overlap, emphasis) needs a look at the narrowest phone and at a laptop, by hand ([H3.8.1](#h381-phone-tablet-and-desktop-widths)) or with screenshots as above, before saying it is finished.
+
+### H3.15.11 Fifth pass: wide on a laptop, an app on a phone
+
+H3.15.9 and H3.15.10 had read "more margin around the screens" as "a narrower, centred column". The answer: **before, the laptop view was wide and comfortable, and the phone view was like an app; now the laptop view is cramped, and the phone view has to be scrolled.** Both true, and both caused by H3.15.9.
+
+**Measuring instead of guessing.** The temporary preview of H3.15.10 was built again, with a few lines at the end of its `main.tsx` that write the page's real sizes into the page after it is drawn:
+
+```ts
+setTimeout(() => {
+  const root = document.documentElement
+  const main = document.querySelector('main')!
+  // … into a <pre id="measure">
+  `viewport ${innerWidth}x${innerHeight} | page ${root.scrollWidth}x${root.scrollHeight} | main visible ${main.clientHeight} content ${main.scrollHeight} | …`
+}, 1500)
+```
+
+Chrome's `--dump-dom` prints the page's HTML once drawn, so a small script loaded each state in an `<iframe>` of a phone's size (375×667, an iPhone SE; 390×844; 1280×800) and printed the line. With H3.15.9's layout:
+
+```
+start 375x667: viewport 375x667 | page 375x693 | main visible 521 content 644 | sideways false | page scrolls true | middle scrolls true
+rest 390x844:  viewport 390x844 | page 390x844 | main visible 607 content 644 | sideways false | page scrolls false | middle scrolls true
+```
+
+**The page 26 px taller than the screen** was the real bug: the whole page scrolled, bars included, which is what makes a web page stop feeling like an app. Nothing visible was that tall; the culprit was invisible. The `<p className="sr-only">` that reads "Rest over" to screen readers is, in Tailwind, `position: absolute` and 1 px wide. An absolutely positioned element is placed against its nearest *positioned* ancestor; `main` was not one, so the text was placed against the page, at the spot where it would have been in the flow: after the last set, below the bottom of a long exercise. The browser then made the page tall enough to hold it. `relative` on `main` makes `main` its reference: the text now sits inside the scrolling middle, and the page is exactly the screen.
+
+**The width.** `max-w-2xl mx-auto` had put the laptop view in a 672 px column. Gone: `WORKOUT_COLUMN` is now only the side margins, `w-full px-4 sm:px-6`, the window's whole width as before. The vertical spacing went back to the first version's (`py-3` in the middle, `pt-2`/`pb-2` on the bars), which also gave back the room H3.15.9 had taken.
+
+After:
+
+```
+start 375x667:  viewport 375x667 | page 375x667 | main visible 537 content 616 | … | page scrolls false | middle scrolls true
+rest 390x844:   viewport 390x844 | page 390x844 | main visible 623 content 623 | … | page scrolls false | middle scrolls false
+rest 1280x800:  viewport 1280x800 | page 1280x800 | … | page scrolls false
+```
+
+The page never scrolls; the middle scrolls only on a short phone with a six-set exercise and the rest timer open, the bars staying put, as in any app.
+
+**Two lessons.** When a request is vague ("more margin"), ask what it should look like, or show a screenshot before and after, rather than redesign. And `sr-only` (and anything `absolute`) inside a scrolling area needs a positioned parent, or it can stretch the page from where nobody can see it.
+
+### H3.15.12 Sixth pass: the app's margins and buttons
+
+Two last remarks: **no margin left and right** ("a little, not too much"), and **buttons in line with the rest of the app**.
+
+**Margins.** H3.15.11 had set `px-4 sm:px-6`: 16 px on a phone, and only 24 px on a laptop, where it reads as none. The other pages already have an answer, in `AppLayout`: `px-5 sm:px-8 lg:px-12`. `WORKOUT_COLUMN` now uses exactly those, still with no maximum width:
+
+```ts
+export const WORKOUT_COLUMN = 'w-full px-5 sm:px-8 lg:px-12'
+```
+
+**Buttons.** Counting how the pages use `<Button>` showed the app's habit:
+
+```sh
+grep -rhoE '<Button[^>]*' src/pages src/components | grep -oE 'variant="[a-z]+"|size="[a-z-]+"' | sort | uniq -c | sort -rn
+```
+
+```
+  46 size="xl"
+  29 variant="outline"
+   9 variant="ghost"
+   5 size="icon-xl"
+   2 variant="destructive"
+```
+
+Actions are 48 px tall (`xl`), lime (`default`) for the main one, **outlined** for the others; `ghost`, with no border, is for icons and small things. The plan editor's Add set, for one, is `variant="outline" size="xl"`. Workout mode had Previous, Next, Add set and Skip as `ghost`: plain words floating on the page, unlike anywhere else. They are now `outline`; the arrow alone of Previous too. Lime stays for Finish workout only, so the one lime button still says "this is next" ([H3.15.10](#h31510-fourth-pass-looking-at-the-screen-for-real)); ✕ and a set's number stay plain, as icons.
+
+The temporary preview of H3.15.10 photographed the result at 390 px and at 1280 px before it was deleted; the tests find buttons by name, so they did not change:
+
+```
+Tests  165 passed (165)
+```
+
+### H3.15.13 Seventh pass: a button as wide as a laptop
+
+"Finish workout on the last exercise is gigantic (in the browser)." H3.15.10 had given it `flex-1`, so that on a phone it takes the room left by Previous; on a laptop the same class stretched it across 1100 px.
+
+Tailwind's breakpoints solve it in the class list itself. A class with no prefix applies at every width; `sm:` from 640 px up; `max-sm:` only **below** 640 px:
+
+```tsx
+<FinishButton … className="min-w-0 flex-1 sm:flex-none" />
+
+<Button variant="outline" size="xl" className={cn('px-4', finishTime && 'max-sm:px-3.5')} …>
+  <ChevronLeft aria-hidden="true" />
+  <span className={cn(finishTime && 'max-sm:sr-only')}>{t('workout.previous')}</span>
+</Button>
+```
+
+- `flex-1 sm:flex-none`: the whole bar on a phone; from 640 px, the button's own width, pushed right by the bar's `justify-between`.
+- `max-sm:sr-only` on Previous's word: hidden on a phone only when Finish workout needs the room, still read by screen readers; on a laptop, arrow and word as usual. One button instead of the two of H3.15.10 (an icon-only one and a worded one), so the two cases cannot drift apart.
+
+Checked with the temporary preview, on the last exercise at 375 × 667 and 1280 × 800, then deleted; the page's tests still pass (`Tests 8 passed (8)`).
+
+### H3.15.14 Eighth pass: some breathing room
+
+"Too compact, in the browser, on a tablet and on a phone: give it some room, not too much." H3.15.11 had tightened the vertical spacing to fit a six-set exercise on a 390 × 844 phone without scrolling the middle; the result read as cramped.
+
+Spacing now grows with the screen, with the `sm:` prefix of [H3.15.13](#h31513-seventh-pass-a-button-as-wide-as-a-laptop) (from 640 px):
+
+| Where | Before | Now |
+|---|---|---|
+| Between the rows of sets | `gap-1` (4 px) | `gap-2 sm:gap-3` (8, 12 px); the same inside a row and in its header, so the titles stay above their columns |
+| The middle, top and bottom | `py-3` | `py-5 sm:py-6` |
+| Under the dots, under the exercise's name, above Add set | `mb-3`, `mb-4`, `mt-3` | `mb-5`, `mb-6`, `mt-4` |
+| Top bar, bottom bar | `pt-2`/`pb-2` | `pt-3`/`pb-3`, `sm:` 16 px; still at least the phone's safe areas |
+| Rest bar | `py-3` | `py-4` |
+
+"Not too much" was measured, with the preview's sizes of [H3.15.11](#h31511-fifth-pass-wide-on-a-laptop-an-app-on-a-phone), on the bench press (six sets) with the rest timer open. A first try with more room from 640 px (`sm:py-8`, `sm:mb-8`, a taller rest bar) made the middle of a 1280 × 800 laptop scroll by 213 px; trimmed back:
+
+```
+375x667:  page 375x667   | middle visible 418 content 680 | page scrolls false
+390x844:  page 390x844   | middle visible 595 content 680 | page scrolls false
+820x1180: page 820x1180  | middle visible 915 content 915 | page scrolls false
+1280x800: page 1280x800  | middle visible 535 content 708 | page scrolls false
+```
+
+The page itself never scrolls; on a phone and a laptop a long exercise scrolls in the middle, the bars staying put, which is the trade for the room. The preview was deleted afterwards.
 
 ---
 

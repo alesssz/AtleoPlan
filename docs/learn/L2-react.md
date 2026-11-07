@@ -582,7 +582,7 @@ An effect that only keeps one state in step with another is a value to **compute
 
 **StrictMode runs effects twice** in development (`src/main.tsx`): set up, clean up, set up again. It is on purpose, to show effects whose cleanup is missing or wrong. Production runs them once.
 
-**In AtleoPlan:** `src/theme/ThemeProvider.tsx` (applies the theme to `<html>`, and its cleanup stops listening to the device's theme), `src/routes/useAccountPreferences.ts` (applies the account's language and theme when they arrive).
+**In AtleoPlan:** `src/theme/ThemeProvider.tsx` (applies the theme to `<html>`, and its cleanup stops listening to the device's theme), `src/routes/useAccountPreferences.ts` (applies the account's language and theme when they arrive). Workout mode has the real rest timer, with three effects worth reading after this lesson ([C1.17.4](../concepts/C1-frontend.md#c1174-the-rest-timer-a-moment-not-a-countdown)): `src/lib/useNow.ts` (a `setInterval` and its cleanup), `src/lib/useWakeLock.ts` (a browser lock and a `visibilitychange` listener, both undone by the cleanup), and in `WorkoutScreen.tsx` one `setTimeout` set for the moment the rest ends. Unlike the course's `RestTimer`, the real one does not count down one second at a time: it stores when the rest ends and shows the difference with now, because browsers slow timers down in a tab in the background.
 
 **Recap**
 - Effects are for the outside world; they run after drawing, again when a dependency changes.
@@ -1428,8 +1428,8 @@ The project's settings are strict (`tsconfig.app.json`): `strict`, no unused var
 
 | Part | What it is for | When it may come |
 |---|---|---|
-| [`useRef`](https://react.dev/reference/react/useRef) | A value that survives draws without causing one; a handle on a DOM element (to focus a field) | Workout mode: focusing the weight field |
-| [`useReducer`](https://react.dev/reference/react/useReducer) | State with many related changes, written as actions | The plan editor's draft (`PlanEditor`, `plan-draft.ts`; [C1.16.2](../concepts/C1-frontend.md#c1162-the-draft-and-its-reducer)) |
+| [`useRef`](https://react.dev/reference/react/useRef) | A value that survives draws without causing one; a handle on a DOM element (to focus a field) | Workout mode's stepper ([UI-6](../project/backlog.md#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu)): focusing the weight field |
+| [`useReducer`](https://react.dev/reference/react/useReducer) | State with many related changes, written as actions | The plan editor's draft (`PlanEditor`, `plan-draft.ts`; [C1.16.2](../concepts/C1-frontend.md#c1162-the-draft-and-its-reducer)) and the workout in progress (`WorkoutScreen`, `workout-session.ts`; [C1.17.3](../concepts/C1-frontend.md#c1173-the-workout-and-its-reducer)) |
 | [`lazy` and `<Suspense>`](https://react.dev/reference/react/lazy) | Loading a page's code only when it is opened | When the bundle grows |
 | [`memo`](https://react.dev/reference/react/memo) | Skipping a component's draw when its props did not change | Long lists, if they slow down |
 | [`createPortal`](https://react.dev/reference/react-dom/createPortal) | Drawing outside the parent's element | Used by Radix for selects and dialogs, not by us directly |

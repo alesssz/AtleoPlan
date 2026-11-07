@@ -12,12 +12,15 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [OPS](#ops)
   - [OPS-2 Check that the AtleoPlan name is free](#ops-2-check-that-the-atleoplan-name-is-free)
   - [OPS-3 Deploy to the free server](#ops-3-deploy-to-the-free-server)
+  - [OPS-4 Open the development app from a phone](#ops-4-open-the-development-app-from-a-phone)
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
+  - [UI-6 Workout mode: the big stepper and the exercise menu](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu)
 - [FEAT](#feat)
   - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
   - [FEAT-4 Summary and history](#feat-4-summary-and-history)
+  - [FEAT-5 New records during a workout](#feat-5-new-records-during-a-workout)
 - [BE](#be)
   - [BE-1 Exercise library: API and admin](#be-1-exercise-library-api-and-admin)
   - [BE-2 Manage users in the admin panel](#be-2-manage-users-in-the-admin-panel)
@@ -54,10 +57,10 @@ This page is not a numbered section of the docs: it changes all the time, and it
 The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [D3. Data model](../design/D3-data-model.md).
 
 1. The exercise library: its API, import, translation and screens are done; left are its admin screen, where translations are reviewed, and its media ([BE-1](#be-1-exercise-library-api-and-admin))
-2. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
+2. [FEAT-3](#feat-3-workout-mode-and-home) Home and working offline (workout mode is done)
 3. [FEAT-4](#feat-4-summary-and-history) summary and history
 
-The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page).
+The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout).
 
 ## OPS
 
@@ -85,6 +88,19 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Recommended.** Keep the local stack close to the production one (same Docker images, Postgres rather than SQLite), so that deploying is a configuration step and not a rewrite.
 
+### OPS-4 Open the development app from a phone
+
+**Priority:** medium · **Kind:** tooling, phones · **Found:** 2026-11-07
+
+**What is missing.** Workout mode is made for a phone, and some of it can only be seen there: the screen kept on (Wake Lock), the vibration, the beep with the phone asleep, the layout under a real notch. The development app answers only on the computer itself (`localhost:5673`); a phone on the same Wi-Fi cannot open it.
+
+**Options.**
+- A) Vite listening on the local network (`server.host: true`, or `npm run dev -- --host`), the phone opening `http://<the computer's IP>:5673`. The Wake Lock API, like most powerful browser APIs, works only on HTTPS or `localhost`, so the phone would see everything but the screen kept on.
+- B) A) plus HTTPS in development, with a local certificate (`@vitejs/plugin-basic-ssl`, or `mkcert`) the phone trusts, and the session cookie's settings checked for the new address ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)).
+- C) Chrome's remote debugging of an Android phone over USB, with port forwarding: the phone opens `localhost:5673` as the computer does.
+
+**Recommended.** C for an Android phone: no certificate, no change to the cookies, and DevTools on the computer shows the phone's page. B when an iPhone must be checked; a how-to in H3.8 in either case.
+
 ## UI
 
 ### UI-2 Plan editor on a wide screen: the library beside the plan
@@ -111,24 +127,51 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Recommended.** B: it reuses the editor, its draft and its rules, and the user sees the result before saving.
 
+### UI-6 Workout mode: the big stepper and the exercise menu
+
+**Priority:** medium · **Kind:** missing interaction · **Found:** 2026-11-07
+
+**What is missing.** Two parts of [D1.4.9](../design/D1-ui.md#d149-workout-mode) that workout mode ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)) leaves out:
+- **The stepper:** a tap on a set's weight or reps opens a large control with ±2.5 kg (the step is a setting, `weight_step`) and ±1 rep. Today the fields are typed with the phone's keyboard, which is slow with sweaty hands.
+- **The exercise menu:** swap the exercise (with alternatives for the same muscle), skip it, add a note, watch the video. Today an exercise is skipped by not ticking its sets; swapping is not possible.
+
+**Options.**
+- A) The stepper as a bottom sheet (Radix Dialog at the bottom), opened by the field; the menu as a "⋯" button beside the exercise's name, the swap reusing `ExercisePicker` filtered by the exercise's main muscle.
+- B) Steppers always visible, − and + beside each field: no extra tap, but a row too wide for a phone.
+
+**Recommended.** A, the stepper first: it is used on every set. The swap needs a new action in the reducer (`swapExercise`), which keeps the sets' values and empties `last`; a note goes in the exercise's `notes`, which the API already accepts.
+
 ## FEAT
 
 ### FEAT-3 Workout mode and Home
 
 **Priority:** high · **Kind:** feature · **Found:** 2026-11-05
 
-**Done:** the three tables and the API: saving a whole workout sent by the phone, late and twice, listing and reading with totals, deleting, the sets of last time, and Home's data with the suggested day (`feat/workout-api`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints), [H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built)).
+**Done:**
+- the three tables and the API: saving a whole workout sent by the phone, late and twice, listing and reading with totals, deleting, the sets of last time, and Home's data with the suggested day (`feat/workout-api`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints), [H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built));
+- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode), [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built)). Its refinements are in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end belongs to FEAT-4.
 
-**What is missing.** The screens, each on its own branch:
-- **Workout mode** ([D1.4.9](../design/D1-ui.md#d149-workout-mode)): full screen, the day's exercises with the "Last" column from `last-sets`, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous and Next, swap and skip; the session kept on the device and sent with `PUT /api/sessions/{id}`; the screen kept on (Wake Lock). The summary at the end belongs to FEAT-4.
-- **Home** ([D1.4.2](../design/D1-ui.md#d142-home)) from `GET /api/home`: the active plan's card with the suggested day and Start, the other days as chips, the banner of a workout left open, the week strip with its numbers, Free workout.
-- **Working offline** ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)): the PWA (vite-plugin-pwa), the query cache kept in IndexedDB, the queue of workouts to send, retried until a 2xx or a 410.
+**What is missing.** Two parts, each on its own branch:
+- **Home** ([D1.4.2](../design/D1-ui.md#d142-home)) from `GET /api/home`: the active plan's card with the suggested day and Start (the same `startSession()` as the plan's page), the other days as chips, the banner of a workout left open with Resume (`loadActiveSession()`), the week strip with its numbers, Free workout (a workout with no plan: `startSession()` needs a variant with no day).
+- **Working offline** ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)): the PWA (vite-plugin-pwa), so the app opens with no network; the query cache kept in IndexedDB; the queue of workouts, today in `localStorage` ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)), moved to IndexedDB if it grows, and sent by the service worker in the background (Background Sync, where the browser has it); a notification when a rest ends with the app in the background.
 
 ### FEAT-4 Summary and history
 
 **Priority:** medium · **Kind:** feature · **Found:** 2026-11-05
 
-**What is missing.** The summary at the end of a workout and the history of past sessions ([D1.4.10](../design/D1-ui.md#d1410-workout-summary), [D1.4.11](../design/D1-ui.md#d1411-history)). Needs FEAT-3. Charts and records are phase 2.
+**What is missing.** The summary at the end of a workout and the history of past sessions ([D1.4.10](../design/D1-ui.md#d1410-workout-summary), [D1.4.11](../design/D1-ui.md#d1411-history)). Workout mode's Done opens the plan's page for now ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)); the summary will take its place, with the feeling (1–5) and the notes, which the body already carries as `null`. Charts and records are phase 2.
+
+### FEAT-5 New records during a workout
+
+**Priority:** low · **Kind:** feature · **Found:** 2026-11-07
+
+**What is missing.** [D1.4.9](../design/D1-ui.md#d149-workout-mode) asks for a **New record** badge on a set that beats a personal record, as soon as it is ticked. There are no records yet: they come with Progress ([D1.4.12](../design/D1-ui.md#d1412-progress), phase 2).
+
+**Options.**
+- A) An endpoint with the user's best per exercise (heaviest weight, best estimated one-rep max, [D2.8](../design/D2-decisions.md#d28-workout-rules)), read at Start with `last-sets`; the comparison in the browser, so it works offline.
+- B) The badge only in the summary (FEAT-4), worked out by the backend when the workout arrives.
+
+**Recommended.** A, after FEAT-4 and the records of Progress: the badge mid-workout is the motivating moment, and the comparison is a few lines once the bests are known.
 
 ## BE
 
