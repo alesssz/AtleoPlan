@@ -1429,7 +1429,7 @@ The project's settings are strict (`tsconfig.app.json`): `strict`, no unused var
 | Part | What it is for | When it may come |
 |---|---|---|
 | [`useRef`](https://react.dev/reference/react/useRef) | A value that survives draws without causing one; a handle on a DOM element (to focus a field) | Workout mode: focusing the weight field |
-| [`useReducer`](https://react.dev/reference/react/useReducer) | State with many related changes, written as actions | The plan editor, if its state grows |
+| [`useReducer`](https://react.dev/reference/react/useReducer) | State with many related changes, written as actions | The plan editor's draft (`PlanEditor`, `plan-draft.ts`; [C1.16.2](../concepts/C1-frontend.md#c1162-the-draft-and-its-reducer)) |
 | [`lazy` and `<Suspense>`](https://react.dev/reference/react/lazy) | Loading a page's code only when it is opened | When the bundle grows |
 | [`memo`](https://react.dev/reference/react/memo) | Skipping a component's draw when its props did not change | Long lists, if they slow down |
 | [`createPortal`](https://react.dev/reference/react-dom/createPortal) | Drawing outside the parent's element | Used by Radix for selects and dialogs, not by us directly |

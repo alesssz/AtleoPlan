@@ -96,6 +96,9 @@ const buttonVariants = cva(
         'icon-sm':
           'size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg',
         'icon-lg': 'size-9',
+        // Ours, the square partner of xl: 48 px, for icon-only buttons a
+        // finger must hit, such as the plan editor's set and day buttons
+        'icon-xl': 'size-12 rounded-xl [&_svg:not([class*=\'size-\'])]:size-5',
       },
     },
     // Used when the prop is not given

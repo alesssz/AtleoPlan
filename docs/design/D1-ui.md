@@ -184,7 +184,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - **Filters:** muscle group and equipment as lists that open the phone's own picker (17 and 12 values are too many for chips), source as three buttons (All / Mine / Public). The muscle filter matches the main muscles only.
 - **Filters and search live in the address** (`/exercises?q=panca&muscle=chest`): Back returns to the same list, a reload keeps it.
 - Row: thumbnail, name, main muscle, **Mine** badge for personal exercises. 50 rows at a time, then **Show more**.
-- Built in UI-1, without the select mode below, which comes with the plan editor ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)).
+- Built in UI-1 ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)); the select mode below, with the plan editor, as its picker window ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)).
 - **Select mode** (opened from the plan editor): a checkbox on every row and a bar at the bottom, "Add (3)".
 - **+** creates an exercise.
 
@@ -209,14 +209,14 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - The active plan is always first.
 - **New plan**; a **Templates** section with public plans to duplicate.
 - Archived plans behind a filter of their own.
-- Built in FEAT-2 (`feat/plan-screens`), without what needs a later feature: New plan waits for the editor, "last used" for workout sessions (FEAT-3), Templates and the Shared badge for phase 2 ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
+- Built in FEAT-2, without what needs a later feature: "last used" waits for workout sessions (FEAT-3), Templates and the Shared badge for phase 2 ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
 
 ### D1.4.7 Plan details
 
 - Header: name, goal, notes, author (when duplicated from someone else).
 - **Days as tabs**; in each day the exercises with sets × reps and rest ("4 × 8–10 · 90 s"), warm-up sets counted apart ("+ 2 warm-up"). Supersets are joined by a coloured bar on the side.
 - Actions: **Start this day**, **Set as active** (replaces the current active plan), **Edit**, **Share**, **Duplicate**, **Archive**.
-- Built in FEAT-2 (`feat/plan-screens`) with Set as active, Archive (and Restore) and Delete; Edit waits for the editor, Start this day for workout mode (FEAT-3), Share and Duplicate for phase 2. The open day is in the address, `?day=2` ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
+- Built in FEAT-2 with Edit, Set as active, Archive (and Restore) and Delete; Start this day waits for workout mode (FEAT-3), Share and Duplicate for phase 2. The open day is in the address, `?day=2` ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
 
 ### D1.4.8 Plan editor
 
@@ -226,6 +226,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - **Supersets:** select 2 or more exercises → **Join in superset**.
 - **On desktop:** two columns, the library on the left and the plan on the right, dragging from the library into a day.
 - The draft is saved automatically; **Discard changes** goes back to the last saved version.
+- Built in FEAT-2 (`feat/plan-editor`): days as tabs, exercises from the library's select mode in a window, dragged by a handle (dnd-kit, mouse, finger and keyboard), sets cycled through their types, supersets, the draft kept in the browser. The desktop's two columns wait in [UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)).
 
 ### D1.4.9 Workout mode
 

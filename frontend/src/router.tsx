@@ -23,6 +23,7 @@ import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PlanDetailPage } from '@/pages/PlanDetailPage'
+import { PlanEditorPage } from '@/pages/PlanEditorPage'
 import { PlansPage } from '@/pages/PlansPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { ProgressPage } from '@/pages/ProgressPage'
@@ -75,11 +76,13 @@ export const router = createBrowserRouter([
         // The pages drawn inside AppLayout's <Outlet />
         children: [
           { index: true, element: <HomePage /> },
-          // The plans (D1.4.6, D1.4.7). ':id' is a parameter, read in the
-          // page with React Router's useParams(); the editor's routes
-          // (/plans/new, /plans/:id/edit) join with the next part of FEAT-2
+          // The plans (D1.4.6–D1.4.8). ':id' is a parameter, read in the
+          // page with React Router's useParams(); 'plans/new' wins over
+          // ':id' by itself, as for the exercises
           { path: 'plans', element: <PlansPage /> },
+          { path: 'plans/new', element: <PlanEditorPage /> },
           { path: 'plans/:id', element: <PlanDetailPage /> },
+          { path: 'plans/:id/edit', element: <PlanEditorPage /> },
           // The exercise library (D1.4.3–D1.4.5). 'exercises/new' is listed
           // before ':id' only for the reader: React Router ranks a fixed
           // segment above a parameter by itself, so /exercises/new never

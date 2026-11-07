@@ -9,14 +9,13 @@
  * filters do (docs/concepts/C1-frontend.md C1.14.3): Back from a plan returns
  * to the same view.
  *
- * New plan is disabled, marked "Coming soon", until the plan editor exists
- * (the next part of FEAT-2). The Templates section and Share are phase 2.
+ * New plan opens the plan editor (/plans/new). The Templates section and
+ * Share are phase 2.
  */
 import { Archive, ClipboardList, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { usePlans } from '@/api/plans'
-import { ComingSoon } from '@/components/ComingSoon'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeader } from '@/components/PageHeader'
 import { PlanCard } from '@/components/plans/PlanCard'
@@ -51,13 +50,14 @@ export function PlansPage() {
     <>
       <PageHeader eyebrow={t('pages.plans.eyebrow')} title={t('pages.plans.title')} description={t('pages.plans.description')} />
 
-      {/* The main action, disabled until the editor exists, with its pill */}
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Button size="xl" disabled>
-          <Plus aria-hidden="true" />
-          {t('plans.new')}
+      {/* The main action: a real link styled as a button */}
+      <div className="mb-6">
+        <Button asChild size="xl">
+          <Link to="/plans/new">
+            <Plus aria-hidden="true" />
+            {t('plans.new')}
+          </Link>
         </Button>
-        <ComingSoon />
       </div>
 
       {/* The two views: buttons side by side, one pressed, as the library's
@@ -99,17 +99,17 @@ export function PlansPage() {
           archived
             ? <EmptyState icon={Archive} title={t('plans.noArchivedTitle')} description={t('plans.noArchivedText')} />
             : (
-                // No plan yet: the first-plan state of D1.6, its action
-                // waiting for the editor
+                // No plan yet: the first-plan state of D1.6
                 <EmptyState
                   icon={ClipboardList}
                   title={t('plans.emptyTitle')}
                   description={t('plans.emptyText')}
-                  comingSoon
                   actions={(
-                    <Button size="xl" disabled>
-                      <Plus aria-hidden="true" />
-                      {t('plans.new')}
+                    <Button asChild size="xl">
+                      <Link to="/plans/new">
+                        <Plus aria-hidden="true" />
+                        {t('plans.new')}
+                      </Link>
                     </Button>
                   )}
                 />

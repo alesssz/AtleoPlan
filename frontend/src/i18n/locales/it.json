@@ -68,7 +68,8 @@
     "reload": "Ricarica"
   },
   "common": {
-    "comingSoon": "In arrivo"
+    "comingSoon": "In arrivo",
+    "close": "Chiudi"
   },
   "home": {
     "hero": "Pronto ad <hl>allenarti</hl>?",
@@ -131,7 +132,85 @@
       "warmUps_one": "+ {{count}} di riscaldamento",
       "warmUps_other": "+ {{count}} di riscaldamento",
       "max": "max",
-      "rpe": "RPE {{value}}"
+      "rpe": "RPE {{value}}",
+      "changedElsewhere": "Questa scheda è stata modificata altrove nel frattempo. La tua versione l'ha sostituita."
+    },
+    "editor": {
+      "newTitle": "Nuova scheda",
+      "editTitle": "Modifica scheda",
+      "create": "Crea scheda",
+      "save": "Salva",
+      "discard": "Annulla le modifiche",
+      "cancel": "Annulla",
+      "restored": "Le modifiche non salvate sono tornate: salvale, oppure annullale.",
+      "planName": "Nome",
+      "goal": "Obiettivo",
+      "goalPlaceholder": "Ipertrofia, forza…",
+      "notes": "Note",
+      "daysLabel": "Giorni",
+      "addDay": "Aggiungi giorno",
+      "dayName": "Nome del giorno",
+      "defaultDayName": "Giorno {{letter}}",
+      "moveDayEarlier": "Sposta il giorno prima",
+      "moveDayLater": "Sposta il giorno dopo",
+      "removeDay": "Elimina giorno",
+      "addExercises": "Aggiungi esercizi",
+      "noItems": "Ancora nessun esercizio: aggiungili dalla libreria.",
+      "select": "Crea una superserie",
+      "selectDone": "Annulla",
+      "selectHint": "Scegli due o più esercizi da fare a turno.",
+      "selectItem": "Scegli {{name}}",
+      "joinSuperset": "Unisci in superserie ({{number}})",
+      "dragHandle": "Sposta {{name}}",
+      "supersetTag": "Superserie {{number}}",
+      "setLabel": "Serie {{number}}",
+      "setTypeButton": "Serie {{number}}, {{type}}: tocca per cambiare tipo",
+      "setTypes": {
+        "normal": "normale",
+        "warm_up": "riscaldamento",
+        "drop": "drop set",
+        "failure": "a cedimento"
+      },
+      "reps": "Ripetizioni",
+      "weight": "Peso ({{unit}})",
+      "rpe": "RPE",
+      "seconds": "Secondi",
+      "meters": "Metri",
+      "removeSet": "Togli la serie {{number}}",
+      "addSet": "Aggiungi serie",
+      "rest": "Recupero (secondi)",
+      "restHint": "Vuoto: il tuo predefinito, {{time}}.",
+      "itemNotes": "Note",
+      "moveToDay": "Sposta in un altro giorno",
+      "moveToDayChoose": "Scegli un giorno",
+      "leaveSuperset": "Togli dalla superserie",
+      "removeItem": "Togli l'esercizio",
+      "picker": {
+        "title": "Aggiungi esercizi",
+        "description": "Cerca nella libreria e scegline uno o più.",
+        "add": "Aggiungi ({{number}})",
+        "choose": "Scegli {{name}}"
+      },
+      "invalid": "Alcuni campi vanno corretti: sono segnati in rosso.",
+      "saveError": "Impossibile salvare la scheda. Riprova.",
+      "errors": {
+        "nameRequired": "Scrivi un nome.",
+        "dayNameRequired": "Scrivi il nome del giorno.",
+        "tooLong": "Troppo lungo.",
+        "reps": "Ripetizioni come 8 oppure 8-10, da 1 a 999.",
+        "weight": "Un peso come 80 oppure 82,5.",
+        "rpe": "Un RPE da 1 a 10, come 8 oppure 8,5.",
+        "rest": "Secondi, fino a 3600.",
+        "seconds": "Secondi interi, da 1.",
+        "meters": "Metri interi, da 1."
+      },
+      "dnd": {
+        "instructions": "Per prendere un esercizio premi spazio o invio. Spostalo con le frecce, poi premi spazio o invio per lasciarlo, oppure esc per annullare.",
+        "pickedUp": "Hai preso {{name}}.",
+        "movedOver": "{{name}} è in posizione {{position}} di {{total}}.",
+        "dropped": "{{name}} lasciato in posizione {{position}} di {{total}}.",
+        "cancelled": "Spostamento di {{name}} annullato."
+      }
     }
   },
   "exercises": {

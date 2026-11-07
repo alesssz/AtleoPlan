@@ -2,8 +2,10 @@
  * One plan (route `/plans/:id`, docs/design/D1-ui.md D1.4.7): its name,
  * goal and notes, its days as tabs, and in each day the exercises summed up
  * as "4 × 8–10 · 80 kg · 90 s", warm-ups apart, supersets joined by a bar.
- * The actions: Set as active, Archive or Restore, Delete; Edit waits for the
- * plan editor (the next part of FEAT-2), marked "Coming soon".
+ * The actions: Edit (the plan editor), Set as active, Archive or Restore,
+ * Delete. After a save, the editor may say through the navigation's state
+ * that the plan had been changed elsewhere: the page shows the warning of
+ * docs/design/D3-data-model.md D3.5.7.
  *
  * Not here yet, with the feature that brings it: "Start this day" (FEAT-3,
  * workout mode), Share and Duplicate (phase 2).
@@ -14,10 +16,9 @@
  */
 import { Archive, ArchiveRestore, ArrowLeft, Pencil, Star, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useCurrentUser } from '@/api/auth'
 import { useDeletePlan, usePlan, usePlanAction, type Plan } from '@/api/plans'
-import { ComingSoon } from '@/components/ComingSoon'
 import { FormBanner } from '@/components/FormBanner'
 import { PageHeader } from '@/components/PageHeader'
 import { PlanDayView } from '@/components/plans/PlanDayView'
@@ -37,6 +38,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ApiError } from '@/lib/http'
+import type { PlanSavedState } from '@/pages/PlanEditorPage'
 
 /**
  * The user's rest when an exercise sets none and the user is not loaded
@@ -94,6 +96,10 @@ function PlanDetail({ plan }: PlanDetailProps) {
   const action = usePlanAction(plan.id)
   const [searchParams, setSearchParams] = useSearchParams()
   const archived = plan.archived_at !== null
+  // What the editor passed when it opened this page after a save; null when
+  // the page was opened any other way. useLocation(): the current address,
+  // with the `state` given to navigate()
+  const saved = useLocation().state as PlanSavedState | null
 
   // The open day, from `?day=` (1 for the first). Anything that is not one
   // of the plan's days, a hand-typed ?day=9 say, opens the first
@@ -121,6 +127,9 @@ function PlanDetail({ plan }: PlanDetailProps) {
       <PageHeader eyebrow={t('pages.plans.eyebrow')} title={plan.name} description={plan.goal ?? undefined} />
 
       <div className="flex flex-col gap-6">
+        {/* Saved over a version changed elsewhere: the last change won (D3.5.7) */}
+        {saved?.changedElsewhere && <FormBanner variant="error">{t('plans.detail.changedElsewhere')}</FormBanner>}
+
         {/* Its state, in words */}
         {(plan.is_active || archived) && (
           <div className="flex flex-wrap items-center gap-2">
@@ -139,11 +148,12 @@ function PlanDetail({ plan }: PlanDetailProps) {
               {t('plans.detail.setActive')}
             </Button>
           )}
-          <Button size="xl" variant="outline" disabled>
-            <Pencil aria-hidden="true" />
-            {t('plans.detail.edit')}
+          <Button asChild size="xl" variant="outline">
+            <Link to={`/plans/${plan.id}/edit`}>
+              <Pencil aria-hidden="true" />
+              {t('plans.detail.edit')}
+            </Link>
           </Button>
-          <ComingSoon />
           <Button size="xl" variant="outline" disabled={action.isPending} onClick={() => action.mutate(archived ? 'unarchive' : 'archive')}>
             {archived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}
             {archived ? t('plans.detail.unarchive') : t('plans.detail.archive')}

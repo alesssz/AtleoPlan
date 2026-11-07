@@ -757,11 +757,11 @@ The editor sends the whole plan at once, and the server does this in one transac
 2. **Each item's `plan_sets`** are deleted and written again.
 3. **`version`** goes up by 1.
 
-In the code this is the action `SavePlan`, called by `POST` and `PUT /api/plans` ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints)). The positions are not sent: each row's place in its list is its position.
+In the code this is the action `SavePlan`, called by `POST` and `PUT /api/plans` ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints)); the body is built by the plan editor ([C1.16.5](../concepts/C1-frontend.md#c1165-saving)). The positions are not sent: each row's place in its list is its position.
 
 The two levels differ on purpose. Days and items **keep their UUIDs** across saves, because sessions point to them: a session done last week stays linked to the same `plan_items` row even after its reps change. Nothing points to `plan_sets`, so rewriting them is simpler than working out which set changed. That is why they have a plain number as their id.
 
-**The editor's draft is kept on the device** (IndexedDB), not in the database. "Discard changes" ([D1.4.8](D1-ui.md#d148-plan-editor)) goes back to the last saved version, which is the row in `plans`. A draft therefore does not follow the user from desktop to phone; a saved plan does.
+**The editor's draft is kept on the device**, not in the database: in IndexedDB once the offline work of FEAT-3 brings it, and until then in `localStorage`, which holds one draft of a few kilobytes as well ([C1.16.4](../concepts/C1-frontend.md#c1164-the-draft-kept-in-the-browser)). "Discard changes" ([D1.4.8](D1-ui.md#d148-plan-editor)) goes back to the last saved version, which is the row in `plans`. A draft therefore does not follow the user from desktop to phone; a saved plan does.
 
 ### D3.5.7 When a plan is changed in two places
 
