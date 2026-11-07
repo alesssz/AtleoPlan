@@ -68,7 +68,8 @@
     "reload": "Neu laden"
   },
   "common": {
-    "comingSoon": "Demnächst"
+    "comingSoon": "Demnächst",
+    "close": "Schließen"
   },
   "home": {
     "hero": "Bereit fürs <hl>Training</hl>?",
@@ -131,7 +132,85 @@
       "warmUps_one": "+ {{count}} Aufwärmsatz",
       "warmUps_other": "+ {{count}} Aufwärmsätze",
       "max": "max.",
-      "rpe": "RPE {{value}}"
+      "rpe": "RPE {{value}}",
+      "changedElsewhere": "Dieser Plan wurde inzwischen woanders geändert. Deine Version hat ihn ersetzt."
+    },
+    "editor": {
+      "newTitle": "Neuer Plan",
+      "editTitle": "Plan bearbeiten",
+      "create": "Plan erstellen",
+      "save": "Speichern",
+      "discard": "Änderungen verwerfen",
+      "cancel": "Abbrechen",
+      "restored": "Deine nicht gespeicherten Änderungen sind wieder da: Speichere oder verwirf sie.",
+      "planName": "Name",
+      "goal": "Ziel",
+      "goalPlaceholder": "Muskelaufbau, Kraft…",
+      "notes": "Notizen",
+      "daysLabel": "Tage",
+      "addDay": "Tag hinzufügen",
+      "dayName": "Name des Tages",
+      "defaultDayName": "Tag {{letter}}",
+      "moveDayEarlier": "Tag nach vorne",
+      "moveDayLater": "Tag nach hinten",
+      "removeDay": "Tag löschen",
+      "addExercises": "Übungen hinzufügen",
+      "noItems": "Noch keine Übungen: Füge sie aus der Bibliothek hinzu.",
+      "select": "Supersatz bilden",
+      "selectDone": "Abbrechen",
+      "selectHint": "Wähle zwei oder mehr Übungen, die abwechselnd gemacht werden.",
+      "selectItem": "{{name}} wählen",
+      "joinSuperset": "Zum Supersatz verbinden ({{number}})",
+      "dragHandle": "{{name}} verschieben",
+      "supersetTag": "Supersatz {{number}}",
+      "setLabel": "Satz {{number}}",
+      "setTypeButton": "Satz {{number}}, {{type}}: tippen, um den Typ zu ändern",
+      "setTypes": {
+        "normal": "normal",
+        "warm_up": "Aufwärmen",
+        "drop": "Dropsatz",
+        "failure": "bis zum Versagen"
+      },
+      "reps": "Wiederholungen",
+      "weight": "Gewicht ({{unit}})",
+      "rpe": "RPE",
+      "seconds": "Sekunden",
+      "meters": "Meter",
+      "removeSet": "Satz {{number}} entfernen",
+      "addSet": "Satz hinzufügen",
+      "rest": "Pause (Sekunden)",
+      "restHint": "Leer: deine Standardpause, {{time}}.",
+      "itemNotes": "Notizen",
+      "moveToDay": "Auf einen anderen Tag verschieben",
+      "moveToDayChoose": "Tag wählen",
+      "leaveSuperset": "Aus dem Supersatz nehmen",
+      "removeItem": "Übung entfernen",
+      "picker": {
+        "title": "Übungen hinzufügen",
+        "description": "Suche in der Bibliothek und wähle eine oder mehrere.",
+        "add": "Hinzufügen ({{number}})",
+        "choose": "{{name}} wählen"
+      },
+      "invalid": "Einige Felder müssen korrigiert werden: Sie sind rot markiert.",
+      "saveError": "Der Plan konnte nicht gespeichert werden. Versuche es noch einmal.",
+      "errors": {
+        "nameRequired": "Gib einen Namen ein.",
+        "dayNameRequired": "Gib den Namen des Tages ein.",
+        "tooLong": "Zu lang.",
+        "reps": "Wiederholungen wie 8 oder 8-10, von 1 bis 999.",
+        "weight": "Ein Gewicht wie 80 oder 82,5.",
+        "rpe": "Eine RPE von 1 bis 10, wie 8 oder 8,5.",
+        "rest": "Sekunden, bis 3600.",
+        "seconds": "Ganze Sekunden, ab 1.",
+        "meters": "Ganze Meter, ab 1."
+      },
+      "dnd": {
+        "instructions": "Um eine Übung aufzunehmen, drücke Leertaste oder Eingabe. Verschiebe sie mit den Pfeiltasten und drücke Leertaste oder Eingabe zum Ablegen, oder Escape zum Abbrechen.",
+        "pickedUp": "{{name}} aufgenommen.",
+        "movedOver": "{{name}} ist an Position {{position}} von {{total}}.",
+        "dropped": "{{name}} an Position {{position}} von {{total}} abgelegt.",
+        "cancelled": "Verschieben von {{name}} abgebrochen."
+      }
     }
   },
   "exercises": {

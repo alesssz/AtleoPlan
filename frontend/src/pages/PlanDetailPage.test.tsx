@@ -145,11 +145,10 @@ describe('PlanDetailPage', () => {
     expect(fake.mock.calls.some(([path, init]) => path === '/api/plans/plan-ppl' && init?.method === 'DELETE')).toBe(true)
   })
 
-  it('keeps Edit disabled until the editor exists', async () => {
+  it('opens the editor with Edit', async () => {
     renderPlan()
 
-    expect(await screen.findByRole('button', { name: 'Edit' })).toBeDisabled()
-    expect(screen.getByText('Coming soon')).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/plans/plan-ppl/edit')
   })
 
   it('says so for a plan that is not there, or not the user\'s', async () => {

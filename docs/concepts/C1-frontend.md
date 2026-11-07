@@ -40,6 +40,13 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.15.3 Tabs whose state is in the address](#c1153-tabs-whose-state-is-in-the-address)
   - [C1.15.4 Actions on a plan](#c1154-actions-on-a-plan)
   - [C1.15.5 Testing it](#c1155-testing-it)
+- [C1.16 The plan editor](#c116-the-plan-editor)
+  - [C1.16.1 The pieces](#c1161-the-pieces)
+  - [C1.16.2 The draft and its reducer](#c1162-the-draft-and-its-reducer)
+  - [C1.16.3 Drag and drop with dnd-kit](#c1163-drag-and-drop-with-dnd-kit)
+  - [C1.16.4 The draft kept in the browser](#c1164-the-draft-kept-in-the-browser)
+  - [C1.16.5 Saving](#c1165-saving)
+  - [C1.16.6 Testing it](#c1166-testing-it)
 
 ---
 
@@ -91,7 +98,7 @@ frontend/
     │   ├── health.ts         GET /api/health → useHealth()
     │   ├── auth.ts           the account: useCurrentUser(), useSignIn(), useSignOut()… (C1.13)
     │   ├── exercises.ts      the library: useExercises() (pages), useExercise(), create, update, delete (C1.14)
-    │   ├── plans.ts          the plans: usePlans(), usePlan(), usePlanAction() (activate, archive, unarchive), useDeletePlan() (C1.15)
+    │   ├── plans.ts          the plans: usePlans(), usePlan(), usePlanAction() (activate, archive, unarchive), useDeletePlan() (C1.15), useCreatePlan(), useUpdatePlan() (C1.16)
     │   └── muscles.ts, equipment.ts   the two fixed lists of the filters and the editor
     ├── components/
     │   ├── ui/               shadcn/ui components (generated, then ours to edit)
@@ -99,7 +106,9 @@ frontend/
     │   ├── brand/            the logo: BrandMark and Wordmark
     │   ├── home/             pieces of Home: WeekStrip, WeekStats
     │   ├── exercises/        pieces of the library: ExerciseListItem, ExerciseFilters, ExercisePhotos, ExerciseForm and exercise-form.ts (C1.14)
-    │   ├── plans/            pieces of the plan screens: PlanCard, PlanDayView, PlanItemRow, and plan-format.ts, the summary of an exercise (C1.15)
+    │   ├── plans/            pieces of the plan screens: PlanCard, PlanDayView, PlanItemRow, and plan-format.ts, the summary of an exercise (C1.15);
+    │   │                     plan-draft.ts, the editor's draft and reducer, draft-storage.ts (C1.16)
+    │   │   └── editor/         the plan editor: PlanEditor, EditorDay, EditorItem, EditorSet, ExercisePicker (C1.16)
     │   └── *.tsx             shared by several pages: PageHeader, EmptyState, ComingSoon, SettingRow, FormField, FormBanner, the pickers…
     ├── pages/              one component per screen (HomePage, LoginPage…), and auth-schemas.ts, the rules of the sign-in forms
     ├── routes/             the guards: RequireAuth, RequireGuest, useAccountPreferences (C1.13)
@@ -242,7 +251,7 @@ useEffect(() => {
 - **The table** is `src/router.tsx`, made with `createBrowserRouter([...])`. A route has a `path` and an `element`. `children` nest routes inside a parent, which draws them at its `<Outlet />`. `index: true` marks the parent's own address.
 - **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([C1.13](#c113-signing-in-and-forms)). Workout mode and the public shared plan, both full screen, will be siblings of these branches. Comments in the file mark where.
 - **Links:** use `<Link to="/plans">`. Use `<NavLink>` in navigation: it knows whether it is the current page and then gets `aria-current="page"`. Use `useNavigate()` to move in code, for example after saving.
-- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`). A plan's id is a UUID, and stays a string (`PlanDetailPage`).
+- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`). A plan's id is a UUID, and stays a string (`PlanDetailPage`). `plans/new` and `plans/:id/edit` open the plan editor (C1.16).
 - **The query string** (`?q=panca`) is read and written with `useSearchParams()` ([C1.14.3](#c1143-filters-in-the-address)): the library's filters, the plan list's view (`?archived=1`), a plan's open day (`?day=2`).
 - **A fixed segment wins over a parameter:** `exercises/new` and `exercises/:id` can both exist, and `/exercises/new` opens the editor, whatever their order in the table.
 - **Not found and crashes:** the last child, `path: '*'`, catches unknown addresses (`NotFoundPage`, inside the frame). `errorElement` (`RouteErrorPage`) replaces a screen that throws while rendering.
@@ -460,6 +469,8 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 | `pages/PlansPage.test.tsx` | the plan cards, the two views in the address and the request, the empty states, an error |
 | `pages/PlanDetailPage.test.tsx` | a day's exercises summed up, the day tabs in the address, the weight unit, activate, archive, delete, a plan not found |
 | `components/plans/plan-format.test.ts` | the line that sums up an exercise, in two languages and two units; the supersets |
+| `components/plans/plan-draft.test.ts` | the editor's draft without React: reading what is typed, to and from the API, the rules, every action of the reducer |
+| `pages/PlanEditorPage.test.tsx` | creating from the library, saving with the version and the ids, the rules and the server's messages, the warning of a plan changed elsewhere, the draft kept and discarded, supersets, days |
 
 **Commands:**
 
@@ -475,10 +486,9 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 
 ## C1.11 Known limits
 
-- **Bundle size.** The production build is one JavaScript file of 812 kB (253 kB compressed) since the plan screens, and Vite warns above 500 kB. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
+- **Bundle size.** The production build is one JavaScript file of 897 kB (279 kB compressed) since the plan editor, and Vite warns above 500 kB. The editor, with dnd-kit and the Dialog, is the first candidate for a page loaded only when opened. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
 - **A preference changed with no connection is not saved.** It stays on screen until the page reloads, then the account's value returns. The offline queue will save it (FEAT-3).
 - **Not yet in place**, each with the feature that needs it:
-  - drag and drop (FEAT-2);
   - the PWA and offline support (FEAT-3);
   - charts (phase 2).
 - **`fsevents`'s install script** is blocked by npm's install-scripts guard. It is an optional macOS file watcher that Vite does not need. Leave it blocked.
@@ -689,7 +699,7 @@ The first feature screens of the app (UI-1, [D1.4.3](../design/D1-ui.md#d143-exe
 | `/exercises/:id` | `ExerciseDetailPage` | `ExercisePhotos`, the facts as a description list, `AlertDialog` to confirm a delete; `useExercise()`, `useDeleteExercise()` |
 | `/exercises/new`, `/exercises/:id/edit` | `ExerciseEditorPage` | `ExerciseForm`, with the rules and conversions of `exercise-form.ts`; `useCreateExercise()`, `useUpdateExercise()` |
 
-**What is not here yet,** with the feature that brings it: the list's select mode and "Add to plan" (FEAT-2), the "My history" tab (FEAT-4), photo uploads, videos and "Duplicate as mine" (BE-1, `feat/exercise-media`), the buttons disabled offline (FEAT-3).
+**What is not here yet,** with the feature that brings it: "Add to plan" ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)), the "My history" tab (FEAT-4), photo uploads, videos and "Duplicate as mine" (BE-1, `feat/exercise-media`), the buttons disabled offline (FEAT-3).
 
 ### C1.14.2 A list one page at a time
 
@@ -766,7 +776,7 @@ The library's tests use the helpers of [C1.13.6](#c1136-testing-a-screen-with-th
 
 ## C1.15 The plan screens
 
-The plan list and a plan's page (the second part of FEAT-2, [D1.4.6](../design/D1-ui.md#d146-plan-list) and [D1.4.7](../design/D1-ui.md#d147-plan-details)), on the API of [C2.5.5](C2-backend.md#c255-the-plans-endpoints). The editor comes next; until then **New plan** and **Edit** are disabled and marked "Coming soon", and `make plans-demo` gives every user two example plans to look at. How the screens were built, with the real output: [H3.13](../how-to/H3-frontend.md#h313-the-plan-screens-as-built).
+The plan list and a plan's page (the second part of FEAT-2, [D1.4.6](../design/D1-ui.md#d146-plan-list) and [D1.4.7](../design/D1-ui.md#d147-plan-details)), on the API of [C2.5.5](C2-backend.md#c255-the-plans-endpoints). **New plan** and **Edit** open the plan editor ([C1.16](#c116-the-plan-editor)); `make plans-demo` gives every user two example plans to look at. How the screens were built, with the real output: [H3.13](../how-to/H3-frontend.md#h313-the-plan-screens-as-built).
 
 ### C1.15.1 The pages and their pieces
 
@@ -783,7 +793,7 @@ PlanDetailPage                 the plan: header, badges, actions, notes
         └── <section>          a superset: a lime bar, its label, and a PlanItemRow per exercise
 ```
 
-**What is not here yet,** with the feature that brings it: the editor, New plan and Edit (the next part of FEAT-2); "Start this day" and "last used" (FEAT-3); Templates, Share, Duplicate and the Shared badge (phase 2).
+**What is not here yet,** with the feature that brings it: "Start this day" and "last used" (FEAT-3); Templates, Share, Duplicate and the Shared badge (phase 2).
 
 ### C1.15.2 One line per exercise
 
@@ -852,6 +862,123 @@ fakeApi({
 
   The test then finds the Active badge, which proves the page read the plan again after the action.
 - **`GET /api/user`** is in the table of the plan page's tests, since the page asks for the user's unit; one test answers with `weight_unit: 'lb'`.
+
+
+## C1.16 The plan editor
+
+The last part of FEAT-2 ([D1.4.8](../design/D1-ui.md#d148-plan-editor)), at `/plans/new` and `/plans/:id/edit`, on `POST` and `PUT /api/plans` ([C2.5.5](C2-backend.md#c255-the-plans-endpoints)). It is the app's largest screen: a tree of days, exercises and sets, each changed in many ways, saved in one request. How it was built, with the real output: [H3.14](../how-to/H3-frontend.md#h314-the-plan-editor-as-built).
+
+### C1.16.1 The pieces
+
+```
+PlanEditorPage            /plans/new: an empty draft; /plans/:id/edit: reads the plan, makes a draft of it
+└── PlanEditor            the draft (useReducer), kept in the browser; the sticky Save / Discard bar;
+    │                     name, goal, notes; the days as tabs; "Add day"
+    └── EditorDay         a day: its name, move earlier / later, delete; drag and drop (dnd-kit);
+        │                 "Add exercises" (ExercisePicker); "Make a superset"
+        ├── EditorItem    an exercise: drag handle, summary line; open: its sets, rest, notes,
+        │   │             move to another day, leave the superset, remove
+        │   └── EditorSet a set: its number, a tap cycles the type (W, D, F); its targets; remove
+        └── ExercisePicker the library in a Dialog, a tick box on each row, "Add (n)"
+```
+
+| File | Holds |
+|---|---|
+| `components/plans/plan-draft.ts` | The draft's types, the conversions to and from the API, the rules, the reducer: no React |
+| `components/plans/draft-storage.ts` | Keeping the draft in the browser |
+| `components/plans/editor/*.tsx` | The components above |
+| `components/ui/dialog.tsx` | shadcn/ui's Dialog, for the exercise picker |
+| `api/plans.ts` | `useCreatePlan()`, `useUpdatePlan(id)`, and the types of the body (`PlanInput`) |
+
+**What is not here,** with where it went: the desktop layout of D1.4.8, the library in a column beside the plan with exercises dragged across ([UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)); "Add to plan" from an exercise's page ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)). On every width, exercises come from the picker window.
+
+### C1.16.2 The draft and its reducer
+
+The exercise editor is a form of fields side by side, and react-hook-form fits it ([C1.14.4](#c1144-the-editors-form)). A plan is a tree: a day holds exercises, an exercise holds sets, and the changes are not only typing. A set's type cycles, an exercise moves to another day, two exercises join a superset, a drag reorders a list. These are written as **actions** handled by one function, the **reducer**, with React's **`useReducer`**:
+
+```tsx
+const [draft, dispatch] = useReducer(draftReducer, initial)
+
+dispatch({ type: 'cycleSetType', day: 0, item: 1, set: 2 })     // a tap on set 3's number
+dispatch({ type: 'moveItem', day: 0, from: 3, to: 0 })           // the end of a drag
+```
+
+- **`useReducer(reducer, first)`** is `useState` for state that changes in many named ways. `dispatch(action)` asks React to call `draftReducer(draft, action)` and draw again with what it returns.
+- **The reducer is a plain function** in `plan-draft.ts`, with no React, so `plan-draft.test.ts` runs every action on a draft and checks the result, without drawing anything. 17 tests do so.
+- **It never changes the draft it is given.** React notices a change only when it receives a new object, so the reducer copies the draft first, with **`structuredClone()`**, the browser's deep copy, then changes the copy. The draft before stays as it was, which makes "Discard changes" a simple `dispatch({ type: 'replace', draft: initial })`.
+- **The actions are a discriminated union** (`DraftAction`): each is an object whose `type` names it, and inside `case 'moveItem':` TypeScript knows the action has `from` and `to`. A misspelt action type is a type error, not a silent no-op.
+- **The components hold no copy of the plan.** `EditorDay`, `EditorItem` and `EditorSet` receive their piece and `dispatch`, and send actions with their indexes (`{ day, item, set }`).
+- **The draft is text, like a form.** Each target is the text typed, `"8-10"` or `"82,5"`, in the user's unit and with their decimal comma. `toPlanInput()` reads it when saving: reps into `target_reps_min` and `target_reps_max`, pounds into kilograms with three decimals (135 lb → 61.235 kg, [D3.2.3](../design/D3-data-model.md#d323-weights-are-always-in-kilograms)), only the targets that fit how the exercise is logged. `draftFromPlan()` does the opposite.
+- **Supersets stay valid by themselves.** After every action the reducer runs `normalizeSupersets()` on each day: an exercise dragged away from its superset leaves it, a superset left with one exercise ends, the numbers become 1, 2, 3. The backend accepts only neighbours ([C2.5.6](C2-backend.md#c256-validating-nested-data)), and the editor can never send anything else.
+- **New rows get their UUID in the browser** (`crypto.randomUUID()`), as [D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id) asks; saved rows keep theirs, so sessions of FEAT-3 stay linked.
+
+### C1.16.3 Drag and drop with dnd-kit
+
+The exercises of a day are reordered by dragging their handle, with **dnd-kit** ([D2.2](../design/D2-decisions.md#d22-stack)): `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` and `@dnd-kit/modifiers`.
+
+```tsx
+<DndContext sensors={sensors} collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
+  <SortableContext items={day.items.map(item => item.id)} strategy={verticalListSortingStrategy}>
+    {day.items.map(item => <EditorItem key={item.id} item={item} … />)}
+  </SortableContext>
+</DndContext>
+```
+
+```tsx
+// In EditorItem
+const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: item.id })
+<li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
+  <button {...attributes} {...listeners} aria-label="Move Barbell Bench Press">⋮⋮</button>
+```
+
+- **`DndContext`** watches drags; **`SortableContext`** knows the list's order, by the items' ids; **`useSortable()`** makes one row draggable. Only the handle gets `listeners`, so the rest of the row can be tapped to open it, and the page can still be scrolled with a finger.
+- **Sensors** decide how a drag starts: `PointerSensor` for a mouse or a finger, once it has moved 5 px (a tap is not a drag); `KeyboardSensor` for space or enter on the handle, then the arrow keys, then space again. `touch-none` on the handle keeps the browser from scrolling during a drag.
+- **While dragging, nothing changes in the draft:** dnd-kit only moves the row on screen, with a CSS `transform`. When the drag ends, `onDragEnd` sends one action, `moveItem`, and the reducer does the rest.
+- **Screen readers hear the drag** ("Picked up Barbell Bench Press. … dropped at position 1 of 4."). dnd-kit's own texts are English; `accessibility.announcements` and `screenReaderInstructions` give them in the user's language.
+- **Days** are moved with two buttons, earlier and later, and exercises to another day with a list, inside the opened exercise: both are one tap, and work the same with a keyboard.
+
+### C1.16.4 The draft kept in the browser
+
+D1.4.8 asks that the draft be saved automatically. After every change, an effect writes it to the browser's **`localStorage`**, under `atleoplan.planDraft.<plan id>`, or `…new` for a plan being created (`draft-storage.ts`):
+
+```tsx
+useEffect(() => {
+  if (dirty) storeDraft(storageKey, draft)
+  else clearDraft(storageKey)
+}, [draft, dirty, storageKey])
+```
+
+- **Opening the editor again** brings the draft back, with a banner that says so; **Discard changes** returns to the plan as it was opened and forgets the draft; **a save** forgets it too.
+- **`dirty`** compares the draft with the plan as opened, both turned into text with `JSON.stringify`: the simplest way to compare two trees of objects.
+- **`localStorage`, not IndexedDB.** [D3.5.6](../design/D3-data-model.md#d356-saving-a-plan) names IndexedDB for drafts; it comes with the offline work of FEAT-3, which needs a database in the browser for much more. A draft is a few kilobytes of JSON, and `localStorage` holds it with three lines of code.
+- **Every access is in `try`/`catch`:** a private window, or storage full, throws, and the editor must still work, only without keeping the draft.
+- **A draft follows the browser, not the account:** started on the phone, it is not on the laptop. A saved plan is.
+
+### C1.16.5 Saving
+
+**Save** runs, in order:
+
+1. **`validateDraft()`**, the backend's rules ([C2.5.6](C2-backend.md#c256-validating-nested-data)) checked in the browser: a name, reps as `8` or `8-10` from 1 to 999, an RPE from 1 to 10 with one decimal, a rest up to an hour… It returns a translation key per wrong field, by the field's path in the draft: `days.0.items.1.sets.2.reps`. With any error, nothing is sent: the fields turn red, a banner says so, the first day with an error opens, and its tab carries a red dot.
+2. **`toPlanInput()`** builds the body, and `useCreatePlan()` sends it with `POST`, or `useUpdatePlan(id)` with `PUT` and the `version` the editor started from.
+3. **A 422 from the server** carries Laravel's field names: `draftField()` turns `days.0.items.1.sets.2.target_reps_max` into `days.0.items.1.sets.2.reps`, the same indexes, since the order is the position. The message appears under that field, as the editor's own would.
+4. **Success** forgets the kept draft and opens the plan's page, replacing the editor in the history (`replace: true`). On a `PUT`, the answer's `meta.changed_elsewhere` travels with the navigation, in its **`state`**:
+
+```tsx
+navigate(`/plans/${plan.id}`, { replace: true, state: { changedElsewhere: true } })
+// On the plan's page
+const saved = useLocation().state as PlanSavedState | null
+```
+
+  The plan's page then shows "This plan was changed somewhere else in the meantime. Your version was saved over it." ([D3.5.7](../design/D3-data-model.md#d357-when-a-plan-is-changed-in-two-places)). The state lives with that history entry only: a reload of the page does not show the warning again.
+
+**One Save button.** The Save and Discard bar sticks to the top of the screen while a long plan scrolls (`sticky top-0`, as the library's search, [C1.14.3](#c1143-filters-in-the-address)), so Save is always in reach and there is one of each button.
+
+### C1.16.6 Testing it
+
+- **The draft without React** (`plan-draft.test.ts`): `run(draft, action1, action2…)` applies actions in turn with `actions.reduce(draftReducer, draft)`, then the test reads the result.
+- **The page** (`PlanEditorPage.test.tsx`) is used as a person would: it types, opens the picker (`findByRole('dialog', { name: 'Add exercises' })`), ticks, taps a set's number, saves; then `sentBody(fake, '/api/plans')` gives the body sent, compared with what the backend expects.
+- **The draft kept between visits:** the test draws the editor, types, calls `unmount()` (the editor disappears, as when leaving the page), draws it again, and finds the change and the banner. `src/test/setup.ts` empties `localStorage` after each test.
+- **Dragging is not drawn in tests:** jsdom has no layout, so the positions dnd-kit measures are all zero. What a drag does, `moveItem`, is tested in the reducer; the drag itself is checked in the browser ([H3.14.8](../how-to/H3-frontend.md#h3148-checking-in-the-browser)).
 
 ---
 

@@ -54,14 +54,13 @@ describe('PlansPage', () => {
     expect(fake.mock.calls.map(([path]) => path)).toContain('/api/plans?archived=1')
   })
 
-  it('invites to create the first plan, the action marked as coming soon', async () => {
+  it('invites to create the first plan', async () => {
     fakeApi({ 'GET /api/plans': { status: 200, body: { data: [] } } })
     renderRoutes(routes, '/plans')
 
     expect(await screen.findByRole('heading', { name: 'Create your first plan' })).toBeInTheDocument()
-    // Two New plan buttons, at the top and in the empty state: both disabled
-    // until the editor exists
-    for (const button of screen.getAllByRole('button', { name: 'New plan' })) expect(button).toBeDisabled()
+    // Two New plan links, at the top and in the empty state: both open the editor
+    for (const link of screen.getAllByRole('link', { name: 'New plan' })) expect(link).toHaveAttribute('href', '/plans/new')
   })
 
   it('says so when there is no archived plan', async () => {

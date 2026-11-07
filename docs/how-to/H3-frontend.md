@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built).
 
 ## Contents
 
@@ -49,6 +49,15 @@
   - [H3.13.5 The tests, and the errors met](#h3135-the-tests-and-the-errors-met)
   - [H3.13.6 The production build](#h3136-the-production-build)
   - [H3.13.7 Checking in the browser](#h3137-checking-in-the-browser)
+- [H3.14 The plan editor, as built](#h314-the-plan-editor-as-built)
+  - [H3.14.1 The packages](#h3141-the-packages)
+  - [H3.14.2 The dialog component](#h3142-the-dialog-component)
+  - [H3.14.3 The draft first, with its tests](#h3143-the-draft-first-with-its-tests)
+  - [H3.14.4 The components](#h3144-the-components)
+  - [H3.14.5 Drag and drop](#h3145-drag-and-drop)
+  - [H3.14.6 The tests, and the errors met](#h3146-the-tests-and-the-errors-met)
+  - [H3.14.7 The production build](#h3147-the-production-build)
+  - [H3.14.8 Checking in the browser](#h3148-checking-in-the-browser)
 
 ---
 
@@ -652,7 +661,10 @@ npx eslint src/components/ui/badge.tsx
 | `ResizeObserver is not defined` in a test | A Radix component measures itself; jsdom has no `ResizeObserver` | `src/test/setup.ts` gives one ([H3.12.5](#h3125-the-tests-and-the-errors-met)) |
 | `"undefined" is not valid JSON` from `sentBody` | No call to that path sent a body | Check the path, and that the request was sent before reading it |
 | Photos do not load, 404 on `/storage/…` | No `public/storage` link on this computer | `make artisan c="storage:link"` ([H3.12.1](#h3121-the-photos-reach-the-browser)) |
-| The plan list is empty, and New plan is disabled | The editor does not exist yet, so no plan can be made in the app | `make plans-demo`, after `make exercises-import` ([H3.13.1](#h3131-plans-to-look-at)) |
+| The plan list is empty | No plan made yet | **New plan**, or `make plans-demo` after `make exercises-import` ([H3.13.1](#h3131-plans-to-look-at)) |
+| `Found multiple elements with the role "button" and name "Save"` | The same button drawn twice on the page | One of each: a page with two Save buttons confuses screen readers as much as tests ([H3.14.6](#h3146-the-tests-and-the-errors-met)) |
+| A drag does nothing in a test | jsdom draws nothing, so dnd-kit measures every row at zero | Test the action the drag sends, in the reducer; check the drag in the browser ([H3.14.5](#h3145-drag-and-drop)) |
+| The editor brings back old changes | A draft kept in the browser from an earlier visit | **Discard changes**; or DevTools → Application → Local storage, the keys `atleoplan.planDraft.…` |
 | A tab bar with no tab selected | The `value` given to `Tabs` matches none of its `TabsTrigger` | Check where the value comes from; a value read from the address must be checked first ([H3.13.4](#h3134-the-plan-page)) |
 
 Setup problems: [S1.10](../start/S1-setup.md#s110-troubleshooting).
@@ -672,6 +684,7 @@ Setup problems: [S1.10](../start/S1-setup.md#s110-troubleshooting).
 | A shadcn/ui component | `npx shadcn add name` in `frontend/`, then `make fix`; answer no to overwriting our files |
 | The photos' link, once per computer | `make artisan c="storage:link"` (`make setup` does it) |
 | Example plans for every user who has none | `make plans-demo`, after `make exercises-import` |
+| The packages of a feature, at exact versions | `npm install @dnd-kit/core@6.3.1 @dnd-kit/sortable@10.0.0` in `frontend/` |
 | Every check, backend included | `make check` |
 
 **Official documentation:** React https://react.dev/learn; React Router https://reactrouter.com; TanStack Query https://tanstack.com/query/latest/docs/framework/react/overview; react-hook-form https://react-hook-form.com; zod https://zod.dev; Testing Library https://testing-library.com/docs/queries/about; Vitest https://vitest.dev; i18next https://www.i18next.com.
@@ -889,7 +902,7 @@ The second part of FEAT-2 built the plan list and a plan's page on the API of [C
 
 ### H3.13.1 Plans to look at
 
-The editor is the next branch, so the app cannot make a plan yet, and the list would always be empty. A seeder gives every user with no plans two examples, written through `SavePlan`, the action behind `POST /api/plans`, so they are exactly what the API would save:
+The editor came in the next branch ([H3.14](#h314-the-plan-editor-as-built)); while it did not exist, the app could not make a plan, and the list would always have been empty. The seeder stays useful to look at the screens without building a plan by hand. A seeder gives every user with no plans two examples, written through `SavePlan`, the action behind `POST /api/plans`, so they are exactly what the API would save:
 
 ```sh
 make artisan c="make:seeder DemoPlanSeeder"
@@ -956,7 +969,7 @@ npx eslint src/components/ui/tabs.tsx
   20 errors and 0 warnings potentially fixable with the `--fix` option.
 ```
 
-`npx eslint --fix` corrected all 20. The generated file imports `cn` from `'cn'`, like every other file in `components/ui/`: it is the project's own alias, not a mistake. A header comment and a line on each export were added, as for the other components.
+`npx eslint --fix` corrected all 20. The generated file imports `cn` from `'cn'`, like every other file in `components/ui/`: not a mistake, `cn` is a small package by the authors of shadcn/ui, in `package.json`, which `src/lib/utils.ts` re-exports for the rest of the app. A header comment and a line on each export were added, as for the other components.
 
 ### H3.13.3 The API file and the line of an exercise
 
@@ -1079,6 +1092,252 @@ With `make start`, after `make exercises-import` and `make plans-demo`, at http:
 - **The unit:** there is no switch in Profile yet; in tinker, `User::first()->forceFill(['weight_unit' => 'lb'])->save()`, then reload: `176,37 lb`. Put it back with `'kg'`.
 - **The actions:** Archive, then Restore. Open Full body in the archived view: it has Restore and no Set as active; restore it, then Set as active, and the badge moves to it in the list. Delete asks first, then opens the list.
 - **A phone's width** ([H3.8.1](#h381-phone-tablet-and-desktop-widths)): the day tabs scroll sideways if they do not fit.
+
+
+## H3.14 The plan editor, as built
+
+The last part of FEAT-2 built the plan editor, at `/plans/new` and `/plans/:id/edit`. How it works is in [C1.16](../concepts/C1-frontend.md#c116-the-plan-editor); this section is the doing, with the real output, as a tutorial for the next large screen. It shows what H3.12 and H3.13 do not: state held by a reducer and tested without React, drag and drop, a modal window, a draft kept in the browser, the server's field names turned into the screen's, state passed with a navigation, and a check of the body against the real backend.
+
+| File | What it is |
+|---|---|
+| `src/components/plans/plan-draft.ts` | The draft: types, conversions, rules, reducer |
+| `src/components/plans/draft-storage.ts` | The draft kept in `localStorage` |
+| `src/components/plans/editor/` | `PlanEditor`, `EditorDay`, `EditorItem`, `EditorSet`, `ExercisePicker` |
+| `src/pages/PlanEditorPage.tsx` | `/plans/new` and `/plans/:id/edit`; the two routes in `src/router.tsx` |
+| `src/api/plans.ts` | `useCreatePlan()`, `useUpdatePlan()`, `PlanInput` |
+| `src/components/ui/dialog.tsx` | shadcn/ui's Dialog, with a translated close label |
+| `src/components/ui/button.tsx` | A new size, `icon-xl`: a 48 px square |
+| `src/pages/PlansPage.tsx`, `PlanDetailPage.tsx` | New plan and Edit now open the editor; the "changed elsewhere" warning |
+| `src/components/plans/plan-format.ts` | `workingSets()` and `warmUpCount()` accept the draft's sets too |
+| `src/i18n/locales/*.json` | `plans.editor`, `plans.detail.changedElsewhere`, `common.close` |
+| `package.json` | `@dnd-kit/core`, `sortable`, `utilities`, `modifiers` |
+| 2 test files, 25 tests | `plan-draft.test.ts`, `PlanEditorPage.test.tsx`; two tests of H3.13 changed |
+
+### H3.14.1 The packages
+
+dnd-kit was chosen in [D2.2](../design/D2-decisions.md#d22-stack). First, what exists and what it needs:
+
+```sh
+npm view @dnd-kit/core version peerDependencies
+```
+
+```
+version = '6.3.1'
+peerDependencies = { react: '>=16.8.0', 'react-dom': '>=16.8.0' }
+```
+
+`peerDependencies` are what the package expects the app to have already: any React from 16.8, so React 19 is fine. Then, in `frontend/`, at exact versions:
+
+```sh
+npm install @dnd-kit/core@6.3.1 @dnd-kit/sortable@10.0.0 @dnd-kit/utilities@3.2.2
+npm install @dnd-kit/modifiers@9.0.0
+```
+
+The second came later, when the list needed `restrictToVerticalAxis` (a drag moves only up and down). npm printed, among its lines, `15 vulnerabilities (2 low, 13 moderate)`. Before going on, which packages they are:
+
+```sh
+npm audit --json | python3 -c "import json,sys; print(sorted(json.load(sys.stdin)['vulnerabilities']))"
+```
+
+```
+['@eslint/config-array', '@eslint/js', '@shadcn/registry', '@ts-morph/common', '@typescript-eslint/eslint-plugin', … 'eslint', 'minimatch', 'shadcn', 'ts-morph', 'typescript-eslint']
+```
+
+All tools of development (ESLint, shadcn's command), none in the app and none from dnd-kit, so nothing to do now; `make audit` lists them. Never `npm audit fix --force` ([S1.10](../start/S1-setup.md#s110-troubleshooting)).
+
+### H3.14.2 The dialog component
+
+```sh
+printf 'n\n' | npx shadcn add dialog
+```
+
+```
+✔ The file button.tsx already exists. Would you like to overwrite? … no
+✔ Created 1 file:
+  - src/components/ui/dialog.tsx
+ℹ Skipped 1 file: (files might be identical, use --overwrite to overwrite)
+  - src/components/ui/button.tsx
+```
+
+This time it asked, as `alert-dialog` did, and the `n` answered. Then `npx eslint --fix src/components/ui/dialog.tsx`, and the comments. One change to shadcn's code: the X had a hidden English word, `<span className="sr-only">Close</span>`. `DialogContent` now takes `closeLabel`, and the picker passes `t('common.close')`. A text in a shadcn component is easy to miss: search the copied file for English words.
+
+### H3.14.3 The draft first, with its tests
+
+The editor was built from the inside out: first `plan-draft.ts`, plain functions with no screen, and their tests; then the components that send actions to it.
+
+The reducer has one `case` per action. Each copies the draft and changes the copy:
+
+```ts
+export function draftReducer(draft: PlanDraft, action: DraftAction): PlanDraft {
+  if (action.type === 'replace') return action.draft
+  const next = structuredClone(draft)
+  const day = 'day' in action ? next.days[action.day] : undefined
+
+  switch (action.type) {
+    case 'cycleSetType': {
+      const set = day?.items[action.item]?.sets[action.set]
+      if (set) set.set_type = SET_TYPES[(SET_TYPES.indexOf(set.set_type) + 1) % SET_TYPES.length] ?? 'normal'
+      break
+    }
+    // … one case per action
+  }
+
+  for (const changed of next.days) normalizeSupersets(changed.items)
+  return next
+}
+```
+
+The tests apply a few actions and read the result, with a helper that runs them in turn:
+
+```ts
+function run(start: PlanDraft, ...actions: DraftAction[]): PlanDraft {
+  return actions.reduce(draftReducer, start)
+}
+
+const next = run(draft(), { type: 'moveItem', day: 0, from: 1, to: 0 })
+```
+
+`actions.reduce(draftReducer, start)` is the same thing `useReducer` does over time: each action turns the draft into the next one. This is also where the name "reducer" comes from.
+
+```sh
+npx vitest run src/components/plans/plan-draft.test.ts
+```
+
+```
+Test Files  1 passed (1)
+     Tests  17 passed (17)
+```
+
+All 17 passed at the first run, which proves little: [H3.14.6](#h3146-the-tests-and-the-errors-met) breaks lines on purpose to see them fail.
+
+### H3.14.4 The components
+
+`PlanEditor` holds the draft and hands `dispatch` down; each component sends actions with its indexes:
+
+```tsx
+// In EditorSet: a tap on the set's number
+<Button onClick={() => dispatch({ type: 'cycleSetType', ...at })}>{SET_TYPE_SIGNS[set.set_type] ?? number}</Button>
+```
+
+`...at` spreads `{ day, item, set }` into the action. Three details worth copying:
+
+- **A field's name for screen readers says which set:** `aria-label="Set 2, Reps"`. On screen a row of three fields has no room for labels; the placeholder (`8-10`, `kg`, `RPE`) hints the format.
+- **`inputMode`** picks the phone's keyboard: `decimal` for weights (digits and a separator), `numeric` for seconds, and plain text for reps, which need the dash of `8-10`.
+- **An opened exercise** is a `<button aria-expanded={open} aria-controls={panelId}>`: screen readers say whether it is open, and the handle and the tick box stay separate buttons beside it, not inside it (a button inside a button is invalid HTML).
+
+The picker reuses the library's hook, `useExercises({ search }, language)`, and draws its list only while the window is open (`{open && <PickerBody … />}`), so closing forgets the search and the ticks.
+
+### H3.14.5 Drag and drop
+
+In `EditorDay`, the context and the list; in `EditorItem`, the row ([C1.16.3](../concepts/C1-frontend.md#c1163-drag-and-drop-with-dnd-kit)). The end of a drag is one action:
+
+```tsx
+function onDragEnd({ active, over }: DragEndEvent) {
+  if (!over || active.id === over.id) return
+  const from = day.items.findIndex(item => item.id === active.id)
+  const to = day.items.findIndex(item => item.id === over.id)
+  dispatch({ type: 'moveItem', day: dayIndex, from, to })
+}
+```
+
+**Why there is no test of the drag itself.** dnd-kit decides where a row lands from the rows' positions on screen. jsdom, the fake browser of the tests, lays nothing out: every row measures 0 × 0 at 0, 0, so a simulated drag lands nowhere. What matters, that `moveItem` reorders the list and takes the moved exercise out of a superset it left, is tested in the reducer; the drag is checked by hand in the browser ([H3.14.8](#h3148-checking-in-the-browser)), with the mouse, a phone's width and the keyboard.
+
+### H3.14.6 The tests, and the errors met
+
+```sh
+npx vitest run src/components/plans/plan-draft.test.ts src/pages/PlanEditorPage.test.tsx --reporter=verbose
+```
+
+```
+✓ src/components/plans/plan-draft.test.ts > reading what is typed > reads reps as one number or a range
+✓ src/components/plans/plan-draft.test.ts > reading what is typed > reads decimals with a dot or a comma
+✓ src/components/plans/plan-draft.test.ts > from the API and back > turns a saved plan into a draft and back into the same body
+✓ src/components/plans/plan-draft.test.ts > from the API and back > shows weights in the user's unit and language, and sends kilograms
+✓ src/components/plans/plan-draft.test.ts > from the API and back > starts a new plan with one empty day and no version
+✓ src/components/plans/plan-draft.test.ts > from the API and back > names the draft's field for a field named by the server
+✓ src/components/plans/plan-draft.test.ts > validateDraft > finds nothing wrong in a saved plan
+✓ src/components/plans/plan-draft.test.ts > validateDraft > names each wrong field, with the key of its message
+✓ src/components/plans/plan-draft.test.ts > draftReducer > leaves the draft it was given as it was
+✓ src/components/plans/plan-draft.test.ts > draftReducer > adds exercises with three sets each, and a set copied from the last one
+✓ src/components/plans/plan-draft.test.ts > draftReducer > cycles a set's type: normal, warm-up, drop, failure, normal
+✓ src/components/plans/plan-draft.test.ts > draftReducer > joins exercises into a superset, next to each other where the first was
+✓ src/components/plans/plan-draft.test.ts > draftReducer > takes an exercise out of its superset when it is dragged away, and ends a superset of one
+✓ src/components/plans/plan-draft.test.ts > draftReducer > moves an exercise to another day, alone, and keeps its id
+✓ src/components/plans/plan-draft.test.ts > draftReducer > adds, renames, moves and removes days
+✓ src/components/plans/plan-draft.test.ts > draftReducer > stops at the backend's limits
+✓ src/components/plans/plan-draft.test.ts > draftReducer > gives every new exercise its own id
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > creates a plan from exercises chosen in the library, then opens it
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > says what is wrong before sending anything
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > shows the server's message under its field
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > saves a plan again with its version and its ids
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > warns on the plan's page when the plan had been changed elsewhere
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > keeps the draft when leaving, and discards it on request
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > joins two exercises in a superset
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > adds a day named with the next letter, and opens it
+Test Files  2 passed (2)
+     Tests  25 passed (25)
+```
+
+**The errors met, in order.**
+
+`npx tsc -b` refused the first `EditorItem`:
+
+```
+src/components/plans/editor/EditorItem.tsx(80,31): error TS2345: Argument of type 'DraftSet[]' is not assignable to parameter of type 'PlanSet[]'.
+```
+
+`warmUpCount()`, written for the plan's page, took the API's sets; the editor has its own. Both have a `set_type`, which is all it reads, so it became generic: `workingSets<T extends { set_type: SetType }>(sets: T[]): T[]` accepts any list of objects with a `set_type`.
+
+`npx eslint src` then found a line with two statements (`onClick={() => { setSelecting(false); setChosen([]) }}`, now a function `stopSelecting`) and the layout of a long type, which `--fix` corrected.
+
+The first run of the page's tests failed seven tests out of eight, all alike:
+
+```
+TestingLibraryElementError: Found multiple elements with the role "button" and name "Save"
+```
+
+The editor drew its bar of buttons twice, at the top and at the bottom of the plan. The test was right to complain: a person with a screen reader also meets two "Save" and cannot tell them apart. The bar is now drawn once, and sticks to the top of the screen while the plan scrolls.
+
+**Proving they can fail.** Three lines broken on purpose, then put back:
+
+| Line changed | Tests that failed |
+|---|---|
+| `clearDraft(storageKey)` after a save removed | `creates a plan from exercises chosen in the library, then opens it`: `expected '{"draft":{"id":"398cf02b-…' to be null`, the draft still kept after the save |
+| `normalizeSupersets()` removed from the reducer | four: three of the reducer's (join, drag away, move to another day) and `joins two exercises in a superset` on the page |
+| `version` left out of the body | `turns a saved plan into a draft and back into the same body` and `saves a plan again with its version and its ids` |
+
+**The body against the real backend.** The fake API of the tests accepts anything; the backend has rules of its own ([C2.5.6](../concepts/C2-backend.md#c256-validating-nested-data)). To check that the two agree, a temporary Vitest test built a body with the real functions (two exercises, one by time; 82,5 lb; RPE 8.5; a warm-up; a superset; a rest of 0) and wrote it to a file, and a temporary Pest test sent that file to `POST /api/plans`, then `PUT` with the version:
+
+```
+201 [{"set_type":"normal","target_reps_min":8,"target_reps_max":10,"target_weight_kg":"37.421","target_rpe":"8.5",…},{"set_type":"normal",…,"target_duration_seconds":60,…}] [1,1]
+✓ it accepts the editor body
+```
+
+82,5 lb arrived as 37.421 kg, the timed set as 60 seconds, the superset whole. Both temporary files were then deleted: the contract between the two sides is kept by the backend's tests of the body ([H2.13.8](H2-backend.md#h2138-the-tests-and-proving-they-can-fail)) and the editor's tests of what it sends.
+
+### H3.14.7 The production build
+
+```sh
+npm run build
+```
+
+```
+dist/assets/index-BWgffEDr.js                              896.86 kB │ gzip: 279.26 kB
+✓ built in 818ms
+```
+
+85 kB more than after the plan screens: dnd-kit, the Dialog and the editor. Still one file for the whole app; the editor is the first page to load only when opened, when the size starts to slow the first load ([C1.11](../concepts/C1-frontend.md#c111-known-limits)).
+
+### H3.14.8 Checking in the browser
+
+With `make start`, at http://localhost:5673/plans:
+
+- **A new plan:** **New plan**, a name; **Add exercises**, search "squat", tick two, **Add (2)**. Open one: three sets of 8-10. Tap a set's number: 1 → W → D → F → 1. Type a weight with a comma, `82,5`. **Create plan**: the plan's page opens, with the line `3 × 8–10 · 82,5 kg · …`.
+- **The rules:** clear the name and save: the field turns red, and nothing is sent (Network tab, [H3.8](#h38-checking-in-the-browser)). Type `10-8` as reps: the set's field turns red, and its day's tab gets a red dot.
+- **Dragging:** with the mouse, drag an exercise by its handle (⋮⋮). At a phone's width ([H3.8.1](#h381-phone-tablet-and-desktop-widths)), the same with the pointer as a finger: the page does not scroll while dragging. With the keyboard: Tab to a handle, space, the arrows, space.
+- **Supersets:** **Make a superset**, tick two, **Join in superset (2)**: they move together, with the lime bar. Drag one away: it leaves the superset, and the other is alone again.
+- **The kept draft:** change something, open another page, come back: the change is there, with the banner. **Discard changes** brings back the plan as it was. In DevTools → Application → Local storage, the key `atleoplan.planDraft.<id>` appears and disappears.
+- **Changed elsewhere:** open the same plan's editor in two tabs; save in the first, then in the second: the plan's page warns that it was changed somewhere else.
 
 ---
 

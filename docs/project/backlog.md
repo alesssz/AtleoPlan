@@ -14,8 +14,10 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [OPS-3 Deploy to the free server](#ops-3-deploy-to-the-free-server)
 - [DATA](#data)
   - [DATA-1 Import and translate free-exercise-db](#data-1-import-and-translate-free-exercise-db)
+- [UI](#ui)
+  - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
+  - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
 - [FEAT](#feat)
-  - [FEAT-2 Plans](#feat-2-plans)
   - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
   - [FEAT-4 Summary and history](#feat-4-summary-and-history)
 - [BE](#be)
@@ -54,9 +56,10 @@ This page is not a numbered section of the docs: it changes all the time, and it
 The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [D3. Data model](../design/D3-data-model.md).
 
 1. The exercise library: its API, import and screens are done; left are its admin screen and media ([BE-1](#be-1-exercise-library-api-and-admin)) and its translation ([DATA-1](#data-1-import-and-translate-free-exercise-db))
-2. [FEAT-2](#feat-2-plans) plans: the tables, the API, the list and a plan's page are done; left is the editor
-3. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
-4. [FEAT-4](#feat-4-summary-and-history) summary and history
+2. [FEAT-3](#feat-3-workout-mode-and-home) workout mode and Home
+3. [FEAT-4](#feat-4-summary-and-history) summary and history
+
+The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page).
 
 ## OPS
 
@@ -102,24 +105,39 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 
 **Recommended.** A: the same shape as the import, it can stop and resume, and nothing is written twice.
 
+## UI
+
+### UI-2 Plan editor on a wide screen: the library beside the plan
+
+**Priority:** low · **Kind:** desktop layout · **Found:** 2026-11-07
+
+**What is missing.** [D1.4.8](../design/D1-ui.md#d148-plan-editor) asks, on desktop, for two columns: the library on the left, the plan on the right, exercises dragged from the library into a day. The editor ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)) adds exercises from a picker window on every width, which works but leaves a wide screen half empty.
+
+**Options.**
+- A) From 1024 px, the picker's list as a left column, and dnd-kit dragging from it into the open day: a second kind of draggable, and each day a droppable.
+- B) The same two columns, adding with a "+" on each library row, without dragging across.
+
+**Recommended.** B first: it gives the layout for a fraction of the work, reusing `ExercisePicker`'s list; dragging across can follow if it is missed.
+
+### UI-3 Add to plan from an exercise's page
+
+**Priority:** medium · **Kind:** missing action · **Found:** 2026-11-07
+
+**What is missing.** **Add to plan** on an exercise's page ([D1.4.4](../design/D1-ui.md#d144-exercise-details)): choose a plan and a day, and the exercise joins it with three sets.
+
+**Options.**
+- A) A dialog listing the plans and their days; the app reads the plan, adds the exercise with the draft's functions (`plan-draft.ts`) and saves the whole plan.
+- B) Open the plan's editor with the exercise already added: `/plans/:id/edit?add=12&day=2`.
+
+**Recommended.** B: it reuses the editor, its draft and its rules, and the user sees the result before saving.
+
 ## FEAT
-
-### FEAT-2 Plans
-
-**Priority:** high · **Kind:** feature · **Found:** 2026-11-05
-
-**Done:**
-- the four tables, `users.active_plan_id`, and the API: list, whole plan, create and save a whole plan with its version, delete, activate, archive (`feat/plan-api`, [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints), [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built));
-- the plan list and a plan's page, with Set as active, Archive, Restore and Delete, and `make plans-demo` for example plans (`feat/plan-screens`, [C1.15](../concepts/C1-frontend.md#c115-the-plan-screens), [H3.13](../how-to/H3-frontend.md#h313-the-plan-screens-as-built)). The Templates section, Share and Duplicate are phase 2 ([D3.9](../design/D3-data-model.md#d39-left-for-later)).
-
-**What is missing.** The editor, on its own branch:
-- **Editor** ([D1.4.8](../design/D1-ui.md#d148-plan-editor)), at `/plans/new` and `/plans/:id/edit`, which also turns on the disabled New plan and Edit buttons: days and exercises reordered by drag and drop (dnd-kit), exercises added from the library in its select mode ([D1.4.3](../design/D1-ui.md#d143-exercise-library)), sets with their types (W, D, F), supersets, the draft kept on the device and **Discard changes**, the warning when `meta.changed_elsewhere` is true ([D2.8](../design/D2-decisions.md#d28-workout-rules), [D3.5.7](../design/D3-data-model.md#d357-when-a-plan-is-changed-in-two-places)).
 
 ### FEAT-3 Workout mode and Home
 
 **Priority:** high · **Kind:** feature · **Found:** 2026-11-05
 
-**What is missing.** Home with the suggested day ([D1.4.2](../design/D1-ui.md#d142-home)); workout mode with the rest timer, last time's values and one-tap sets ([D1.4.9](../design/D1-ui.md#d149-workout-mode)); working offline: the PWA (vite-plugin-pwa), the persisted query cache, sessions and sets with UUIDs synced later ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)). Tables: [D3.6](../design/D3-data-model.md#d36-workouts). Needs FEAT-2.
+**What is missing.** Home with the suggested day ([D1.4.2](../design/D1-ui.md#d142-home)); workout mode with the rest timer, last time's values and one-tap sets ([D1.4.9](../design/D1-ui.md#d149-workout-mode)); working offline: the PWA (vite-plugin-pwa), the persisted query cache, sessions and sets with UUIDs synced later ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)). Tables: [D3.6](../design/D3-data-model.md#d36-workouts). Its sessions point to the plans' days and items, done.
 
 ### FEAT-4 Summary and history
 

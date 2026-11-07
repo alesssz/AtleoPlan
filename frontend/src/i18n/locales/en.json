@@ -68,7 +68,8 @@
     "reload": "Reload"
   },
   "common": {
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "close": "Close"
   },
   "home": {
     "hero": "Ready to <hl>train</hl>?",
@@ -131,7 +132,85 @@
       "warmUps_one": "+ {{count}} warm-up",
       "warmUps_other": "+ {{count}} warm-up",
       "max": "max",
-      "rpe": "RPE {{value}}"
+      "rpe": "RPE {{value}}",
+      "changedElsewhere": "This plan was changed somewhere else in the meantime. Your version was saved over it."
+    },
+    "editor": {
+      "newTitle": "New plan",
+      "editTitle": "Edit plan",
+      "create": "Create plan",
+      "save": "Save",
+      "discard": "Discard changes",
+      "cancel": "Cancel",
+      "restored": "Your unsaved changes are back: save them, or discard them.",
+      "planName": "Name",
+      "goal": "Goal",
+      "goalPlaceholder": "Hypertrophy, strength…",
+      "notes": "Notes",
+      "daysLabel": "Days",
+      "addDay": "Add day",
+      "dayName": "Day name",
+      "defaultDayName": "Day {{letter}}",
+      "moveDayEarlier": "Move day earlier",
+      "moveDayLater": "Move day later",
+      "removeDay": "Delete day",
+      "addExercises": "Add exercises",
+      "noItems": "No exercises yet: add them from the library.",
+      "select": "Make a superset",
+      "selectDone": "Cancel",
+      "selectHint": "Choose two or more exercises to do in turn.",
+      "selectItem": "Choose {{name}}",
+      "joinSuperset": "Join in superset ({{number}})",
+      "dragHandle": "Move {{name}}",
+      "supersetTag": "Superset {{number}}",
+      "setLabel": "Set {{number}}",
+      "setTypeButton": "Set {{number}}, {{type}}: tap to change the type",
+      "setTypes": {
+        "normal": "normal",
+        "warm_up": "warm-up",
+        "drop": "drop set",
+        "failure": "to failure"
+      },
+      "reps": "Reps",
+      "weight": "Weight ({{unit}})",
+      "rpe": "RPE",
+      "seconds": "Seconds",
+      "meters": "Meters",
+      "removeSet": "Remove set {{number}}",
+      "addSet": "Add set",
+      "rest": "Rest (seconds)",
+      "restHint": "Empty: your default, {{time}}.",
+      "itemNotes": "Notes",
+      "moveToDay": "Move to another day",
+      "moveToDayChoose": "Choose a day",
+      "leaveSuperset": "Leave superset",
+      "removeItem": "Remove exercise",
+      "picker": {
+        "title": "Add exercises",
+        "description": "Search the library and choose one or more.",
+        "add": "Add ({{number}})",
+        "choose": "Choose {{name}}"
+      },
+      "invalid": "Some fields need fixing: they are marked in red.",
+      "saveError": "The plan could not be saved. Try again.",
+      "errors": {
+        "nameRequired": "Write a name.",
+        "dayNameRequired": "Write the day's name.",
+        "tooLong": "Too long.",
+        "reps": "Reps as 8 or 8-10, from 1 to 999.",
+        "weight": "A weight such as 80 or 82.5.",
+        "rpe": "An RPE from 1 to 10, such as 8 or 8.5.",
+        "rest": "Seconds, up to 3600.",
+        "seconds": "Whole seconds, from 1.",
+        "meters": "Whole meters, from 1."
+      },
+      "dnd": {
+        "instructions": "To pick up an exercise, press space or enter. Move it with the arrow keys, then press space or enter to drop it, or escape to cancel.",
+        "pickedUp": "Picked up {{name}}.",
+        "movedOver": "{{name}} is at position {{position}} of {{total}}.",
+        "dropped": "{{name}} dropped at position {{position}} of {{total}}.",
+        "cancelled": "Moving {{name}} was cancelled."
+      }
     }
   },
   "exercises": {

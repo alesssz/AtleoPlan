@@ -12,7 +12,7 @@
  */
 import type { TFunction } from 'i18next'
 import type { LoggingType } from '@/api/exercises'
-import type { PlanItem, PlanSet } from '@/api/plans'
+import type { PlanItem, PlanSet, SetType } from '@/api/plans'
 import { formatNumber, formatWeight, type WeightUnit } from '@/lib/format'
 
 /** How many kilograms make a pound, exactly (docs/design/D3-data-model.md D3.2.3). */
@@ -58,9 +58,13 @@ export function formatDistance(meters: number, language: string): string {
 /**
  * The sets that count: every set but the warm-ups, which count neither for
  * volume nor in the summary (docs/design/D2-decisions.md D2.8).
+ *
+ * Generic: `T extends { set_type: SetType }` accepts any list of objects that
+ * have a set_type, the API's sets and the editor's draft sets alike, and
+ * gives back a list of the same kind.
  * @param sets an exercise's sets
  */
-export function workingSets(sets: PlanSet[]): PlanSet[] {
+export function workingSets<T extends { set_type: SetType }>(sets: T[]): T[] {
   return sets.filter(set => set.set_type !== 'warm_up')
 }
 
@@ -68,7 +72,7 @@ export function workingSets(sets: PlanSet[]): PlanSet[] {
  * How many warm-up sets an exercise has, for "+ 2 warm-up".
  * @param sets an exercise's sets
  */
-export function warmUpCount(sets: PlanSet[]): number {
+export function warmUpCount(sets: { set_type: SetType }[]): number {
   return sets.length - workingSets(sets).length
 }
 

@@ -5,8 +5,9 @@
  * cache keys, the functions that call the API and the hooks components use
  * (docs/concepts/C1-frontend.md C1.6, C1.15).
  *
- * Saving a whole plan (POST and PUT /api/plans) comes with the plan editor,
- * the next part of FEAT-2.
+ * Saving is always the whole plan, in one request: POST to create, PUT to
+ * save again (C2.5.5). The plan editor builds the body
+ * (src/components/plans/plan-draft.ts).
  *
  * Which keys carry the language: a plan's own texts (its name, its days'
  * names) are the user's, never translated, so the list's key has no
@@ -141,7 +142,7 @@ export function usePlans(archived: boolean) {
 }
 
 /**
- * Hook: one whole plan, for its page (and, next, for the editor).
+ * Hook: one whole plan, for its page and for the editor.
  * @param id the plan's UUID, from the address
  * @param language the interface's language, part of the key
  */
@@ -149,6 +150,109 @@ export function usePlan(id: string, language: string) {
   return useQuery({
     queryKey: planKeys.detail(id, language),
     queryFn: ({ signal }) => request<{ data: Plan }>(`/api/plans/${id}`, { signal }).then(answer => answer.data),
+  })
+}
+
+/** One set, as the editor sends it (backend PlanRequest); weights in kilograms. */
+export interface PlanSetInput {
+  /** Its type; required. */
+  set_type: SetType
+  /** The fewest reps; with the most, both or neither. */
+  target_reps_min: number | null
+  /** The most reps, at least the fewest. */
+  target_reps_max: number | null
+  /** Kilograms, at most three decimals. */
+  target_weight_kg: number | null
+  /** From 1 to 10, at most one decimal. */
+  target_rpe: number | null
+  /** Seconds, for an exercise logged by time. */
+  target_duration_seconds: number | null
+  /** Meters, for an exercise logged by distance. */
+  target_distance_meters: number | null
+}
+
+/** One exercise of a day, as the editor sends it. */
+export interface PlanItemInput {
+  /** Its UUID: kept from the plan, or made on the device for a new one. */
+  id: string
+  /** A public exercise or one of the user's own. */
+  exercise_id: number
+  /** The superset's number; null when not in one. */
+  superset_group: number | null
+  /** Seconds; null for the user's default. */
+  rest_seconds: number | null
+  /** Up to 500 characters; null for none. */
+  notes: string | null
+  /** The sets, in order; at most 20. */
+  sets: PlanSetInput[]
+}
+
+/** One day, as the editor sends it. */
+export interface PlanDayInput {
+  /** Its UUID. */
+  id: string
+  /** Required, up to 50 characters. */
+  name: string
+  /** The exercises, in order; at most 30. */
+  items: PlanItemInput[]
+}
+
+/**
+ * The whole plan, as POST and PUT /api/plans expect it: the order of each
+ * list is the order of the rows, and what is left out is deleted.
+ */
+export interface PlanInput {
+  /** The plan's UUID, made on the device for a new plan. */
+  id: string
+  /** On a save: the version the editor started from; left out on a create. */
+  version?: number
+  /** Required, up to 100 characters. */
+  name: string
+  /** Up to 100 characters; null for none. */
+  goal: string | null
+  /** Up to 2000 characters; null for none. */
+  notes: string | null
+  /** The days, in order; at most 14. */
+  days: PlanDayInput[]
+}
+
+/** What saving a plan answers: the plan as saved, and on a PUT a warning. */
+export interface PlanSaved {
+  /** The plan as it is now on the server. */
+  plan: Plan
+  /** True when someone saved it elsewhere since the editor opened it (D3.5.7). */
+  changedElsewhere: boolean
+}
+
+/**
+ * Hook: creates a whole plan (POST /api/plans). Sent twice with the same id,
+ * the backend answers with the plan already saved, so a retry is safe.
+ * Afterwards every list is read again.
+ * @example const create = useCreatePlan(); await create.mutateAsync(input)
+ */
+export function useCreatePlan() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: PlanInput): Promise<PlanSaved> =>
+      request<{ data: Plan }>('/api/plans', { method: 'POST', body: input })
+        .then(answer => ({ plan: answer.data, changedElsewhere: false })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: planKeys.all }),
+  })
+}
+
+/**
+ * Hook: saves a whole plan again (PUT /api/plans/{id}). The answer's `meta`
+ * says whether it had been saved elsewhere meanwhile: the save went through
+ * anyway, and the app warns.
+ * @param id the plan's UUID
+ */
+export function useUpdatePlan(id: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: PlanInput): Promise<PlanSaved> =>
+      request<{ data: Plan, meta: { changed_elsewhere: boolean } }>(`/api/plans/${id}`, { method: 'PUT', body: input })
+        .then(answer => ({ plan: answer.data, changedElsewhere: answer.meta.changed_elsewhere })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: planKeys.all }),
   })
 }
 

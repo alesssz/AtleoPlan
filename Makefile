@@ -151,8 +151,9 @@ exercises-import: ## Fill the public exercise library from free-exercise-db (dow
 	$(ARTISAN) exercises:import $(o)
 
 # Two example plans for every user who has none (FEAT-2,
-# docs/how-to/H3-frontend.md H3.13.1), to try the plan screens before the
-# plan editor exists. Development only; needs the library imported first.
+# docs/how-to/H3-frontend.md H3.13.1), to look at the plan screens and the
+# editor without building a plan by hand. Development only; needs the
+# library imported first.
 plans-demo: ## Give every user with no plans two example plans (after exercises-import)
 	$(ARTISAN) db:seed --class=DemoPlanSeeder
 
