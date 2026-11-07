@@ -11,7 +11,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore exercises-import \
+        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore exercises-import plans-demo \
         dev fe-install fe-build \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit toc toc-check \
         branch sync push merge
@@ -149,6 +149,12 @@ FREE_EXERCISE_DB := backend/storage/app/free-exercise-db
 exercises-import: ## Fill the public exercise library from free-exercise-db (downloads it the first time): make exercises-import o="--limit=5"
 	@test -d $(FREE_EXERCISE_DB) || git clone --depth 1 https://github.com/yuhonas/free-exercise-db.git $(FREE_EXERCISE_DB)
 	$(ARTISAN) exercises:import $(o)
+
+# Two example plans for every user who has none (FEAT-2,
+# docs/how-to/H3-frontend.md H3.13.1), to try the plan screens before the
+# plan editor exists. Development only; needs the library imported first.
+plans-demo: ## Give every user with no plans two example plans (after exercises-import)
+	$(ARTISAN) db:seed --class=DemoPlanSeeder
 
 # --- Frontend -----------------------------------------------------------------
 

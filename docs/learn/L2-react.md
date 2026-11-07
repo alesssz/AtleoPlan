@@ -949,7 +949,7 @@ Start with invalidating: it is always right. The optimistic update is for action
 
 **`mutate(data, { onSuccess, onError })`** also takes callbacks for this one call, used by the form for what concerns the screen (empty the field, show errors); the hook's own `onSuccess` is for the cache.
 
-**In AtleoPlan:** `src/api/auth.ts` has six mutations, from the plainest (`useForgotPassword`) to the optimistic one (`useUpdatePreferences`).
+**In AtleoPlan:** `src/api/auth.ts` has six mutations, from the plainest (`useForgotPassword`) to the optimistic one (`useUpdatePreferences`); `src/api/plans.ts` has `usePlanAction()`, one mutation for three actions, whose argument is the verb.
 
 **Recap**
 - `useMutation({ mutationFn })`, then `mutate(data)`; `isPending` to disable the button.
@@ -1190,7 +1190,7 @@ then `make fix`, to bring the copied file to the project's code style ([H3.9](..
 
 **Icons** come from **lucide-react**, one component per icon: `<Dumbbell aria-hidden="true" className="size-5" />`. `aria-hidden` when a text next to it already says the same.
 
-**In AtleoPlan:** `src/components/ui/` (alert-dialog, badge, button, card, checkbox, input, label, native-select, select, separator, skeleton, textarea); `LanguageSelect` (a Radix select); `ExerciseDetailPage` (an alert dialog to confirm a delete); `BottomTabBar` (lucide icons stored in data).
+**In AtleoPlan:** `src/components/ui/` (alert-dialog, badge, button, card, checkbox, input, label, native-select, select, separator, skeleton, tabs, textarea); `LanguageSelect` (a Radix select); `ExerciseDetailPage` (an alert dialog to confirm a delete); `PlanDetailPage` (tabs controlled from the address, [C1.15.3](../concepts/C1-frontend.md#c1153-tabs-whose-state-is-in-the-address)); `BottomTabBar` (lucide icons stored in data).
 
 **Recap**
 - shadcn/ui copies sources into `src/components/ui/`; they are ours.
@@ -1343,7 +1343,7 @@ act(() => vi.advanceTimersByTime(1000))
 expect(screen.getByRole('timer')).toHaveTextContent('0')
 ```
 
-**In AtleoPlan:** `src/pages/ProfilePage.test.tsx` and `auth-pages.test.tsx` (pages with the API), `src/lib/format.test.ts` (plain functions), `src/test/setup.ts` (what runs before each test: English, clean-up). [H3.5](../how-to/H3-frontend.md#h35-testing-a-page) builds a page's test step by step.
+**In AtleoPlan:** `src/pages/ProfilePage.test.tsx` and `auth-pages.test.tsx` (pages with the API), `src/lib/format.test.ts` and `src/components/plans/plan-format.test.ts` (plain functions), `src/pages/PlanDetailPage.test.tsx` (an answer that changes after an action), `src/test/setup.ts` (what runs before each test: English, clean-up). [H3.5](../how-to/H3-frontend.md#h35-testing-a-page) builds a page's test step by step.
 
 **Recap**
 - Draw, act like a user, check what shows; never the real API.

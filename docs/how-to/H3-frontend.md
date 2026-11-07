@@ -9,6 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built).
 
 ## Contents
 
@@ -40,6 +41,14 @@
   - [H3.12.5 The tests, and the errors met](#h3125-the-tests-and-the-errors-met)
   - [H3.12.6 The production build](#h3126-the-production-build)
   - [H3.12.7 Checking in the browser](#h3127-checking-in-the-browser)
+- [H3.13 The plan screens, as built](#h313-the-plan-screens-as-built)
+  - [H3.13.1 Plans to look at](#h3131-plans-to-look-at)
+  - [H3.13.2 The tabs component](#h3132-the-tabs-component)
+  - [H3.13.3 The API file and the line of an exercise](#h3133-the-api-file-and-the-line-of-an-exercise)
+  - [H3.13.4 The plan page](#h3134-the-plan-page)
+  - [H3.13.5 The tests, and the errors met](#h3135-the-tests-and-the-errors-met)
+  - [H3.13.6 The production build](#h3136-the-production-build)
+  - [H3.13.7 Checking in the browser](#h3137-checking-in-the-browser)
 
 ---
 
@@ -643,6 +652,8 @@ npx eslint src/components/ui/badge.tsx
 | `ResizeObserver is not defined` in a test | A Radix component measures itself; jsdom has no `ResizeObserver` | `src/test/setup.ts` gives one ([H3.12.5](#h3125-the-tests-and-the-errors-met)) |
 | `"undefined" is not valid JSON` from `sentBody` | No call to that path sent a body | Check the path, and that the request was sent before reading it |
 | Photos do not load, 404 on `/storage/…` | No `public/storage` link on this computer | `make artisan c="storage:link"` ([H3.12.1](#h3121-the-photos-reach-the-browser)) |
+| The plan list is empty, and New plan is disabled | The editor does not exist yet, so no plan can be made in the app | `make plans-demo`, after `make exercises-import` ([H3.13.1](#h3131-plans-to-look-at)) |
+| A tab bar with no tab selected | The `value` given to `Tabs` matches none of its `TabsTrigger` | Check where the value comes from; a value read from the address must be checked first ([H3.13.4](#h3134-the-plan-page)) |
 
 Setup problems: [S1.10](../start/S1-setup.md#s110-troubleshooting).
 
@@ -660,6 +671,7 @@ Setup problems: [S1.10](../start/S1-setup.md#s110-troubleshooting).
 | A package | `npm install name` in `frontend/`; after a pull, `make fe-install` |
 | A shadcn/ui component | `npx shadcn add name` in `frontend/`, then `make fix`; answer no to overwriting our files |
 | The photos' link, once per computer | `make artisan c="storage:link"` (`make setup` does it) |
+| Example plans for every user who has none | `make plans-demo`, after `make exercises-import` |
 | Every check, backend included | `make check` |
 
 **Official documentation:** React https://react.dev/learn; React Router https://reactrouter.com; TanStack Query https://tanstack.com/query/latest/docs/framework/react/overview; react-hook-form https://react-hook-form.com; zod https://zod.dev; Testing Library https://testing-library.com/docs/queries/about; Vitest https://vitest.dev; i18next https://www.i18next.com.
@@ -857,6 +869,216 @@ With `make start`, at http://localhost:5673/exercises:
 - **The photos:** in the Network tab ([H3.8](#h38-checking-in-the-browser)), the images come from `localhost:5673/storage/…`, with status 200.
 - **An exercise of your own:** **New exercise**, fill it in, Create: its page opens with the Mine badge, Edit and Delete. Delete asks first.
 - **Another language:** in Profile, switch to Italian: the names, the muscles and the equipment change too.
+
+
+## H3.13 The plan screens, as built
+
+The second part of FEAT-2 built the plan list and a plan's page on the API of [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints). How they work is in [C1.15](../concepts/C1-frontend.md#c115-the-plan-screens); this section is the doing, with the real output, as a tutorial for the next screens. It shows what [H3.12](#h312-the-exercise-library-screens-as-built) does not: tabs whose state is in the address, text worked out from data by plain tested functions, one mutation hook for three actions, test answers that change after an action, and example data for screens that cannot make their own yet.
+
+| File | What it is |
+|---|---|
+| `src/api/plans.ts` | Types, keys and hooks of the plans |
+| `src/pages/PlansPage.tsx`, `PlanDetailPage.tsx` | The two screens; the new route `plans/:id` in `src/router.tsx` |
+| `src/components/plans/` | `PlanCard`, `PlanDayView`, `PlanItemRow`, and `plan-format.ts` (the line of an exercise, the supersets) |
+| `src/components/ComingSoon.tsx` | The "Coming soon" pill, taken out of `EmptyState` to be used next to a button too |
+| `src/components/ui/tabs.tsx` | shadcn/ui's tabs |
+| `src/i18n/locales/*.json` | The `plans` section, in four languages |
+| `src/test/plan-helpers.ts` | Plans to fake |
+| 3 test files, 23 tests | Next to the pages, and `plan-format.test.ts` |
+| Backend: `database/seeders/DemoPlanSeeder.php`, `tests/Feature/Plans/DemoPlanSeederTest.php`; `Makefile` | Two example plans per user, `make plans-demo` |
+
+### H3.13.1 Plans to look at
+
+The editor is the next branch, so the app cannot make a plan yet, and the list would always be empty. A seeder gives every user with no plans two examples, written through `SavePlan`, the action behind `POST /api/plans`, so they are exactly what the API would save:
+
+```sh
+make artisan c="make:seeder DemoPlanSeeder"
+make artisan c="make:test Plans/DemoPlanSeederTest --pest"
+```
+
+```
+INFO  Seeder [database/seeders/DemoPlanSeeder.php] created successfully.
+INFO  Test [tests/Feature/Plans/DemoPlanSeederTest.php] created successfully.
+```
+
+- **The exercises are found by their free-exercise-db id** (`external_id`, such as `Barbell_Squat`), which is the same on every computer, unlike the numbers Postgres gives.
+- **`run(SavePlan $save)`:** a seeder's `run()` gets its parameters from the service container, as a controller's method does.
+- **Not in `DatabaseSeeder`:** after `make fresh` the library is empty until `make exercises-import`, so the seeder would find no exercises. It says so instead of failing:
+
+```
+The exercise library is not imported: run `make exercises-import` first. Missing: Barbell_Bench_Press_-_Medium_Grip, …
+```
+
+A `Makefile` target runs it, after the import:
+
+```sh
+make plans-demo
+```
+
+```
+INFO  Seeding database.
+
+Database\Seeders\DemoPlanSeeder .................................... RUNNING
+Two example plans for <your email>
+Database\Seeders\DemoPlanSeeder ................................ 140 ms DONE
+```
+
+Run again, it prints no line in between: users who have a plan are skipped (`User::query()->doesntHave('plans')`). The three tests:
+
+```
+✓ it gives a user with no plans an active plan of three days and an archived one
+✓ it leaves alone a user who already has a plan, so it can run again
+✓ it writes nothing, and says why, before the library is imported
+```
+
+The last one runs the seeder as from the terminal, `$this->artisan('db:seed', ['--class' => DemoPlanSeeder::class])`, and checks what it prints with `expectsOutputToContain()`.
+
+### H3.13.2 The tabs component
+
+```sh
+printf 'n\n' | npx shadcn add tabs
+```
+
+```
+✔ Checking registry.
+✔ Created 1 file:
+  - src/components/ui/tabs.tsx
+```
+
+`printf 'n\n' |` answers "no" in case it offers to overwrite one of our files, as `alert-dialog` did ([H3.12.2](#h3122-five-shadcnui-components)); this time it did not ask. Then the style:
+
+```sh
+npx eslint src/components/ui/tabs.tsx
+```
+
+```
+✖ 20 problems (20 errors, 0 warnings)
+  20 errors and 0 warnings potentially fixable with the `--fix` option.
+```
+
+`npx eslint --fix` corrected all 20. The generated file imports `cn` from `'cn'`, like every other file in `components/ui/`: it is the project's own alias, not a mistake. A header comment and a line on each export were added, as for the other components.
+
+### H3.13.3 The API file and the line of an exercise
+
+`src/api/plans.ts` follows [H3.3.1](#h331-the-api-file): the types of the JSON of [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints), the keys, the hooks. Two choices are new:
+
+- **Which keys carry the language.** The list's key is `['plans', 'list', archived]`: a plan's name is the user's own text, never translated. A whole plan's key adds the language, `['plans', 'detail', id, 'it']`, because it holds exercises, whose names arrive translated.
+- **One hook for three actions,** `usePlanAction(id)`, whose `mutate()` takes the verb ([C1.15.4](../concepts/C1-frontend.md#c1154-actions-on-a-plan)).
+
+The line that sums up an exercise is worked out in `src/components/plans/plan-format.ts`, plain functions with tests of their own, one per case:
+
+```ts
+expect(itemSummary(item, options)).toBe('4 × 8–10 · 80 kg · 90 sec')
+expect(itemSummary(item, { ...options, defaultRestSeconds: 150 })).toBe('3 × 10/8/max · 60–70 kg · 150 sec')
+expect(formatSeconds(90, 'de')).toBe('90 Sek.')
+```
+
+The units come from `Intl`; to see what it writes before choosing, run it in Node:
+
+```sh
+node -e "for (const l of ['en','it','es','de']) console.log(l, new Intl.NumberFormat(l, { style: 'unit', unit: 'second', unitDisplay: 'short' }).format(90))"
+```
+
+```
+en 90 sec
+it 90 s
+es 90 s
+de 90 Sek.
+```
+
+`unitDisplay: 'narrow'` would give `90s` in every language but German; `short` was kept, each language's usual form.
+
+### H3.13.4 The plan page
+
+`PlanDetailPage` has two layers, as `ExerciseDetailPage`: the outer component handles loading and errors, the inner one, `PlanDetail`, draws a plan that is there. The tabs are controlled from the address:
+
+```tsx
+const requested = Number(searchParams.get('day') ?? '1')
+const dayIndex = Number.isInteger(requested) && requested >= 1 && requested <= plan.days.length ? requested - 1 : 0
+
+<Tabs value={String(dayIndex)} onValueChange={openDay}>
+```
+
+- **The check on the value matters.** Without it, `?day=9` gives `Tabs` a value that no tab has: Radix then selects nothing and shows no panel. It was tried, removing the check; the test `opens the first day when the address names one that does not exist` failed on `expect(element).toHaveAttribute("aria-selected", "true")`.
+- **Tabs give their value as text.** `TabsTrigger value={String(index)}`, and `openDay(value)` turns it back into a number.
+- **The weight unit and the default rest** come from `useCurrentUser()`. `RequireAuth` has asked for the user before any page opens, so it is in the cache, and the hook answers at once.
+
+### H3.13.5 The tests, and the errors met
+
+```sh
+npx vitest run src/pages/Plan src/components/plans --reporter=verbose
+```
+
+```
+✓ src/components/plans/plan-format.test.ts > itemSummary > sums up the working sets, the weight and the rest, warm-ups apart
+✓ src/components/plans/plan-format.test.ts > itemSummary > writes numbers and units in the reader's language and unit
+✓ src/components/plans/plan-format.test.ts > itemSummary > lists each set when they ask for different things
+✓ src/components/plans/plan-format.test.ts > itemSummary > counts the sets when none has a target
+✓ src/components/plans/plan-format.test.ts > itemSummary > shows times and distances for the exercises logged that way
+✓ src/components/plans/plan-format.test.ts > formatSeconds > says whole minutes as minutes, anything else as seconds
+✓ src/components/plans/plan-format.test.ts > groupSupersets > joins neighbours with the same number, and leaves the others alone
+✓ src/pages/PlansPage.test.tsx > PlansPage > shows each plan as a card: name, goal, days, and the Active badge
+✓ src/pages/PlansPage.test.tsx > PlansPage > switches to the archived plans, in the address and in the request
+✓ src/pages/PlansPage.test.tsx > PlansPage > invites to create the first plan, the action marked as coming soon
+✓ src/pages/PlansPage.test.tsx > PlansPage > says so when there is no archived plan
+✓ src/pages/PlansPage.test.tsx > PlansPage > says so when the list cannot be loaded, with a way to try again
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > shows the first day: each exercise summed up, warm-ups apart, the superset joined
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > opens another day, and keeps it in the address
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > opens the day named in the address
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > opens the first day when the address names one that does not exist
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > shows the weights in the user's unit
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > makes the plan active, then shows it so
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > archives the plan, and offers to restore it
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > says so when an action fails
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > deletes the plan after confirming, then opens the list
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > keeps Edit disabled until the editor exists
+✓ src/pages/PlanDetailPage.test.tsx > PlanDetailPage > says so for a plan that is not there, or not the user's
+Test Files  3 passed (3)
+     Tests  23 passed (23)
+```
+
+**Answers that change after an action.** "Set as active" must show the Active badge afterwards, which the page reads from the plan, read again after the action. The fake API answers the plan through a function, reading a variable that the `POST` changes ([C1.15.5](../concepts/C1-frontend.md#c1155-testing-it)).
+
+**The error met.** The first run failed one test:
+
+```
+FAIL  src/pages/PlanDetailPage.test.tsx > PlanDetailPage > shows the first day: each exercise summed up, warm-ups apart, the superset joined
+TestingLibraryElementError: Unable to find an element with the text: 1 × max · 90 sec.
+```
+
+The code was right, the test was not: pull-ups to failure with no target are a set with nothing to show, and the rule written in `plan-format.ts` for that is to count the sets, `1 set · 90 sec`. "max" is only for a set with no target among sets that have one (`3 × 10/8/max`). The test was corrected.
+
+**Proving they can fail.** Two lines were broken on purpose, then put back:
+
+| Line changed | Test that failed |
+|---|---|
+| `item.superset_group !== null &&` removed from `groupSupersets()` | `joins neighbours with the same number, and leaves the others alone`: two lone exercises next to each other were joined into one "superset" of no group. The test had no such neighbours at first; they were added to its data for this |
+| The check on `?day=` removed (`dayIndex = requested - 1`) | `opens the first day when the address names one that does not exist`, a test added for this |
+
+### H3.13.6 The production build
+
+```sh
+npm run build
+```
+
+```
+dist/assets/index-CoD4mpmV.js                              811.50 kB │ gzip: 252.97 kB
+(!) Some chunks are larger than 500 kB after minification. Consider:
+✓ built in 1.74s
+```
+
+28 kB more than after the library's screens. The known limit of [C1.11](../concepts/C1-frontend.md#c111-known-limits).
+
+### H3.13.7 Checking in the browser
+
+With `make start`, after `make exercises-import` and `make plans-demo`, at http://localhost:5673/plans:
+
+- **The list:** Push Pull Legs, with the Active badge and a lime border, "3 days". **Archived** shows Full body; the address says `?archived=1`, and a reload keeps it.
+- **A plan:** open Push Pull Legs, with the app in Italian. Day A: the bench press reads `4 × 8–10 · 80 kg · 2 min` and `+ 2 di riscaldamento`; lateral raises and pushdowns sit in a superset, with the lime bar. Day B: pull-ups read `3 serie · 2 min`, the curl `3 × 12/10/8 · 25–35 kg · 1 min`.
+- **The tabs:** click Day C: the address gets `?day=3`. Open an exercise and press Back: Day C is still open. With the keyboard, Tab onto the tabs, then the arrow keys.
+- **The unit:** there is no switch in Profile yet; in tinker, `User::first()->forceFill(['weight_unit' => 'lb'])->save()`, then reload: `176,37 lb`. Put it back with `'kg'`.
+- **The actions:** Archive, then Restore. Open Full body in the archived view: it has Restore and no Set as active; restore it, then Set as active, and the badge moves to it in the list. Delete asks first, then opens the list.
+- **A phone's width** ([H3.8.1](#h381-phone-tablet-and-desktop-widths)): the day tabs scroll sideways if they do not fit.
 
 ---
 

@@ -555,7 +555,7 @@ Exercise::visibleTo($user)->search('panca')->orderByName()->get();   // scopes c
 
 How these were built step by step, with the real output: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built) for the exercise library, [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built) for the plans.
 
-**Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data: the fixed lists the app needs (the 17 muscles and the 12 kinds of equipment) and the development account. `make fresh` runs them. The public exercise library is not a seeder but an Artisan command, `make exercises-import`, because it reads a dataset from outside, takes options and reports what failed ([C2.14](#c214-artisan-commands-of-our-own)); after `make fresh`, run it again.
+**Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data: the fixed lists the app needs (the 17 muscles and the 12 kinds of equipment) and the development account. `make fresh` runs them. The public exercise library is not a seeder but an Artisan command, `make exercises-import`, because it reads a dataset from outside, takes options and reports what failed ([C2.14](#c214-artisan-commands-of-our-own)); after `make fresh`, run it again. `DemoPlanSeeder` is development data only: two example plans for every user who has none, run by hand with `make plans-demo` after the import ([H3.13.1](../how-to/H3-frontend.md#h3131-plans-to-look-at)).
 
 **Seeing the data:**
 - `make psql` opens an SQL console;

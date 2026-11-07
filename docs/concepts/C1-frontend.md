@@ -34,6 +34,12 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.14.4 The editor's form](#c1144-the-editors-form)
   - [C1.14.5 Photos](#c1145-photos)
   - [C1.14.6 Testing it](#c1146-testing-it)
+- [C1.15 The plan screens](#c115-the-plan-screens)
+  - [C1.15.1 The pages and their pieces](#c1151-the-pages-and-their-pieces)
+  - [C1.15.2 One line per exercise](#c1152-one-line-per-exercise)
+  - [C1.15.3 Tabs whose state is in the address](#c1153-tabs-whose-state-is-in-the-address)
+  - [C1.15.4 Actions on a plan](#c1154-actions-on-a-plan)
+  - [C1.15.5 Testing it](#c1155-testing-it)
 
 ---
 
@@ -85,6 +91,7 @@ frontend/
     │   ├── health.ts         GET /api/health → useHealth()
     │   ├── auth.ts           the account: useCurrentUser(), useSignIn(), useSignOut()… (C1.13)
     │   ├── exercises.ts      the library: useExercises() (pages), useExercise(), create, update, delete (C1.14)
+    │   ├── plans.ts          the plans: usePlans(), usePlan(), usePlanAction() (activate, archive, unarchive), useDeletePlan() (C1.15)
     │   └── muscles.ts, equipment.ts   the two fixed lists of the filters and the editor
     ├── components/
     │   ├── ui/               shadcn/ui components (generated, then ours to edit)
@@ -92,7 +99,8 @@ frontend/
     │   ├── brand/            the logo: BrandMark and Wordmark
     │   ├── home/             pieces of Home: WeekStrip, WeekStats
     │   ├── exercises/        pieces of the library: ExerciseListItem, ExerciseFilters, ExercisePhotos, ExerciseForm and exercise-form.ts (C1.14)
-    │   └── *.tsx             shared by several pages: PageHeader, EmptyState, SettingRow, FormField, FormBanner, the pickers…
+    │   ├── plans/            pieces of the plan screens: PlanCard, PlanDayView, PlanItemRow, and plan-format.ts, the summary of an exercise (C1.15)
+    │   └── *.tsx             shared by several pages: PageHeader, EmptyState, ComingSoon, SettingRow, FormField, FormBanner, the pickers…
     ├── pages/              one component per screen (HomePage, LoginPage…), and auth-schemas.ts, the rules of the sign-in forms
     ├── routes/             the guards: RequireAuth, RequireGuest, useAccountPreferences (C1.13)
     ├── i18n/
@@ -102,7 +110,7 @@ frontend/
     │   └── locales/          it.json, en.json, es.json, de.json
     ├── lib/                plain helpers: http (fetch wrapper), query-client, form (server errors on a form), format (numbers, dates), week, utils (cn); useDebouncedValue, a hook
     ├── theme/              dark / light theme: logic, context, provider, hook
-    └── test/               setup.ts runs before every test file; auth-helpers.tsx: a fake API and full-page rendering (C1.13); exercise-helpers.ts: exercises and lists to fake (C1.14)
+    └── test/               setup.ts runs before every test file; auth-helpers.tsx: a fake API and full-page rendering (C1.13); exercise-helpers.ts: exercises and lists to fake (C1.14); plan-helpers.ts: plans to fake (C1.15)
 ```
 
 **Naming.**
@@ -234,8 +242,8 @@ useEffect(() => {
 - **The table** is `src/router.tsx`, made with `createBrowserRouter([...])`. A route has a `path` and an `element`. `children` nest routes inside a parent, which draws them at its `<Outlet />`. `index: true` marks the parent's own address.
 - **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([C1.13](#c113-signing-in-and-forms)). Workout mode and the public shared plan, both full screen, will be siblings of these branches. Comments in the file mark where.
 - **Links:** use `<Link to="/plans">`. Use `<NavLink>` in navigation: it knows whether it is the current page and then gets `aria-current="page"`. Use `useNavigate()` to move in code, for example after saving.
-- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`).
-- **The query string** (`?q=panca`) is read and written with `useSearchParams()` ([C1.14.3](#c1143-filters-in-the-address)).
+- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`). A plan's id is a UUID, and stays a string (`PlanDetailPage`).
+- **The query string** (`?q=panca`) is read and written with `useSearchParams()` ([C1.14.3](#c1143-filters-in-the-address)): the library's filters, the plan list's view (`?archived=1`), a plan's open day (`?day=2`).
 - **A fixed segment wins over a parameter:** `exercises/new` and `exercises/:id` can both exist, and `/exercises/new` opens the editor, whatever their order in the table.
 - **Not found and crashes:** the last child, `path: '*'`, catches unknown addresses (`NotFoundPage`, inside the frame). `errorElement` (`RouteErrorPage`) replaces a screen that throws while rendering.
 - **The full map** of planned routes is [D1.3](../design/D1-ui.md#d13-information-architecture-and-navigation). Each feature adds its routes there and here.
@@ -449,6 +457,9 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 | `pages/ExerciseDetailPage.test.tsx` | an exercise's facts and photos, the owner's actions, deleting after a confirmation |
 | `pages/ExerciseEditorPage.test.tsx` | creating and changing an exercise, the form's and the server's messages |
 | `components/exercises/exercise-form.test.ts` | the editor's conversions and rules, without React |
+| `pages/PlansPage.test.tsx` | the plan cards, the two views in the address and the request, the empty states, an error |
+| `pages/PlanDetailPage.test.tsx` | a day's exercises summed up, the day tabs in the address, the weight unit, activate, archive, delete, a plan not found |
+| `components/plans/plan-format.test.ts` | the line that sums up an exercise, in two languages and two units; the supersets |
 
 **Commands:**
 
@@ -464,7 +475,7 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 
 ## C1.11 Known limits
 
-- **Bundle size.** The production build is one JavaScript file of 783 kB (246 kB compressed) since the exercise library's screens, and Vite warns above 500 kB. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
+- **Bundle size.** The production build is one JavaScript file of 812 kB (253 kB compressed) since the plan screens, and Vite warns above 500 kB. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
 - **A preference changed with no connection is not saved.** It stays on screen until the page reloads, then the account's value returns. The offline queue will save it (FEAT-3).
 - **Not yet in place**, each with the feature that needs it:
   - drag and drop (FEAT-2);
@@ -751,6 +762,96 @@ The library's tests use the helpers of [C1.13.6](#c1136-testing-a-screen-with-th
 - **`sentBody(fake, path)`** gives the first call to `path` **that sent a body**: the editor first reads an exercise (GET), then saves it (PATCH).
 - **`ResizeObserver`** does not exist in jsdom, and Radix's Checkbox needs it: `src/test/setup.ts` gives the tests one that does nothing.
 - **`src/test/exercise-helpers.ts`** builds exercises and pages shaped as the API sends them.
+
+
+## C1.15 The plan screens
+
+The plan list and a plan's page (the second part of FEAT-2, [D1.4.6](../design/D1-ui.md#d146-plan-list) and [D1.4.7](../design/D1-ui.md#d147-plan-details)), on the API of [C2.5.5](C2-backend.md#c255-the-plans-endpoints). The editor comes next; until then **New plan** and **Edit** are disabled and marked "Coming soon", and `make plans-demo` gives every user two example plans to look at. How the screens were built, with the real output: [H3.13](../how-to/H3-frontend.md#h313-the-plan-screens-as-built).
+
+### C1.15.1 The pages and their pieces
+
+| Route | Page | Made of |
+|---|---|---|
+| `/plans`, `/plans?archived=1` | `PlansPage` | `PlanCard`, `EmptyState`, `ComingSoon`; `usePlans()` |
+| `/plans/:id`, `/plans/:id?day=2` | `PlanDetailPage` | `Tabs` (one per day), `PlanDayView` → `PlanItemRow`, `AlertDialog` to confirm a delete; `usePlan()`, `usePlanAction()`, `useDeletePlan()`, `useCurrentUser()` for the weight unit and the default rest |
+
+```
+PlanDetailPage                 the plan: header, badges, actions, notes
+└── Tabs                       one tab per day, the open one from ?day=
+    └── PlanDayView            "3 exercises · 7 sets", then the runs of groupSupersets()
+        ├── PlanItemRow        a lone exercise
+        └── <section>          a superset: a lime bar, its label, and a PlanItemRow per exercise
+```
+
+**What is not here yet,** with the feature that brings it: the editor, New plan and Edit (the next part of FEAT-2); "Start this day" and "last used" (FEAT-3); Templates, Share, Duplicate and the Shared badge (phase 2).
+
+### C1.15.2 One line per exercise
+
+[D1.4.7](../design/D1-ui.md#d147-plan-details) asks for each exercise as one line: "4 × 8–10 · 90 s", the warm-ups apart, "+ 2 warm-up". The API sends the sets one by one ([C2.5.5](C2-backend.md#c255-the-plans-endpoints)), so the line is worked out in the browser, by `itemSummary()` in `components/plans/plan-format.ts`:
+
+| The sets | The line, in English |
+|---|---|
+| 2 warm-ups, then 4 × 8–10 at 80 kg, 90 s rest | `4 × 8–10 · 80 kg · 90 sec` and `+ 2 warm-up` |
+| 10, 8 and 6 reps at 60, 65, 70 kg (a pyramid) | `3 × 10/8/6 · 60–70 kg · 90 sec` |
+| 3 sets to failure, no target, 120 s rest | `3 sets · 2 min` |
+| A plank of 60 s (logged by time) | `1 × 1 min · 90 sec` |
+| 8–10 at 82.5 kg, RPE 8.5, for a reader in pounds | `1 × 8–10 · 181.88 lb · RPE 8.5 · 90 sec`; in Italian `1 × 8–10 · 181,88 lb · RPE 8,5 · 90 s` |
+
+- **Plain functions, not components.** `plan-format.ts` takes data and gives text, so `plan-format.test.ts` tests every case above without drawing anything, and `PlanItemRow` stays short. The translate function is a parameter, `t`, for the few words ("sets", "max", "RPE").
+- **Warm-ups never count** in the line or in the day's "7 sets" ([D2.8](../design/D2-decisions.md#d28-workout-rules)): `workingSets()` leaves them out.
+- **Units come from `Intl`.** `formatSeconds()` and `formatDistance()` use `Intl.NumberFormat` with `style: 'unit'`, so each language writes its own: "90 s" in Italian and Spanish, "90 sec" in English, "90 Sek." in German. The weight is converted to the user's unit (`weightIn()`, 1 lb = 0.45359237 kg) and written by `formatWeight()` ([C1.7](#c17-translations)).
+- **The user's settings:** an exercise without its own rest shows the user's `default_rest_seconds`; the weights follow `weight_unit`. Both come from `useCurrentUser()`, already in the cache.
+- **Supersets:** `groupSupersets()` splits a day's exercises into runs, keeping the order: neighbours with the same `superset_group` form one run, every other exercise is a run of its own. The backend guarantees the neighbours ([C2.5.6](C2-backend.md#c256-validating-nested-data)), so a run is the whole superset. On screen a run is a `<section aria-label="Superset">` with a lime bar on its left: the label is there for screen readers, which cannot see the bar.
+
+### C1.15.3 Tabs whose state is in the address
+
+A plan's days are tabs (`components/ui/tabs.tsx`, Radix's Tabs through shadcn/ui). Radix gives what tabs need for keyboards and screen readers: the roles `tablist`, `tab` and `tabpanel`, the arrow keys between tabs, only the open panel drawn.
+
+The open tab is **controlled** by the page, and kept in the address, as the library's filters are ([C1.14.3](#c1143-filters-in-the-address)):
+
+```tsx
+const requested = Number(searchParams.get('day') ?? '1')            // ?day=2, from 1
+const dayIndex = Number.isInteger(requested) && requested >= 1 && requested <= plan.days.length
+  ? requested - 1 : 0                                               // anything else: the first day
+
+<Tabs value={String(dayIndex)} onValueChange={value => setSearchParams({ day: String(Number(value) + 1) }, { replace: true })}>
+```
+
+- **Controlled** means `value` comes from the page and `onValueChange` reports a click: Radix never decides alone. Uncontrolled (`defaultValue`) would be simpler, and would forget the day on a reload.
+- **Why the address:** opening an exercise from day B and pressing Back returns to day B.
+- **A value from the address is never trusted:** `?day=9` on a plan of three days opens the first day, rather than a tab bar with nothing selected. A test checks it.
+- **On a phone** six day tabs do not fit: their row scrolls sideways (`overflow-x-auto`), and each tab is 48 px tall, the smallest a finger hits reliably ([D1.5](../design/D1-ui.md#d15-design-system)).
+
+### C1.15.4 Actions on a plan
+
+Set as active, Archive and Restore are each a `POST` to the plan's address plus a verb (`/api/plans/{id}/activate`). They differ only in the verb, so one hook serves all three:
+
+```ts
+const action = usePlanAction(plan.id)
+action.mutate('activate')          // or 'archive', 'unarchive'
+```
+
+- **Afterwards every plan is read again** (`invalidateQueries({ queryKey: ['plans'] })`), not only this one: making a plan active takes the Active badge from the one before, and archiving moves a plan from one list to the other. The page then shows what the server says, with no state of its own to keep in step.
+- **Which buttons show** depends on the plan: an archived plan offers Restore and not Set as active, since the backend refuses to activate it (`PlanPolicy::activate`).
+- **Delete** asks first, in an `AlertDialog`, as for an exercise ([C1.14](#c114-the-exercise-library-screens)); afterwards the cached copies of the plan are removed, and the app opens the list with `replace: true`, so Back does not return to a plan that is gone.
+- **A failed action** shows a banner under the buttons, `role="alert"`; the plan on screen stays as it was.
+
+### C1.15.5 Testing it
+
+The tests use the helpers of [C1.13.6](#c1136-testing-a-screen-with-the-api) and `src/test/plan-helpers.ts`, which builds plans shaped as the API sends them: `testPlan()` has two days, the first with a bench press (two warm-ups, four working sets) and a superset of two exercises.
+
+- **An answer that changes after an action.** `fakeApi` accepts a function as an answer, called on every request. Setting a plan active is tested with a variable that the `POST` changes, and the next `GET` reads:
+
+```ts
+let active = false
+fakeApi({
+  'GET /api/plans/plan-ppl': () => planAnswer({ is_active: active }),
+  'POST /api/plans/plan-ppl/activate': () => { active = true; return { status: 200, body: { data: {} } } },
+})
+```
+
+  The test then finds the Active badge, which proves the page read the plan again after the action.
+- **`GET /api/user`** is in the table of the plan page's tests, since the page asks for the user's unit; one test answers with `weight_unit: 'lb'`.
 
 ---
 

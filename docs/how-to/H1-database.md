@@ -1138,6 +1138,7 @@ Tests:    16 passed (97 assertions)
 | Tests | `make test`, `make test f=Muscle` |
 | Format, then every check | `make fix`, `make check` |
 | Fill the public exercise library | `make exercises-import`; try with `o="--limit=5"`, refresh with `o="--update"` ([H1.12](#h112-the-free-exercise-db-import-as-built)) |
+| Two example plans for every user who has none, after the import | `make plans-demo` ([H3.13.1](H3-frontend.md#h3131-plans-to-look-at)) |
 | A command of our own | `make artisan c="make:command ImportSomething"` |
 | The SQL of undoing the last migration, without running it | `make artisan c="migrate:rollback --step=1 --pretend"` |
 
