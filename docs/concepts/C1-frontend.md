@@ -60,6 +60,12 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.18.3 The card: choose, then start](#c1183-the-card-choose-then-start)
   - [C1.18.4 This week, by the device's clock](#c1184-this-week-by-the-devices-clock)
   - [C1.18.5 Testing it](#c1185-testing-it)
+- [C1.19 The summary and history](#c119-the-summary-and-history)
+  - [C1.19.1 The pieces](#c1191-the-pieces)
+  - [C1.19.2 The summary: drawn from the phone](#c1192-the-summary-drawn-from-the-phone)
+  - [C1.19.3 Better than last time, exercise by exercise](#c1193-better-than-last-time-exercise-by-exercise)
+  - [C1.19.4 History: pages from the server](#c1194-history-pages-from-the-server)
+  - [C1.19.5 Testing it](#c1195-testing-it)
 
 ---
 
@@ -112,7 +118,8 @@ frontend/
     │   ├── auth.ts           the account: useCurrentUser(), useSignIn(), useSignOut()… (C1.13)
     │   ├── exercises.ts      the library: useExercises() (pages), useExercise(), create, update, delete (C1.14)
     │   ├── plans.ts          the plans: usePlans(), usePlan(), usePlanAction() (activate, archive, unarchive), useDeletePlan() (C1.15), useCreatePlan(), useUpdatePlan() (C1.16)
-    │   ├── sessions.ts       the workouts: useLastSets(), fetchLastSets(), sendSession() (C1.17)
+    │   ├── sessions.ts       the workouts: useLastSets(), fetchLastSets(), sendSession() (C1.17); useSessions(), useSession(),
+    │   │                     useDeleteSession() (C1.19)
     │   ├── home.ts           Home's one request: useHome() (C1.18)
     │   └── muscles.ts, equipment.ts   the two fixed lists of the filters and the editor
     ├── components/
@@ -120,13 +127,16 @@ frontend/
     │   ├── layout/           the frames: AppLayout (navigation), AuthLayout (sign-in screens); SideNav, BottomTabBar, nav-items
     │   ├── brand/            the logo: BrandMark and Wordmark
     │   ├── home/             pieces of Home: ActivePlanCard, WeekStrip, WeekStats; week-summary.ts, this week's numbers (C1.18)
+    │   ├── history/          pieces of the summary and history: WorkoutStats, ComparisonSummary, FeelingPicker, SessionRow,
+    │   │                     SessionExercises; totals.ts, a workout's numbers; compare.ts, better or not than last time;
+    │   │                     feeling.ts, the five feelings (C1.19)
     │   ├── exercises/        pieces of the library: ExerciseListItem, ExerciseFilters, ExercisePhotos, ExerciseForm and exercise-form.ts (C1.14)
     │   ├── plans/            pieces of the plan screens: PlanCard, PlanDayView, PlanItemRow, and plan-format.ts, the summary of an exercise (C1.15);
     │   │                     plan-draft.ts, the editor's draft and reducer, draft-storage.ts (C1.16)
     │   │   └── editor/         the plan editor: PlanEditor, EditorDay, EditorItem, EditorSet, ExercisePicker (C1.16)
     │   ├── workout/          workout mode: WorkoutScreen, SetRow, RestBar, clock.ts; workout-session.ts, the workout and its reducer;
     │   │                     session-storage.ts, the workout and the queue kept on the phone (C1.17);
-    │   │                     useStartWorkout.ts and ResumeBanner, shared with Home (C1.18)
+    │   │                     useStartWorkout.ts and ResumeBanner, shared with Home (C1.18); set-text.ts, a set as "80×8"
     │   └── *.tsx             shared by several pages: PageHeader, EmptyState, ComingSoon, SettingRow, FormField, FormBanner, the pickers…
     ├── pages/              one component per screen (HomePage, LoginPage…), and auth-schemas.ts, the rules of the sign-in forms
     ├── routes/             the guards: RequireAuth, RequireGuest, useAccountPreferences (C1.13)
@@ -271,7 +281,8 @@ useEffect(() => {
 - **The table** is `src/router.tsx`, made with `createBrowserRouter([...])`. A route has a `path` and an `element`. `children` nest routes inside a parent, which draws them at its `<Outlet />`. `index: true` marks the parent's own address.
 - **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([C1.13](#c113-signing-in-and-forms)). Workout mode, full screen, is a sibling of `AppLayout` inside `RequireAuth`: signed in, with no navigation around it ([C1.17](#c117-workout-mode)). The public shared plan, also full screen, will be a sibling of these branches. Comments in the file mark where.
 - **Links:** use `<Link to="/plans">`. Use `<NavLink>` in navigation: it knows whether it is the current page and then gets `aria-current="page"`. Use `useNavigate()` to move in code, for example after saving.
-- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`). A plan's id is a UUID, and stays a string (`PlanDetailPage`). `plans/new` and `plans/:id/edit` open the plan editor (C1.16); `session/:id` a workout in progress (C1.17).
+- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`). A plan's id is a UUID, and stays a string (`PlanDetailPage`). `plans/new` and `plans/:id/edit` open the plan editor (C1.16); `session/:id` a workout in progress (C1.17), `session/:id/summary` its summary, `progress/history/:id` a past workout (C1.19).
+- **A tab stays lit on the pages under it:** `NavLink` is active on every address that *starts* with its own, so history lives at `/progress/history` and the Progress tab stays lit there (`end` turns this off, as Home's `/` needs).
 - **The query string** (`?q=panca`) is read and written with `useSearchParams()` ([C1.14.3](#c1143-filters-in-the-address)): the library's filters, the plan list's view (`?archived=1`), a plan's open day (`?day=2`).
 - **A fixed segment wins over a parameter:** `exercises/new` and `exercises/:id` can both exist, and `/exercises/new` opens the editor, whatever their order in the table.
 - **Not found and crashes:** the last child, `path: '*'`, catches unknown addresses (`NotFoundPage`, inside the frame). `errorElement` (`RouteErrorPage`) replaces a screen that throws while rendering.
@@ -723,7 +734,7 @@ The first feature screens of the app (UI-1, [D1.4.3](../design/D1-ui.md#d143-exe
 | `/exercises/:id` | `ExerciseDetailPage` | `ExercisePhotos`, the facts as a description list, `AlertDialog` to confirm a delete; `useExercise()`, `useDeleteExercise()` |
 | `/exercises/new`, `/exercises/:id/edit` | `ExerciseEditorPage` | `ExerciseForm`, with the rules and conversions of `exercise-form.ts`; `useCreateExercise()`, `useUpdateExercise()` |
 
-**What is not here yet,** with the feature that brings it: "Add to plan" ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)), the "My history" tab (FEAT-4), photo uploads, videos and "Duplicate as mine" (BE-1, `feat/exercise-media`), the buttons disabled offline (FEAT-3).
+**What is not here yet,** with the feature that brings it: "Add to plan" ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)), the "My history" tab ([FEAT-7](../project/backlog.md#feat-7-an-exercises-own-history)), photo uploads, videos and "Duplicate as mine" (BE-1, `feat/exercise-media`), the buttons disabled offline (FEAT-3).
 
 ### C1.14.2 A list one page at a time
 
@@ -1012,7 +1023,6 @@ The first part of FEAT-3 on screen ([D1.4.9](../design/D1-ui.md#d149-workout-mod
 
 ```
 PlanDetailPage, HomePage Start (useStartWorkout); the banner "Workout in progress: <day>" with Resume (ResumeBanner);
-│                        after Finish, "saved" / "will be sent" / "refused"
 └── navigate('/session/:id')
 WorkoutPage              /session/:id: reads the workout kept on the phone; none → a message
 └── WorkoutScreen        the workout (useReducer); top: ✕, the day, the clock, Finish; the dots;
@@ -1037,13 +1047,13 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 
 **Full screen.** The route `session/:id` sits inside `RequireAuth` but beside `AppLayout`, not under it ([C1.5](#c15-routing)): signed in, with no tab bar or side navigation. It behaves like an app: the bars stay put and only the middle scrolls, and only when an exercise is longer than the screen; the page itself never scrolls. Every part (top bar, exercise, rest timer, Previous and Next) uses the same side margins, `WORKOUT_COLUMN` in `components/workout/layout.ts`: those of the app's other pages (`px-5 sm:px-8 lg:px-12`: 20, 32, 48 px), with the whole width of the window, on a laptop too. The spacing breathes a little and grows with the screen: rows of sets 8 px apart on a phone, 12 px from 640 px (`gap-2 sm:gap-3`), 20 to 24 px around the exercise, the bars a little taller on a tablet and a laptop. The buttons follow the app's look ([D1.5](../design/D1-ui.md#d15-design-system)): 48 px tall (`xl`), lime only for the main action (Finish workout), outlined for the others (Finish at the top, Previous, Next, Add set, −15, +15, Skip), plain only for icons (✕, a set's number). The middle is `relative`, so the hidden "Rest over" text (`sr-only`, absolutely positioned) stays inside it instead of stretching the page ([H3.15.11](../how-to/H3-frontend.md#h31511-fifth-pass-wide-on-a-laptop-an-app-on-a-phone)). The screen is a column as tall as the window (`h-dvh`, the height the browser really shows on a phone, toolbars excluded); only the middle scrolls, so ✕, Finish, the rest timer and Next are always in reach. `env(safe-area-inset-top)` keeps the top clear of a phone's notch.
 
-**What is not here yet,** each in the backlog: the big stepper on a tap of a number, the exercise menu (swap, skip, note, video), live records, a notification when the rest ends with the app in the background, the summary after Finish (D1.4.10), and the real offline app (FEAT-3).
+**What is not here yet,** each in the backlog: the big stepper on a tap of a number, the exercise menu (swap, skip, note, video), live records, a notification when the rest ends with the app in the background, and the real offline app (FEAT-3). The summary after Finish is in [C1.19](#c119-the-summary-and-history).
 
 ### C1.17.2 Starting: the plan becomes a workout
 
 **Start** (in `PlanDetailPage`, `StartDayButton`, and on Home) calls `startDay(plan, day)` of the hook `useStartWorkout` ([C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)), which does four things:
 
-1. **Asks for last time's sets** of the day's exercises, `GET /api/sessions/last-sets?exercises=12,40,7`, with `fetchLastSets()`. Without network the request fails, and `.catch(() => [])` turns the failure into "no last time": the workout starts anyway.
+1. **Asks for last time's sets** of the day's exercises, `GET /api/sessions/last-sets?exercises=12,40,7`, with `fetchLastSets()`. Without network the request fails, and `.catch(() => [])` turns the failure into "no last time": the workout starts anyway. Each exercise keeps the whole list too, `previous`, besides the set in each place: the summary compares with it at the end, with no request ([C1.19.3](#c1193-better-than-last-time-exercise-by-exercise)).
 2. **Builds the workout** with `startSession(plan, day, options)`: each item of the day becomes an exercise, each planned set a set to do. The fields are filled with **last time's values for the set in the same place**, else the **plan's target** (the lower end of `8-10`), so a set done as planned or as last time is a single tap on ✓. The weights are written in the user's unit and language (`82,5` in Italian).
 3. **Gives it a UUID** in the browser (`crypto.randomUUID()`), as every row of a workout gets one ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). The backend keeps these ids, which is what makes sending the same workout twice harmless (C1.17.5).
 4. **Stores it** on the phone and opens `/session/<id>`.
@@ -1115,12 +1125,13 @@ useEffect(() => {
 
 ### C1.17.5 The queue of workouts to send
 
-The workout lives in `localStorage` (`session-storage.ts`), under two keys:
+The workout lives in `localStorage` (`session-storage.ts`), under three keys:
 
 | Key | Holds | Written |
 |---|---|---|
 | `atleoplan.activeSession` | the workout in progress, one at a time | after every action (an effect on `session`); removed at Finish |
 | `atleoplan.pendingSessions` | the finished workouts not yet on the server, by id: id → body | at Finish; an entry leaves when the server has it |
+| `atleoplan.finishedSession` | the workout just finished, its body and what happened when it was sent | at Finish; removed by the summary's Save or Delete |
 
 **Finishing** has two buttons, opening the same confirmation (`FinishButton`), and only one of them is lime at a time:
 
@@ -1132,7 +1143,7 @@ The confirmation counts the sets that count (`countSets()`, warm-ups excluded): 
 1. `finish` in the reducer: the clock stops, `finished_at` is set.
 2. **The body goes in the queue first**, then the workout in progress is forgotten. Whatever happens next (no network, the app closed during the request), the workout is on the phone.
 3. **`sendPendingSessions()`** tries every workout of the queue, this one included, with `PUT /api/sessions/{id}`.
-4. The plan's page opens (Home, for a free workout), told through the navigation's `state` what happened: `saved`, `queued` or `refused`, and shows it. The cached workouts and Home are marked stale, so the week and the suggested day are read again.
+4. **The summary opens** (`/session/:id/summary`, [C1.19](#c119-the-summary-and-history)). Before, the workout is kept on the phone as "finished" (`storeFinished()`), with what happened to it: `saved`, `queued` or `refused`; the summary is drawn from that copy. The cached workouts and Home are marked stale, so the week and the suggested day are read again.
 
 What each answer of the server does to a workout in the queue:
 
@@ -1165,12 +1176,12 @@ The second part of FEAT-3 on screen ([D1.4.2](../design/D1-ui.md#d142-home)): th
 ```
 HomePage                 route `/`, inside AppLayout
 ├── useHome()            GET /api/home: the active plan, its days, the suggested day, the day done last, the recent workouts
-├── FormBanner           after a free workout's Finish: "saved" / "will be sent" / "refused"
+├── FormBanner           after a workout's summary: "saved" / "will be sent" / "refused" / "deleted"
 ├── ResumeBanner         a workout in progress on this phone: "Workout in progress: Day A – Push", Resume
 ├── ActivePlanCard       the plan, the day chosen (the suggested one at first), Start, a chip per day
 │   or EmptyState        no active plan: Create a plan, Browse exercises
 ├── Free workout         a workout with no plan: startFree()
-└── This week            WeekStrip (the days trained) and WeekStats (workouts, sets, volume), from weekSummary()
+└── This week            WeekStrip (the days trained) and WeekStats (workouts, sets, minutes), from weekSummary()
 ```
 
 | File | Holds |
@@ -1228,10 +1239,10 @@ A week starts on Monday at midnight **in the user's time zone**, which only the 
 
 ```ts
 const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
-// { workouts: 2, sets: 29, volumeKg: 9640, trainedDays: [Thu 5, Sat 7] }
+// { workouts: 2, sets: 29, minutes: 97, trainedDays: [Thu 5, Sat 7] }
 ```
 
-`isInWeek(moment, today)` (`lib/week.ts`) compares with Monday at midnight and the Monday after, both built with the local `Date` constructor, as `getWeekDays()` does. Two workouts on the same day mark it once. Totals come from the backend, warm-ups excluded (`sets_done`, `volume_kg`, [D2.8](../design/D2-decisions.md#d28-workout-rules)); the volume is shown in the user's unit, whole, with the unit in its label ("Volume (kg)") so that a week's "12,480" fits a third of a phone's width. A day trained gets a lime ring and a dot in `WeekStrip`, and the words "workout done" for screen readers: colour alone never carries meaning ([D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility)).
+`isInWeek(moment, today)` (`lib/week.ts`) compares with Monday at midnight and the Monday after, both built with the local `Date` constructor, as `getWeekDays()` does. Two workouts on the same day mark it once. The sets come from the backend, warm-ups excluded (`sets_done`); the minutes add up each workout's `duration_seconds`, rounded once at the end. No volume: a week's volume adds up unlike exercises and counts nothing done with the body alone ([D2.8](../design/D2-decisions.md#d28-workout-rules)); minutes, not "2 h 35 min", so the number fits a third of a phone's width. A day trained gets a lime ring and a dot in `WeekStrip`, and the words "workout done" for screen readers: colour alone never carries meaning ([D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility)).
 
 **Not here yet:** the last three personal records (they come with Progress, phase 2) and finishing a workout from Home's banner, which opens it with Resume instead.
 
@@ -1240,6 +1251,107 @@ const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
 - **The week without React** (`week-summary.test.ts`, `week.test.ts`): a Thursday chosen as "today", workouts on Thursday, twice on Tuesday and on the Sunday before; the test checks that the Sunday is left out and Tuesday is marked once.
 - **The page** (`HomePage.test.tsx`), with the fake API of [C1.10](#c110-tests-and-checks): `GET /api/home` answers with `homeAnswer()`, the test plan active and Day B suggested. The tests read the card by its name (`getByRole('region', { name: 'Push Pull Legs' })`, the `<section>` named by its heading), tap Start and check that the plan and last time's sets were asked for and that workout mode opened on the right day; tap a chip, then Start; make the plan's request fail; store a workout first and check Resume; start a free workout; and read the week's numbers.
 - **Reading a number by its label:** in `WeekStats`, each label (`<dt>`) comes before its number (`<dd>`) in the page, though drawn under it (`flex-col-reverse`), so a test finds the label and reads its `nextSibling`.
+
+## C1.19 The summary and history
+
+FEAT-4 on screen ([D1.4.10](../design/D1-ui.md#d1410-workout-summary), [D1.4.11](../design/D1-ui.md#d1411-history)): **the summary** after Finish says what was done and asks how it felt; **history** lists every past workout and opens each one. How it was built, with the real output: [H3.17](../how-to/H3-frontend.md#h317-the-summary-and-history-as-built).
+
+### C1.19.1 The pieces
+
+```
+WorkoutScreen.finish()   queue, send, storeFinished({ id, input, outcome }), then /session/:id/summary
+SummaryPage              /session/:id/summary: the finished workout from the phone; not there → its page in history
+├── WorkoutStats         time, exercises, sets, reps, from inputTotals(input)
+├── ComparisonSummary    "Against last time: 2 better · 1 same", from compareWorkout()
+├── Collapsible          "Exercises 3", closed at first; open, sliding: SessionExercises, each exercise
+│                        against last time, its sets, its own volume
+├── FeelingPicker        how it felt, 1 to 5
+├── Textarea             notes
+└── Save / Delete        then Home, with "saved" / "will be sent" / "refused" / "deleted"
+
+ProgressPage             /progress: the 3 latest workouts, All workouts; charts and records "coming soon"
+HistoryPage              /progress/history: every workout by month, 20 at a time, Show more
+└── SessionRow           a workout: date, day, plan, time · sets · reps; a link to its page
+HistoryDetailPage        /progress/history/:id: the numbers, the count of verdicts, how it felt, the notes, Delete
+└── SessionExercises     each exercise against last time ("Better", "80×8 · last time 80×6"), its sets
+                         ("W1 40×10", "1 80×8"; "Skipped"), its own volume for an exercise with weights
+```
+
+| File | Holds |
+|---|---|
+| `api/sessions.ts` | `useSessions()` (pages), `useSession()` (one workout and the one before), `deleteSession()`, `useDeleteSession()` |
+| `pages/SummaryPage.tsx` | The summary; `WorkoutEndState`, what Home is told afterwards |
+| `pages/HistoryPage.tsx`, `HistoryDetailPage.tsx`, `ProgressPage.tsx` | History, a past workout, Progress |
+| `components/history/totals.ts` | `inputTotals()` and `sessionTotals()`: a workout's four numbers (time, exercises, sets, reps), from the phone's body or from the server |
+| `components/history/compare.ts` | `compareExercise()`, `compareWorkout()`, `countVerdicts()`, `bestSet()`, `exerciseVolume()`: better or not than last time (C1.19.3) |
+| `components/history/feeling.ts` | The five feelings and `feelingName()` |
+| `components/ui/collapsible.tsx` | shadcn/ui's Collapsible, with an opening that slides: the summary's folded exercises |
+| `components/history/*.tsx` | The pieces above |
+| `components/workout/set-text.ts` | `loggedSetText()`: a set as "80×8", shared with workout mode's "Last" column |
+| `components/workout/session-storage.ts` | `storeFinished()`, `loadFinished()`: the workout just finished |
+| `lib/format.ts` | `formatDuration()`: "45 min", "1 h 5 min" |
+
+### C1.19.2 The summary: drawn from the phone
+
+Right after the last set the network may be down, and the summary must still show. So it is **drawn from the copy the phone kept at Finish**, never from the server:
+
+1. `finish()` in workout mode queues the body and tries to send it, as before ([C1.17.5](#c1175-the-queue-of-workouts-to-send)), then keeps `{ id, session, input, outcome }` under `atleoplan.finishedSession` and opens `/session/<id>/summary`. `session` is the workout itself: the exercises' names and logging types, and last time's sets, which the body does not carry.
+2. `SummaryPage` reads that copy once (`useState(loadFinished)`). Its numbers come from the body with `inputTotals()`: exercises with a set, sets and reps without warm-ups, the time trained. The same rules as the backend's totals ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)), so the workout shows the same numbers in history.
+3. **The comparison** needs no request either. When the workout started, workout mode asked for last time's sets of its exercises (`last-sets`, [C1.17.2](#c1172-starting-the-plan-becomes-a-workout)) and kept the whole list on each exercise (`previous`); `compareWorkout()` compares with them. Offline at the start, there was no last time: every exercise says "First time".
+
+**Save** adds the feeling and the notes to the body and **sends the whole workout again**, through the queue: `addPending(id, { ...input, feeling, notes })`, then `sendPendingSessions()`. A `PUT` to the workout's UUID replaces it, so sending twice is the intended way to add the answers; offline, they wait in the queue with it. Nothing chosen and nothing written: nothing is sent. Then Home opens, told what happened through the navigation's `state` (`WorkoutEndState`).
+
+**Delete** takes the workout off the queue and asks the server to delete it (`DELETE /api/sessions/{id}`):
+
+| The workout was | DELETE answers | Then |
+|---|---|---|
+| sent at Finish | 204 | deleted; Home says so |
+| sent, but the network is down now | no answer | the summary stays, with "could not be deleted": it is on the server |
+| still in the queue | no answer (offline) | deleted: taking it off the queue is enough, it never reached the server |
+| never arrived, or deleted already | 404 or 410 | deleted |
+
+**Opened again** after Save (a reload, Back), or on another phone, the address has no finished workout on this phone: `<Navigate>` replaces it with the workout's page in history, which reads it from the server.
+
+### C1.19.3 Better than last time, exercise by exercise
+
+A workout's total volume (weight × reps of everything) was the first number the summary showed, and said little: it adds a kilogram of squat to a kilogram of curl, and counts nothing done with the body alone, so a calisthenics workout weighed 0 ([D2.8](../design/D2-decisions.md#d28-workout-rules)). Each exercise is compared with itself instead, in `compare.ts`, with no React:
+
+```ts
+compareExercise(sets, previous, loggingType)
+// → { verdict: 'better' | 'same' | 'worse' | 'first', best, previousBest }, or null for an exercise skipped
+```
+
+| Logged as | The best set is the one with | Example |
+|---|---|---|
+| weight × reps | the highest estimated one-rep max, Epley's weight × (1 + reps / 30) | 82.5×8 (104.5) beats 85×5 (99.2) |
+| reps | the most added weight, then the most reps | +5×6 beats 12; 12 beats 10 |
+| time, distance | the longest | 1:30 beats 1:15 |
+
+- **Warm-ups never count;** an exercise with warm-ups only, or skipped, has no verdict (`null`) and is not counted.
+- **A tie of the best sets** is decided by the total reps of the sets that count: 3×8 beats 2×8 at the same weight.
+- **A score is a list,** compared item by item (`compareScores()`): `[one-rep max]`, or `[added weight, reps]` for an exercise logged by reps, so the second item decides only when the first ties. Differences below 0.001 are equal: the same multiplication done twice can differ in its last decimal.
+- **Weights arrive in two forms:** numbers from the phone's body, exact text from the API (`"80.000"`); `Number()` reads both, and `SetValues` accepts both.
+- **On screen:** `ComparisonSummary` counts the verdicts ("Against last time: 2 better · 1 same"), lime when more went better than lower; `SessionExercises` writes, under each exercise, the verdict with its arrow, then the two best sets, "80×8 · last time 80×6", with `loggedSetText()`. Lower is said in grey, not red: a lighter day is not a failure.
+- **In the summary the list is folded:** under the count, in shadcn/ui's **Collapsible** (`components/ui/collapsible.tsx`, Radix's Collapsible), closed at first. The count says how it went; the list is there for whoever wants it, without pushing the questions and Save down the page. Radix keeps it open or closed, sets `aria-expanded` on the trigger for screen readers, and marks trigger and content with `data-state="open"` or `"closed"`. The content slides: Radix measures its height into `--radix-collapsible-content-height`, and `animate-collapsible-down` / `-up` (tw-animate-css) go from 0 to it and back. The arrow turns with `group-has-data-open:rotate-180`: the frame is the `group`, and `has-data-open` is true while something inside it carries `data-state="open"`. A closed list is not in the page at all. On a workout's page in history the list is the content, so it is shown open, as a plain list.
+- **Volume stays where it means something:** beside each exercise logged as weight × reps, "Volume of this exercise: 1,280 kg" (`exerciseVolume()`), never added across exercises.
+
+### C1.19.4 History: pages from the server
+
+- **The list** is `useSessions()`, `useInfiniteQuery` over `GET /api/sessions?status=finished&page=…&per_page=20`, the pattern of the exercise library ([C1.14](#c114-the-exercise-library-screens)): `data.pages` holds every page read, `fetchNextPage()` asks for the next, `hasNextPage` hides **Show more** after the last.
+- **By month:** `byMonth()` in `HistoryPage` walks the list, newest first, and starts a new group when the month changes. The month's name comes from `Intl.DateTimeFormat(language, { month: 'long', year: 'numeric' })`; some languages write it in lower case ("novembre 2026"), so the heading capitalises its first letter with CSS (`first-letter:uppercase`).
+- **A workout's page** is `useSession(id, language)`: the language is in the key, since the exercises' names come translated. Its answer carries `meta.last_sets`, last time for each of its exercises, counting only the workouts **before** it ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)), for the comparison: the same `compareWorkout()` as the summary. The sets are numbered as in workout mode, with `setNumbers()`, and written with `loggedSetText()`, the function workout mode's "Last" column uses: one way of writing a set in the whole app.
+- **Delete** is a mutation (`useDeleteSession`): afterwards the workout's cached copies are removed (`removeQueries`), the lists and Home are marked stale, and history opens.
+- **Progress** shows the first three workouts of the same `useSessions()` list: the same key, so opening **All workouts** shows them at once, from the cache.
+
+**Not here yet,** each in the backlog: editing a past workout's sets ([FEAT-6](../project/backlog.md#feat-6-edit-a-past-workout)), an exercise's own history ([FEAT-7](../project/backlog.md#feat-7-an-exercises-own-history)), records broken ([FEAT-5](../project/backlog.md#feat-5-new-records-during-a-workout)), and the charts of Progress (phase 2).
+
+### C1.19.5 Testing it
+
+- **The numbers without React** (`totals.test.ts`): a body with a warm-up, a set with the body alone and an exercise skipped; only the sets that count add their reps, the body alone included.
+- **The comparison without React** (`compare.test.ts`): one test per way of logging, the tie decided by the total reps, weights as numbers and as text, "first time" and an exercise skipped.
+- **The summary** (`SummaryPage.test.tsx`): a workout is finished in the test as Finish does it (`startSession()` with last time's bench press, `workoutReducer()` with the ticks, `toSessionInput()`, `storeFinished()`), then the page is drawn at its address. The tests read the numbers by their labels, check that the comparison needed no request, check the `PUT` sent with the feeling and the notes, that nothing is sent with nothing to add, the two ways of deleting, and the jump to history.
+- **History and Progress** (`HistoryPage.test.tsx`): the fake API answers each page by its exact query string (`GET /api/sessions?status=finished&page=2&per_page=20`), which `fakeApi` matches before the bare path.
+- **Workout mode's tests** now end on a stand-in for the summary, and read the finished workout back with `loadFinished()`.
 
 ---
 

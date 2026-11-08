@@ -60,6 +60,14 @@ export interface WorkoutExercise {
   rest_seconds: number
   /** Its sets, in order. */
   sets: WorkoutSet[]
+  /**
+   * All of last time's sets of this exercise, from GET /api/sessions/last-sets
+   * at the start; empty when never done or offline. Each set above keeps the
+   * one in its own place (`last`); this keeps the whole list, for the
+   * summary's comparison (src/components/history/compare.ts), which works
+   * offline because of it. Missing in a workout started before FEAT-4.
+   */
+  previous?: LoggedSet[]
 }
 
 /** The rest timer, while it runs. */
@@ -184,6 +192,7 @@ export function startSession(plan: Plan, day: PlanDay, options: StartOptions): A
         superset_group: item.superset_group,
         rest_seconds: item.rest_seconds ?? options.defaultRestSeconds,
         sets: planned.map((set, index) => setFrom(set, last[index] ?? null, options)),
+        previous: last,
       }
     }),
   }
@@ -249,6 +258,7 @@ export function exerciseFrom(exercise: Exercise, lastSets: LastSets[], options: 
     // One set per set of last time, or a single empty one. `[null]`: a
     // list with one "no last set", so map() makes one row
     sets: (last.length > 0 ? last : [null]).map(set => setFrom(null, set, options)),
+    previous: last,
   }
 }
 

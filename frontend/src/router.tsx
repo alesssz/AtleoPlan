@@ -19,6 +19,8 @@ import { ExerciseDetailPage } from '@/pages/ExerciseDetailPage'
 import { ExerciseEditorPage } from '@/pages/ExerciseEditorPage'
 import { ExercisesPage } from '@/pages/ExercisesPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { HistoryDetailPage } from '@/pages/HistoryDetailPage'
+import { HistoryPage } from '@/pages/HistoryPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -30,6 +32,7 @@ import { ProgressPage } from '@/pages/ProgressPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { RouteErrorPage } from '@/pages/RouteErrorPage'
+import { SummaryPage } from '@/pages/SummaryPage'
 import { WorkoutPage } from '@/pages/WorkoutPage'
 import { RequireAuth } from '@/routes/RequireAuth'
 import { RequireGuest } from '@/routes/RequireGuest'
@@ -92,7 +95,14 @@ export const router = createBrowserRouter([
           { path: 'exercises/new', element: <ExerciseEditorPage /> },
           { path: 'exercises/:id', element: <ExerciseDetailPage /> },
           { path: 'exercises/:id/edit', element: <ExerciseEditorPage /> },
+          // Progress, and history under it (D1.4.11, D1.4.12): an address
+          // that starts with /progress keeps the Progress tab lit
           { path: 'progress', element: <ProgressPage /> },
+          { path: 'progress/history', element: <HistoryPage /> },
+          { path: 'progress/history/:id', element: <HistoryDetailPage /> },
+          // The summary after Finish (D1.4.10): inside the frame, with the
+          // navigation, since the workout is over
+          { path: 'session/:id/summary', element: <SummaryPage /> },
           { path: 'profile', element: <ProfilePage /> },
           // Anything else ('*' matches every address): "page not found",
           // still inside the frame

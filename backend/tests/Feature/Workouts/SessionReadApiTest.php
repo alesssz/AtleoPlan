@@ -49,6 +49,7 @@ it('lists only my workouts, the most recent first, with their totals', function 
         ->assertJsonCount(2, 'data')
         ->assertJsonPath('data.0.volume_kg', '1200.000')
         ->assertJsonPath('data.0.sets_done', 2)
+        ->assertJsonPath('data.0.reps_done', 15)
         ->assertJsonPath('data.1.volume_kg', '1280.000')
         ->assertJsonPath('meta.total', 2);
 });
@@ -74,6 +75,32 @@ it('shows a whole workout: exercises, sets and totals', function () {
         ->assertJsonPath('data.exercises.0.exercise.name', 'Bench press')
         ->assertJsonPath('data.exercises.0.sets.*.reps', [10, 8])
         ->assertJsonPath('data.volume_kg', '1440.000');
+});
+
+it('gives last time for each of its exercises, from the workouts before it', function () {
+    $user = User::factory()->create();
+    $bench = Exercise::factory()->create();
+    $squat = Exercise::factory()->create();
+    // The bench press ten days ago (5 reps), three days ago (8, 8), in a
+    // workout deleted two days ago (12); today, the one read (8, 8, 8); and
+    // tomorrow's, which must not count for today
+    workoutOf($user, $bench, 10, [5]);
+    $before = workoutOf($user, $bench, 3, [8, 8]);
+    workoutOf($user, $bench, 2, [12])->delete();
+    $today = workoutOf($user, $bench, 0, [8, 8, 8], ['started_at' => now()->subHour()]);
+    workoutOf($user, $bench, -1, [10]);
+    // The squat, done today for the first time: nothing to compare with
+    SessionExercise::factory()->for($today, 'session')->for($squat)->has(LoggedSet::factory(), 'sets')->create(['position' => 1]);
+
+    $this->actingAs($user)->getJson("/api/sessions/{$today->id}")
+        ->assertOk()
+        ->assertJsonCount(1, 'meta.last_sets')
+        ->assertJsonPath('meta.last_sets.0.exercise_id', $bench->id)
+        ->assertJsonPath('meta.last_sets.0.session_id', $before->id)
+        ->assertJsonPath('meta.last_sets.0.sets.*.reps', [8, 8]);
+
+    // Read later, a workout is compared with the one before *it*
+    $this->actingAs($user)->getJson("/api/sessions/{$before->id}")->assertJsonPath('meta.last_sets.0.sets.*.reps', [5]);
 });
 
 it('refuses someone else\'s workout, and does not find a deleted one', function () {

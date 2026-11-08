@@ -83,7 +83,6 @@
     "today": "today",
     "statWorkouts": "Workouts",
     "statSets": "Sets",
-    "statVolume": "Volume ({{unit}})",
     "activePlan": "Active plan",
     "suggested": "Suggested",
     "exercises_one": "{{count}} exercise",
@@ -101,7 +100,9 @@
     "freeTitle": "Free workout",
     "freeText": "No plan: add the exercises as you go.",
     "freeStart": "Start a free workout",
-    "trained": "workout done"
+    "trained": "workout done",
+    "history": "See every workout",
+    "statMinutes": "Minutes"
   },
   "plans": {
     "new": "New plan",
@@ -315,7 +316,11 @@
   "progress": {
     "emptyTitle": "Your progress starts with the first workout",
     "emptyText": "Weights, reps and records will turn into charts as you train.",
-    "start": "Start a workout"
+    "start": "Start a workout",
+    "latestTitle": "Latest workouts",
+    "allWorkouts": "All workouts",
+    "chartsTitle": "Charts and records",
+    "chartsText": "Your strength over time, exercise by exercise, and your personal records."
   },
   "profile": {
     "signOut": "Sign out",
@@ -421,6 +426,66 @@
     "emptyTitle": "No exercises yet",
     "emptyText": "Add the exercises you are doing, one or more at a time. You can add more later.",
     "addExercises": "Add exercises",
-    "cancel": "Cancel workout"
+    "cancel": "Cancel workout",
+    "deleted": "Workout deleted."
+  },
+  "summary": {
+    "eyebrow": "Workout finished",
+    "numbersTitle": "The numbers",
+    "feelingTitle": "How did it feel?",
+    "feeling1": "Awful",
+    "feeling2": "Hard",
+    "feeling3": "OK",
+    "feeling4": "Good",
+    "feeling5": "Great",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "How it went, what to change next time…",
+    "save": "Save",
+    "delete": "Delete workout",
+    "deleteTitle": "Delete this workout?",
+    "deleteText": "Its sets will be gone from your history and your progress. This cannot be undone.",
+    "keep": "Keep it",
+    "deleteError": "The workout could not be deleted. Check the connection and try again."
+  },
+  "history": {
+    "statDuration": "Time",
+    "statExercises": "Exercises",
+    "statSets": "Sets",
+    "sets_one": "{{count}} set",
+    "sets_other": "{{count}} sets",
+    "skipped": "Skipped",
+    "title": "History",
+    "description": "Every workout you finished, the latest first.",
+    "backToProgress": "Progress",
+    "loading": "Loading your workouts…",
+    "loadingOne": "Loading the workout…",
+    "loadError": "Your workouts could not be loaded.",
+    "emptyTitle": "No workouts yet",
+    "emptyText": "Finish a workout and it will be here, with its sets and numbers.",
+    "emptyAction": "Go to Home",
+    "notFound": "This workout is not here: it may have been deleted.",
+    "back": "History",
+    "felt": "Felt: {{feeling}} ({{value}}/5)",
+    "exercisesTitle": "Exercises",
+    "statReps": "Reps",
+    "reps_one": "{{count}} rep",
+    "reps_other": "{{count}} reps",
+    "exerciseVolume": "Volume of this exercise: {{amount}}"
+  },
+  "compare": {
+    "title": "Against last time:",
+    "better": "Better",
+    "same": "Same",
+    "worse": "Lower",
+    "first": "First time",
+    "lastTime": "last time {{set}}",
+    "countBetter_one": "{{count}} better",
+    "countBetter_other": "{{count}} better",
+    "countSame_one": "{{count}} same",
+    "countSame_other": "{{count}} same",
+    "countWorse_one": "{{count}} lower",
+    "countWorse_other": "{{count}} lower",
+    "countFirst_one": "{{count}} new",
+    "countFirst_other": "{{count}} new"
   }
 }

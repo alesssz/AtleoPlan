@@ -11,7 +11,7 @@
  *   the two differ. toBe compares with ===, toEqual compares contents.
  */
 import { describe, expect, it } from 'vitest'
-import { formatDayParts, formatLongDate, formatNumber, formatWeight } from './format'
+import { formatDayParts, formatDuration, formatLongDate, formatNumber, formatWeight } from './format'
 
 describe('formatWeight', () => {
   // it.each([...rows])(name, fn): the same test once per row; each row's
@@ -60,5 +60,17 @@ describe('formatLongDate and formatDayParts', () => {
   it('gives the short weekday and the day number', () => {
     expect(formatDayParts(date, 'it')).toEqual({ weekday: 'gio', day: '5' })
     expect(formatDayParts(date, 'en')).toEqual({ weekday: 'Thu', day: '5' })
+  })
+})
+
+describe('formatDuration', () => {
+  it('writes minutes, or hours and minutes, in each language\'s short units', () => {
+    expect(formatDuration(2580, 'it')).toBe('43 min')
+    expect(formatDuration(3900, 'it')).toBe('1 h 5 min')
+    expect(formatDuration(3900, 'en')).toBe('1 hr 5 min')
+    expect(formatDuration(7200, 'de')).toBe('2 Std.')
+    // A few seconds still read as a minute; nothing as zero
+    expect(formatDuration(20, 'en')).toBe('1 min')
+    expect(formatDuration(0, 'en')).toBe('0 min')
   })
 })

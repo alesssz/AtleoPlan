@@ -15,11 +15,11 @@ import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import type { LoggingType } from '@/api/exercises'
 import { SET_TYPE_SIGNS } from '@/components/plans/plan-draft'
-import { formatDistance, formatSeconds, weightIn } from '@/components/plans/plan-format'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { formatNumber, type WeightUnit } from '@/lib/format'
+import type { WeightUnit } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { loggedSetText } from './set-text'
 import { canComplete, type SetField, type SetNumber, type WorkoutSet } from './workout-session'
 
 /** A field of a set's row: what it holds, its title, the phone keyboard it opens. */
@@ -53,16 +53,6 @@ function fieldsFor(loggingType: LoggingType, unit: WeightUnit, t: TFunction): Fi
     case 'time': return [{ field: 'seconds', label: t('workout.colSeconds'), spoken: t('workout.colSeconds'), inputMode: 'numeric' }]
     case 'distance': return [{ field: 'meters', label: t('workout.colMeters'), spoken: t('workout.colMeters'), inputMode: 'numeric' }]
   }
-}
-
-/**
- * A weight, as a field and the Last column write it: 82.5 → "82,5" in Italian.
- * @param kilograms the weight in kilograms, as the API sends it
- * @param unit the user's unit
- * @param language the interface's language
- */
-function weightText(kilograms: string, unit: WeightUnit, language: string): string {
-  return formatNumber(weightIn(Number(kilograms), unit), language, { maximumFractionDigits: 2 })
 }
 
 /** Props of SetHeader. */
@@ -121,19 +111,9 @@ export function SetRow({ set, number, loggingType, unit, onToggle, onChange, onC
   const name = number.warmUp ? t('workout.warmUpName', { number: number.number }) : t('workout.setName', { number: number.number })
 
   // Last time, as a gym writes it: "80×8", "+10×6" (added weight), "12"
-  // (no weight), "1 min", "400 m"; a dash when none
-  const last = set.last
-  // The weight of last time's set, as text with its sign; '' when none
-  const lastWeight = last?.weight_kg === null || last?.weight_kg === undefined
-    ? ''
-    : `${loggingType === 'reps' ? '+' : ''}${weightText(last.weight_kg, unit, language)}×`
-  const lastText = last === null
-    ? '–'
-    : loggingType === 'weight_reps' || loggingType === 'reps'
-      ? `${lastWeight}${last.reps ?? '–'}`
-      : loggingType === 'time'
-        ? formatSeconds(last.duration_seconds ?? 0, language)
-        : formatDistance(last.distance_meters ?? 0, language)
+  // (no weight), "1 min", "400 m" (set-text.ts, shared with history); a
+  // dash when none
+  const lastText = set.last === null ? '–' : loggedSetText(set.last, loggingType, unit, language)
 
   return (
     <li className={cn('flex items-center gap-2 rounded-xl p-1 sm:gap-3', set.done && 'bg-primary/10')}>

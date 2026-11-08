@@ -83,7 +83,6 @@
     "today": "hoy",
     "statWorkouts": "Entrenos",
     "statSets": "Series",
-    "statVolume": "Volumen ({{unit}})",
     "activePlan": "Plan activo",
     "suggested": "Sugerido",
     "exercises_one": "{{count}} ejercicio",
@@ -101,7 +100,9 @@
     "freeTitle": "Entrenamiento libre",
     "freeText": "Sin plan: añade los ejercicios sobre la marcha.",
     "freeStart": "Empezar un entrenamiento libre",
-    "trained": "entrenamiento hecho"
+    "trained": "entrenamiento hecho",
+    "history": "Ver todos los entrenamientos",
+    "statMinutes": "Minutos"
   },
   "plans": {
     "new": "Nueva rutina",
@@ -315,7 +316,11 @@
   "progress": {
     "emptyTitle": "Tu progreso empieza con el primer entrenamiento",
     "emptyText": "Pesos, repeticiones y récords se convertirán en gráficos mientras entrenas.",
-    "start": "Empezar un entrenamiento"
+    "start": "Empezar un entrenamiento",
+    "latestTitle": "Últimos entrenamientos",
+    "allWorkouts": "Todos los entrenamientos",
+    "chartsTitle": "Gráficos y récords",
+    "chartsText": "Tu fuerza a lo largo del tiempo, ejercicio por ejercicio, y tus récords personales."
   },
   "profile": {
     "signOut": "Cerrar sesión",
@@ -421,6 +426,66 @@
     "emptyTitle": "Aún no hay ejercicios",
     "emptyText": "Añade los ejercicios que haces, uno o varios a la vez. Podrás añadir más después.",
     "addExercises": "Añadir ejercicios",
-    "cancel": "Cancelar el entrenamiento"
+    "cancel": "Cancelar el entrenamiento",
+    "deleted": "Entrenamiento eliminado."
+  },
+  "summary": {
+    "eyebrow": "Entrenamiento terminado",
+    "numbersTitle": "Los números",
+    "feelingTitle": "¿Cómo te has sentido?",
+    "feeling1": "Fatal",
+    "feeling2": "Duro",
+    "feeling3": "Normal",
+    "feeling4": "Bien",
+    "feeling5": "Genial",
+    "notesLabel": "Notas",
+    "notesPlaceholder": "Cómo fue, qué cambiar la próxima vez…",
+    "save": "Guardar",
+    "delete": "Eliminar el entrenamiento",
+    "deleteTitle": "¿Eliminar este entrenamiento?",
+    "deleteText": "Sus series desaparecerán del historial y del progreso. No se puede deshacer.",
+    "keep": "Conservarlo",
+    "deleteError": "No se pudo eliminar el entrenamiento. Revisa la conexión y vuelve a intentarlo."
+  },
+  "history": {
+    "statDuration": "Tiempo",
+    "statExercises": "Ejercicios",
+    "statSets": "Series",
+    "sets_one": "{{count}} serie",
+    "sets_other": "{{count}} series",
+    "skipped": "Saltado",
+    "title": "Historial",
+    "description": "Todos los entrenamientos terminados, del más reciente.",
+    "backToProgress": "Progreso",
+    "loading": "Cargando tus entrenamientos…",
+    "loadingOne": "Cargando el entrenamiento…",
+    "loadError": "No se pudieron cargar tus entrenamientos.",
+    "emptyTitle": "Aún no hay entrenamientos",
+    "emptyText": "Termina un entrenamiento y lo encontrarás aquí, con sus series y sus números.",
+    "emptyAction": "Ir al inicio",
+    "notFound": "Este entrenamiento no está aquí: quizá se eliminó.",
+    "back": "Historial",
+    "felt": "Sensación: {{feeling}} ({{value}}/5)",
+    "exercisesTitle": "Ejercicios",
+    "statReps": "Repeticiones",
+    "reps_one": "{{count}} repetición",
+    "reps_other": "{{count}} repeticiones",
+    "exerciseVolume": "Volumen de este ejercicio: {{amount}}"
+  },
+  "compare": {
+    "title": "Frente a la última vez:",
+    "better": "Mejor",
+    "same": "Igual",
+    "worse": "Menos",
+    "first": "Primera vez",
+    "lastTime": "la última vez {{set}}",
+    "countBetter_one": "{{count}} mejor",
+    "countBetter_other": "{{count}} mejor",
+    "countSame_one": "{{count}} igual",
+    "countSame_other": "{{count}} iguales",
+    "countWorse_one": "{{count}} menos",
+    "countWorse_other": "{{count}} menos",
+    "countFirst_one": "{{count}} nuevo",
+    "countFirst_other": "{{count}} nuevos"
   }
 }

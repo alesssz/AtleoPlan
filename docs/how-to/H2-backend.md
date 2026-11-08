@@ -68,6 +68,7 @@
   - [H2.14.6 Totals and "last time" in the database](#h2146-totals-and-last-time-in-the-database)
   - [H2.14.7 Look at Home](#h2147-look-at-home)
   - [H2.14.8 The tests, and proving they can fail](#h2148-the-tests-and-proving-they-can-fail)
+  - [H2.14.9 Later: last time before a workout (FEAT-4)](#h2149-later-last-time-before-a-workout-feat-4)
 
 ---
 
@@ -1546,6 +1547,76 @@ Three lines broken on purpose, then put back:
 |---|---|---|
 | `Expected response status code [401] but received 422` | The test signed in with `actingAs()`, then expected a visitor: `actingAs()` holds for every request after it in the same test | The visitor's request first |
 | (none: caught while writing) | `$this->lastDoneDayId()` inside the function given to `search()` would have run one query per day | Read once, before |
+
+### H2.14.9 Later: last time before a workout (FEAT-4)
+
+The summary and history compare each exercise of a workout with the last time it was done ([D1.4.10](../design/D1-ui.md#d1410-workout-summary), [D2.8](../design/D2-decisions.md#d28-workout-rules)): better, the same, lower. The summary does it on the phone, with the sets workout mode read at the start. History opens a workout days later, so `GET /api/sessions/{id}` sends them: `meta.last_sets`, the same shape as `GET /api/sessions/last-sets`, but counting only the workouts **before** the one shown. A workout's totals gained `reps_done`, the number the screens show instead of the volume.
+
+```json
+{ "data": { "id": "0192…", "day_name": "Day A – Push", "sets_done": 7, "reps_done": 56, "…": "…" },
+  "meta": { "last_sets": [ { "exercise_id": 12, "session_id": "0192…", "started_at": "2026-11-09T18:00:00.000000Z", "sets": [ … ] } ] } }
+```
+
+**The files:**
+
+| File | What changed |
+|---|---|
+| `app/Actions/Workouts/FindLastSets.php` (new) | The query of last time, moved out of the controller, with an optional `$before` |
+| `app/Http/Controllers/WorkoutSessionController.php` | `lastSets()` calls the action; `show()` adds `meta.last_sets` with the resource's `additional()` |
+| `app/Models/WorkoutSession.php` | `reps_done` in `withTotals()` |
+| `app/Http/Resources/WorkoutSessionResource.php` | `reps_done`, when the query added it |
+| `tests/Feature/Workouts/SessionReadApiTest.php` | One test of last time before a workout; `reps_done` checked in the list |
+
+**One query, two uses.** The query was a method of the controller. A second caller is the moment to move it into an action ([C2.5.3](../concepts/C2-backend.md#c253-actions-the-work-outside-the-controller)), a class with one method that both call. Created by hand (Laravel has no `make:action`): `app/Actions/Workouts/FindLastSets.php`. The controller receives it as a parameter, and Laravel's container builds it:
+
+```php
+public function lastSets(LastSetsRequest $request, FindLastSets $lastSets): JsonResponse
+{
+    return response()->json(['data' => $lastSets->for($request->user(), $request->exerciseIds())]);
+}
+```
+
+**"Before this workout"** is two conditions added only when a workout is given, with `when()`, which runs its function only when its first value is not null:
+
+```php
+->when($before, fn ($query, WorkoutSession $session) => $query
+    ->where('workout_sessions.started_at', '<', $session->started_at)
+    ->where('workout_sessions.id', '!=', $session->id))
+```
+
+Without `started_at <`, a workout opened weeks later would be compared with the newest workout, even one done after it.
+
+**Reps in the totals:** one more subquery beside the others ([H2.14.6](#h2146-totals-and-last-time-in-the-database)), on the same sets without warm-ups; `coalesce(…, 0)` gives 0, not `null`, for a workout of timed sets only:
+
+```php
+->selectSub(fn (QueryBuilder $q) => $sets($q)->selectRaw('coalesce(sum(logged_sets.reps), 0)'), 'reps_done')
+```
+
+**The test** builds the bench press ten days ago (5 reps), three days ago (8, 8), in a workout deleted two days ago (12), today (8, 8, 8) and tomorrow (10), and a squat done today for the first time. Today's `meta.last_sets` must hold the bench press of three days ago only: not the deleted one, not tomorrow's, nothing for the squat. Read again, the workout of three days ago must get the one of ten days ago.
+
+```sh
+make artisan c="test tests/Feature/Workouts"
+```
+
+```
+PASS  Tests\Feature\Workouts\HomeApiTest
+PASS  Tests\Feature\Workouts\SaveSessionApiTest
+PASS  Tests\Feature\Workouts\SessionReadApiTest
+PASS  Tests\Feature\Workouts\WorkoutTablesTest
+Tests:    41 passed (146 assertions)
+```
+
+**Proving it can fail:** the line `->where('workout_sessions.started_at', '<', $session->started_at)` removed, then put back:
+
+```
+FAILED  Tests\Feature\Workouts\SessionReadApiTest > it gives last time fo…
+Failed asserting that two strings are identical.
+➜  99▕         ->assertJsonPath('meta.last_sets.0.session_id', $before->id)
+```
+
+Without it, today's workout was compared with tomorrow's.
+
+**A first version, replaced.** This section first added `meta.previous`: the last workout of the same day of the plan, with its totals, to compare a workout's whole volume. The first look at the summary showed that a workout's volume says little, and nothing for exercises done with the body alone ([D2.8](../design/D2-decisions.md#d28-workout-rules)). Comparing exercise by exercise needs sets, not totals, and works for a free workout too, which has no day. `previousOfSameDay()` and its test were removed. Its test had met one error worth keeping: it expected 640 kg for a workout of one set of 5 × 80 kg, a number copied from another test; the code was right, 400 kg. A failing test is first a question: is the code wrong, or the test?
 
 ---
 

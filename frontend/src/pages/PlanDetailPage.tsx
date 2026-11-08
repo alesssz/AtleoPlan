@@ -9,8 +9,8 @@
  *
  * Each day has **Start this day**, which starts workout mode
  * (docs/design/D1-ui.md D1.4.9; StartDayButton below). A workout in progress
- * is shown at the top with Resume; after Done, the workout screen comes back
- * here and says whether the workout was saved.
+ * is shown at the top with Resume. After Finish, the workout's summary
+ * opens, then Home (src/pages/SummaryPage.tsx).
  *
  * Not here yet: Share and Duplicate (phase 2).
  *
@@ -30,7 +30,6 @@ import { PlanDayView } from '@/components/plans/PlanDayView'
 import { ResumeBanner } from '@/components/workout/ResumeBanner'
 import { loadActiveSession } from '@/components/workout/session-storage'
 import { FALLBACK_REST_SECONDS, useStartWorkout } from '@/components/workout/useStartWorkout'
-import type { WorkoutEndState } from '@/components/workout/WorkoutScreen'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,9 +101,7 @@ function PlanDetail({ plan }: PlanDetailProps) {
   // What the editor passed when it opened this page after a save; null when
   // the page was opened any other way. useLocation(): the current address,
   // with the `state` given to navigate()
-  // The navigation's state: after a save of the editor, or after Done in
-  // workout mode; null when the page was opened any other way
-  const state = useLocation().state as (PlanSavedState & Partial<WorkoutEndState>) | null
+  const state = useLocation().state as PlanSavedState | null
   // The workout in progress on this phone, if any, read once
   const [active] = useState(loadActiveSession)
 
@@ -136,11 +133,6 @@ function PlanDetail({ plan }: PlanDetailProps) {
       <div className="flex flex-col gap-6">
         {/* Saved over a version changed elsewhere: the last change won (D3.5.7) */}
         {state?.changedElsewhere && <FormBanner variant="error">{t('plans.detail.changedElsewhere')}</FormBanner>}
-
-        {/* After Done in workout mode: saved, waiting for the network, or refused */}
-        {state?.workout === 'saved' && <FormBanner variant="success">{t('workout.saved')}</FormBanner>}
-        {state?.workout === 'queued' && <FormBanner variant="success">{t('workout.queued')}</FormBanner>}
-        {state?.workout === 'refused' && <FormBanner variant="error">{t('workout.refused')}</FormBanner>}
 
         {/* A workout left in progress on this phone, of any plan: Resume */}
         {active && <ResumeBanner session={active} />}

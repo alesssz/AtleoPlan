@@ -80,6 +80,14 @@
   - [H3.16.4 The errors met](#h3164-the-errors-met)
   - [H3.16.5 The tests, proving they can fail, and the build](#h3165-the-tests-proving-they-can-fail-and-the-build)
   - [H3.16.6 Checking in the browser](#h3166-checking-in-the-browser)
+- [H3.17 The summary and history, as built](#h317-the-summary-and-history-as-built)
+  - [H3.17.1 The order of building](#h3171-the-order-of-building)
+  - [H3.17.2 A screen drawn from the phone](#h3172-a-screen-drawn-from-the-phone)
+  - [H3.17.3 The errors met](#h3173-the-errors-met)
+  - [H3.17.4 The tests, proving they can fail, and the build](#h3174-the-tests-proving-they-can-fail-and-the-build)
+  - [H3.17.5 Checking in the browser](#h3175-checking-in-the-browser)
+  - [H3.17.6 Second pass: no total volume](#h3176-second-pass-no-total-volume)
+  - [H3.17.7 Third pass: the exercises folded, above Save](#h3177-third-pass-the-exercises-folded-above-save)
 
 ---
 
@@ -1599,7 +1607,7 @@ With `make start`, signed in, at http://localhost:5673/plans, open a plan with e
 - **Finishing:** on the last exercise, **Finish workout** stands where Next was. Tick every set: a box says **All sets done.** with the same button. **Finish** at the top, with sets left, says how many will not be saved; **Keep going** closes the question.
 - **Supersets:** on a plan with a superset, tick a set of its first exercise: the screen moves to the second with no rest; tick there: the rest starts and the screen goes back to the first.
 - **Pause:** ✕ goes back to the plan, with the banner "Workout in progress" and **Resume**; Start is disabled. **Resume** (or a reload of the workout's page): the sets ticked are still ticked, and the clock did not count the pause.
-- **Finish with no network:** DevTools → Network → **Offline**, then **Finish**, **Finish and save**: the plan's page says the workout will be sent when online, and `atleoplan.pendingSessions` holds it. Back **Online** (No throttling): the `online` event sends it; the Network tab shows `PUT /api/sessions/<id>` with 201, and the key disappears. In TablePlus ([H4](H4-database-tools.md)), the workout is in `workout_sessions`, its exercises in `session_exercises`, its sets in `logged_sets`.
+- **Finish with no network:** DevTools → Network → **Offline**, then **Finish**, **Finish and save**: the plan's page says the workout will be sent when online (since FEAT-4 the summary says it, [H3.17](#h317-the-summary-and-history-as-built)), and `atleoplan.pendingSessions` holds it. Back **Online** (No throttling): the `online` event sends it; the Network tab shows `PUT /api/sessions/<id>` with 201, and the key disappears. In TablePlus ([H4](H4-database-tools.md)), the workout is in `workout_sessions`, its exercises in `session_exercises`, its sets in `logged_sets`.
 - **On a phone** (where the screen staying on and the vibration can be seen): the phone must reach the computer's Vite server on the local network, which is not set up yet ([OPS-4](../project/backlog.md#ops-4-open-the-development-app-from-a-phone)). Until then, Chrome's device mode ([H3.8.1](#h381-phone-tablet-and-desktop-widths)) shows the layout; the wake lock and the vibration wait for the phone.
 
 ### H3.15.8 Second pass: what was not clear on screen
@@ -1898,7 +1906,7 @@ The third part of FEAT-3: Home shows the active plan with the suggested day and 
 | `src/components/workout/workout-session.ts` | `startFreeSession()`, `exerciseFrom()`, the action `addExercises` |
 | `src/components/workout/WorkoutScreen.tsx` | "Free workout" as title, the empty screen, Add exercises, Home marked stale at Finish |
 | `src/components/home/ActivePlanCard.tsx` (new), `week-summary.ts` (new) | The card; this week's numbers |
-| `src/components/home/WeekStrip.tsx`, `WeekStats.tsx` | The days trained; the real numbers, the volume in the user's unit |
+| `src/components/home/WeekStrip.tsx`, `WeekStats.tsx` | The days trained; the real numbers (the volume became minutes in FEAT-4, [H3.17.6](#h3176-second-pass-no-total-volume)) |
 | `src/lib/week.ts` | `isInWeek()` |
 | `src/lib/usePendingSessions.ts` | `homeKeys.all` instead of the written-out `['home']` |
 | `src/pages/HomePage.tsx`, `PlanDetailPage.tsx` | Home rebuilt; the plan's page using the shared hook and banner |
@@ -1990,7 +1998,7 @@ Received has type:  Null
 
 - **Dark text on a dark page, white buttons.** The preview's `index.html` lacked `class="dark"` on `<html>`, which the real `index.html` has (with its script that applies the saved theme before React starts). The colour tokens came out half dark, half light. A fault of the preview only; the real app was fine.
 - **The chosen chip did not look chosen.** It had `border-primary bg-primary/10`, but the outline button carries `dark:border-input dark:bg-input/30`: in the dark theme the `dark:` classes win over the plain ones for the same property. The chosen look now repeats itself with `dark:` (`dark:border-primary dark:bg-primary/15`).
-- **"9,640 kg" over two lines** in the volume's tile, a third of a phone's width. The unit moved to the label ("Volume (kg)"), the number stays whole on one line (`whitespace-nowrap`).
+- **"9,640 kg" over two lines** in the volume's tile, a third of a phone's width (since FEAT-4 the tile shows minutes, [H3.17.6](#h3176-second-pass-no-total-volume)). The unit moved to the label ("Volume (kg)"), the number stays whole on one line (`whitespace-nowrap`).
 
 The photos again at 375 px, 820 px and 1280 px: the chosen chip lime-bordered, the week's numbers on one line each, one lime button (Start; Resume when a workout is in progress, with Start disabled). The preview was deleted afterwards.
 
@@ -2059,9 +2067,294 @@ With `make start`, signed in, at http://localhost:5673:
 - **An active plan:** `make plans-demo` adds two plans and makes Push Pull Legs the active one; then Home: the card shows its first day as **Suggested** (nothing was done yet), its exercises and minutes. Tap another day's chip: the card shows that one, the badge goes. **Start** opens workout mode on that day.
 - **The suggestion moving on:** finish that workout (**Finish**, **Finish and save**), back to Home: the day after it is now **Suggested**, "Last time you did …" names the one just done, and today's circle in the week has a lime dot; the numbers count it. DevTools → Network shows `GET /api/home` read again after the save.
 - **A workout left open:** start one, ✕: Home shows **Workout in progress** with **Resume**; Start and Free workout are disabled, with the reason under Start.
-- **Free workout:** "Free workout" as the title, only **Add exercises** and **Cancel workout**. Add two exercises: the first opens, with last time's sets if they were done before. **Cancel workout** on an empty one goes back to Home and leaves nothing in `atleoplan.activeSession` (DevTools → Application → Local storage). Finished, a free workout comes back to Home, which says it was saved.
+- **Free workout:** "Free workout" as the title, only **Add exercises** and **Cancel workout**. Add two exercises: the first opens, with last time's sets if they were done before. **Cancel workout** on an empty one goes back to Home and leaves nothing in `atleoplan.activeSession` (DevTools → Application → Local storage). Finished, a free workout comes back to Home, which says it was saved (since FEAT-4, through its summary first: [H3.17](#h317-the-summary-and-history-as-built)).
 - **Without the network** (DevTools → Network → Offline): Free workout still starts. Start on a plan works when the plan was opened before (it is in the cache), else the card says the plan could not be loaded.
 - **The widths:** Chrome's device mode ([H3.8.1](#h381-phone-tablet-and-desktop-widths)) at 375 px (one column: banner, card, Free workout, week), 820 px, and a laptop (the card and the week side by side from 1024 px).
+
+## H3.17 The summary and history, as built
+
+FEAT-4: after Finish, **the summary** shows what was done, compares each exercise with last time, asks how it felt and takes notes; **history**, under Progress, lists every workout and opens each one with its sets. How it works is in [C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history); this section is the doing, with the real output. What it shows that the earlier screens do not: a screen drawn from data kept on the phone rather than from the server, sending the same workout twice on purpose, a redirect with `<Navigate>`, and grouping a paged list.
+
+| File | What it is |
+|---|---|
+| `src/api/sessions.ts` | `useSessions()`, `fetchSession()`, `useSession()`, `deleteSession()`, `useDeleteSession()`; the types `SessionDetail`, `SessionExercise`, `SessionWithLastSets`, `SessionPage`; new fields of `WorkoutSession` (`reps_done` among them) |
+| `src/pages/SummaryPage.tsx` (new) | The summary, at `/session/:id/summary` |
+| `src/pages/HistoryPage.tsx`, `HistoryDetailPage.tsx` (new) | History at `/progress/history`, a workout at `/progress/history/:id` |
+| `src/pages/ProgressPage.tsx` | The three latest workouts, All workouts, the "Coming soon" card for charts |
+| `src/components/history/` (new) | `totals.ts`, `compare.ts`, `feeling.ts`, `WorkoutStats`, `ComparisonSummary`, `FeelingPicker`, `SessionRow`, `SessionExercises` |
+| `src/components/workout/set-text.ts` (new) | `loggedSetText()`, taken out of `SetRow.tsx` to be shared |
+| `src/components/workout/session-storage.ts` | `FinishedWorkout`, `storeFinished()`, `loadFinished()`, `WorkoutOutcome` |
+| `src/components/workout/workout-session.ts` | `previous` on each exercise: last time's whole list of sets |
+| `src/components/home/week-summary.ts`, `WeekStats.tsx` | Minutes instead of volume |
+| `src/components/workout/WorkoutScreen.tsx` | Finish opens the summary |
+| `src/pages/HomePage.tsx`, `PlanDetailPage.tsx` | Home says what happened after the summary, and links to history; the plan's page no longer does |
+| `src/lib/format.ts` | `formatDuration()` |
+| `src/router.tsx` | Three routes |
+| `src/test/session-helpers.ts` (new) | Past workouts as the API sends them |
+| `src/i18n/locales/*.json` | 16 keys under `summary.*`, 23 under `history.*`, 14 under `compare.*`, 4 under `progress.*`, `workout.deleted`, `home.history`, `home.statMinutes` (`home.statVolume` removed) |
+| 7 test files, 23 new tests | `SummaryPage.test.tsx` (6), `HistoryPage.test.tsx` (7), `compare.test.ts` (6), `totals.test.ts` (2), `format.test.ts` (1), `HomePage.test.tsx` (1); two in `WorkoutPage.test.tsx` and two of Home's week changed |
+
+The backend gained two things, last time before a workout for history's comparison and the reps in a workout's totals: [H2.14.9](H2-backend.md#h2149-later-last-time-before-a-workout-feat-4). No package was added.
+
+### H3.17.1 The order of building
+
+1. **The backend first** ([H2.14.9](H2-backend.md#h2149-later-last-time-before-a-workout-feat-4)), with its test: the frontend then had a real answer to copy its types from.
+2. **`api/sessions.ts`:** the types of the list and of one workout, read from `WorkoutSessionResource` and `SessionExerciseResource`; the hooks, on the models of `useExercises()` (pages) and `usePlan()` (one).
+3. **`set-text.ts`,** by moving `weightText()` and the "Last" text out of `SetRow.tsx`. The workout page's tests passed unchanged: the move changed nothing on screen.
+4. **`session-storage.ts` and Finish:** the finished workout kept, the summary opened. The two tests of Finish were changed to expect the summary (H3.17.3).
+5. **`totals.ts`, `compare.ts`, `formatDuration()`** and their tests.
+6. **The components, the pages, the routes,** the translations, the pages' tests.
+7. **Photos** of the four screens with the temporary preview of [H3.15.10](#h31510-fourth-pass-looking-at-the-screen-for-real): the summary at 375 and 1280 px, history and Progress at 375 px, a workout at 1280 px.
+
+### H3.17.2 A screen drawn from the phone
+
+Every screen so far read the server, or worked on a copy of its data (the plan editor's draft). The summary must show right after the last set, maybe with no network, so it reads what Finish left on the phone:
+
+```tsx
+// WorkoutScreen.finish(), at the end
+storeFinished({ id: finished.id, input, outcome })
+void navigate(`/session/${finished.id}/summary`, { replace: true })
+
+// SummaryPage
+const [finished] = useState(loadFinished)          // read once
+if (finished === null || finished.id !== id) return <Navigate to={`/progress/history/${id}`} replace />
+```
+
+- **`<Navigate>`** is React Router's redirect as a component: drawing it changes the address. Here it handles the summary opened again after Save (the copy is gone), or on another phone: the workout's page in history shows the same workout, from the server.
+- **`replace`** on both: Back from the summary does not return to a workout that is over, and Back from history does not bounce to a summary that redirects again.
+- **Try it:** finish a workout, then DevTools → Application → Local storage: `atleoplan.finishedSession` holds it, with `"outcome": "saved"`. Save: the key is gone. Reload the summary's address: history's page of the same workout opens.
+
+**Sending the same workout twice, on purpose.** Save adds the feeling and the notes, which did not exist at Finish. There is no endpoint to change them alone, and none is needed: `PUT /api/sessions/{id}` replaces a whole workout ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)), so Save puts the body back in the queue with the two answers and sends the queue. In DevTools → Network, after Save: a second `PUT /api/sessions/<id>`, answered 200 (not 201: the workout was already there), its body with `"feeling": 4`.
+
+### H3.17.3 The errors met
+
+**Finish's tests, expected to fail.** Finish used to open the plan's page; after the change, the first run of the whole suite:
+
+```
+     × finishes early: says what will not be saved, sends the workout, opens the plan saying it is saved
+     × keeps a finished workout on the phone when the network is down
+ Test Files  1 failed | 23 passed (24)
+      Tests  2 failed | 179 passed (181)
+```
+
+Not a bug: the tests described the old behaviour. They now expect a stand-in for the summary (`{ path: 'session/:id/summary', element: <p>the summary</p> }`) and read the finished workout with `loadFinished()`. One of them no longer used the router it took from `renderRoutes()`, which `npx tsc -b` reported: `'router' is declared but its value is never read.`
+
+**A file exporting a function and a component.** `feelingName()` first lived in `FeelingPicker.tsx`, and was imported by the workout's page:
+
+```
+src/components/history/FeelingPicker.tsx
+  24:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+```
+
+While developing, Vite swaps a changed component in the open page without a reload (fast refresh), and can only do so for a file that exports components alone. The function moved to `feeling.ts`.
+
+**A button read as one word.** A feeling's button holds two `<span>`s, "4" and "Good". Screen readers, and Testing Library's `getByRole('radio', { name })`, join inline text without a space: "4Good". Each button has an `aria-label`, "4, Good".
+
+**"52 mins" in Chrome, "52 min" in the tests.** `formatDuration()` uses `Intl.NumberFormat`'s units, whose short English form for minutes depends on the browser's copy of the language data (ICU): Node, under the tests, writes "min", Chrome "mins". Both are correct English; the tests check the Italian and German forms and "1 hr 5 min", which agree.
+
+### H3.17.4 The tests, proving they can fail, and the build
+
+```sh
+npx vitest run src/pages/SummaryPage.test.tsx src/pages/HistoryPage.test.tsx src/components/history src/lib/format.test.ts src/pages/WorkoutPage.test.tsx src/pages/HomePage.test.tsx --reporter=verbose
+```
+
+The new and changed tests, among the older ones of those files:
+
+```
+✓ src/components/history/compare.test.ts > compareExercise > weight × reps: the best estimated one-rep max wins, warm-ups left out
+✓ src/components/history/compare.test.ts > compareExercise > reps: more added weight wins, then more reps; the body alone counts
+✓ src/components/history/compare.test.ts > compareExercise > a tie of the best sets is decided by the total reps
+✓ src/components/history/compare.test.ts > compareExercise > time and distance: the longest
+✓ src/components/history/compare.test.ts > compareExercise > says "first" when never done before, and nothing for an exercise skipped
+✓ src/components/history/compare.test.ts > the helpers > finds the best set, counts the verdicts, and adds an exercise's volume
+✓ src/components/history/totals.test.ts > inputTotals > counts the exercises done, the sets and the reps, the body alone included, warm-ups left out
+✓ src/components/history/totals.test.ts > sessionTotals > reads the backend's totals
+✓ src/lib/format.test.ts > formatDuration > writes minutes, or hours and minutes, in each language's short units
+✓ src/pages/SummaryPage.test.tsx > SummaryPage > shows the numbers and each exercise against last time, with no request
+✓ src/pages/SummaryPage.test.tsx > SummaryPage > saves the feeling and the notes with the workout, then opens Home
+✓ src/pages/SummaryPage.test.tsx > SummaryPage > sends nothing when there is nothing to add
+✓ src/pages/SummaryPage.test.tsx > SummaryPage > deletes a workout already on the server
+✓ src/pages/SummaryPage.test.tsx > SummaryPage > deletes a workout still waiting for the network: it leaves the queue, and never reaches the server
+✓ src/pages/SummaryPage.test.tsx > SummaryPage > opens the workout in history when it is not on this phone
+✓ src/pages/HistoryPage.test.tsx > HistoryPage > lists the workouts by month, each a link to its page, with Show more
+✓ src/pages/HistoryPage.test.tsx > HistoryPage > says so when there is no workout yet
+✓ src/pages/HistoryPage.test.tsx > HistoryDetailPage > shows a workout: its numbers, each exercise against last time, how it felt, the sets
+✓ src/pages/HistoryPage.test.tsx > HistoryDetailPage > deletes a workout, after a question, and goes back to history
+✓ src/pages/HistoryPage.test.tsx > HistoryDetailPage > says so for a workout that is not there
+✓ src/pages/HistoryPage.test.tsx > ProgressPage > shows the three latest workouts and the way to all of them; charts are coming
+✓ src/pages/HistoryPage.test.tsx > ProgressPage > leads to Home before the first workout
+✓ src/pages/HomePage.test.tsx > HomePage > says what happened to a workout after its summary
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > finishes early: says what will not be saved, sends the workout, opens its summary
+✓ src/pages/WorkoutPage.test.tsx > WorkoutPage > keeps a finished workout on the phone when the network is down
+```
+
+(The list above is the final one, after the second pass of H3.17.6.)
+
+- **A finished workout made the way Finish makes it:** the summary's tests start Day A with `startSession()`, tick sets with `workoutReducer()`, finish, build the body with `toSessionInput()` and keep it with `storeFinished()`. The page then meets exactly what workout mode leaves behind.
+- **One page of a list by its query string:** `fakeApi` matches the full key first, `'GET /api/sessions?status=finished&page=2&per_page=20'`, so the test gives page 1 and page 2 different answers and checks Show more.
+
+**Proving they can fail.** Two lines broken on purpose, then put back:
+
+| Line changed | Tests that failed |
+|---|---|
+| `inputTotals()` counting warm-ups too | the totals' test and the summary's numbers |
+| Delete keeping the summary open whenever the network fails, even for a workout still in the queue | `deletes a workout still waiting for the network: …` |
+
+```
+     × counts the exercises done, the sets and the volume, warm-ups and the body alone adding nothing
+     × shows the numbers worked out on the phone, and the comparison with last time
+     × deletes a workout still waiting for the network: it leaves the queue, and never reaches the server
+      Tests  3 failed | 5 passed (8)
+```
+
+(Run during the first pass, when the summary still showed the volume; the names are those tests' names at the time.)
+
+**The build:**
+
+```sh
+npm run build
+```
+
+```
+dist/assets/index-D9I666nz.css                              85.49 kB │ gzip:  14.63 kB
+dist/assets/index-BHdJlXT7.js                              962.19 kB │ gzip: 295.59 kB
+✓ built in 521ms
+```
+
+29 kB more than after Home ([C1.11](../concepts/C1-frontend.md#c111-known-limits)).
+
+### H3.17.5 Checking in the browser
+
+With `make start`, signed in, at http://localhost:5673, a plan active (`make plans-demo`):
+
+- **The summary:** start the suggested day on Home, tick a few sets, **Finish**, **Finish and save**. The summary shows the day's name, the time, the exercises with a set, the sets and reps without warm-ups. The first time, every exercise says "First time"; do the day again with one more rep on a set, and that exercise says **Better**, "80×9 · last time 80×8", counted at the top ("Against last time: 1 better · 2 same").
+- **Save:** choose a feeling, write a note, **Save**: Home opens with "Workout saved to your history.", and the week counts it.
+- **Offline:** DevTools → Network → **Offline** before Finish: the summary still shows its numbers and its comparison (from the sets read when the workout started), with "it will be sent as soon as you are online". Save, then back **Online**: the queue sends the workout with the answers.
+- **Delete:** finish another workout, **Delete workout** on the summary, confirm: Home says "Workout deleted.", and it is not in history.
+- **History:** Progress → the three latest, **All workouts** → the months; the Progress tab stays lit. Open a workout: its numbers, how it felt, the notes, each exercise against the last time before it, with "W1 40×10", "1 80×8", its own volume when it has weights, "Skipped" for an exercise not done. **Delete workout** goes back to history.
+- **The widths:** device mode at 375 px (the numbers two by two, the five feelings in one row) and a laptop (the numbers in one row).
+
+### H3.17.6 Second pass: no total volume
+
+Looking at the first summary: **"The volume in kg, is it the total? What sense does it make?"** It was the total, weight × reps of every set of every exercise, and it made little:
+
+- it adds unlike things: a kilogram of squat counts the same as a kilogram of curl, so "2,960 kg" says nothing about how the workout went;
+- **with calisthenics it was wrong:** a pull-up with the body alone has no weight, so it adds 0. A workout of pull-ups, dips and push-ups weighed 0 kg, and the comparison said "same volume as last time" after twice the reps.
+
+The decision ([D2.8](../design/D2-decisions.md#d28-workout-rules)): no total volume anywhere; **each exercise compared with itself**; reps and minutes as the totals.
+
+| Where | Before | Now |
+|---|---|---|
+| Summary and history, the fourth number | Volume (kg) | Reps, the body alone included |
+| The comparison | The whole workout's volume against the last time the same day was done | Each exercise against the last time it was done, in any plan: better, the same, lower, first time; counted at the top |
+| A row of history | time · sets · volume | time · sets · reps |
+| Home's week, the third number | Volume (kg) | Minutes |
+| Volume | Everywhere | Beside each exercise with weights only |
+
+**The steps:**
+
+1. **The rule, with no screen:** `compare.ts` and `compare.test.ts`. The table of C1.19.3 was written first, then one test per line of it, then the code: `npx vitest run src/components/history/compare.test.ts` → `Tests  6 passed (6)`.
+2. **Last time on the phone.** The summary must compare offline, so it cannot ask the server. Workout mode already reads last time's sets at Start, but keeps only the one in each set's place; `startSession()` and `exerciseFrom()` now keep the whole list on each exercise, `previous`, and Finish stores the whole workout with the body (`FinishedWorkout.session`).
+3. **Last time on the server,** for history: `meta.last_sets` instead of `meta.previous`, and `reps_done` in the totals ([H2.14.9](H2-backend.md#h2149-later-last-time-before-a-workout-feat-4)).
+4. **The screens:** `VolumeComparison` deleted; `ComparisonSummary` new; `SessionExercises` given the comparisons, used by the summary too, which turns its body into the API's shape (`finishedExercises()`), so both screens draw exercises with one component. `WorkoutStats`, `SessionRow`, `WeekStats` switched to reps and minutes.
+5. **Translations:** `compare.*` (the four verdicts, their counts in `_one`/`_other` forms, "last time {{set}}"), `history.statReps`, `history.reps_*`, `history.exerciseVolume`, `home.statMinutes`; the volume's keys removed. `locales.test.ts` checks that the four languages still have the same keys.
+
+**The tests that had to change, and why:** five failed after the switch, all describing the volume or `meta.previous`:
+
+```
+     × marks the days trained this week, with the week's numbers
+     × shows the numbers worked out on the phone, and the comparison with last time
+     × lists the workouts by month, each a link to its page, with Show more
+     × shows a workout: its numbers, the comparison, how it felt, every exercise with its sets
+     × deletes a workout, after a question, and goes back to history
+ Test Files  3 failed | 24 passed (27)
+      Tests  5 failed | 196 passed (201)
+```
+
+They now check minutes, reps, and the verdicts. Two of the new checks failed first, because of the tests, not of the code:
+
+- `getByText('Against last time:').nextSibling` was the space between the two `<span>`s, a text node of its own; the test reads the whole sentence from the parent instead (`parentElement`).
+- `getByText('Exercises')` found two elements in the summary, the tile's label and the list's heading; `{ selector: 'dt' }` picks the label.
+
+**What the photos showed:** at 375 px the comparison, on one line ("— Same · 70×10, last time 70×10"), wrapped half-way and started its second line with "·". It is now two lines at every width: the verdict with its arrow, then "70×10 · last time 70×10".
+
+**Proving it can fail:** two lines changed together, then put back: the estimated one-rep max replaced by the weight alone (`[weight]`), and `previous: last` removed from `startSession()`:
+
+```
+     × weight × reps: the best estimated one-rep max wins, warm-ups left out
+     × finds the best set, counts the verdicts, and adds an exercise's volume
+     × shows the numbers and each exercise against last time, with no request
+      Tests  3 failed | 11 passed (14)
+```
+
+The first two catch the rule (85×5 would beat 82.5×8 on weight alone); the third catches the summary losing last time.
+
+### H3.17.7 Third pass: the exercises folded, above Save
+
+"The list of exercises must be above Save and Delete… or better, an accordion to hide it, opened only if interested." After the second pass it sat at the bottom, under the buttons, open. It is now under the count ("Against last time: 2 better · 1 same"), closed, and slides open with a tap.
+
+**First version: HTML's own `<details>`.** One panel that opens and closes needs no state: the browser keeps it (the `open` attribute), handles the tap and the keyboard, and tells screen readers whether it is expanded. It worked, but opened at once, with no movement, and did not look like the app's other components. The question "the native one, or the React one with the installed components?" led to the second version.
+
+**Second version, the one kept: shadcn/ui's Collapsible.** The Accordion is for several panels, one open at a time; the Collapsible is its one-panel cousin. Both come from Radix, which the `radix-ui` package already holds:
+
+```sh
+cd frontend
+npx shadcn@latest add collapsible
+```
+
+```
+✔ Checking registry.
+✔ Created 1 file:
+  - src/components/ui/collapsible.tsx
+```
+
+No package was installed (`package.json` unchanged). The file was then given its comments, like every component in `ui/`, and one change of ours: the content **slides**. Radix measures the content's height into the CSS variable `--radix-collapsible-content-height`; tw-animate-css, already imported in `src/index.css`, has `animate-collapsible-down` and `animate-collapsible-up`, which go from 0 to that height and back:
+
+```tsx
+<CollapsiblePrimitive.CollapsibleContent
+  className={cn('overflow-hidden data-open:animate-collapsible-down data-closed:animate-collapsible-up', className)}
+  {...props}
+/>
+```
+
+`data-open:` and `data-closed:` are shadcn's variants for `data-state="open"` / `"closed"` (`shadcn/tailwind.css`); `overflow-hidden` hides the list while its height grows.
+
+**In the summary:**
+
+```tsx
+<Collapsible className="group rounded-2xl border bg-card/60">
+  <CollapsibleTrigger asChild>
+    <button type="button" className="flex min-h-12 w-full items-center justify-between …">
+      <span>Exercises{' '}<span>3</span></span>
+      <ChevronDown className="… transition-transform duration-200 group-has-data-open:rotate-180" />
+    </button>
+  </CollapsibleTrigger>
+  <CollapsibleContent><SessionExercises … /></CollapsibleContent>
+</Collapsible>
+```
+
+- **`asChild`** lends the trigger's behaviour (the tap, `aria-expanded`, `aria-controls`) to our own `<button>`, styled as a full-width row 48 px tall.
+- **The arrow turns** with `group-has-data-open:rotate-180`: the frame is the `group`, and `has-data-open` holds while something inside it has `data-state="open"`, here the trigger.
+- **History's page keeps the list open,** as a plain list: there the exercises are the content.
+
+**An error met, again:** the test looked for the button by its name and did not find it. Its name was "Exercises3": the title and the count are two pieces of text side by side, joined with no space, as the feeling buttons were ([H3.17.3](#h3173-the-errors-met)). The margin between them shows a space but is not one. A real space, `{' '}`, fixed it: "Exercises 3".
+
+**The test** checks that the list starts closed, absent from the page, and opens with a tap:
+
+```tsx
+const toggle = screen.getByRole('button', { name: 'Exercises 3' })
+expect(toggle).toHaveAttribute('aria-expanded', 'false')
+expect(screen.queryByText('80×8 · last time 80×6')).not.toBeInTheDocument()
+await userEvent.click(toggle)
+expect(toggle).toHaveAttribute('aria-expanded', 'true')
+expect(screen.getByText('80×8 · last time 80×6')).toBeInTheDocument()
+```
+
+```
+      Tests  6 passed (6)
+```
+
+The photos at 375 px: closed, the questions and Save are in the first screen of a phone; open, the three exercises come before the questions and the arrow points up. The slide itself is seen in the browser: Home → a workout → Finish → tap "Exercises".
 
 ---
 

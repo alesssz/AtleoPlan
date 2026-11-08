@@ -1,7 +1,7 @@
 /*
  * "This week" on Home (docs/design/D1-ui.md D1.4.2), worked out from the
  * recent workouts that GET /api/home sends: which days were trained, and
- * the week's three numbers. Plain TypeScript, no React, tested on its own
+ * the week's three numbers: workouts, sets, minutes. Plain TypeScript, no React, tested on its own
  * (week-summary.test.ts).
  *
  * The backend sends the finished workouts of the last 8 days, not "this
@@ -18,15 +18,15 @@ export interface WeekSummary {
   workouts: number
   /** Their sets, warm-ups excluded. */
   sets: number
-  /** Their volume, weight × reps, warm-ups excluded, in kilograms. */
-  volumeKg: number
+  /** The time trained, pauses left out, in whole minutes. */
+  minutes: number
   /** The days with at least one workout, at most one entry per day. */
   trainedDays: Date[]
 }
 
 /**
  * Sums up this week's workouts.
- * @param sessions the recent workouts, with their totals (sets_done, volume_kg)
+ * @param sessions the recent workouts, with their totals (sets_done) and duration
  * @param today the current moment, which decides the week
  */
 export function weekSummary(sessions: readonly WorkoutSession[], today: Date): WeekSummary {
@@ -42,8 +42,8 @@ export function weekSummary(sessions: readonly WorkoutSession[], today: Date): W
     workouts: thisWeek.length,
     // reduce(): adds up, starting from 0. `?? 0`: a total the answer lacks
     sets: thisWeek.reduce((sum, session) => sum + (session.sets_done ?? 0), 0),
-    // volume_kg is exact text ("640.000"); Number() reads it
-    volumeKg: thisWeek.reduce((sum, session) => sum + Number(session.volume_kg ?? 0), 0),
+    // The seconds added up, then rounded to the minute once
+    minutes: Math.round(thisWeek.reduce((sum, session) => sum + (session.duration_seconds ?? 0), 0) / 60),
     trainedDays,
   }
 }

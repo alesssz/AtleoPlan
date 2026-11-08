@@ -116,12 +116,17 @@ class WorkoutSession extends Model
     }
 
     /**
-     * Adds three totals to each session, worked out by the database, never
+     * Adds four totals to each session, worked out by the database, never
      * stored (docs/design/D3-data-model.md D3.8):
      *
      * - `exercises_done`: exercises with at least one set;
      * - `sets_done`: sets, warm-ups excluded;
-     * - `volume_kg`: weight × reps, warm-ups excluded, in kilograms.
+     * - `reps_done`: their reps, those done with the body alone included,
+     *   which is what the screens show (FEAT-4);
+     * - `volume_kg`: weight × reps, warm-ups excluded, in kilograms. Sent,
+     *   but no screen shows it any more as a workout's total: it adds up
+     *   unlike exercises, and counts nothing done with the body alone
+     *   (docs/design/D2-decisions.md D2.8).
      *
      * Each is a subquery in the SELECT: `(select sum(…) from logged_sets join
      * session_exercises … where session_exercises.workout_session_id =
@@ -151,6 +156,8 @@ class WorkoutSession extends Model
                 ->whereExists(fn (QueryBuilder $s) => $s->from('logged_sets')
                     ->whereColumn('logged_sets.session_exercise_id', 'session_exercises.id')), 'exercises_done')
             ->selectSub(fn (QueryBuilder $q) => $sets($q)->selectRaw('count(*)'), 'sets_done')
+            // coalesce(…, 0): a session with no reps (timed sets) has 0, not null
+            ->selectSub(fn (QueryBuilder $q) => $sets($q)->selectRaw('coalesce(sum(logged_sets.reps), 0)'), 'reps_done')
             // coalesce(…, 0): a session with no sets weighs 0, not null
             ->selectSub(fn (QueryBuilder $q) => $sets($q)->selectRaw('coalesce(sum(logged_sets.weight_kg * logged_sets.reps), 0)'), 'volume_kg');
     }
