@@ -96,6 +96,7 @@
   - [H3.18.3 Finish from the banner](#h3183-finish-from-the-banner)
   - [H3.18.4 Three broken links, and checking them all](#h3184-three-broken-links-and-checking-them-all)
   - [H3.18.5 The checks](#h3185-the-checks)
+- [H3.19 The logo, as built](#h319-the-logo-as-built)
 
 ---
 
@@ -2561,6 +2562,56 @@ With one of the three links put back on purpose, it answered `docs/design/D3-dat
 ```
 
 and `make check`, all green.
+
+## H3.19 The logo, as built
+
+The placeholder "A" on a lime tile became the chosen logo ([D1.5](../design/D1-ui.md#d15-design-system), "Brand"): a heavy italic A with a tick cut out of it. How a logo goes from proposals to the app, by hand.
+
+**The proposals.** A logo is a decision, not code: the proposals were drawn as plain SVG on a 64 × 64 grid, each in `currentColor`, in local HTML pages that show every idea as a dark and a lime tile, beside the wordmark on dark and on light, and at real sizes, 48 down to 16 px. Opened by double click, with no server and no account (claude.ai's artifacts need a sign-in). The last pages put the candidates in columns and the real situations in rows: a browser tab, a phone's home screen, the app's sidebar. Rendered and looked at before showing them: several needed redrawing (a kettlebell that read as a padlock, a tick lost in the A's legs, arms that seemed to hold the head).
+
+**Five rounds, and what each taught:**
+
+1. **Twelve ideas.** Two were later set aside for resembling existing brands: two rising chevrons (Strava's mark, in the same field) and an A cut out of a shield (Angular's). Checking a mark against known logos belongs with the trademark search of [OPS-2](../project/backlog.md#ops-2-check-that-the-atleoplan-name-is-free).
+2. **An athlete with arms raised,** whose legs drew an A, chosen and put in the app. At 16 px it read as a little man, not as an A.
+3. **Stronger A's for the athlete:** thicker legs and crossbar; arms out as the crossbar; a solid A, which read as the restroom's pictogram. None convinced.
+4. **The tick, made personal:** the tick as the crossbar, breaking out, italic, cut out of a solid A, solid and italic.
+5. **The solid italic A with the tick, its cut widened** (8 units instead of 6) so that it stays open at 16 and 24 px; at 9.5 the left foot came loose.
+
+**The files:**
+
+| File | What |
+|---|---|
+| `src/components/brand/Brand.tsx` | `BrandMark`: the lime tile and the A, the tick cut out, in the dark background colour |
+| `public/favicon.svg` | The browser tab: the same mark, lime on dark |
+| `docs/design/brand/mark-lime.svg`, `mark-dark.svg` | The drawings at 512 px, for anything else (the installed app's icon, a store, the README) |
+| `README.md` | The mark at the top |
+
+**A shape with a hole cut in it: a mask.** The A is one filled shape; the tick must be *missing* from it, showing the tile through. Painting the tick in the tile's colour would not do: the lime tile is a gradient, and the browser tab's tile is dark. An SVG **mask** cuts instead: inside it, white keeps and black removes, and what is drawn *through* it (here a plain rectangle of the mark's colour) shows only where the mask is white.
+
+```tsx
+<mask id={maskId} maskUnits="userSpaceOnUse" x="-10" y="0" width="84" height="64">
+  <g transform="translate(6 0) skewX(-12)">
+    <path d="M27 8 H37 L56 56 H45 L41 46 H23 L19 56 H8 Z" fill="white" />        {/* the A */}
+    <path d="M21.5 37 L29.5 45 L43.5 25.5" stroke="black" strokeWidth="8" … />  {/* the tick */}
+  </g>
+</mask>
+…
+<g transform="translate(10 10) scale(0.6875)">
+  <rect x="-10" width="84" height="64" fill="#0B0B0F" mask={`url(#${maskId})`} />
+</g>
+```
+
+- **`skewX(-12)`** slants everything 12 degrees forward, as italic letters; a slanted shape moves sideways, and `translate(6 0)` brings it back to the middle. The mask and the rectangle are wider than the grid (`x="-10"`, `width="84"`) because the slanted A reaches past its edges.
+- **`maskUnits="userSpaceOnUse"`:** the mask's area is given in the drawing's own coordinates, the 64 grid, rather than as fractions of the shape.
+- **`scale(0.6875)` and `translate(10 10)`** fit the 64 grid into the tile with a margin: 44 / 64 = 0.6875, and (64 − 44) / 2 = 10.
+- **`useId()`** gives each copy of the mark its own ids for the gradient and the mask: a page with the mark twice (the sidebar and the phone's bar) would otherwise have two masks with the same id.
+- **In JSX** the SVG attributes with a dash are written in camelCase (`strokeWidth`, `strokeLinecap`), as React asks; in the `.svg` files they keep their dash (`stroke-width`).
+
+**One mark, small sizes included.** The tab shows the same mark as the app. To compare icons at their real size, a small HTML page with `<img src="….svg" width="16">` beside `width="32"`, photographed as in [H3.15.10](#h31510-fourth-pass-looking-at-the-screen-for-real), is enough; enlarging an SVG with CSS does not show the pixels, since the browser redraws it sharp. That is how the tick's cut was chosen: 6, 8 and 9.5 units wide, side by side at 96, 48, 32, 24 and 16 px.
+
+**Checking it:** `npm run dev`, then the sidebar (36 px), the phone's top bar (28 px, DevTools' device mode), the sign-in page (40 px) and the tab. Browsers cache the tab's icon hard: if the old icon stays, a hard reload (Cmd+Shift+R) or a new tab shows the new one.
+
+**Not here yet:** the icons of the installed app (PNG at 192 and 512 px, and the Apple touch icon) come with the PWA (FEAT-3), drawn from `mark-lime.svg`; the admin panel keeps Filament's own look.
 
 ---
 

@@ -382,7 +382,7 @@ The look of a sports app, chosen over a minimal or a "glass" style: the lime is 
 - **Gradient borders.** The important cards have a 1 px border that is lime at the top-left and fades out (`border-glow`), with 24 px corners.
 - **Heavy type.** Titles are extra-bold or black, with tight letter spacing. Above each page title sits an **eyebrow**: one or two words in small lime capitals with wide spacing ("TRAINING", or today's date on Home). One word of Home's greeting is painted with a lime gradient (`text-gradient-primary`).
 - **Big numbers.** Counters are black-weight with same-width digits (`tabular-nums`).
-- **Brand.** A stylised "A" on a lime tile and the wordmark Atleo**Plan** (`components/brand/Brand.tsx`), until a real logo exists (open question in [D1.8](#d18-release-phases-and-open-questions)). The logo sits in the sidebar, or at the top of the page on phones.
+- **Brand.** The mark is a **heavy italic A with a tick cut out of it**, dark on a lime tile; beside it the wordmark Atleo**Plan**, "Plan" in lime (`components/brand/Brand.tsx`). The A is the name's initial, the tick the app's own gesture (a set done, one tap), the slant forward the movement; the weight matches the black, tight titles of the app. One mark everywhere, the browser tab included (`public/favicon.svg`, lime on dark); the tick's cut is wide enough to stay open at 16 px. The drawings at full size are in [`docs/design/brand/`](brand/). The logo sits in the sidebar, at the top of the page on phones, and above the sign-in forms. Chosen in November 2026 after five rounds of proposals: an athlete with arms raised was first picked, then left because, small, it read as a little man and not as an A; marks too close to existing brands were set aside (two rising chevrons, near Strava's; an A in a shield, near Angular's).
 - **Navigation.** The current tab sits in a lime "pill" (phones); the current sidebar link has a glowing lime bar on its left edge.
 - **Motion, short and optional.** Each page fades in while rising 8 px (300 ms); the server's "connected" dot pulses. Both are switched off with the device's reduced-motion setting ([D1.7](#d17-responsive-layout-and-accessibility)).
 - **Main actions** are 48 px tall, bold, and glow when enabled (`Button size="xl"`).
@@ -492,7 +492,7 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 
 **Open questions**
 
-- [ ] Logo and visual identity (the lime is a proposal)
+- [x] Logo and visual identity: a heavy italic A with a tick cut out of it, lime on near-black (D1.5, "Brand")
 - [ ] Show users a "machine translated" note on exercises not yet reviewed, or keep the flag for admins only?
 - [ ] Template plans: who writes the first ones, and how many?
 

@@ -1,6 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Placeholder icon until the logo exists (docs/design/D1-ui.md D1.8):
-       a lime "A" on the dark theme's background -->
+  <!-- The browser tab's icon (docs/design/D1-ui.md D1.5, "Brand"): the
+       logo's mark, a heavy italic A with a tick cut out of it, lime on the
+       dark theme's background. The same drawing as
+       src/components/brand/Brand.tsx and docs/design/brand/mark-dark.svg,
+       which explains the mask: one mark everywhere -->
+  <defs>
+    <mask id="cut" maskUnits="userSpaceOnUse" x="-10" y="0" width="84" height="64">
+      <g transform="translate(6 0) skewX(-12)">
+        <path d="M27 8 H37 L56 56 H45 L41 46 H23 L19 56 H8 Z" fill="white"/>
+        <path d="M21.5 37 L29.5 45 L43.5 25.5" fill="none" stroke="black" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </mask>
+  </defs>
   <rect width="64" height="64" rx="14" fill="#0B0B0F"/>
-  <path d="M32 12 L50 52 H41 L37.5 43 H26.5 L23 52 H14 Z M29.3 36 H34.7 L32 29 Z" fill="#C6F432"/>
+  <g transform="translate(10 10) scale(0.6875)">
+    <rect x="-10" width="84" height="64" fill="#C6F432" mask="url(#cut)"/>
+  </g>
 </svg>
