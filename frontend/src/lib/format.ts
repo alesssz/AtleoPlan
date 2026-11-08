@@ -87,3 +87,23 @@ export function formatDayParts(date: Date, language: string): { weekday: string,
     day: new Intl.DateTimeFormat(language, { day: 'numeric' }).format(date),
   }
 }
+
+/**
+ * A time trained, as people say it: "45 min", "1 h 5 min" (it), "1 hr 5 min"
+ * (en), "1 Std., 5 Min." (de), each language's own short units, from Intl.NumberFormat's `unit`
+ * style. Rounded to the minute; at least "1 min" for anything above zero.
+ * @param seconds the time, in seconds
+ * @param language a language code such as 'it'
+ */
+export function formatDuration(seconds: number, language: string): string {
+  // The minutes, rounded; 1 for a workout of a few seconds
+  const total = seconds > 0 ? Math.max(1, Math.round(seconds / 60)) : 0
+  const hours = Math.floor(total / 60)
+  const minutes = total % 60
+  // One number with its unit, short: "5 min", "1 h"
+  const part = (value: number, unit: 'hour' | 'minute') => formatNumber(value, language, { style: 'unit', unit, unitDisplay: 'short' })
+  if (hours === 0) return part(minutes, 'minute')
+  // Intl.ListFormat joins the parts as the language does; 'narrow' is the
+  // shortest: "1 h 5 min" in Italian, not "1 h e 5 min"
+  return minutes === 0 ? part(hours, 'hour') : new Intl.ListFormat(language, { style: 'narrow', type: 'unit' }).format([part(hours, 'hour'), part(minutes, 'minute')])
+}

@@ -19,11 +19,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *       "finished_at": "2026-11-09T18:02:00.000000Z",
  *       "duration_seconds": 3540, "feeling": 4, "notes": null,
  *       "updated_at": "…",
- *       "exercises_done": 5, "sets_done": 18, "volume_kg": "5240.000",
+ *       "exercises_done": 5, "sets_done": 18, "reps_done": 142, "volume_kg": "5240.000",
  *       "exercises": [ …SessionExerciseResource… ]
  *     }
  *
- * - The three totals are there when the query asked for them
+ * - The four totals are there when the query asked for them
  *   (WorkoutSession::withTotals()): worked out by the database, warm-ups
  *   excluded, never stored (docs/design/D3-data-model.md D3.8).
  * - `volume_kg` is text with three decimals, exact like every weight, and
@@ -58,6 +58,7 @@ class WorkoutSessionResource extends JsonResource
             // when the query added it with withTotals()
             'exercises_done' => $this->whenHas('exercises_done', fn () => (int) $this->exercises_done),
             'sets_done' => $this->whenHas('sets_done', fn () => (int) $this->sets_done),
+            'reps_done' => $this->whenHas('reps_done', fn () => (int) $this->reps_done),
             // Postgres gives the product of two numeric(7,3) with six
             // decimals ("5240.000000"): three are kept, as for every weight
             'volume_kg' => $this->whenHas('volume_kg', fn () => number_format((float) $this->volume_kg, 3, '.', '')),

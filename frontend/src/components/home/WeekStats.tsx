@@ -1,13 +1,15 @@
 /*
  * Three numbers of the current week on Home, under the week strip:
- * workouts done, sets logged and volume lifted (weight × reps), warm-up
- * sets excluded (docs/design/D2-decisions.md D2.8). Home works them out
- * from the recent workouts (week-summary.ts); the volume is shown in the
- * user's unit.
+ * workouts done, sets logged (warm-ups excluded, D2.8) and minutes trained.
+ * Home works them out from the recent workouts (week-summary.ts).
+ *
+ * Minutes, not volume (weight × reps): a week's volume adds up unlike
+ * exercises and counts nothing done with the body alone
+ * (src/components/history/compare.ts). Minutes, not "2 h 35 min": a
+ * single number fits a third of a phone's width.
  */
 import { useTranslation } from 'react-i18next'
-import { weightIn } from '@/components/plans/plan-format'
-import { formatNumber, type WeightUnit } from '@/lib/format'
+import { formatNumber } from '@/lib/format'
 
 /** Props of WeekStats: the week's totals. */
 interface WeekStatsProps {
@@ -15,17 +17,15 @@ interface WeekStatsProps {
   workouts?: number
   /** Sets logged this week, warm-ups excluded. */
   sets?: number
-  /** Volume this week in kg: the sum of reps × weight of every set. */
-  volumeKg?: number
-  /** The user's weight unit, for the volume; kg by default. */
-  unit?: WeightUnit
+  /** Minutes trained this week, pauses left out. */
+  minutes?: number
 }
 
 /**
  * Default values (`= 0`) apply when a prop is not passed: a week with no
  * workout shows zeros.
  */
-export function WeekStats({ workouts = 0, sets = 0, volumeKg = 0, unit = 'kg' }: WeekStatsProps) {
+export function WeekStats({ workouts = 0, sets = 0, minutes = 0 }: WeekStatsProps) {
   const { t, i18n } = useTranslation()
 
   // The three tiles as data: a label and the already-formatted value
@@ -33,10 +33,7 @@ export function WeekStats({ workouts = 0, sets = 0, volumeKg = 0, unit = 'kg' }:
   const stats = [
     { label: t('home.statWorkouts'), value: formatNumber(workouts, i18n.language) },
     { label: t('home.statSets'), value: formatNumber(sets, i18n.language) },
-    // In the user's unit, without decimals, the unit in the label: "12.480"
-    // under "Volume (kg)". With the unit beside it, a week's volume did
-    // not fit a third of a phone's width and went over two lines
-    { label: t('home.statVolume', { unit }), value: formatNumber(Math.round(weightIn(volumeKg, unit)), i18n.language) },
+    { label: t('home.statMinutes'), value: formatNumber(minutes, i18n.language) },
   ]
 
   return (

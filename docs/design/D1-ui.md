@@ -83,7 +83,7 @@ Five journeys cover the MVP; the third, the workout, is the one to get right fir
 2. One exercise at a time, with last time's values filled in.
 3. One tap completes a set; the rest timer starts.
 4. I can skip, swap or add an exercise on the fly.
-5. At the end, a summary: duration, volume, records broken.
+5. At the end, a summary: duration, sets and reps, each exercise better or not than last time, records broken.
 
 **1.2.4 I check my progress**
 
@@ -148,7 +148,7 @@ Admin (admins only, Filament)
 | `/session/:id` | Workout mode, full screen ([D1.4.9](#d149-workout-mode)) |
 | `/session/:id/summary` | Summary ([D1.4.10](#d1410-workout-summary)) |
 | `/progress`, `/progress/exercises/:id`, `/progress/records` | Progress ([D1.4.12](#d1412-progress)) |
-| `/history`, `/history/:sessionId` | History ([D1.4.11](#d1411-history)) |
+| `/progress/history`, `/progress/history/:sessionId` | History ([D1.4.11](#d1411-history)); under Progress, so its tab stays lit (first sketched as `/history`) |
 | `/profile`, `/settings` | Profile and settings ([D1.4.14](#d1414-profile-and-settings)) |
 | `/admin/*` | Admin panel, served by Laravel ([D1.4.15](#d1415-admin-panel-filament)) |
 
@@ -173,7 +173,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
   - The **suggested day** stands out: the day after the last one completed, in the plan's order, back to the first after the last ("Suggested: Day 2 · last time you did Day 1"). Number of exercises and estimated duration; a large **Start** button.
   - Under it, a chip for each day: one tap puts that day on the card, and Start starts it. The suggestion is only a suggestion: the choice is always the user's. (The first sketch had a chip start the day at once; one tap is too easy to make by mistake on a phone, and a workout started by mistake stays in progress until it is finished.)
 - **Session in progress** banner when a session was left open on this phone: Resume. Start and Free workout are disabled meanwhile, with the reason.
-- **This week:** a strip of 7 days with the days trained highlighted, and three numbers: workouts, sets, volume (warm-ups excluded).
+- **This week:** a strip of 7 days with the days trained highlighted, and three numbers: workouts, sets (warm-ups excluded), minutes trained. No volume ([D2.8](D2-decisions.md#d28-workout-rules)).
 - **Recent records:** the last 3 personal records.
 - **Free workout** shortcut (no plan): an empty workout, whose exercises are added on the way.
 - No active plan: the empty state of [D1.6](#d16-states-and-edge-cases).
@@ -276,16 +276,19 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 
 ### D1.4.10 Workout summary
 
-- Duration, exercises completed, total sets, total volume (in the user's unit), warm-up sets excluded.
+- Duration, exercises completed, total sets and reps, warm-up sets excluded. No total volume: it adds up unlike exercises and counts nothing done with the body alone ([D2.8](D2-decisions.md#d28-workout-rules)).
 - Records broken, highlighted.
-- Comparison with the last time the same day was done (+/− volume).
+- **Each exercise against the last time it was done:** better, the same, lower, or first time, with its best set beside last time's ("82,5×8 · last time 80×8"), and the count in one line ("2 better · 1 same"). The rule per way of logging is in [D2.8](D2-decisions.md#d28-workout-rules). An exercise with weights also shows its own volume. In the summary the list of exercises is folded under the count, closed at first, above the questions and Save: one tap slides it open.
 - How did it feel (1–5) and free notes.
 - **Save** and **Delete session**.
+- Works offline: its numbers come from the copy of the workout kept on the phone; only the comparison needs the server.
+- Built in FEAT-4 (`feat/history`): the four numbers (time, exercises, sets, reps), each exercise against last time, the feeling and the notes, Save and Delete, then Home ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)). Waiting: the records broken ([FEAT-5](../project/backlog.md#feat-5-new-records-during-a-workout)).
 
 ### D1.4.11 History
 
-- Sessions by date (or a monthly calendar): day, plan, duration, volume.
+- Sessions by date (or a monthly calendar): day, plan, duration, sets, reps.
 - **Session details**, editable: fix a wrong weight, add a forgotten set.
+- Built in FEAT-4 (`feat/history`): the list by month, 20 at a time; a workout's page with its numbers, the feeling and the notes, each exercise against the last time before it and its sets, Delete; Progress shows the three latest ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)). Waiting: editing a past workout ([FEAT-6](../project/backlog.md#feat-6-edit-a-past-workout)); the monthly calendar is not planned.
 
 ### D1.4.12 Progress
 
@@ -293,6 +296,7 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 - **By exercise:** pick an exercise → chart of the estimated one-rep max over time, best set, volume per session. Periods: 1 month / 3 months / 1 year / all.
 - **Records:** personal records per exercise (heaviest weight, estimated one-rep max, most reps at a given weight).
 - Phase 2: body weight and measurements, with a chart.
+- In the MVP, Progress holds history (D1.4.11): the three latest workouts and **All workouts**; the charts and records above come in phase 2, announced by a "Coming soon" card.
 
 The estimated one-rep max uses the Epley formula, weight × (1 + reps / 30), on normal, drop and to-failure sets ([D2.8](D2-decisions.md#d28-workout-rules)).
 

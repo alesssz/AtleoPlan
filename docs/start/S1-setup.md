@@ -46,10 +46,11 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - **Workouts, tables and API** (first part of FEAT-3): saving a workout sent by the phone, history with totals, the sets of last time, Home's data with the suggested day ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)). After pulling it: `make migrate`.
 - **Workout mode** (second part of FEAT-3): Start on a plan's day, sets ticked one tap each with last time's values, the rest timer with beep and vibration, supersets, the screen kept on; the workout kept on the phone and sent at Done, or as soon as the network returns ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)).
 - **Home** (third part of FEAT-3): the active plan with the suggested day and Start, a chip per day, Resume for a workout left open, a free workout with its exercises added on the way, this week's days and numbers ([C1.18](../concepts/C1-frontend.md#c118-home)).
+- **Summary and history** (FEAT-4): after Finish, the workout's numbers, the comparison with last time, how it felt and notes; history by month under Progress, each workout with its sets, deletable ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)).
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([S1.6](#s16-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
 
-**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the library's admin screen, where translations are reviewed, and photo uploads, the app working offline, history). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
+**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the library's admin screen, where translations are reviewed, and photo uploads, the app working offline). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 

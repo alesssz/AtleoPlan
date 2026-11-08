@@ -1,6 +1,7 @@
 /*
  * Workout mode (docs/design/D1-ui.md D1.4.9), used as a person would: a set
- * ticked, the rest timer, Next, pause with ✕, Finish sending the workout,
+ * ticked, the rest timer, Next, pause with ✕, Finish sending the workout and
+ * opening its summary,
  * early or from the last exercise, a workout kept on the phone when the
  * network is down, and a free workout, whose exercises are added on the way.
  */
@@ -8,7 +9,7 @@ import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { SessionInput } from '@/api/sessions'
-import { loadActiveSession, loadPending, storeActiveSession } from '@/components/workout/session-storage'
+import { loadActiveSession, loadFinished, loadPending, storeActiveSession } from '@/components/workout/session-storage'
 import { startFreeSession, startSession } from '@/components/workout/workout-session'
 import { fakeApi, renderRoutes, sentBody, signedInAs } from '@/test/auth-helpers'
 import { exercisePage, testExercise } from '@/test/exercise-helpers'
@@ -19,6 +20,7 @@ import { WorkoutPage } from './WorkoutPage'
 const routes = [
   { path: 'session/:id', element: <WorkoutPage /> },
   { path: 'plans/:id', element: <p>the plan page</p> },
+  { path: 'session/:id/summary', element: <p>the summary</p> },
   { path: '/', element: <p>home</p> },
 ]
 
@@ -113,7 +115,7 @@ describe('WorkoutPage', () => {
     expect(loadActiveSession()?.running_since).toBeNull()
   })
 
-  it('finishes early: says what will not be saved, sends the workout, opens the plan saying it is saved', async () => {
+  it('finishes early: says what will not be saved, sends the workout, opens its summary', async () => {
     const session = startDayA()
     const fake = fakeApi({ 'GET /api/user': signedInAs(), [`PUT /api/sessions/${session.id}`]: { status: 201, body: { data: { id: session.id } } } })
     const { router } = renderRoutes(routes, `/session/${session.id}`)
@@ -124,26 +126,28 @@ describe('WorkoutPage', () => {
     expect(dialog).toHaveTextContent('1 of 7 sets done, warm-ups excluded. The 6 sets not ticked will not be saved.')
     await userEvent.click(within(dialog).getByRole('button', { name: 'Finish and save' }))
 
-    expect(await screen.findByText('the plan page')).toBeInTheDocument()
-    expect(router.state.location.state).toEqual({ workout: 'saved' })
+    expect(await screen.findByText('the summary')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe(`/session/${session.id}/summary`)
     const body = sentBody(fake, `/api/sessions/${session.id}`) as SessionInput
     expect(body.finished_at).not.toBeNull()
     expect(body.exercises[0]?.sets).toHaveLength(1)
-    // Nothing left on the phone
+    // No workout in progress, nothing waiting; the finished one kept for
+    // the summary, saved
     expect(loadActiveSession()).toBeNull()
     expect(loadPending()).toEqual({})
+    expect(loadFinished()).toMatchObject({ id: session.id, outcome: 'saved' })
   })
 
   it('keeps a finished workout on the phone when the network is down', async () => {
     const session = startDayA()
     fakeApi({ 'GET /api/user': signedInAs(), [`PUT /api/sessions/${session.id}`]: 'network' })
-    const { router } = renderRoutes(routes, `/session/${session.id}`)
+    renderRoutes(routes, `/session/${session.id}`)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Finish' }))
     await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Finish and save' }))
 
-    expect(await screen.findByText('the plan page')).toBeInTheDocument()
-    expect(router.state.location.state).toEqual({ workout: 'queued' })
+    expect(await screen.findByText('the summary')).toBeInTheDocument()
+    expect(loadFinished()?.outcome).toBe('queued')
     expect(Object.keys(loadPending())).toEqual([session.id])
   })
 

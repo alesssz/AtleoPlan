@@ -2,8 +2,9 @@
  * Home (route `/`), docs/design/D1-ui.md D1.4.2: what to do today, in one
  * screen, from one request (GET /api/home, src/api/home.ts):
  * - a greeting with today's date;
- * - after a free workout, whether it was saved (the workout screen comes
- *   back here and says so through the navigation's state);
+ * - after a workout's summary, whether it was saved, is waiting for the
+ *   network, or was deleted (the summary says so through the navigation's
+ *   state);
  * - the workout left in progress on this phone, with Resume;
  * - the active plan's card: the suggested day, Start, the other days
  *   (ActivePlanCard); without an active plan, the empty state, whose
@@ -22,7 +23,6 @@ import { ClipboardList, Dumbbell, Plus, Zap } from 'lucide-react'
 import { useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router'
-import { useCurrentUser } from '@/api/auth'
 import { useHome } from '@/api/home'
 import { EmptyState } from '@/components/EmptyState'
 import { FormBanner } from '@/components/FormBanner'
@@ -35,8 +35,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ResumeBanner } from '@/components/workout/ResumeBanner'
 import { loadActiveSession } from '@/components/workout/session-storage'
 import { useStartWorkout } from '@/components/workout/useStartWorkout'
-import type { WorkoutEndState } from '@/components/workout/WorkoutScreen'
 import { formatLongDate } from '@/lib/format'
+import type { WorkoutEndState } from '@/pages/SummaryPage'
 
 /** The Home screen (route `/`). */
 export function HomePage() {
@@ -46,13 +46,11 @@ export function HomePage() {
   const { t, i18n } = useTranslation()
   // Everything Home shows, in one request
   const home = useHome()
-  // The signed-in user, for the unit of the week's volume
-  const { data: user } = useCurrentUser()
   // The shared steps that start a workout, and their state
   const start = useStartWorkout()
   // The workout in progress on this phone, if any, read once
   const [active] = useState(loadActiveSession)
-  // After Finish on a free workout: saved, queued or refused; null otherwise
+  // After a workout's summary: saved, queued, refused or deleted; undefined otherwise
   const ended = (useLocation().state as Partial<WorkoutEndState> | null)?.workout
   // This week: the days trained and the three numbers, by the device's clock.
   // `?? []`: no workouts while Home is loading or failed
@@ -81,10 +79,12 @@ export function HomePage() {
       </header>
 
       <div className="flex flex-col gap-6">
-        {/* After a free workout's Finish: saved, waiting for the network, or refused */}
+        {/* After a workout's summary: saved, waiting for the network,
+            refused, or deleted */}
         {ended === 'saved' && <FormBanner variant="success">{t('workout.saved')}</FormBanner>}
         {ended === 'queued' && <FormBanner variant="success">{t('workout.queued')}</FormBanner>}
         {ended === 'refused' && <FormBanner variant="error">{t('workout.refused')}</FormBanner>}
+        {ended === 'deleted' && <FormBanner variant="success">{t('workout.deleted')}</FormBanner>}
 
         {/* A workout left in progress on this phone: Resume */}
         {active && <ResumeBanner session={active} />}
@@ -172,9 +172,15 @@ export function HomePage() {
                 card when it is taller than its content (next to the plan
                 card), lg:pt-8 keeps a gap above them */}
             <div className="mt-8 lg:mt-auto lg:pt-8">
-              <WeekStats workouts={week.workouts} sets={week.sets} volumeKg={week.volumeKg} unit={user?.weight_unit ?? 'kg'} />
-              {/* A word of encouragement while the week is empty */}
+              <WeekStats workouts={week.workouts} sets={week.sets} minutes={week.minutes} />
+              {/* A word of encouragement while the week is empty; the way
+                  to every past workout once there is one */}
               {week.workouts === 0 && <p className="mt-4 text-sm text-muted-foreground">{t('home.weekEmpty')}</p>}
+              {week.workouts > 0 && (
+                <Link to="/progress/history" className="mt-4 inline-flex min-h-12 items-center text-sm font-semibold text-primary hover:underline">
+                  {t('home.history')}
+                </Link>
+              )}
             </div>
           </section>
         </div>

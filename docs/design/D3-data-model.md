@@ -1078,7 +1078,9 @@ These values are always worked out from the rows, so they can never disagree wit
 
 | Value | Worked out from | Rule |
 |---|---|---|
-| Volume, per session, exercise or muscle | `logged_sets` | weight × reps, warm-ups excluded ([D2.8](D2-decisions.md#d28-workout-rules)) |
+| Volume, per exercise or muscle | `logged_sets` | weight × reps, warm-ups excluded ([D2.8](D2-decisions.md#d28-workout-rules)); also per session in the API (`volume_kg`), though no screen shows it |
+| Reps and sets of a session | `logged_sets` | warm-ups excluded; reps include the body alone |
+| Better than last time | this session's `logged_sets` and those of the last session with the same exercise | the best set, by the rule of D2.8 |
 | Estimated one-rep max | `logged_sets` | Epley: weight × (1 + reps / 30), warm-ups excluded |
 | Personal records | `logged_sets`, per exercise | [D1.4.12](D1-ui.md#d1412-progress) |
 | Suggested day | The last finished session and `plan_days.position` | [D3.6.4](#d364-how-the-screens-use-these-tables) |
@@ -1178,7 +1180,7 @@ Ada taps **Set as active**, which makes `users.active_plan_id` `…a1`.
 | `…l2` | `…e1` | 1 | normal | 80.000 | 8 |
 | `…l3` | `…e1` | 2 | normal | 80.000 | 7 |
 
-**Ada finishes.** The phone fills `finished_at` and `duration_seconds`. The summary shows the volume, without the warm-up: 80 × 8 + 80 × 7 = **1200 kg**.
+**Ada finishes.** The phone fills `finished_at` and `duration_seconds`. The summary shows 2 sets and 15 reps, without the warm-up; the bench press, done for the first time, says "First time" with its best set, 80×8, and its own volume, 80 × 8 + 80 × 7 = **1200 kg**.
 
 **Outside the gym the signal returns.** The phone sends the session ([D3.6.5](#d365-sending-a-session-to-the-server)). The answer is lost in a tunnel, so the phone sends it again. The UUIDs already exist, so there are still three sets.
 
@@ -1192,7 +1194,7 @@ Ada taps **Set as active**, which makes `users.active_plan_id` `…a1`.
 | 1 | normal | 82.500 | 8 |
 | 2 | normal | 82.500 | 6 |
 
-The volume is 82.5 × 8 + 82.5 × 6 = **1155 kg**, a little less than Monday's. The best set's estimated one-rep max is 82.5 × (1 + 8 / 30) = **104.5 kg**, up from Monday's 101.3 kg. Neither number is stored ([D3.8](#d38-computed-never-stored)).
+The volume is 82.5 × 8 + 82.5 × 6 = **1155 kg**, a little less than Monday's. The best set's estimated one-rep max is 82.5 × (1 + 8 / 30) = **104.5 kg**, up from Monday's 101.3 kg, so the summary says the bench press went **better** than last time ([D2.8](D2-decisions.md#d28-workout-rules)): fewer kilograms in all, but a stronger best set. Neither number is stored ([D3.8](#d38-computed-never-stored)).
 
 **Friday: Ada changes the plan to 90 kg.** The item `…i1` keeps its UUID and its `plan_sets` are rewritten. The sessions are untouched: Monday still says 80 kg, because it reads `logged_sets`, not the plan.
 

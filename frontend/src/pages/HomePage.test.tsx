@@ -24,7 +24,7 @@ const routes = [
 /** A workout finished today at the current time, with its totals. */
 function today(changes: Partial<WorkoutSession> = {}): WorkoutSession {
   const now = new Date().toISOString()
-  return { id: 'w-1', plan_id: 'plan-ppl', day_name: 'Day A – Push', started_at: now, finished_at: now, sets_done: 8, volume_kg: '2560.000', ...changes }
+  return { id: 'w-1', plan_id: 'plan-ppl', day_name: 'Day A – Push', started_at: now, finished_at: now, duration_seconds: 2700, sets_done: 8, ...changes }
 }
 
 /**
@@ -129,18 +129,28 @@ describe('HomePage', () => {
   })
 
   it('marks the days trained this week, with the week\'s numbers', async () => {
-    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer({ recent_sessions: [today(), today({ id: 'w-2', sets_done: 4, volume_kg: '640.000' })] }) })
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer({ recent_sessions: [today(), today({ id: 'w-2', sets_done: 4, duration_seconds: 1500 })] }) })
     renderRoutes(routes, '/')
 
     const week = await screen.findByRole('region', { name: 'This week' })
     // Today: trained, said in words too
     expect(await within(week).findByText('workout done')).toBeInTheDocument()
-    // Two workouts, 12 sets, 3,200 kg. Each label (dt) comes before its
+    // Two workouts, 12 sets, 70 minutes. Each label (dt) comes before its
     // number (dd) in the page, though drawn under it
     expect(within(week).getByText('Workouts').nextSibling).toHaveTextContent('2')
     expect(within(week).getByText('Sets').nextSibling).toHaveTextContent('12')
-    expect(within(week).getByText('Volume (kg)').nextSibling).toHaveTextContent('3,200')
+    expect(within(week).getByText('Minutes').nextSibling).toHaveTextContent('70')
     expect(within(week).queryByText(/No workouts yet this week/)).not.toBeInTheDocument()
+  })
+
+  it('says what happened to a workout after its summary', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer() })
+    const { router } = renderRoutes(routes, '/')
+    await screen.findByRole('region', { name: 'Push Pull Legs' })
+
+    await router.navigate('/', { state: { workout: 'deleted' } })
+
+    expect(await screen.findByText('Workout deleted.')).toBeInTheDocument()
   })
 
   it('offers to try again when Home cannot be read', async () => {

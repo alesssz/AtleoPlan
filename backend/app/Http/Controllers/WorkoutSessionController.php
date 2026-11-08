@@ -2,21 +2,18 @@
 
 namespace App\Http\Controllers;
 
-// Imports: the action that saves, the three Form Requests, the resources, the
-// models, Gate, DB, and the answer types
+// Imports: the two actions, the three Form Requests, the resource, the
+// model, Gate, and the answer types
+use App\Actions\Workouts\FindLastSets;
 use App\Actions\Workouts\SaveWorkoutSession;
 use App\Http\Requests\LastSetsRequest;
 use App\Http\Requests\ListSessionsRequest;
 use App\Http\Requests\SaveSessionRequest;
-use App\Http\Resources\LoggedSetResource;
 use App\Http\Resources\WorkoutSessionResource;
-use App\Models\LoggedSet;
 use App\Models\WorkoutSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -68,19 +65,32 @@ class WorkoutSessionController extends Controller
     }
 
     /**
-     * GET /api/sessions/{session}: one whole workout, with its totals.
+     * GET /api/sessions/{session}: one whole workout, with its totals, and in
+     * `meta.last_sets` "last time" for each of its exercises: the sets of the
+     * last workout before it in which the exercise was done, in any plan
+     * (FindLastSets), for history's comparison exercise by exercise
+     * (docs/design/D1-ui.md D1.4.11):
+     *
+     *     { "data": { …the session… },
+     *       "meta": { "last_sets": [ { "exercise_id": 12, "session_id": "0192…", "started_at": "…", "sets": [ … ] } ] } }
      *
      * @param  WorkoutSession  $session  the session in the URL (a deleted one is a 404)
+     * @param  FindLastSets  $lastSets  finds last time
      * @return WorkoutSessionResource the session, its exercises and sets
      */
-    public function show(WorkoutSession $session): WorkoutSessionResource
+    public function show(WorkoutSession $session, FindLastSets $lastSets): WorkoutSessionResource
     {
         Gate::authorize('view', $session);
 
         // Read again with the totals, which only a query can add
-        $withTotals = WorkoutSession::query()->withTotals()->findOrFail($session->id);
+        $withTotals = WorkoutSession::query()->withTotals()->findOrFail($session->id)->load(self::TREE);
+        // The exercises of this workout, each once
+        $exerciseIds = $withTotals->sessionExercises->pluck('exercise_id')->unique()->values()->all();
 
-        return new WorkoutSessionResource($withTotals->load(self::TREE));
+        // additional(): keys added next to `data` in the answer, here `meta`,
+        // as the plans' PUT does for changed_elsewhere (C2.5.5)
+        return (new WorkoutSessionResource($withTotals))
+            ->additional(['meta' => ['last_sets' => $lastSets->for($session->user, $exerciseIds, $withTotals)]]);
     }
 
     /**
@@ -125,52 +135,17 @@ class WorkoutSessionController extends Controller
 
     /**
      * GET /api/sessions/last-sets?exercises=12,40: for each exercise, the sets
-     * of the last finished workout in which it was done, in any plan
-     * (docs/design/D3-data-model.md D3.6.4). Exercises never done are left
-     * out. An exercise skipped (no sets) does not count as done.
-     *
-     *     { "data": [
-     *         { "exercise_id": 12, "session_id": "0192…", "started_at": "…",
-     *           "sets": [ …LoggedSetResource… ] }
-     *     ] }
-     *
-     * Two queries, whatever the number of exercises. The first uses
-     * Postgres's `distinct on (exercise_id)`: of the rows sorted by exercise
-     * and then by date, newest first, it keeps the first row of each
-     * exercise, which is its latest.
+     * of the last finished workout in which it was done, in any plan, for
+     * workout mode's "Last" column (docs/design/D1-ui.md D1.4.9). Exercises
+     * never done are left out; an exercise skipped (no sets) does not count
+     * as done. The work, and the shape of the answer, are in FindLastSets.
      *
      * @param  LastSetsRequest  $request  the validated request
-     * @return JsonResponse the list
+     * @param  FindLastSets  $lastSets  finds last time
+     * @return JsonResponse the list, in `data`
      */
-    public function lastSets(LastSetsRequest $request): JsonResponse
+    public function lastSets(LastSetsRequest $request, FindLastSets $lastSets): JsonResponse
     {
-        // One row per exercise: its latest exercise-of-a-session, with that
-        // session's id and start
-        $latest = DB::table('session_exercises')
-            ->join('workout_sessions', 'workout_sessions.id', '=', 'session_exercises.workout_session_id')
-            ->selectRaw('distinct on (session_exercises.exercise_id) session_exercises.id, session_exercises.exercise_id, workout_sessions.id as session_id, workout_sessions.started_at')
-            ->where('workout_sessions.user_id', $request->user()->id)
-            ->whereNotNull('workout_sessions.finished_at')
-            // A query builder, not a model: SoftDeletes does not apply, so
-            // deleted sessions are left out by hand (D3.11)
-            ->whereNull('workout_sessions.deleted_at')
-            ->whereIn('session_exercises.exercise_id', $request->exerciseIds())
-            ->whereExists(fn ($sets) => $sets->from('logged_sets')->whereColumn('logged_sets.session_exercise_id', 'session_exercises.id'))
-            ->orderBy('session_exercises.exercise_id')
-            ->orderByDesc('workout_sessions.started_at')
-            ->orderBy('session_exercises.position')
-            ->get();
-
-        // The sets of those rows, grouped by their exercise of the session
-        $sets = LoggedSet::query()->whereIn('session_exercise_id', $latest->pluck('id'))->orderBy('position')->get()->groupBy('session_exercise_id');
-
-        return response()->json(['data' => $latest->map(fn ($row) => [
-            'exercise_id' => $row->exercise_id,
-            'session_id' => $row->session_id,
-            // A plain query gives the database's text: turned into ISO 8601
-            // like every date the API sends
-            'started_at' => Carbon::parse($row->started_at)->toJSON(),
-            'sets' => LoggedSetResource::collection($sets->get($row->id, collect())),
-        ])->values()]);
+        return response()->json(['data' => $lastSets->for($request->user(), $request->exerciseIds())]);
     }
 }

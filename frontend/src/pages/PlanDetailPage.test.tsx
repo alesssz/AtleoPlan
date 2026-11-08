@@ -184,16 +184,6 @@ describe('PlanDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Start this day' })).toBeDisabled()
   })
 
-  it('says a workout was saved when workout mode comes back', async () => {
-    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })
-    const { router } = renderRoutes(routes, '/plans/plan-ppl')
-    await screen.findByRole('heading', { level: 1 })
-
-    await router.navigate('/plans/plan-ppl', { state: { workout: 'queued' } })
-
-    expect(await screen.findByText('Workout saved on this phone: it will be sent as soon as you are online.')).toBeInTheDocument()
-  })
-
   it('says so for a plan that is not there, or not the user\'s', async () => {
     fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-gone': { status: 404, body: { message: 'Not found.' } } })
     renderRoutes(routes, '/plans/plan-gone')

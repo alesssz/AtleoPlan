@@ -6,7 +6,9 @@
  *   only pauses it (docs/design/D1-ui.md D1.4.9);
  * - **the workouts waiting to be sent**, by id: a finished workout goes
  *   there first, and leaves only when the backend has it
- *   (src/lib/pending-sessions.ts).
+ *   (src/lib/pending-sessions.ts);
+ * - **the workout just finished**, for its summary (FinishedWorkout below):
+ *   the summary is drawn from it, with no request, so it works offline too.
  *
  * Both in localStorage, like the plan editor's draft (draft-storage.ts,
  * docs/concepts/C1-frontend.md C1.16.4): a workout is a few kilobytes. Every
@@ -15,6 +17,31 @@
  */
 import type { SessionInput } from '@/api/sessions'
 import type { ActiveSession } from './workout-session'
+
+/**
+ * What happened to a finished workout when it was sent: on the server,
+ * waiting for the network, or refused (and kept on the phone).
+ */
+export type WorkoutOutcome = 'saved' | 'queued' | 'refused'
+
+/** The workout just finished, kept for its summary until Save or Delete. */
+export interface FinishedWorkout {
+  /** The workout's UUID, as in the summary's address. */
+  id: string
+  /**
+   * The workout itself, as it was at Finish: the exercises' names and
+   * logging types, and last time's sets (`previous`), which the body sent
+   * does not carry. The summary's list and comparison come from it.
+   */
+  session: ActiveSession
+  /** Its body, as sent: the summary's numbers come from it, and Save sends it again with the feeling and the notes. */
+  input: SessionInput
+  /** What happened when it was sent at Finish: saved, waiting for the network, refused. */
+  outcome: WorkoutOutcome
+}
+
+/** The key of the workout just finished. */
+const FINISHED_KEY = 'atleoplan.finishedSession'
 
 /** The key of the workout in progress. */
 const ACTIVE_KEY = 'atleoplan.activeSession'
@@ -89,4 +116,17 @@ export function removePending(id: string): void {
   // one, Object.fromEntries() makes an object again
   const others = Object.fromEntries(Object.entries(loadPending()).filter(([key]) => key !== id))
   write(PENDING_KEY, Object.keys(others).length === 0 ? null : others)
+}
+
+/** The workout just finished, waiting for its summary's Save or Delete, or null. */
+export function loadFinished(): FinishedWorkout | null {
+  return read<FinishedWorkout>(FINISHED_KEY)
+}
+
+/**
+ * Keeps the workout just finished, replacing the one before; null forgets it.
+ * @param finished the workout, its body and what happened to it, or null
+ */
+export function storeFinished(finished: FinishedWorkout | null): void {
+  write(FINISHED_KEY, finished)
 }

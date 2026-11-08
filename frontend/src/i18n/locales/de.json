@@ -83,7 +83,6 @@
     "today": "heute",
     "statWorkouts": "Trainings",
     "statSets": "Sätze",
-    "statVolume": "Volumen ({{unit}})",
     "activePlan": "Aktiver Plan",
     "suggested": "Vorgeschlagen",
     "exercises_one": "{{count}} Übung",
@@ -101,7 +100,9 @@
     "freeTitle": "Freies Training",
     "freeText": "Ohne Plan: Füge die Übungen unterwegs hinzu.",
     "freeStart": "Freies Training starten",
-    "trained": "Training erledigt"
+    "trained": "Training erledigt",
+    "history": "Alle Trainings ansehen",
+    "statMinutes": "Minuten"
   },
   "plans": {
     "new": "Neuer Plan",
@@ -315,7 +316,11 @@
   "progress": {
     "emptyTitle": "Dein Fortschritt beginnt mit dem ersten Training",
     "emptyText": "Gewichte, Wiederholungen und Rekorde werden beim Trainieren zu Diagrammen.",
-    "start": "Training starten"
+    "start": "Training starten",
+    "latestTitle": "Letzte Trainings",
+    "allWorkouts": "Alle Trainings",
+    "chartsTitle": "Diagramme und Rekorde",
+    "chartsText": "Deine Kraft im Zeitverlauf, Übung für Übung, und deine persönlichen Rekorde."
   },
   "profile": {
     "signOut": "Abmelden",
@@ -421,6 +426,66 @@
     "emptyTitle": "Noch keine Übungen",
     "emptyText": "Füge die Übungen hinzu, die du machst, eine oder mehrere auf einmal. Später kannst du weitere hinzufügen.",
     "addExercises": "Übungen hinzufügen",
-    "cancel": "Training abbrechen"
+    "cancel": "Training abbrechen",
+    "deleted": "Training gelöscht."
+  },
+  "summary": {
+    "eyebrow": "Training beendet",
+    "numbersTitle": "Die Zahlen",
+    "feelingTitle": "Wie hat es sich angefühlt?",
+    "feeling1": "Furchtbar",
+    "feeling2": "Hart",
+    "feeling3": "Okay",
+    "feeling4": "Gut",
+    "feeling5": "Super",
+    "notesLabel": "Notizen",
+    "notesPlaceholder": "Wie es lief, was du nächstes Mal änderst …",
+    "save": "Speichern",
+    "delete": "Training löschen",
+    "deleteTitle": "Dieses Training löschen?",
+    "deleteText": "Seine Sätze verschwinden aus dem Verlauf und den Fortschritten. Das kann nicht rückgängig gemacht werden.",
+    "keep": "Behalten",
+    "deleteError": "Das Training konnte nicht gelöscht werden. Prüfe die Verbindung und versuche es erneut."
+  },
+  "history": {
+    "statDuration": "Zeit",
+    "statExercises": "Übungen",
+    "statSets": "Sätze",
+    "sets_one": "{{count}} Satz",
+    "sets_other": "{{count}} Sätze",
+    "skipped": "Übersprungen",
+    "title": "Verlauf",
+    "description": "Alle beendeten Trainings, das neueste zuerst.",
+    "backToProgress": "Fortschritt",
+    "loading": "Deine Trainings werden geladen …",
+    "loadingOne": "Das Training wird geladen …",
+    "loadError": "Deine Trainings konnten nicht geladen werden.",
+    "emptyTitle": "Noch keine Trainings",
+    "emptyText": "Beende ein Training und du findest es hier, mit seinen Sätzen und Zahlen.",
+    "emptyAction": "Zur Startseite",
+    "notFound": "Dieses Training ist nicht hier: Vielleicht wurde es gelöscht.",
+    "back": "Verlauf",
+    "felt": "Gefühl: {{feeling}} ({{value}}/5)",
+    "exercisesTitle": "Übungen",
+    "statReps": "Wiederholungen",
+    "reps_one": "{{count}} Wiederholung",
+    "reps_other": "{{count}} Wiederholungen",
+    "exerciseVolume": "Volumen dieser Übung: {{amount}}"
+  },
+  "compare": {
+    "title": "Im Vergleich zum letzten Mal:",
+    "better": "Besser",
+    "same": "Gleich",
+    "worse": "Weniger",
+    "first": "Erstes Mal",
+    "lastTime": "letztes Mal {{set}}",
+    "countBetter_one": "{{count}} besser",
+    "countBetter_other": "{{count}} besser",
+    "countSame_one": "{{count}} gleich",
+    "countSame_other": "{{count}} gleich",
+    "countWorse_one": "{{count}} weniger",
+    "countWorse_other": "{{count}} weniger",
+    "countFirst_one": "{{count}} neu",
+    "countFirst_other": "{{count}} neu"
   }
 }

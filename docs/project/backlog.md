@@ -19,8 +19,9 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [UI-6 Workout mode: the big stepper and the exercise menu](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu)
 - [FEAT](#feat)
   - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
-  - [FEAT-4 Summary and history](#feat-4-summary-and-history)
   - [FEAT-5 New records during a workout](#feat-5-new-records-during-a-workout)
+  - [FEAT-6 Edit a past workout](#feat-6-edit-a-past-workout)
+  - [FEAT-7 An exercise's own history](#feat-7-an-exercises-own-history)
 - [BE](#be)
   - [BE-1 Exercise library: API and admin](#be-1-exercise-library-api-and-admin)
   - [BE-2 Manage users in the admin panel](#be-2-manage-users-in-the-admin-panel)
@@ -58,9 +59,8 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 
 1. The exercise library: its API, import, translation and screens are done; left are its admin screen, where translations are reviewed, and its media ([BE-1](#be-1-exercise-library-api-and-admin))
 2. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
-3. [FEAT-4](#feat-4-summary-and-history) summary and history
 
-The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout).
+The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
 
 ## OPS
 
@@ -149,29 +149,47 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Done:**
 - the three tables and the API: saving a whole workout sent by the phone, late and twice, listing and reading with totals, deleting, the sets of last time, and Home's data with the suggested day (`feat/workout-api`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints), [H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built));
-- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode), [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built)). Its refinements are in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end belongs to FEAT-4;
+- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode), [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built)). Its refinements are in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end came with FEAT-4 ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history));
 - Home: the active plan's card with the suggested day, Start and a chip per day, the banner with Resume, Free workout (with Add exercises in workout mode), the week strip and its numbers (`feat/home`, [C1.18](../concepts/C1-frontend.md#c118-home), [H3.16](../how-to/H3-frontend.md#h316-home-as-built)). The recent records wait for Progress (phase 2).
 
 **What is missing.** One part, on its own branch:
 - **Working offline** ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)): the PWA (vite-plugin-pwa), so the app opens with no network; the query cache kept in IndexedDB; the queue of workouts, today in `localStorage` ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)), moved to IndexedDB if it grows, and sent by the service worker in the background (Background Sync, where the browser has it); a notification when a rest ends with the app in the background.
 
-### FEAT-4 Summary and history
-
-**Priority:** medium · **Kind:** feature · **Found:** 2026-11-05
-
-**What is missing.** The summary at the end of a workout and the history of past sessions ([D1.4.10](../design/D1-ui.md#d1410-workout-summary), [D1.4.11](../design/D1-ui.md#d1411-history)). Workout mode's Done opens the plan's page for now ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)); the summary will take its place, with the feeling (1–5) and the notes, which the body already carries as `null`. Charts and records are phase 2.
-
 ### FEAT-5 New records during a workout
 
 **Priority:** low · **Kind:** feature · **Found:** 2026-11-07
 
-**What is missing.** [D1.4.9](../design/D1-ui.md#d149-workout-mode) asks for a **New record** badge on a set that beats a personal record, as soon as it is ticked. There are no records yet: they come with Progress ([D1.4.12](../design/D1-ui.md#d1412-progress), phase 2).
+**What is missing.** [D1.4.9](../design/D1-ui.md#d149-workout-mode) asks for a **New record** badge on a set that beats a personal record, as soon as it is ticked, and [D1.4.10](../design/D1-ui.md#d1410-workout-summary) for the records broken, highlighted in the summary ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)). There are no records yet: they come with Progress ([D1.4.12](../design/D1-ui.md#d1412-progress), phase 2).
 
 **Options.**
-- A) An endpoint with the user's best per exercise (heaviest weight, best estimated one-rep max, [D2.8](../design/D2-decisions.md#d28-workout-rules)), read at Start with `last-sets`; the comparison in the browser, so it works offline.
-- B) The badge only in the summary (FEAT-4), worked out by the backend when the workout arrives.
+- A) An endpoint with the user's best per exercise (heaviest weight, best estimated one-rep max, [D2.8](../design/D2-decisions.md#d28-workout-rules)), read at Start with `last-sets`; the comparison in the browser, so it works offline, during the workout and in the summary.
+- B) The records only in the summary and history, worked out by the backend (`meta` of `GET /api/sessions/{id}`, beside `meta.last_sets`).
 
-**Recommended.** A, after FEAT-4 and the records of Progress: the badge mid-workout is the motivating moment, and the comparison is a few lines once the bests are known.
+**Recommended.** A, with the records of Progress: the badge mid-workout is the motivating moment, and the comparison is a few lines once the bests are known; the summary then shows the same badges.
+
+### FEAT-6 Edit a past workout
+
+**Priority:** low · **Kind:** feature · **Found:** 2026-11-08
+
+**What is missing.** [D1.4.11](../design/D1-ui.md#d1411-history) asks for a past workout's page to be editable: fix a wrong weight, add a forgotten set, change the feeling or the notes. FEAT-4 shows it read-only ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)); the backend already takes a whole workout again with `PUT /api/sessions/{id}` ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)).
+
+**Options.**
+- A) An Edit button opening the workout in a form like workout mode's rows (`SetRow` without ✓ and the timer), turned back into the `PUT` body by a function the reverse of `toSessionInput()`; sent through the queue, so it works offline.
+- B) Each value editable in place on the workout's page, one request per change: no such endpoint exists, and a whole-workout `PUT` per field is wasteful.
+
+**Recommended.** A: one body, one request, the rules already tested by the backend.
+
+### FEAT-7 An exercise's own history
+
+**Priority:** low · **Kind:** feature · **Found:** 2026-11-08
+
+**What is missing.** [D1.4.4](../design/D1-ui.md#d144-exercise-details) gives an exercise's page a **My history** tab: the last sessions with that exercise, the best set, the estimated one-rep max. History (FEAT-4) lists whole workouts only.
+
+**Options.**
+- A) `GET /api/exercises/{id}/history`: the user's sets of that exercise, by workout, newest first, paged, with the best set and the estimated one-rep max ([D2.8](../design/D2-decisions.md#d28-workout-rules)) worked out by the database; the tab drawn with `SessionExercises` and `loggedSetText()`, each workout compared with the one before by `compareExercise()`.
+- B) Wait for Progress's "by exercise" chart (phase 2), which needs the same data, and build both together.
+
+**Recommended.** B, unless the tab is missed before phase 2: the data, the endpoint and the best-set rules are the same as the chart's.
 
 ## BE
 
