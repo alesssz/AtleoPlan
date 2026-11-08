@@ -1077,13 +1077,18 @@ dispatch({ type: 'adjustRest', seconds: 15 })                                   
 - **The clock counts the time trained without the pauses.** `accumulated_seconds` holds the seconds before the last pause, `running_since` the moment it started running again (null while paused): `elapsed = accumulated + (now − running_since)`. ✕ is a `pause`; opening the screen again a `resume`.
 - **Values are text, as typed,** like the editor's. A set can be ticked only when the values its exercise is logged with read as numbers (`canComplete()`): reps (with or without a weight), seconds or meters. ✓ is disabled otherwise, and the backend never receives a set it would refuse.
 - **The weight may stay empty.** On a weighted exercise, a set done with the body alone (lunges without dumbbells); on a bodyweight one (pull-ups, logged as `reps`), the column is **+kg**, the added weight, empty for the body alone. A weight that is typed must read as a number. `toSessionInput()` sends it for both, `null` when empty ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)).
-- **The one rule with some thought: ticking a set.**
+- **The one rule with some thought: ticking a set.** The screen **never moves by itself**: the set just ticked stays in sight, and the user goes on with the bottom bar. What depends on the exercise is the rest, and where the bar points:
 
-| The set's exercise is | ✓ does |
-|---|---|
-| on its own | the exercise stays on screen; the rest starts with its rest seconds |
-| in a superset, not its last | the screen moves to the next exercise of the superset; no rest |
-| the last of a superset | the rest starts, and the screen goes back to the superset's first exercise, for the next round |
+| The set's exercise is | ✓ does | The bottom bar offers |
+|---|---|---|
+| on its own | the rest starts with its rest seconds | Next (or Finish workout when it is time) |
+| in a superset, another exercise of the round with a set left | no rest | **Next: Lateral Raise**, that exercise, by name, with a lime border |
+| in a superset, the round's last | the rest starts | **Next: Lateral Raise**, the superset's first exercise with a set left, for the next round |
+| in a superset with nothing else left | the rest starts | Next, or Finish workout |
+
+  `supersetNext(session, index)` finds where to go: the next exercise of the round with a set not yet ticked; at the end of a round, the superset's first with a set left; `null` when there is none, or no superset. With `'round'` it looks only within this round, which is how the reducer decides whether the round is over and the rest starts. Exercises with nothing left are skipped: supersets often pair different numbers of sets (3 leg curls, 4 calf raises). Under the exercise's name, "Superset: Leg curl + Calf raise" says why Next names another exercise.
+
+  **Why not move by itself,** as D1.4.9 first had it: on the superset's last exercise, a tap on a set's ✓ replaced the whole screen with the first exercise, the set just ticked out of sight and the bottom bar changed; it looked broken ([H3.15.15](../how-to/H3-frontend.md#h31515-ninth-pass-supersets-with-uneven-sets), [H3.15.16](../how-to/H3-frontend.md#h31516-tenth-pass-the-screen-never-moves-by-itself)).
 
   A rest of 0 seconds starts no timer. `supersetOf(session, index)` finds the superset: the neighbours with the same `superset_group`, as the editor keeps them ([C1.16.2](#c1162-the-draft-and-its-reducer)).
 
@@ -1136,7 +1141,7 @@ The workout lives in `localStorage` (`session-storage.ts`), under three keys:
 **Finishing** has two buttons, opening the same confirmation (`FinishButton`), and only one of them is lime at a time:
 
 - **Finish** at the top, outlined, at any moment: to stop early;
-- **Finish workout** at the bottom, in place of Next when it is time: on the last exercise, or once every set is ticked. On a phone it spans the bar and Previous shrinks to its arrow, so it fits 360 px; from 640 px wide it has its own width, on the right, and Previous keeps its word (`flex-1 sm:flex-none`, `max-sm:sr-only`).
+- **Finish workout** at the bottom, in place of Next when it is time: on the last exercise, or once every set is ticked, unless the bar points to another exercise of a superset with sets left. On a phone it spans the bar and Previous shrinks to its arrow, so it fits 360 px; from 640 px wide it has its own width, on the right, and Previous keeps its word (`flex-1 sm:flex-none`, `max-sm:sr-only`).
 
 The confirmation counts the sets that count (`countSets()`, warm-ups excluded): "3 of 7 sets done, warm-ups excluded. The 4 sets not ticked will not be saved." The second sentence appears only when some are left. **Finish and save**, in `WorkoutScreen.finish()`, then runs in this order:
 

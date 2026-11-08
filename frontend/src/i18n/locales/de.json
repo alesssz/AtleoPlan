@@ -427,7 +427,9 @@
     "emptyText": "Füge die Übungen hinzu, die du machst, eine oder mehrere auf einmal. Später kannst du weitere hinzufügen.",
     "addExercises": "Übungen hinzufügen",
     "cancel": "Training abbrechen",
-    "deleted": "Training gelöscht."
+    "deleted": "Training gelöscht.",
+    "superset": "Supersatz: {{names}}",
+    "nextIn": "Weiter: {{name}}"
   },
   "summary": {
     "eyebrow": "Training beendet",

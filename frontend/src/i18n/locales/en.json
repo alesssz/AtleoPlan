@@ -427,7 +427,9 @@
     "emptyText": "Add the exercises you are doing, one or more at a time. You can add more later.",
     "addExercises": "Add exercises",
     "cancel": "Cancel workout",
-    "deleted": "Workout deleted."
+    "deleted": "Workout deleted.",
+    "superset": "Superset: {{names}}",
+    "nextIn": "Next: {{name}}"
   },
   "summary": {
     "eyebrow": "Workout finished",

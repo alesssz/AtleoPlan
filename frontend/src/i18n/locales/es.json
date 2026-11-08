@@ -427,7 +427,9 @@
     "emptyText": "Añade los ejercicios que haces, uno o varios a la vez. Podrás añadir más después.",
     "addExercises": "Añadir ejercicios",
     "cancel": "Cancelar el entrenamiento",
-    "deleted": "Entrenamiento eliminado."
+    "deleted": "Entrenamiento eliminado.",
+    "superset": "Superserie: {{names}}",
+    "nextIn": "Siguiente: {{name}}"
   },
   "summary": {
     "eyebrow": "Entrenamiento terminado",

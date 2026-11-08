@@ -334,6 +334,34 @@ export function supersetOf(session: ActiveSession, index: number): number[] {
   return indexes
 }
 
+/**
+ * Where to go from an exercise in a superset: the next exercise of the
+ * round with a set still to tick; at the end of a round, the superset's
+ * first exercise with a set left, for the next round. Null when the
+ * exercise is not in a superset, or nothing else in it is left to do. The
+ * screen's Next goes there (WorkoutScreen); the reducer starts the rest
+ * when the round is over.
+ *
+ * Only exercises with work left count: supersets often pair different
+ * numbers of sets (3 leg curls, 4 calf raises), and pointing to a finished
+ * exercise would show only green sets.
+ * @param session the workout
+ * @param index the exercise on screen
+ * @param scope 'round' to look only after this exercise, in this round;
+ *   'next' (the default) to go back to the start for the next round too
+ */
+export function supersetNext(session: ActiveSession, index: number, scope: 'round' | 'next' = 'next'): number | null {
+  const group = supersetOf(session, index)
+  if (group.length < 2) return null
+  // Whether an exercise still has a set to tick
+  const hasWork = (position: number) => session.exercises[position]?.sets.some(set => !set.done) ?? false
+  // This round: the exercises after this one, the first with work
+  const following = group.slice(group.indexOf(index) + 1).find(hasWork)
+  if (following !== undefined || scope === 'round') return following ?? null
+  // The next round: from the superset's first, any other with work
+  return group.find(position => position !== index && hasWork(position)) ?? null
+}
+
 /** How a set is called on screen. */
 export interface SetNumber {
   /** True for a warm-up, counted apart from the others. */
@@ -397,12 +425,12 @@ function stopClock(session: ActiveSession, now: string): void {
  * Like the plan editor's (plan-draft.ts), it copies first with
  * structuredClone() and changes the copy, so React sees a new object.
  *
- * The one rule with some thought in it is ticking a set:
- * - **On its own**, the exercise stays on screen and the rest timer starts,
- *   with the exercise's rest;
- * - **in a superset**, the screen moves to the next exercise of the
- *   superset with no rest; after the last one, the rest starts and the
- *   screen goes back to the first, for the next round (D1.4.9).
+ * The one rule with some thought in it is ticking a set. The screen never
+ * moves by itself; what changes is the rest:
+ * - **on its own**, the rest timer starts, with the exercise's rest;
+ * - **in a superset**, no rest while another exercise of the round has a
+ *   set left: the user goes straight to it with Next, which points there
+ *   (supersetNext); after the round's last, the rest starts (D1.4.9).
  * A rest of 0 seconds starts no timer.
  *
  * @param session the current workout
@@ -428,20 +456,20 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       if (!canComplete(set, exercise.exercise.logging_type)) break
       set.done = true
       set.completed_at = action.now
-      // The exercises of its superset (just itself when alone), and its place among them
-      const group = supersetOf(next, action.exercise)
-      const place = group.indexOf(action.exercise)
-      if (place < group.length - 1) {
-        // In a superset, not its last exercise: on to the next one
-        next.current = group[place + 1] ?? action.exercise
-        next.rest = null
-      }
-      else {
-        // On its own, or the superset's last: rest, then (superset) back to its first
-        next.current = group[0] ?? action.exercise
+      // The screen never moves by itself: the user goes on with Next, which
+      // in a superset points to its next exercise (supersetNext). Moving on
+      // its own, the screen left the set just ticked out of sight, and
+      // looked broken (docs/how-to/H3-frontend.md H3.15.16).
+      // The rest starts at the end of a round only: when no exercise after
+      // this one in its superset has a set left (always, on its own)
+      if (supersetNext(next, action.exercise, 'round') === null) {
         next.rest = exercise.rest_seconds > 0
           ? { ends_at: new Date(Date.parse(action.now) + exercise.rest_seconds * 1000).toISOString(), total: exercise.rest_seconds }
           : null
+      }
+      else {
+        // The round goes on, straight to the next exercise: no rest
+        next.rest = null
       }
       break
     }

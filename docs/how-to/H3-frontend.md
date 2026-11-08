@@ -73,6 +73,8 @@
   - [H3.15.12 Sixth pass: the app's margins and buttons](#h31512-sixth-pass-the-apps-margins-and-buttons)
   - [H3.15.13 Seventh pass: a button as wide as a laptop](#h31513-seventh-pass-a-button-as-wide-as-a-laptop)
   - [H3.15.14 Eighth pass: some breathing room](#h31514-eighth-pass-some-breathing-room)
+  - [H3.15.15 Ninth pass: supersets with uneven sets](#h31515-ninth-pass-supersets-with-uneven-sets)
+  - [H3.15.16 Tenth pass: the screen never moves by itself](#h31516-tenth-pass-the-screen-never-moves-by-itself)
 - [H3.16 Home, as built](#h316-home-as-built)
   - [H3.16.1 The order of building](#h3161-the-order-of-building)
   - [H3.16.2 One hook for two pages](#h3162-one-hook-for-two-pages)
@@ -1891,6 +1893,105 @@ Spacing now grows with the screen, with the `sm:` prefix of [H3.15.13](#h31513-s
 ```
 
 The page itself never scrolls; on a phone and a laptop a long exercise scrolls in the middle, the bars staying put, which is the trade for the room. The preview was deleted afterwards.
+
+### H3.15.15 Ninth pass: supersets with uneven sets
+
+Found while training (during FEAT-4): **"On the last exercise the ticks are strange: sometimes I tap the first one, and they all switch on."**
+
+**The cause.** Two of the demo plan's days (`make plans-demo`) end with a superset: Day A's lateral raises and pushdowns, Day C's leg curls (3 sets) and calf raises (4 sets). The rule of [C1.17.3](../concepts/C1-frontend.md#c1173-the-workout-and-its-reducer) said: after a set of the superset's last exercise, rest and go back to its first exercise, for the next round. So:
+
+- a tap on the calf raises' set 1 moved the screen to the leg curls, whose sets ticked earlier are green: it looked as if the tap had ticked a whole exercise;
+- after the leg curls' third and last set, the screen went to the calf raises and back to the leg curls even with nothing left to do there, and the calf raises' fourth set sent the screen back to leg curls all done.
+
+Nothing was ticked by mistake (the workout on the phone had the right sets); the screen moved where there was nothing to do, and said nothing about why.
+
+**First, a test that fails** (`workout-session.test.ts`): on the test plan's Day A, the rows (2 sets) and the pull-ups (1 set) are a superset. Round 1, rows then pull-ups, then round 2's rows: the screen must stay on the rows, since the pull-ups are done; then one more set of pull-ups, ticked, must stay on the pull-ups.
+
+```sh
+npx vitest run src/components/workout/workout-session.test.ts
+```
+
+```
+     × in a superset, never moves to an exercise with nothing left to do
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/components/workout/workout-session.test.ts:186:28
+      Tests  1 failed | 16 passed (17)
+```
+
+The screen went to exercise 2, the pull-ups, with nothing to do.
+
+**The fix,** in `workoutReducer`'s `toggleSet`: "next" and "first" count only exercises with a set still to tick (since H3.15.16 the screen no longer moves at all; the same rule chooses where Next points):
+
+```ts
+const hasWork = (index: number) => next.exercises[index]?.sets.some(candidate => !candidate.done) ?? false
+const following = group.slice(place + 1).find(hasWork)
+if (following !== undefined) {
+  next.current = following                        // the round goes on, no rest
+  next.rest = null
+}
+else {
+  next.current = group.find(hasWork) ?? action.exercise   // next round, or stay
+  next.rest = …                                   // the round is over: rest
+}
+```
+
+`slice(place + 1)` is the part of the superset after this exercise; `find()` gives the first that has work, or `undefined`. A superset whose exercises have different numbers of sets now ends a round early instead of showing a finished exercise, and when nothing is left the screen stays on the exercise just ticked.
+
+**Saying why the screen moves:** under the exercise's name, in lime, "Superset: " and the superset's exercises joined by " + " (`workout.superset`, "Superserie" in Italian, as on the plan's page), the names from `supersetOf()`. The page's test checks it on the pull-ups: `Superset: Bent Over Barbell Row + Pullups`.
+
+**Proving it can fail:** `group.find(hasWork)` put back to `group[0]`, the old rule:
+
+```
+     × in a superset, never moves to an exercise with nothing left to do
+      Tests  1 failed | 16 passed (17)
+```
+
+```
+ Test Files  27 passed (27)
+      Tests  202 passed (202)
+```
+
+**To check it in the browser:** Day C of Push Pull Legs, go to the leg curls, tick a set: the screen moves to the calf raises, "Superset: …" under the name. Tick there: rest, back to the leg curls. After the third round, the calf raises' fourth set keeps the screen on the calf raises.
+
+### H3.15.16 Tenth pass: the screen never moves by itself
+
+After H3.15.15: **"No, the last page still breaks."** H3.15.15 had stopped the jumps to an exercise with nothing left; the jump itself stayed.
+
+**Seen in the preview** ([H3.15.10](#h31510-fourth-pass-looking-at-the-screen-for-real)), with a copy of the demo plan's Day A (lateral raises and triceps pushdowns in a superset, last), and a few lines at the end of the preview's `main.tsx` that tap buttons by their `aria-label`, one every 400 ms, then write what is on screen:
+
+```
+clicked Exercise 5: Triceps Pushdown; clicked Tick: Set 1 || now on: Lateral Raise || Tick: Set 1=false, Tick: Set 2=false, Tick: Set 3=false
+```
+
+A tap on the pushdowns' first ✓ replaced the whole screen: the lateral raises, none ticked, the rest bar, and Next where Finish workout was. The set just ticked was out of sight. That is the rule D1.4.9 asked for ("the view moves to B by itself"), and on a phone it reads as the page breaking.
+
+**The choice** (asked, since it changes the design): the screen never moves by itself; in a superset the bottom bar names the exercise to go to, "Next: Lateral Raise", and one tap goes there. The rest still starts only at the end of a round.
+
+**The steps:**
+
+1. **The tests first** (`workout-session.test.ts`): the two superset tests now say that `current` does not change after a tick, that the rest starts only at the end of the round, and where `supersetNext()` points: to the pull-ups after the rows, back to the rows after the pull-ups, nowhere when the other exercise is done.
+2. **`supersetNext(session, index, scope)`** in `workout-session.ts`: the next exercise of the round with a set left; at the end of a round, the first with a set left; `null` otherwise. `'round'` stops at the end of the round.
+3. **The reducer** no longer sets `current` on a tick; it starts the rest when `supersetNext(next, index, 'round')` is `null`.
+4. **The bottom bar** (`WorkoutScreen`): when `supersetNext()` points somewhere, the right-hand button is "Next: <name>" (`workout.nextIn`), outlined with a lime border, across the bar on a phone, the name cut with "…" when long; Finish workout waits until the superset has nothing left.
+5. **The page's test** (`WorkoutPage.test.tsx`): on the pull-ups, the bar says "Next: Bent Over Barbell Row" instead of Finish workout; a tick leaves the pull-ups on screen, the set pressed, the rest started; the button opens the rows.
+
+```
+ Test Files  27 passed (27)
+      Tests  202 passed (202)
+```
+
+**The preview again,** the same taps, then a whole round:
+
+```
+clicked Exercise 5: Triceps Pushdown; clicked Tick: Set 1; clicked Next: Lateral Raise; clicked Tick: Set 1; clicked Next: Triceps Pushdown; clicked Tick: Set 2 || now on: Triceps Pushdown || Untick: Set 1=true, Untick: Set 2=true, Tick: Set 3=false
+```
+
+**To check it in the browser:** Day A of Push Pull Legs, the triceps pushdowns (the last exercise): tick set 1. The screen stays, the set lime, the rest running, and the bar says "Next: Lateral Raise". Tap it, tick there: no rest (the round goes on), "Next: Triceps Pushdown".
 
 ## H3.16 Home, as built
 

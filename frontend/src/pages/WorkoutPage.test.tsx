@@ -66,7 +66,7 @@ describe('WorkoutPage', () => {
     expect(screen.queryByRole('region', { name: 'Rest' })).not.toBeInTheDocument()
   })
 
-  it('goes to the next exercise, and to any one through its dot; the last offers to finish', async () => {
+  it('goes to the next exercise, and to any one through its dot; in a superset, Next names the other exercise', async () => {
     const session = startDayA()
     fakeApi({ 'GET /api/user': signedInAs() })
     renderRoutes(routes, `/session/${session.id}`)
@@ -76,13 +76,26 @@ describe('WorkoutPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Exercise 3: Pullups' }))
     expect(screen.getByRole('heading', { level: 2, name: 'Pullups' })).toBeInTheDocument()
+    // In a superset with the rows: said under its name
+    expect(screen.getByText('Superset: Bent Over Barbell Row + Pullups')).toBeInTheDocument()
     // A bodyweight exercise: reps, and an added weight that may stay empty
     expect(screen.getByText('+kg')).toBeInTheDocument()
     expect(screen.getByLabelText('Set 1, added weight, kg')).toHaveValue('')
-    // On the last exercise, Finish workout takes Next's place
-    expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Finish workout' }))
-    expect(await screen.findByRole('alertdialog', { name: 'Finish the workout?' })).toBeInTheDocument()
+
+    // The last exercise, but the rows have sets left: the bottom bar names
+    // them, instead of Finish workout
+    expect(screen.queryByRole('button', { name: 'Finish workout' })).not.toBeInTheDocument()
+    const toRows = screen.getByRole('button', { name: 'Next: Bent Over Barbell Row' })
+    // A set ticked: the screen stays on the pull-ups, the set in sight, and
+    // the round's rest starts
+    await userEvent.type(screen.getByLabelText('Set 1, Reps'), '10')
+    await userEvent.click(screen.getByRole('button', { name: 'Tick: Set 1' }))
+    expect(screen.getByRole('heading', { level: 2, name: 'Pullups' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('region', { name: 'Rest' })).toBeInTheDocument()
+    // The rows, with a tap
+    await userEvent.click(toRows)
+    expect(screen.getByRole('heading', { level: 2, name: 'Bent Over Barbell Row' })).toBeInTheDocument()
   })
 
   it('offers to finish at the bottom once every set is ticked, on any exercise', async () => {

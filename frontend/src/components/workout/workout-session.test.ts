@@ -8,7 +8,7 @@ import type { LastSets } from '@/api/sessions'
 import { testPlan } from '@/test/plan-helpers'
 import { clock } from './clock'
 import { testExercise } from '@/test/exercise-helpers'
-import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, startFreeSession, startSession, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
+import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, startFreeSession, startSession, supersetNext, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
 
 /** The moment the workout starts: 18:00 UTC. */
 const START = new Date('2026-11-09T18:00:00Z')
@@ -157,16 +157,44 @@ describe('workoutReducer', () => {
     expect(canComplete({ ...pullup, reps: '10', weight: '10' }, 'reps')).toBe(true)
   })
 
-  it('moves through a superset with no rest, then rests and goes back to its first exercise', () => {
+  it('in a superset, rests only at the end of a round, and never moves the screen by itself', () => {
     // The rows (1) and the pull-ups (2) are superset 1. The pull-ups' set
     // has no reps planned: one is typed in
     const afterRows = run(dayA(), { type: 'goTo', exercise: 1 }, { type: 'toggleSet', exercise: 1, set: 0, now: at(60) })
-    expect(afterRows.current).toBe(2)
+    // The round goes on, with the pull-ups: no rest, the screen stays on the
+    // rows, and the way on is the pull-ups
+    expect(afterRows.current).toBe(1)
     expect(afterRows.rest).toBeNull()
+    expect(supersetNext(afterRows, 1)).toBe(2)
 
-    const afterPullups = run(afterRows, { type: 'setField', exercise: 2, set: 0, field: 'reps', value: '10' }, { type: 'toggleSet', exercise: 2, set: 0, now: at(90) })
-    expect(afterPullups.current).toBe(1)
+    const afterPullups = run(afterRows, { type: 'goTo', exercise: 2 }, { type: 'setField', exercise: 2, set: 0, field: 'reps', value: '10' }, { type: 'toggleSet', exercise: 2, set: 0, now: at(90) })
+    // The round is over: rest; the way on is back to the rows, for round 2
+    expect(afterPullups.current).toBe(2)
     expect(afterPullups.rest?.total).toBe(90)
+    expect(supersetNext(afterPullups, 2)).toBe(1)
+  })
+
+  it('in a superset, never points to an exercise with nothing left to do', () => {
+    // Round 1 done, then round 2's rows: the pull-ups (one set) are done
+    const round2 = run(
+      dayA(),
+      { type: 'toggleSet', exercise: 1, set: 0, now: at(60) },
+      { type: 'setField', exercise: 2, set: 0, field: 'reps', value: '10' },
+      { type: 'toggleSet', exercise: 2, set: 0, now: at(90) },
+      { type: 'toggleSet', exercise: 1, set: 1, now: at(200) },
+    )
+    // The round ends at once, with its rest; nowhere left to go in the superset
+    expect(round2.rest?.total).toBe(90)
+    expect(supersetNext(round2, 1)).toBeNull()
+    expect(supersetNext(round2, 2)).toBeNull()
+
+    // One more set of pull-ups: the way on from the rows is the pull-ups,
+    // and from the pull-ups nowhere, the rows being done
+    const extra = run(round2, { type: 'addSet', exercise: 2 })
+    expect(supersetNext(extra, 1)).toBe(2)
+    expect(supersetNext(extra, 2)).toBeNull()
+    // An exercise on its own has no superset to point to
+    expect(supersetNext(extra, 0)).toBeNull()
   })
 
   it('moves the rest by ±15 seconds, and ends it', () => {

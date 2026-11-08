@@ -19,7 +19,7 @@
  * none and shows only that until the first is added.
  */
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Dumbbell, ListPlus, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Dumbbell, Link2, ListPlus, Plus, X } from 'lucide-react'
 import { useEffect, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -52,7 +52,7 @@ import { RestBar } from './RestBar'
 import { addPending, storeActiveSession, storeFinished, type WorkoutOutcome } from './session-storage'
 import { SetHeader, SetRow } from './SetRow'
 import { FALLBACK_REST_SECONDS } from './useStartWorkout'
-import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, toSessionInput, workoutReducer, type ActiveSession, type SetCount } from './workout-session'
+import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, supersetNext, supersetOf, toSessionInput, workoutReducer, type ActiveSession, type SetCount } from './workout-session'
 
 /** Props of WorkoutScreen. */
 interface WorkoutScreenProps {
@@ -120,6 +120,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const item = session.exercises[index]
   const total = session.exercises.length
   const cover = item?.exercise.photos[0]
+  // The exercises of its superset, in order; just itself when alone
+  const superset = supersetOf(session, index)
   // The on-screen numbers of its sets: W W 1 2 3, warm-ups counted apart
   const numbers = setNumbers(item?.sets ?? [])
   // The sets that count, done and in all, for the Finish dialog
@@ -129,7 +131,17 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   // Time to finish: the last exercise, or nothing left to tick. The bottom
   // bar then offers Finish workout instead of Next. Never with no exercise
   // at all: a free workout just started has nothing to finish
-  const finishTime = total > 0 && (index >= total - 1 || allSetsDone(session))
+  // In a superset, where to go on: its next exercise with a set left
+  // (supersetNext); null on an exercise on its own, or a superset done.
+  // The bottom bar then offers it, "Next: Lateral Raise": the screen never
+  // moves by itself after a tick (H3.15.16)
+  const supersetTarget = supersetNext(session, index)
+  // Its name, for the button
+  const supersetName = supersetTarget === null ? '' : (session.exercises[supersetTarget]?.exercise.name ?? '')
+  const finishTime = supersetTarget === null && total > 0 && (index >= total - 1 || allSetsDone(session))
+  // The right-hand button needs the bar's room: Finish workout, or the
+  // superset's next exercise with its name
+  const wide = finishTime || supersetTarget !== null
   // A free workout with no exercise yet: the screen shows only how to add one
   const empty = total === 0
   // The settings an added exercise needs
@@ -274,6 +286,14 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                     </p>
                   )}
                   {item.plan_item?.notes && <p className="mt-1 text-sm italic">{item.plan_item.notes}</p>}
+                  {/* In a superset: its exercises, in turn. It says why
+                      Next, at the bottom, names another exercise */}
+                  {superset.length > 1 && (
+                    <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-primary">
+                      <Link2 aria-hidden="true" className="size-4 shrink-0" />
+                      {t('workout.superset', { names: superset.map(position => session.exercises[position]?.exercise.name).join(' + ') })}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -339,21 +359,31 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
               Previous: on a phone, when Finish workout needs the room, an
               arrow alone: its word is hidden below 640 px only
               (max-sm:sr-only), and screen readers still hear it */}
-            <Button variant="outline" size="xl" className={cn('px-4', finishTime && 'max-sm:px-3.5')} disabled={index === 0} onClick={() => dispatch({ type: 'goTo', exercise: index - 1 })}>
+            <Button variant="outline" size="xl" className={cn('px-4', wide && 'max-sm:px-3.5')} disabled={index === 0} onClick={() => dispatch({ type: 'goTo', exercise: index - 1 })}>
               <ChevronLeft aria-hidden="true" />
-              <span className={cn(finishTime && 'max-sm:sr-only')}>{t('workout.previous')}</span>
+              <span className={cn(wide && 'max-sm:sr-only')}>{t('workout.previous')}</span>
             </Button>
-            {/* Next, or, when it is time, Finish workout: across the bar on a
-              phone (flex-1), its own width from 640 px (sm:flex-none), where
-              a button as wide as a laptop's window would be absurd */}
-            {finishTime
-              ? <FinishButton {...finishProps} label={t('workout.finishWorkout')} className="min-w-0 flex-1 sm:flex-none" />
-              : (
-                  <Button variant="outline" size="xl" className="px-4" onClick={() => dispatch({ type: 'goTo', exercise: index + 1 })}>
-                    {t('workout.next')}
+            {/* In a superset, its next exercise by name, with a lime border:
+                where the round goes on. Otherwise Next, or, when it is
+                time, Finish workout. The wide ones go across the bar on a
+                phone (flex-1), their own width from 640 px (sm:flex-none),
+                where a button as wide as a laptop's window would be absurd;
+                a long name is cut with "…" (truncate) */}
+            {supersetTarget !== null
+              ? (
+                  <Button variant="outline" size="xl" className="min-w-0 flex-1 border-primary/70 px-4 sm:flex-none" onClick={() => dispatch({ type: 'goTo', exercise: supersetTarget })}>
+                    <span className="truncate">{t('workout.nextIn', { name: supersetName })}</span>
                     <ChevronRight aria-hidden="true" />
                   </Button>
-                )}
+                )
+              : finishTime
+                ? <FinishButton {...finishProps} label={t('workout.finishWorkout')} className="min-w-0 flex-1 sm:flex-none" />
+                : (
+                    <Button variant="outline" size="xl" className="px-4" onClick={() => dispatch({ type: 'goTo', exercise: index + 1 })}>
+                      {t('workout.next')}
+                      <ChevronRight aria-hidden="true" />
+                    </Button>
+                  )}
           </div>
         </footer>
       )}
