@@ -150,7 +150,7 @@ So a session copies nothing from the future: it records what happened, and it su
 |---|---|
 | New columns on `users` | Done; `active_plan_id` in its own migration after `plans`, with FEAT-2 |
 | `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, the public exercises by the import of DATA-1, `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
-| `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of [FEAT-2](../project/backlog.md#feat-2-plans), with their API ([H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built)) |
+| `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of FEAT-2, with their API ([H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built)) |
 | `workout_sessions`, `session_exercises`, `logged_sets` | Done, in the first part of [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home), with their API ([H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built)) |
 
 ### D3.1.5 How to read the column tables

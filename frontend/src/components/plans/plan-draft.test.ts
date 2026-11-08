@@ -6,19 +6,7 @@
 import { describe, expect, it } from 'vitest'
 import { testExercise } from '@/test/exercise-helpers'
 import { testPlan } from '@/test/plan-helpers'
-import {
-  draftField,
-  draftFromPlan,
-  draftReducer,
-  emptyDraft,
-  newItem,
-  parseDecimal,
-  parseReps,
-  toPlanInput,
-  validateDraft,
-  type DraftAction,
-  type PlanDraft,
-} from './plan-draft'
+import { draftField, draftFromPlan, draftReducer, emptyDraft, newId, newItem, parseDecimal, parseReps, randomUuid, toPlanInput, validateDraft, type DraftAction, type PlanDraft } from './plan-draft'
 
 /** The test plan as a draft, for an English reader in kilograms. */
 function draft(): PlanDraft {
@@ -214,5 +202,33 @@ describe('draftReducer', () => {
     const exercise = testExercise()
 
     expect(newItem(exercise).id).not.toBe(newItem(exercise).id)
+  })
+})
+
+describe('newId', () => {
+  /** A version 4 UUID: 8-4-4-4-12 hexadecimal digits, a 4 at the start of the third group, 8, 9, a or b at the start of the fourth. */
+  const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+  it('builds a version 4 UUID by hand, different every time', () => {
+    const ids = Array.from({ length: 50 }, () => randomUuid())
+
+    for (const id of ids) expect(id).toMatch(UUID_V4)
+    // new Set(): the distinct values; 50 ids, 50 different
+    expect(new Set(ids).size).toBe(50)
+  })
+
+  it('still works where the browser gives no crypto.randomUUID (a page on plain http, not localhost)', () => {
+    // Remove the function, as a phone's browser does on http://192.168.…,
+    // and put it back afterwards whatever happens (finally), so the other
+    // tests keep it. defineProperty: crypto's own properties cannot be
+    // assigned with `=`
+    const original = crypto.randomUUID
+    Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true })
+    try {
+      expect(newId()).toMatch(UUID_V4)
+    }
+    finally {
+      Object.defineProperty(crypto, 'randomUUID', { value: original, configurable: true })
+    }
   })
 })

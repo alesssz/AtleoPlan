@@ -172,12 +172,12 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - **Active plan card** at the top. Only one plan is active at a time ([D2.8](D2-decisions.md#d28-workout-rules)).
   - The **suggested day** stands out: the day after the last one completed, in the plan's order, back to the first after the last ("Suggested: Day 2 · last time you did Day 1"). Number of exercises and estimated duration; a large **Start** button.
   - Under it, a chip for each day: one tap puts that day on the card, and Start starts it. The suggestion is only a suggestion: the choice is always the user's. (The first sketch had a chip start the day at once; one tap is too easy to make by mistake on a phone, and a workout started by mistake stays in progress until it is finished.)
-- **Session in progress** banner when a session was left open on this phone: Resume. Start and Free workout are disabled meanwhile, with the reason.
+- **Session in progress** banner when a session was left open on this phone: Resume or Finish (with the same question as in workout mode, then its summary). Start and Free workout are disabled meanwhile, with the reason.
 - **This week:** a strip of 7 days with the days trained highlighted, and three numbers: workouts, sets (warm-ups excluded), minutes trained. No volume ([D2.8](D2-decisions.md#d28-workout-rules)).
 - **Recent records:** the last 3 personal records.
 - **Free workout** shortcut (no plan): an empty workout, whose exercises are added on the way.
 - No active plan: the empty state of [D1.6](#d16-states-and-edge-cases).
-- Built in FEAT-3 (`feat/home`): the card with the suggested day, the day done last, the number of exercises and the estimated minutes, Start and the chips; the banner with Resume; Free workout; the week strip and its numbers ([C1.18](../concepts/C1-frontend.md#c118-home)). Waiting: the recent records, which come with Progress (phase 2); Finish from the banner (Resume, then Finish, does it).
+- Built in FEAT-3 (`feat/home`): the card with the suggested day, the day done last, the number of exercises and the estimated minutes, Start and the chips; the banner with Resume (and Finish, `fix/loose-ends`); Free workout; the week strip and its numbers ([C1.18](../concepts/C1-frontend.md#c118-home)). Waiting: the recent records, which come with Progress (phase 2).
 
 ### D1.4.3 Exercise library
 
@@ -210,7 +210,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - The active plan is always first.
 - **New plan**; a **Templates** section with public plans to duplicate.
 - Archived plans behind a filter of their own.
-- Built in FEAT-2, without what needs a later feature: "last used" waits for workout sessions (FEAT-3), Templates and the Shared badge for phase 2 ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
+- Built in FEAT-2, without what needs a later feature: Templates and the Shared badge for phase 2. "Last used" ("Used 3 days ago", from the plan's latest finished workout) came once workouts existed (`fix/loose-ends`) ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
 
 ### D1.4.7 Plan details
 

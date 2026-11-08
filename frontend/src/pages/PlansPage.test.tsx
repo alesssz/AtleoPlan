@@ -17,11 +17,14 @@ const routes = [
 ]
 
 describe('PlansPage', () => {
-  it('shows each plan as a card: name, goal, days, and the Active badge', async () => {
+  it('shows each plan as a card: name, goal, days, when it was last used, and the Active badge', async () => {
+    // Used yesterday at noon, by the device's clock: always "yesterday"
+    const now = new Date()
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 12).toISOString()
     fakeApi({
       'GET /api/plans': { status: 200, body: { data: [
-        testPlanSummary(),
-        testPlanSummary({ id: 'plan-fb', name: 'Full body', goal: null, is_active: false, days_count: 1 }),
+        testPlanSummary({ last_used_at: yesterday }),
+        testPlanSummary({ id: 'plan-fb', name: 'Full body', goal: null, is_active: false, days_count: 1, last_used_at: null }),
       ] } },
     })
     renderRoutes(routes, '/plans')
@@ -32,10 +35,12 @@ describe('PlansPage', () => {
     expect(within(active).getByText('Active')).toBeInTheDocument()
     expect(within(active).getByText('Hypertrophy')).toBeInTheDocument()
     expect(within(active).getByText('3 days')).toBeInTheDocument()
+    expect(within(active).getByText('Used yesterday')).toBeInTheDocument()
 
     const other = screen.getByRole('link', { name: /Full body/ })
     expect(within(other).queryByText('Active')).not.toBeInTheDocument()
     expect(within(other).getByText('1 day')).toBeInTheDocument()
+    expect(within(other).getByText('Never used yet')).toBeInTheDocument()
   })
 
   it('switches to the archived plans, in the address and in the request', async () => {

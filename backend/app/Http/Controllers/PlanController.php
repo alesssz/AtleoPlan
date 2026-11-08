@@ -66,10 +66,16 @@ class PlanController extends Controller
 
         // $user->plans(): only this user's plans, which is the rule of
         // PlanPolicy::view() written as a query. Two scopes of Plan, then
-        // withCount('days'), which adds a `days_count` column with a subquery
+        // withCount('days'), which adds a `days_count` column with a subquery,
+        // and withMax(), which adds `last_used_at` the same way: the start of
+        // the plan's latest finished workout ("last used", D1.4.6). The
+        // array form names the column ('… as last_used_at') and narrows the
+        // workouts with a function; deleted ones are left out by
+        // SoftDeletes, as in every query of the model
         $plans = $user->plans()
             ->archived($request->wantsArchived())
             ->withCount('days')
+            ->withMax(['workoutSessions as last_used_at' => fn ($sessions) => $sessions->whereNotNull('finished_at')], 'started_at')
             ->activeFirst($user->active_plan_id)
             ->get();
 

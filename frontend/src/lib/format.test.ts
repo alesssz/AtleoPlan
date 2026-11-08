@@ -11,7 +11,7 @@
  *   the two differ. toBe compares with ===, toEqual compares contents.
  */
 import { describe, expect, it } from 'vitest'
-import { formatDayParts, formatDuration, formatLongDate, formatNumber, formatWeight } from './format'
+import { formatDayParts, formatDaysAgo, formatDuration, formatLongDate, formatNumber, formatWeight } from './format'
 
 describe('formatWeight', () => {
   // it.each([...rows])(name, fn): the same test once per row; each row's
@@ -72,5 +72,19 @@ describe('formatDuration', () => {
     // A few seconds still read as a minute; nothing as zero
     expect(formatDuration(20, 'en')).toBe('1 min')
     expect(formatDuration(0, 'en')).toBe('0 min')
+  })
+})
+
+describe('formatDaysAgo', () => {
+  it('counts calendar days, in each language\'s words', () => {
+    // Sunday 8 November 2026, 08:00 (months count from 0: 10 is November)
+    const today = new Date(2026, 10, 8, 8, 0)
+
+    expect(formatDaysAgo(new Date(2026, 10, 8, 6, 0), today, 'en')).toBe('today')
+    // 23:00 the evening before: 9 hours, but yesterday
+    expect(formatDaysAgo(new Date(2026, 10, 7, 23, 0), today, 'en')).toBe('yesterday')
+    expect(formatDaysAgo(new Date(2026, 10, 5, 18, 0), today, 'en')).toBe('3 days ago')
+    expect(formatDaysAgo(new Date(2026, 10, 7, 18, 0), today, 'it')).toBe('ieri')
+    expect(formatDaysAgo(new Date(2026, 10, 5, 18, 0), today, 'it')).toBe('3 giorni fa')
   })
 })

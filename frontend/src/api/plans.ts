@@ -98,6 +98,11 @@ interface PlanFields {
 export interface PlanSummary extends PlanFields {
   /** How many days it has. */
   days_count: number
+  /**
+   * When its latest finished workout started, as ISO 8601 text; null when
+   * it was never used. Sent by the list (GET /api/plans) only.
+   */
+  last_used_at?: string | null
 }
 
 /** A whole plan, with its days, exercises and sets. */

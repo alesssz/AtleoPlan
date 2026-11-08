@@ -90,6 +90,12 @@
   - [H3.17.5 Checking in the browser](#h3175-checking-in-the-browser)
   - [H3.17.6 Second pass: no total volume](#h3176-second-pass-no-total-volume)
   - [H3.17.7 Third pass: the exercises folded, above Save](#h3177-third-pass-the-exercises-folded-above-save)
+- [H3.18 Loose ends, as built](#h318-loose-ends-as-built)
+  - [H3.18.1 Start without HTTPS: a UUID by hand](#h3181-start-without-https-a-uuid-by-hand)
+  - [H3.18.2 "Last used" on each plan](#h3182-last-used-on-each-plan)
+  - [H3.18.3 Finish from the banner](#h3183-finish-from-the-banner)
+  - [H3.18.4 Three broken links, and checking them all](#h3184-three-broken-links-and-checking-them-all)
+  - [H3.18.5 The checks](#h3185-the-checks)
 
 ---
 
@@ -2456,6 +2462,105 @@ expect(screen.getByText('80×8 · last time 80×6')).toBeInTheDocument()
 ```
 
 The photos at 375 px: closed, the questions and Save are in the first screen of a phone; open, the three exercises come before the questions and the arrow points up. The slide itself is seen in the browser: Home → a workout → Finish → tap "Exercises".
+
+## H3.18 Loose ends, as built
+
+Four small things found while listing what was left after FEAT-4, done together on `fix/loose-ends` ([P1.1](../project/P1-conventions.md#p11-git): several small points may share a branch). None was in the backlog.
+
+| File | What changed |
+|---|---|
+| `src/components/plans/plan-draft.ts` | `newId()` falls back to `randomUuid()`, a UUID built by hand |
+| `backend/app/Http/Controllers/PlanController.php`, `backend/app/Http/Resources/PlanResource.php` | The plan list's `last_used_at` |
+| `src/api/plans.ts`, `src/components/plans/PlanCard.tsx`, `src/lib/format.ts` | "Used 3 days ago" on each plan's card; `formatDaysAgo()` |
+| `src/components/workout/finish-workout.ts`, `FinishButton.tsx` (new) | Finishing, and its button, out of `WorkoutScreen.tsx` |
+| `src/components/workout/ResumeBanner.tsx` | Finish beside Resume |
+| `docs/design/D3-data-model.md`, `docs/how-to/H1-database.md`, `H2-backend.md` | Three links to a deleted backlog entry |
+| `src/i18n/locales/*.json` | `plans.lastUsed`, `plans.neverUsed` |
+
+### H3.18.1 Start without HTTPS: a UUID by hand
+
+**The problem, found by reading, before it bit.** Every row a phone creates gets a UUID from `newId()`, which called `crypto.randomUUID()`. Browsers give that function only to a **secure context**: a page on HTTPS, or on `localhost`. The development app opened from a phone at `http://192.168.1.20:5673` ([OPS-4](../project/backlog.md#ops-4-open-the-development-app-from-a-phone)) is neither: the function is missing, and Start would fail with `TypeError: crypto.randomUUID is not a function`. In DevTools' Console on any page opened by IP over http, `typeof crypto.randomUUID` answers `'undefined'`; on `localhost`, `'function'`.
+
+**The fix:** when the function is missing, the same kind of UUID, version 4, is built from `crypto.getRandomValues()`, which every page has:
+
+```ts
+export function newId(): string {
+  return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : randomUuid()
+}
+
+export function randomUuid(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16))   // 16 random bytes
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40                        // version 4
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80                        // the standard variant
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+```
+
+- **`&` and `|` on bits:** `& 0x0f` keeps a byte's last four bits and clears the first four; `| 0x40` then sets them to `0100`, the number 4. That is how a UUID says "I am version 4": the third group starts with `4`. The fourth group starts with `8`, `9`, `a` or `b`, the "variant" bits `10`.
+- **Why not `Math.random()`:** it is not meant to be unpredictable, and two phones could repeat a sequence; `getRandomValues()` is the browser's secure generator, the one `randomUUID()` uses itself.
+- **The backend accepts both:** it checks the format (`uuid`), not the version, and makes its own ids as UUIDv7 ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)).
+
+**The tests** (`plan-draft.test.ts`): 50 ids by hand, each matching the version 4 pattern, all different; and `newId()` with `crypto.randomUUID` taken away (`Object.defineProperty(crypto, 'randomUUID', { value: undefined })`, put back in a `finally`). **Proving it can fail:** with `newId()` back to `return crypto.randomUUID()`:
+
+```
+     × still works where the browser gives no crypto.randomUUID (a page on plain http, not localhost)
+TypeError: crypto.randomUUID is not a function
+```
+
+The Wake Lock API is held back on plain http in the same way; it simply does nothing there ([H3.15.3](#h3153-the-browsers-own-apis)). Seeing it on a phone needs HTTPS ([OPS-4](../project/backlog.md#ops-4-open-the-development-app-from-a-phone), [OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
+
+### H3.18.2 "Last used" on each plan
+
+D1.4.6 asked for it; FEAT-2 left it for when workouts existed. The backend adds the column in the list's query, as `days_count` ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints)):
+
+```php
+->withMax(['workoutSessions as last_used_at' => fn ($sessions) => $sessions->whereNotNull('finished_at')], 'started_at')
+```
+
+`withMax(relation, column)` adds a subquery, `(select max(started_at) from workout_sessions where …) as last_used_at`; the array form names it and narrows it to finished workouts. Deleted ones are left out by `SoftDeletes`. A subquery's result is the database's text, so the resource turns it into ISO 8601 with Carbon, and sends it only when the query added it (`whenHas()`).
+
+**The backend test** uses fixed dates (a test must give the same answer whatever day it runs: the first version used `now()->subDays(5)` and would have broken a few days later): finished on the 3rd and the 6th, a later one deleted, a later one in progress; the plan's `last_used_at` is the 6th, a plan never used gets `null`.
+
+```sh
+make artisan c="test --filter='says when each plan was last used'"
+```
+
+```
+✓ it says when each plan was last used: its latest finished workout,…
+Tests:    1 passed (3 assertions)
+```
+
+**On the card:** "Used 3 days ago", "Used yesterday", "Never used yet". `formatDaysAgo(date, today, language)` (`lib/format.ts`) counts **calendar days** in the device's time zone (a workout at 23:00 is "yesterday" at 08:00, though only 9 hours passed), and `Intl.RelativeTimeFormat(language, { numeric: 'auto' })` says them: "ieri", "3 giorni fa", "vor 3 Tagen", "hace 3 días". The page's test gives a plan used yesterday at noon, by the device's clock, so it reads "Used yesterday" any day.
+
+### H3.18.3 Finish from the banner
+
+The banner of a workout left open (Home, the plan's page) had only Resume; D1.4.2 asked for Finish too: a workout done but never finished, the app closed at the end. Finishing lived inside `WorkoutScreen`; two places needing it is the moment to share it:
+
+- `finish-workout.ts`, `finishWorkout(session, unit, queryClient)`: the steps of [C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send), unchanged, returning the workout's id;
+- `FinishButton.tsx`: the button and its question, moved out of `WorkoutScreen.tsx` as it was;
+- `ResumeBanner` shows Finish (outlined) beside Resume (lime), and opens the summary afterwards.
+
+A paused workout is already stopped: finishing it does not count the pause. Workout mode's ten tests passed unchanged after the move, which is what they were for. The new test (`HomePage.test.tsx`) stores a workout, taps Finish on Home's banner, confirms, and checks the `PUT`, the summary's address, and that the workout is no longer in progress but kept for the summary.
+
+### H3.18.4 Three broken links, and checking them all
+
+D3, H1 and H2 linked to `backlog.md#feat-2-plans`, an entry deleted when FEAT-2 was done (the backlog deletes finished points, [P1.1](../project/P1-conventions.md#p11-git)). They now say "FEAT-2" without a link. To find any other, a short script read every Markdown link of `docs/`, `README.md` and `CLAUDE.md` and checked that its file exists and, for `#anchor`, that the file has a heading with that anchor (lower case, punctuation removed, spaces as dashes, as GitHub makes them):
+
+```
+broken: 0
+```
+
+With one of the three links put back on purpose, it answered `docs/design/D3-data-model.md: missing anchor ../project/backlog.md#feat-2-plans` and `broken: 1`. The script was a one-off and was not added to the repository.
+
+### H3.18.5 The checks
+
+```
+ Test Files  27 passed (27)
+      Tests  206 passed (206)
+```
+
+and `make check`, all green.
 
 ---
 

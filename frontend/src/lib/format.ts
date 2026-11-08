@@ -107,3 +107,27 @@ export function formatDuration(seconds: number, language: string): string {
   // shortest: "1 h 5 min" in Italian, not "1 h e 5 min"
   return minutes === 0 ? part(hours, 'hour') : new Intl.ListFormat(language, { style: 'narrow', type: 'unit' }).format([part(hours, 'hour'), part(minutes, 'minute')])
 }
+
+/**
+ * How long ago a day was, in calendar days, as people say it: "today",
+ * "yesterday", "3 days ago" (en), "oggi", "ieri", "3 giorni fa" (it).
+ * Intl.RelativeTimeFormat knows each language's words; `numeric: 'auto'`
+ * gives "yesterday" rather than "1 day ago".
+ *
+ * Calendar days, not 24-hour periods: a workout at 23:00 is "yesterday" at
+ * 08:00 the next morning, though only 9 hours have passed. Both dates are
+ * moved to midnight in the device's time zone first.
+ * @param date the moment, such as a workout's start
+ * @param today the current moment
+ * @param language a language code such as 'it'
+ */
+export function formatDaysAgo(date: Date, today: Date, language: string): string {
+  // Midnight of each day, local time
+  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  // Whole days between them; Math.round absorbs the hour a change of
+  // daylight-saving time adds or takes away
+  const days = Math.round((now.getTime() - day.getTime()) / 86_400_000)
+  // Negative: in the past. "-3 days" is "3 days ago"
+  return new Intl.RelativeTimeFormat(language, { numeric: 'auto' }).format(-days, 'day')
+}

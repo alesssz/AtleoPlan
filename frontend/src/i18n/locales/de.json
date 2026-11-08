@@ -230,7 +230,9 @@
         "dropped": "{{name}} an Position {{position}} von {{total}} abgelegt.",
         "cancelled": "Verschieben von {{name}} abgebrochen."
       }
-    }
+    },
+    "lastUsed": "Zuletzt {{when}} genutzt",
+    "neverUsed": "Noch nie genutzt"
   },
   "exercises": {
     "new": "Neue Übung",

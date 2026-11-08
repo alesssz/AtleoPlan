@@ -230,7 +230,9 @@
         "dropped": "{{name}} soltado en la posición {{position}} de {{total}}.",
         "cancelled": "Se canceló el movimiento de {{name}}."
       }
-    }
+    },
+    "lastUsed": "Usado {{when}}",
+    "neverUsed": "Aún sin usar"
   },
   "exercises": {
     "new": "Nuevo ejercicio",
