@@ -107,7 +107,7 @@ frontend/
 ├── eslint.config.js        lint rules and code style
 ├── components.json         shadcn/ui settings (where `npx shadcn add` writes)
 ├── tsconfig*.json          TypeScript: app (src/) and build config
-├── public/                 files served as they are (favicon.svg)
+├── public/                 files served as they are (favicon.svg, the logo's mark)
 └── src/
     ├── main.tsx            entry point: CSS, translations, draws <App />
     ├── App.tsx             the providers: data cache, theme, router

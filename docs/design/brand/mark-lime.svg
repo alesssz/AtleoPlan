@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
+  <!-- AtleoPlan, the mark on its lime tile, as in the app (src/components/brand/Brand.tsx). docs/design/D1-ui.md D1.5, "Brand" -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#DBFF6B"/><stop offset="1" stop-color="#9FD10F"/></linearGradient>
+    <mask id="cut" maskUnits="userSpaceOnUse" x="-10" y="0" width="84" height="64">
+      <g transform="translate(6 0) skewX(-12)">
+        <path d="M27 8 H37 L56 56 H45 L41 46 H23 L19 56 H8 Z" fill="white"/>
+        <path d="M21.5 37 L29.5 45 L43.5 25.5" fill="none" stroke="black" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </mask>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#g)"/>
+  <g transform="translate(10 10) scale(0.6875)">
+    <rect x="-10" width="84" height="64" fill="#0B0B0F" mask="url(#cut)"/>
+  </g>
+</svg>

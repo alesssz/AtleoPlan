@@ -1,9 +1,14 @@
 /*
- * AtleoPlan's brand, until a real logo exists (docs/design/D1-ui.md D1.8,
- * open questions): the mark (a stylised "A" on a lime tile) and the
- * wordmark ("Atleo" + "Plan" in lime). Used by the sidebar and by the
- * phone's top bar (src/components/layout/). The same "A" is the browser
- * tab's icon (public/favicon.svg).
+ * AtleoPlan's brand (docs/design/D1-ui.md D1.5, "Brand"): the mark, a heavy
+ * italic A with a tick cut out of it, on a lime tile; and the wordmark,
+ * "Atleo" + "Plan" in lime. The A is the name's initial, the tick the app's
+ * own gesture (a set done, one tap), the slant forward the movement. Used by
+ * the sidebar, the phone's top bar and the sign-in screens
+ * (src/components/layout/).
+ *
+ * The same mark is the browser tab's icon (public/favicon.svg), lime on the
+ * dark background: one mark everywhere. The drawings, at full size:
+ * docs/design/brand/.
  *
  * Two small components in one file: both export only components, so
  * React's Fast Refresh still works (docs/concepts/C1-frontend.md C1.4).
@@ -19,14 +24,16 @@ interface BrandMarkProps {
 
 /**
  * The mark: an SVG (vector drawing, sharp at any size) of a rounded square
- * filled with a lime gradient, with the "A" cut out in the background colour.
- * It is decoration (the name is always written next to it or given to
- * screen readers elsewhere), hence aria-hidden.
+ * filled with a lime gradient, and on it the A in the dark background colour,
+ * with the tick cut out of it. It is decoration (the name is always written
+ * next to it or given to screen readers elsewhere), hence aria-hidden.
  */
 export function BrandMark({ className }: BrandMarkProps) {
-  // An id unique to this copy of the mark: an SVG gradient is referenced by
-  // id (fill="url(#id)"), and two marks on the same page must not share one
+  // Ids unique to this copy of the mark: an SVG gradient or mask is
+  // referenced by id (fill="url(#id)"), and two marks on the same page must
+  // not share one
   const gradientId = useId()
+  const maskId = useId()
 
   return (
     <svg
@@ -43,12 +50,27 @@ export function BrandMark({ className }: BrandMarkProps) {
           <stop offset="0" stopColor="#DBFF6B" />
           <stop offset="1" stopColor="#9FD10F" />
         </linearGradient>
+        {/* The A and its tick, as a mask: what is white in it shows, what
+            is black is cut away. The A, a filled letter, is white; the tick,
+            a thick black line over it, cuts its shape out of the A.
+            skewX(-12) slants both forward, as italic letters;
+            translate(6 0) brings the slanted A back to the middle */}
+        <mask id={maskId} maskUnits="userSpaceOnUse" x="-10" y="0" width="84" height="64">
+          <g transform="translate(6 0) skewX(-12)">
+            <path d="M27 8 H37 L56 56 H45 L41 46 H23 L19 56 H8 Z" fill="white" />
+            <path d="M21.5 37 L29.5 45 L43.5 25.5" fill="none" stroke="black" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
+        </mask>
       </defs>
       {/* The tile: 64×64 with corners rounded by 14 */}
       <rect width="64" height="64" rx="14" fill={`url(#${gradientId})`} />
-      {/* The "A": its outline and its inner hole in one path, in the dark
-          theme's background colour (same drawing as public/favicon.svg) */}
-      <path d="M32 12 L50 52 H41 L37.5 43 H26.5 L23 52 H14 Z M29.3 36 H34.7 L32 29 Z" fill="#0B0B0F" />
+      {/* The mark, drawn on its own 64 × 64 grid and shrunk into the tile
+          with a margin of 10: translate moves it, scale(0.6875) makes 64
+          into 44. A dark rectangle seen through the mask: only the A, less
+          the tick, shows (same drawing as public/favicon.svg) */}
+      <g transform="translate(10 10) scale(0.6875)">
+        <rect x="-10" width="84" height="64" fill="#0B0B0F" mask={`url(#${maskId})`} />
+      </g>
     </svg>
   )
 }

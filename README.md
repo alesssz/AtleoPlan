@@ -1,5 +1,7 @@
 # AtleoPlan
 
+<img src="docs/design/brand/mark-lime.svg" alt="AtleoPlan's logo: a heavy italic A with a tick cut out of it, on a lime tile" width="72">
+
 *Your plans, your progress.*
 
 A workout app for building training plans out of a library of exercises, following them at the gym and logging every set to see progress over time. Exercises live in a library of their own, public or personal, with photos and videos; a plan is made of days, each holding exercises with their sets, reps and rest. Plans can be shared through a link.
