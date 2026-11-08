@@ -230,7 +230,9 @@
         "dropped": "{{name}} dropped at position {{position}} of {{total}}.",
         "cancelled": "Moving {{name}} was cancelled."
       }
-    }
+    },
+    "lastUsed": "Used {{when}}",
+    "neverUsed": "Never used yet"
   },
   "exercises": {
     "new": "New exercise",

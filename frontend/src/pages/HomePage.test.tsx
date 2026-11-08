@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { HomeData } from '@/api/home'
 import type { WorkoutSession } from '@/api/sessions'
-import { loadActiveSession, storeActiveSession } from '@/components/workout/session-storage'
+import { loadActiveSession, loadFinished, storeActiveSession } from '@/components/workout/session-storage'
 import { startSession } from '@/components/workout/workout-session'
 import { fakeApi, renderRoutes, signedInAs } from '@/test/auth-helpers'
 import { testPlan, testPlanSummary } from '@/test/plan-helpers'
@@ -19,6 +19,7 @@ import { HomePage } from './HomePage'
 const routes = [
   { path: '/', element: <HomePage /> },
   { path: 'session/:id', element: <p>workout mode</p> },
+  { path: 'session/:id/summary', element: <p>the summary</p> },
 ]
 
 /** A workout finished today at the current time, with its totals. */
@@ -114,6 +115,25 @@ describe('HomePage', () => {
     expect(screen.getByRole('link', { name: 'Resume' })).toHaveAttribute('href', `/session/${session.id}`)
     expect(await screen.findByRole('button', { name: 'Start' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Start a free workout' })).toBeDisabled()
+  })
+
+  it('finishes a workout left open from its banner, after the same question, then opens its summary', async () => {
+    const plan = testPlan()
+    const session = startSession(plan, plan.days[0]!, { unit: 'kg', defaultRestSeconds: 90, lastSets: [], language: 'en', now: new Date() })
+    storeActiveSession(session)
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer(), [`PUT /api/sessions/${session.id}`]: { status: 201, body: { data: { id: session.id } } } })
+    const { router } = renderRoutes(routes, '/')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Finish' }))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Finish the workout?' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Finish and save' }))
+
+    expect(await screen.findByText('the summary')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe(`/session/${session.id}/summary`)
+    // Sent, no longer in progress, kept for the summary
+    expect(fake.mock.calls.map(([path, init]) => `${init?.method} ${path}`)).toContain(`PUT /api/sessions/${session.id}`)
+    expect(loadActiveSession()).toBeNull()
+    expect(loadFinished()?.id).toBe(session.id)
   })
 
   it('starts a free workout, with no plan and no exercises', async () => {

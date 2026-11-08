@@ -828,7 +828,9 @@ PlanDetailPage                 the plan: header, badges, actions, notes
         └── <section>          a superset: a lime bar, its label, and a PlanItemRow per exercise
 ```
 
-**What is not here yet,** with the feature that brings it: "Start this day" and "last used" (FEAT-3); Templates, Share, Duplicate and the Shared badge (phase 2).
+**Since then:** "Start this day" came with workout mode ([C1.17](#c117-workout-mode)), and each card says when the plan was last used, "Used 3 days ago" or "Never used yet": `last_used_at` of the list ([C2.5.5](C2-backend.md#c255-the-plans-endpoints)), written by `formatDaysAgo()` (`lib/format.ts`), which counts calendar days in the device's time zone and lets `Intl.RelativeTimeFormat` say them in each language ("ieri", "vor 3 Tagen").
+
+**What is not here yet:** Templates, Share, Duplicate and the Shared badge (phase 2).
 
 ### C1.15.2 One line per exercise
 
@@ -945,7 +947,7 @@ dispatch({ type: 'moveItem', day: 0, from: 3, to: 0 })           // the end of a
 - **The components hold no copy of the plan.** `EditorDay`, `EditorItem` and `EditorSet` receive their piece and `dispatch`, and send actions with their indexes (`{ day, item, set }`).
 - **The draft is text, like a form.** Each target is the text typed, `"8-10"` or `"82,5"`, in the user's unit and with their decimal comma. `toPlanInput()` reads it when saving: reps into `target_reps_min` and `target_reps_max`, pounds into kilograms with three decimals (135 lb → 61.235 kg, [D3.2.3](../design/D3-data-model.md#d323-weights-are-always-in-kilograms)), only the targets that fit how the exercise is logged. `draftFromPlan()` does the opposite.
 - **Supersets stay valid by themselves.** After every action the reducer runs `normalizeSupersets()` on each day: an exercise dragged away from its superset leaves it, a superset left with one exercise ends, the numbers become 1, 2, 3. The backend accepts only neighbours ([C2.5.6](C2-backend.md#c256-validating-nested-data)), and the editor can never send anything else.
-- **New rows get their UUID in the browser** (`crypto.randomUUID()`), as [D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id) asks; saved rows keep theirs, so sessions of FEAT-3 stay linked.
+- **New rows get their UUID in the browser** (`newId()`: `crypto.randomUUID()`, or the same kind of UUID built from `crypto.getRandomValues()` where the browser lacks it, [H3.18.1](../how-to/H3-frontend.md#h3181-start-without-https-a-uuid-by-hand)), as [D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id) asks; saved rows keep theirs, so sessions of FEAT-3 stay linked.
 
 ### C1.16.3 Drag and drop with dnd-kit
 
@@ -1037,6 +1039,7 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 |---|---|
 | `components/workout/workout-session.ts` | The workout's types, `startSession()`, `startFreeSession()`, `exerciseFrom()`, the readers (clock, rest left, can a set be ticked), the reducer, `toSessionInput()`: no React |
 | `components/workout/session-storage.ts` | The workout in progress and the queue of finished ones, in `localStorage` |
+| `components/workout/finish-workout.ts`, `FinishButton.tsx` | Finishing (`finishWorkout()`) and its button with the question: shared by workout mode and the banner of a workout left open |
 | `components/workout/WorkoutScreen.tsx`, `SetRow.tsx` (with `SetHeader`), `RestBar.tsx`, `clock.ts` | The screen and its pieces; `clock(245)` is `"4:05"` |
 | `components/workout/layout.ts` | `WORKOUT_COLUMN`, the side margins shared by the screen's parts |
 | `components/workout/useStartWorkout.ts`, `ResumeBanner.tsx` | Starting a workout, and the banner with Resume: shared by the plan's page and Home ([C1.18](#c118-home)) |
@@ -1055,7 +1058,7 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 
 1. **Asks for last time's sets** of the day's exercises, `GET /api/sessions/last-sets?exercises=12,40,7`, with `fetchLastSets()`. Without network the request fails, and `.catch(() => [])` turns the failure into "no last time": the workout starts anyway. Each exercise keeps the whole list too, `previous`, besides the set in each place: the summary compares with it at the end, with no request ([C1.19.3](#c1193-better-than-last-time-exercise-by-exercise)).
 2. **Builds the workout** with `startSession(plan, day, options)`: each item of the day becomes an exercise, each planned set a set to do. The fields are filled with **last time's values for the set in the same place**, else the **plan's target** (the lower end of `8-10`), so a set done as planned or as last time is a single tap on ✓. The weights are written in the user's unit and language (`82,5` in Italian).
-3. **Gives it a UUID** in the browser (`crypto.randomUUID()`), as every row of a workout gets one ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). The backend keeps these ids, which is what makes sending the same workout twice harmless (C1.17.5).
+3. **Gives it a UUID** in the browser (`newId()`; `crypto.randomUUID()` exists only on HTTPS and `localhost`, so a fallback builds one by hand elsewhere, [H3.18.1](../how-to/H3-frontend.md#h3181-start-without-https-a-uuid-by-hand)), as every row of a workout gets one ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). The backend keeps these ids, which is what makes sending the same workout twice harmless (C1.17.5).
 4. **Stores it** on the phone and opens `/session/<id>`.
 
 The workout is not sent to the backend now: only at Finish. Until then it lives on the phone only. Start is disabled while another workout is in progress ("Finish or resume the workout in progress first."), and on a day with no exercises.
@@ -1249,7 +1252,9 @@ const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
 
 `isInWeek(moment, today)` (`lib/week.ts`) compares with Monday at midnight and the Monday after, both built with the local `Date` constructor, as `getWeekDays()` does. Two workouts on the same day mark it once. The sets come from the backend, warm-ups excluded (`sets_done`); the minutes add up each workout's `duration_seconds`, rounded once at the end. No volume: a week's volume adds up unlike exercises and counts nothing done with the body alone ([D2.8](../design/D2-decisions.md#d28-workout-rules)); minutes, not "2 h 35 min", so the number fits a third of a phone's width. A day trained gets a lime ring and a dot in `WeekStrip`, and the words "workout done" for screen readers: colour alone never carries meaning ([D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility)).
 
-**Not here yet:** the last three personal records (they come with Progress, phase 2) and finishing a workout from Home's banner, which opens it with Resume instead.
+**The banner of a workout left open** (`ResumeBanner`, on Home and on the plan's page) has **Resume** and **Finish**: Finish asks the same question as in workout mode (`FinishButton`), runs the same steps (`finishWorkout()`, `finish-workout.ts`), and opens the summary. For a workout done but never finished, the app closed at the end.
+
+**Not here yet:** the last three personal records (they come with Progress, phase 2).
 
 ### C1.18.5 Testing it
 

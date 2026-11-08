@@ -333,7 +333,7 @@ The workout plans' API, all under `auth:sanctum` ([D1.4.6](../design/D1-ui.md#d1
 
 | Method and path | What it does | Answers |
 |---|---|---|
-| `GET /api/plans` | My plans in use: the active one first, then the most recently changed, each with `days_count`. `?archived=1`: the archived ones instead | 200; 422 for a wrong `archived` |
+| `GET /api/plans` | My plans in use: the active one first, then the most recently changed, each with `days_count` and `last_used_at` (the start of its latest finished workout, or `null`; a `withMax()` subquery). `?archived=1`: the archived ones instead | 200; 422 for a wrong `archived` |
 | `GET /api/plans/{id}` | One whole plan: days, exercises, sets | 200; 403 someone else's; 404, also for an id that is not a UUID |
 | `POST /api/plans` | Creates a whole plan | 201; 200 when the same id is sent again; 422 |
 | `PUT /api/plans/{id}` | Saves the whole plan again | 200, with `meta.changed_elsewhere`; 403; 422 |

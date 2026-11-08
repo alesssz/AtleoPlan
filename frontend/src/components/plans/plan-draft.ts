@@ -92,10 +92,38 @@ export const SET_TYPE_SIGNS: Record<SetType, string | null> = { normal: null, wa
 /**
  * A new UUID, made in the browser: the device names its own rows, so a plan
  * can be built with no network (docs/design/D3-data-model.md D3.2.1).
- * crypto.randomUUID() is the browser's own generator.
+ *
+ * crypto.randomUUID() is the browser's own generator, but browsers give it
+ * only to pages in a **secure context**: HTTPS, or localhost. The app opened
+ * from a phone at http://192.168.1.20:5673 is neither, and the function is
+ * simply missing: Start failed with "crypto.randomUUID is not a function".
+ * So when it is missing, the same kind of UUID (version 4, random) is built
+ * from crypto.getRandomValues(), which every page has (randomUuid below).
  */
 export function newId(): string {
-  return crypto.randomUUID()
+  // typeof … === 'function': present, as on HTTPS and localhost
+  return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : randomUuid()
+}
+
+/**
+ * A version 4 UUID built by hand, as RFC 9562 describes it: 16 random bytes,
+ * of which two carry fixed bits that say "version 4" and "the standard
+ * variant", written as 32 hexadecimal digits in groups of 8-4-4-4-12.
+ * Exported for its test (plan-draft.test.ts).
+ * @returns a UUID such as "3f1c0b9e-6a2d-4c51-9f7e-0d84b2a1c6e3"
+ */
+export function randomUuid(): string {
+  // 16 random bytes (0–255 each), from the browser's secure generator
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  // Byte 6: its first four bits become 0100, the version, 4. `& 0x0f`
+  // keeps the last four bits, `| 0x40` sets the first four to 0100
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40
+  // Byte 8: its first two bits become 10, the variant
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80
+  // Each byte as two hexadecimal digits: 5 → "05", 255 → "ff"
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+  // The groups, 8-4-4-4-12 digits, joined by dashes
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
 // --- Reading what the user typed ---------------------------------------------

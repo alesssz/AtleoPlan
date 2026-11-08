@@ -14,6 +14,7 @@ use App\Models\PlanDay;
 use App\Models\PlanItem;
 use App\Models\PlanSet;
 use App\Models\User;
+use App\Models\WorkoutSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
@@ -53,7 +54,25 @@ it('sends each plan with its number of days, not the days', function () {
 
     expect($plan['days_count'])->toBe(3)
         ->and($plan)->not->toHaveKey('days')
-        ->and(array_keys($plan))->toBe(['id', 'name', 'goal', 'notes', 'version', 'is_active', 'archived_at', 'updated_at', 'days_count']);
+        ->and(array_keys($plan))->toBe(['id', 'name', 'goal', 'notes', 'version', 'is_active', 'archived_at', 'updated_at', 'days_count', 'last_used_at']);
+});
+
+it('says when each plan was last used: its latest finished workout, deleted ones left out', function () {
+    $user = User::factory()->create();
+    $used = Plan::factory()->for($user)->create(['name' => 'Used']);
+    Plan::factory()->for($user)->create(['name' => 'Never used']);
+    // Four workouts of the plan, on fixed dates (the test must give the same
+    // answer any day it runs): finished on the 3rd and the 6th, a later one
+    // deleted, and a later one still in progress
+    WorkoutSession::factory()->for($user)->create(['plan_id' => $used->id, 'started_at' => '2026-11-03 18:00:00']);
+    WorkoutSession::factory()->for($user)->create(['plan_id' => $used->id, 'started_at' => '2026-11-06 18:00:00']);
+    WorkoutSession::factory()->for($user)->create(['plan_id' => $used->id, 'started_at' => '2026-11-07 18:00:00'])->delete();
+    WorkoutSession::factory()->for($user)->open()->create(['plan_id' => $used->id, 'started_at' => '2026-11-08 18:00:00']);
+
+    $plans = collect($this->actingAs($user)->getJson('/api/plans')->assertOk()->json('data'))->keyBy('name');
+
+    expect($plans['Used']['last_used_at'])->toBe('2026-11-06T18:00:00.000000Z')
+        ->and($plans['Never used']['last_used_at'])->toBeNull();
 });
 
 it('keeps archived plans apart, behind archived=1', function () {

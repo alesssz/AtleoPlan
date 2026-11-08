@@ -1466,7 +1466,7 @@ They never read the real dataset. Each test writes a few exercises, in the same 
 
 ## H1.13 The plan tables, as built
 
-The first part of [FEAT-2](../project/backlog.md#feat-2-plans) created the four tables of a workout plan, `plans` → `plan_days` → `plan_items` → `plan_sets`, and the user's active plan ([D3.5](../design/D3-data-model.md#d35-plans)). This section follows what was done, with the real output, as a tutorial to repeat on the next table. It shows what [H1.10](#h110-the-exercise-library-as-built) does not: ids that are UUIDs made on the device, a column added to an existing table that points to a new one, check constraints, a table without timestamps, and a relation that skips a level. The API on top of these tables is [H2.13](H2-backend.md#h213-the-plans-api-as-built).
+The first part of FEAT-2 created the four tables of a workout plan, `plans` → `plan_days` → `plan_items` → `plan_sets`, and the user's active plan ([D3.5](../design/D3-data-model.md#d35-plans)). This section follows what was done, with the real output, as a tutorial to repeat on the next table. It shows what [H1.10](#h110-the-exercise-library-as-built) does not: ids that are UUIDs made on the device, a column added to an existing table that points to a new one, check constraints, a table without timestamps, and a relation that skips a level. The API on top of these tables is [H2.13](H2-backend.md#h213-the-plans-api-as-built).
 
 | File | What it is |
 |---|---|

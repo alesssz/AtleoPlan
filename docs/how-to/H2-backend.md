@@ -978,7 +978,7 @@ The second is worth a note. Without `with()`, one would expect the "N+1" problem
 
 ## H2.13 The plans API, as built
 
-The first part of [FEAT-2](../project/backlog.md#feat-2-plans) built the plans' API on the tables of [H1.13](H1-database.md#h113-the-plan-tables-as-built). This section follows what was done, with the real output, as a tutorial for the next endpoint of this kind. It shows what [H2.12](#h212-the-exercise-library-api-as-built) does not: a request body shaped as a tree, a rule of our own, an abstract Form Request shared by two, an action that saves four levels in one transaction, routes for actions that are not CRUD, and a create that can be sent twice. The endpoints and the flow of a save are described in [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints), the validation in [C2.5.6](../concepts/C2-backend.md#c256-validating-nested-data).
+The first part of FEAT-2 built the plans' API on the tables of [H1.13](H1-database.md#h113-the-plan-tables-as-built). This section follows what was done, with the real output, as a tutorial for the next endpoint of this kind. It shows what [H2.12](#h212-the-exercise-library-api-as-built) does not: a request body shaped as a tree, a rule of our own, an abstract Form Request shared by two, an action that saves four levels in one transaction, routes for actions that are not CRUD, and a create that can be sent twice. The endpoints and the flow of a save are described in [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints), the validation in [C2.5.6](../concepts/C2-backend.md#c256-validating-nested-data).
 
 | File | What it is |
 |---|---|

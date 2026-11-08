@@ -25,34 +25,23 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useCurrentUser } from '@/api/auth'
 import type { Exercise } from '@/api/exercises'
-import { homeKeys } from '@/api/home'
-import { fetchLastSets, sessionKeys } from '@/api/sessions'
+import { fetchLastSets } from '@/api/sessions'
 import { ExercisePicker } from '@/components/plans/editor/ExercisePicker'
 import { itemSummary } from '@/components/plans/plan-format'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { restOver } from '@/lib/alarm'
-import { sendPendingSessions } from '@/lib/pending-sessions'
 import { useNow } from '@/lib/useNow'
 import { useWakeLock } from '@/lib/useWakeLock'
 import { cn } from '@/lib/utils'
 import { clock } from './clock'
 import { WORKOUT_COLUMN } from './layout'
 import { RestBar } from './RestBar'
-import { addPending, storeActiveSession, storeFinished, type WorkoutOutcome } from './session-storage'
+import { finishWorkout } from './finish-workout'
+import { FinishButton } from './FinishButton'
+import { storeActiveSession } from './session-storage'
 import { SetHeader, SetRow } from './SetRow'
 import { FALLBACK_REST_SECONDS } from './useStartWorkout'
-import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, supersetNext, supersetOf, toSessionInput, workoutReducer, type ActiveSession, type SetCount } from './workout-session'
+import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, supersetNext, supersetOf, workoutReducer, type ActiveSession } from './workout-session'
 
 /** Props of WorkoutScreen. */
 interface WorkoutScreenProps {
@@ -174,28 +163,11 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   /** Finish, confirmed: finishes, queues, tries to send, and opens the summary. */
   async function finish() {
     setFinishing(true)
-    // The finished workout and its body; queued first, so nothing is lost
-    // whatever happens to the request
-    const finished = workoutReducer(session, { type: 'finish', now: new Date().toISOString() })
-    // The body, as it will be sent: queued now, and kept for the summary
-    const input = toSessionInput(finished, unit, new Date())
-    addPending(finished.id, input)
-    storeActiveSession(null)
-    // What happened to every queued workout, this one included
-    const report = await sendPendingSessions()
-    // The lists that show workouts are read again, and Home (the week, the
-    // suggested day)
-    void queryClient.invalidateQueries({ queryKey: sessionKeys.all })
-    void queryClient.invalidateQueries({ queryKey: homeKeys.all })
-    // What happened to this workout, for the summary
-    const outcome: WorkoutOutcome = report.sent.includes(finished.id)
-      ? 'saved'
-      : report.refused.some(entry => entry.id === finished.id) ? 'refused' : 'queued'
-    // Kept on the phone for the summary, which needs no request (offline
-    // too), then the summary. `replace`: Back does not return to a
-    // workout that is over
-    storeFinished({ id: finished.id, session: finished, input, outcome })
-    void navigate(`/session/${finished.id}/summary`, { replace: true })
+    // Finished, queued, sent if the network allows, kept for the summary
+    // (finish-workout.ts); then the summary. `replace`: Back does not
+    // return to a workout that is over
+    const id = await finishWorkout(session, unit, queryClient)
+    void navigate(`/session/${id}/summary`, { replace: true })
   }
 
   return (
@@ -388,53 +360,5 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         </footer>
       )}
     </div>
-  )
-}
-
-/** Props of FinishButton. */
-interface FinishButtonProps {
-  /** The sets that count, done and in all, for the question. */
-  count: SetCount
-  /** The button's text: "Finish" at the top, "Finish workout" at the bottom. */
-  label: string
-  /** The button's look: lime (default) or outlined. */
-  variant?: 'default' | 'outline'
-  /** Extra classes for the button: its padding or width. */
-  className?: string
-  /** True while finishing. */
-  disabled: boolean
-  /** Called when the user confirms. */
-  onFinish: () => void
-}
-
-/**
- * Finish, with a confirmation: finishing cannot be undone from here. The
- * question says how many sets were done, and, when finishing early, that
- * the sets not ticked will not be saved.
- */
-function FinishButton({ count, label, variant = 'default', className, disabled, onFinish }: FinishButtonProps) {
-  const { t } = useTranslation()
-  // The sets not ticked, warm-ups excluded
-  const left = count.total - count.done
-
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button size="xl" variant={variant} className={className} disabled={disabled}>{label}</Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t('workout.finishTitle')}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {t('workout.finishText', { count: count.done, total: count.total })}
-            {left > 0 && ` ${t('workout.finishLeft', { count: left })}`}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{t('workout.keepGoing')}</AlertDialogCancel>
-          <AlertDialogAction onClick={onFinish}>{t('workout.finishConfirm')}</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   )
 }
