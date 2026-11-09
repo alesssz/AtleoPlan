@@ -54,6 +54,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.17.4 The rest timer: a moment, not a countdown](#c1174-the-rest-timer-a-moment-not-a-countdown)
   - [C1.17.5 The queue of workouts to send](#c1175-the-queue-of-workouts-to-send)
   - [C1.17.6 Testing it](#c1176-testing-it)
+  - [C1.17.7 The big stepper and the exercise's menu](#c1177-the-big-stepper-and-the-exercises-menu)
 - [C1.18 Home](#c118-home)
   - [C1.18.1 The pieces](#c1181-the-pieces)
   - [C1.18.2 Starting from Home: one hook for two pages](#c1182-starting-from-home-one-hook-for-two-pages)
@@ -1028,10 +1029,13 @@ PlanDetailPage, HomePage Start (useStartWorkout); the banner "Workout in progres
 └── navigate('/session/:id')
 WorkoutPage              /session/:id: reads the workout kept on the phone; none → a message
 └── WorkoutScreen        the workout (useReducer); top: ✕, the day, the clock, Finish; the dots;
-    │                    the exercise, Add set, Add exercises; Previous / Next (Finish workout when it is time);
+    │                    "＋ Add exercises" beside the dots; the exercise, Add set; Previous / Next (Finish workout when it is time);
     │                    stores every change; keeps the screen on
+    ├── ExerciseMenu     "⋯" beside the exercise's name: swap, skip, a note, the video (a panel from the bottom)
     ├── SetHeader        the titles above the sets: Set, Last, kg, Reps (or Sec, m)
-    ├── SetRow           a set: its number or type letter, last time, the fields, ✓
+    ├── SetRow           a set: its number or type letter, last time, the fields (buttons), ✓
+    ├── SetStepper       the big stepper of the set tapped: − and + for each field (a panel from the bottom)
+    ├── ExercisePicker   Add exercises; and Swap exercise, one tap, filtered by the main muscle
     └── RestBar          the rest timer: time left, a shrinking bar, −15, +15, Skip
 ```
 
@@ -1041,6 +1045,10 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 | `components/workout/session-storage.ts` | The workout in progress and the queue of finished ones, in `localStorage` |
 | `components/workout/finish-workout.ts`, `FinishButton.tsx` | Finishing (`finishWorkout()`) and its button with the question: shared by workout mode and the banner of a workout left open |
 | `components/workout/WorkoutScreen.tsx`, `SetRow.tsx` (with `SetHeader`), `RestBar.tsx`, `clock.ts` | The screen and its pieces; `clock(245)` is `"4:05"` |
+| `components/workout/set-fields.ts` | `fieldsFor()`: the fields of a set by the way its exercise is logged, shared by the rows, their titles and the stepper |
+| `components/workout/SetStepper.tsx`, `stepper.ts` | The big stepper, and its arithmetic: the step of each field, the next value after a tap (C1.17.7) |
+| `components/workout/ExerciseMenu.tsx` | The exercise's menu (C1.17.7) |
+| `components/ui/sheet.tsx` | shadcn/ui's Sheet: a dialog against an edge of the screen, the two panels' frame |
 | `components/workout/layout.ts` | `WORKOUT_COLUMN`, the side margins shared by the screen's parts |
 | `components/workout/useStartWorkout.ts`, `ResumeBanner.tsx` | Starting a workout, and the banner with Resume: shared by the plan's page and Home ([C1.18](#c118-home)) |
 | `pages/WorkoutPage.tsx` | The route's page |
@@ -1050,7 +1058,7 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 
 **Full screen.** The route `session/:id` sits inside `RequireAuth` but beside `AppLayout`, not under it ([C1.5](#c15-routing)): signed in, with no tab bar or side navigation. It behaves like an app: the bars stay put and only the middle scrolls, and only when an exercise is longer than the screen; the page itself never scrolls. Every part (top bar, exercise, rest timer, Previous and Next) uses the same side margins, `WORKOUT_COLUMN` in `components/workout/layout.ts`: those of the app's other pages (`px-5 sm:px-8 lg:px-12`: 20, 32, 48 px), with the whole width of the window, on a laptop too. The spacing breathes a little and grows with the screen: rows of sets 8 px apart on a phone, 12 px from 640 px (`gap-2 sm:gap-3`), 20 to 24 px around the exercise, the bars a little taller on a tablet and a laptop. The buttons follow the app's look ([D1.5](../design/D1-ui.md#d15-design-system)): 48 px tall (`xl`), lime only for the main action (Finish workout), outlined for the others (Finish at the top, Previous, Next, Add set, −15, +15, Skip), plain only for icons (✕, a set's number). The middle is `relative`, so the hidden "Rest over" text (`sr-only`, absolutely positioned) stays inside it instead of stretching the page ([H3.15.11](../how-to/H3-frontend.md#h31511-fifth-pass-wide-on-a-laptop-an-app-on-a-phone)). The screen is a column as tall as the window (`h-dvh`, the height the browser really shows on a phone, toolbars excluded); only the middle scrolls, so ✕, Finish, the rest timer and Next are always in reach. `env(safe-area-inset-top)` keeps the top clear of a phone's notch.
 
-**What is not here yet,** each in the backlog: the big stepper on a tap of a number, the exercise menu (swap, skip, note, video), live records, a notification when the rest ends with the app in the background, and the real offline app (FEAT-3). The summary after Finish is in [C1.19](#c119-the-summary-and-history).
+**What is not here yet,** each in the backlog: live records, a notification when the rest ends with the app in the background, and the real offline app (FEAT-3). The summary after Finish is in [C1.19](#c119-the-summary-and-history).
 
 ### C1.17.2 Starting: the plan becomes a workout
 
@@ -1095,11 +1103,11 @@ dispatch({ type: 'adjustRest', seconds: 15 })                                   
 
   A rest of 0 seconds starts no timer. `supersetOf(session, index)` finds the superset: the neighbours with the same `superset_group`, as the editor keeps them ([C1.16.2](#c1162-the-draft-and-its-reducer)).
 
-- **Numbers on screen** come from `setNumbers()`: warm-ups are counted apart, so the sets that count are numbered 1, 2, 3 whatever warm-ups come first, as D1.4.9 draws them (`W W 1 2 3`, not `W W 3 4 5`). A set whose type changes renumbers the ones after it. Screen readers hear the same names: "Set 1, kg", "Warm-up 2, Reps", "Tick: Set 1".
+- **Numbers on screen** come from `setNumbers()`: warm-ups are counted apart, so the sets that count are numbered 1, 2, 3 whatever warm-ups come first, as D1.4.9 draws them (`W W 1 2 3`, not `W W 3 4 5`). A set whose type changes renumbers the ones after it. Screen readers hear the same names: "Set 1, kg: 80" (the row's button, with its value), "Warm-up 2, Reps" (the stepper's box), "Tick: Set 1".
 - **The columns have titles** (`SetHeader`): Set, Last, then one per field, kg (or lb) and Reps, or Sec, or m. The header and the rows build their fields with the same function, `fieldsFor()`, and use the same widths (`w-12`, `w-16`, `flex-1`, `w-12`), so each number sits under its title.
-- **Exercises added on the way.** **Add exercises**, under Add set, opens the plan editor's picker (`ExercisePicker`, [C1.16](#c116-the-plan-editor)); the exercises ticked are added at the end, the first of them opened. Each is built by `exerciseFrom()`: one set per set of last time, with its values and types, or one empty set for an exercise never done; the user's default rest; no plan item. They are built *outside* the reducer and handed to it ready (`{ type: 'addExercises', exercises }`), because building one makes new UUIDs: a reducer must give the same result every time it gets the same action, and React may call it twice to check (StrictMode, [C1.4](#c14-react-from-scratch)).
+- **Exercises added on the way.** **Add exercises**, the outlined button on the right of the dots, opens the plan editor's picker (`ExercisePicker`, [C1.16](#c116-the-plan-editor)); the exercises ticked are added at the end, the first of them opened. Each is built by `exerciseFrom()`: one set per set of last time, with its values and types, or one empty set for an exercise never done; the user's default rest; no plan item. They are built *outside* the reducer and handed to it ready (`{ type: 'addExercises', exercises }`), because building one makes new UUIDs: a reducer must give the same result every time it gets the same action, and React may call it twice to check (StrictMode, [C1.4](#c14-react-from-scratch)).
 - **A free workout** (Home, [C1.18](#c118-home)) is `startFreeSession(now)`: no plan, no day's name, no exercises. The screen shows "Free workout" as its title and, until the first exercise is added, only **Add exercises** (lime) and **Cancel workout**, which forgets it: nothing was done. No Finish, no Previous or Next, with nothing to finish or move to; `finishTime` is false with no exercise.
-- **At Finish,** `toSessionInput()` builds the body: every exercise, **only the ticked sets**, only the values that fit how the exercise is logged, weights in kilograms. An exercise with no set ticked is sent with none: skipped, which the history can show.
+- **At Finish,** `toSessionInput()` builds the body: every exercise, **only the ticked sets**, only the values that fit how the exercise is logged, weights in kilograms. An exercise with no set ticked is sent with none: skipped, which the history can show. The note written from the exercise's menu goes as its `notes` (C1.17.7).
 
 ### C1.17.4 The rest timer: a moment, not a countdown
 
@@ -1174,6 +1182,42 @@ What each answer of the server does to a workout in the queue:
 - **The page** (`WorkoutPage.test.tsx`): a workout is started with `startSession()` and stored, as Start does, then the page is drawn at `/session/<id>`. The test ticks, reads the timer by its role (`getByRole('timer')`), reads `localStorage` back with `loadActiveSession()`, and sends Finish with a fake API that answers 201, or `'network'` to check that the workout stays in the queue.
 - **The queue** (`pending-sessions.test.ts`): five workouts queued, the fake API answering 201, 410, `'network'`, 503 and 422; the test checks which leave and which stay.
 - **What tests cannot show:** the beep, the vibration, the screen staying on, the timer firing with the phone asleep. jsdom has none of them; they are checked on a phone ([H3.15.7](../how-to/H3-frontend.md#h3157-checking-in-the-browser-and-on-a-phone)).
+
+### C1.17.7 The big stepper and the exercise's menu
+
+Two panels that slide up from the bottom of the screen, added by UI-6 ([D1.4.9](../design/D1-ui.md#d149-workout-mode)). How they were built: [H3.20](../how-to/H3-frontend.md#h320-the-stepper-and-the-exercise-menu-as-built).
+
+**A panel from the bottom: the Sheet.** shadcn/ui's `Sheet` (`components/ui/sheet.tsx`) is a Radix Dialog drawn against an edge instead of in the middle: the page behind waits, the focus moves in and stays, Escape, the X and a tap outside close it, the focus goes back to what opened it. `side="bottom"` picks the edge; the rest is the same component as the plan editor's `Dialog`. Bottom panels suit a phone in one hand: the controls are where the thumb is.
+
+**The stepper.** The set's fields are no longer text boxes but buttons that look like them (`SetRow`): a tap opens `SetStepper` on that set, with each of its fields between a − and a + 64 px wide, the step written on them (`−2,5`, `+1`). Typing the phone's keyboard was slow with sweaty hands; the box between − and + still takes typing, for a value far away.
+
+| Field | Step | Below zero |
+|---|---|---|
+| weight (kg or lb) | the user's `weight_step` (2.5 by default, in their unit) | 0 becomes empty: no weight, the body alone |
+| reps | 1 | stays 0 |
+| seconds | 5 | stays 0 |
+| meters | 10 | stays 0 |
+
+- **The values stay text.** `stepValue(text, field, delta, language)` (`stepper.ts`, no React) reads the field's text, adds the step and writes it back in the user's language (`82,5` + 2,5 = `85`), so typing and tapping mix. An empty or unreadable field starts from 0. Reps, seconds and meters are rounded to whole numbers (the backend takes no other); the weight keeps two decimals at most, written by `formatNumber()`, which also hides JavaScript's `0.1 + 0.2 = 0.30000000000000004`.
+- **Each tap changes the set at once** with the same `setField` action typing used: no Cancel, and **Done** only closes. The workout is stored after every change, as always.
+- **Which set:** `WorkoutScreen` keeps `stepping = { set, field }` apart from `stepperOpen`, so while the panel slides away it still shows the set it had.
+- **Focus:** Radix gives the focus to the first button of a dialog, here the weight's −. `onOpenAutoFocus` with `event.preventDefault()` stops that, and the + of the field tapped gets it, through a **callback ref**: `ref={(button) => { plusButtons.current[field] = button }}` keeps each + in an object held by `useRef` ([L2.20](../learn/L2-react.md#l220-what-react-has-that-the-project-does-not-use-yet)), which React does not draw again when it changes.
+
+**The exercise's menu.** `ExerciseMenu`, the "⋯" beside the exercise's name, opens a panel with rows 48 px tall, rather than a small drop-down: rows as wide as the phone are easy to hit mid-set.
+
+| Row | Does | Action of the reducer |
+|---|---|---|
+| **Swap exercise** | Opens the picker in its swap mode; one tap puts the exercise picked in this one's place. Disabled once a set is ticked, saying why: a ticked set belongs to the exercise it was done with | `swapExercise`, with `swappedExercise()` |
+| **Skip exercise** / **Do it after all** | Marks it skipped and opens the next exercise; or takes the skip back | `skipExercise` |
+| **Add a note** / **Edit the note** | The panel turns into a text box (500 characters, the backend's limit); Save keeps it, shown under the name as "Your note" and sent as the exercise's `notes` | `setNote` |
+| **Watch the video** | Only when the exercise has a `youtube_url`: YouTube in a new tab (`target="_blank" rel="noreferrer"`) | none |
+
+- **Swapping keeps the place, not the values.** `swappedExercise(current, exercise, lastSets, options)` keeps the workout exercise's id, plan item, superset and rest, and as many sets as before with the same types; the values and "Last" come from the new exercise's own last time (`GET /api/sessions/last-sets`, none offline). With no last time, the plan's reps fill the sets but **not the plan's weight**: 80 kg were meant for the barbell, not for dumbbells. Built outside the reducer, like `exerciseFrom()`, because it makes new UUIDs. The note and a skip go with the old exercise.
+- **The swap picker** is `ExercisePicker` with `replacing`: no tick boxes, a tap on a row picks it; the list starts filtered by the replaced exercise's first main muscle (`filter[muscle]=chest`), with a chip, **Only Chest**, that turns the filter off and on (`aria-pressed`); the exercise being replaced is left out. The menu opens it without a button of its own: `open` and `onOpenChange` let the screen **control** the dialog, where Add exercises lets the picker keep its own state (**uncontrolled**). `open ?? ownOpen` supports both.
+- **Skipping** sets `skipped: true` on the exercise. It changes what counts as work left, in one function, `hasWorkLeft(item)`: a set not ticked, and not skipped. Next in a superset (`supersetNext`), Finish workout's moment (`allSetsDone`) and the dots read it, and the Finish question no longer counts the sets given up (`countSets`). On screen: the sets dimmed, a grey box "Skipped: the sets not ticked will not be saved." with **Do it after all**, and a greyer dot named "…, skipped". Ticking one of its sets takes the skip back: it is being done after all. Skipping opens the next exercise: a choice to move on, a tap, so the rule that the screen never moves by itself *after a tick* still holds.
+- **Older workouts** kept on the phone before UI-6 have no `notes` and no `skipped`: both are optional (`notes?: string`), and missing reads as none.
+
+**Testing them.** The arithmetic in `stepper.test.ts`, the three actions in `workout-session.test.ts`, the panels in `WorkoutPage.test.tsx`: a tap on "Set 1, kg: 80", the dialog named "Set 1", "kg: 2.5 more" twice, the box reads 85; the note, Skip and its way back, Swap with the muscle in the request's address.
 
 ## C1.18 Home
 

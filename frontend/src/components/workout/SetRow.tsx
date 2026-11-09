@@ -5,55 +5,26 @@
  * which completes it and starts the rest. SetHeader is the row of titles
  * above the sets, with the same widths, so each number sits under its name.
  *
+ * The fields are buttons, not text boxes: a tap opens the big stepper
+ * (SetStepper.tsx), with − and + as large as a thumb, rather than the
+ * phone's keyboard, slow with sweaty hands (D1.4.9). The stepper still has
+ * a text box, for a value far from the one shown.
+ *
  * ✓ is disabled while a value the exercise needs is missing or does not
  * read as a number: the backend would refuse the set (canComplete,
  * workout-session.ts). The weight may stay empty: a set with the body alone.
  * A bodyweight exercise (pull-ups, dips) shows it as "+kg", the added weight.
  */
 import { Check } from 'lucide-react'
-import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import type { LoggingType } from '@/api/exercises'
 import { SET_TYPE_SIGNS } from '@/components/plans/plan-draft'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import type { WeightUnit } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { fieldsFor } from './set-fields'
 import { loggedSetText } from './set-text'
 import { canComplete, type SetField, type SetNumber, type WorkoutSet } from './workout-session'
-
-/** A field of a set's row: what it holds, its title, the phone keyboard it opens. */
-interface FieldSpec {
-  /** The set's property it edits. */
-  field: SetField
-  /** Its title, above the column: "kg", "+kg", "Reps". */
-  label: string
-  /** Its name for screen readers, after the set's: "added weight, kg". */
-  spoken: string
-  /** What an empty field shows: a dash where it may stay empty. */
-  placeholder?: string
-  /** The keyboard: digits and a separator, or digits only. */
-  inputMode: 'decimal' | 'numeric'
-}
-
-/**
- * The fields of a way of logging: weight and reps, reps, seconds or meters.
- * Shared by the rows and their header, so the columns always match.
- * @param loggingType how the exercise is logged
- * @param unit the user's weight unit, the weight's title
- * @param t the translation function
- */
-function fieldsFor(loggingType: LoggingType, unit: WeightUnit, t: TFunction): FieldSpec[] {
-  // The reps' column, the same for the two ways of logging that count them
-  const reps: FieldSpec = { field: 'reps', label: t('workout.colReps'), spoken: t('workout.colReps'), inputMode: 'numeric' }
-  switch (loggingType) {
-    case 'weight_reps': return [{ field: 'weight', label: unit, spoken: unit, placeholder: '–', inputMode: 'decimal' }, reps]
-    // The body's own weight plus, maybe, a belt with a plate: "+kg"
-    case 'reps': return [{ field: 'weight', label: `+${unit}`, spoken: t('workout.addedWeight', { unit }), placeholder: '–', inputMode: 'decimal' }, reps]
-    case 'time': return [{ field: 'seconds', label: t('workout.colSeconds'), spoken: t('workout.colSeconds'), inputMode: 'numeric' }]
-    case 'distance': return [{ field: 'meters', label: t('workout.colMeters'), spoken: t('workout.colMeters'), inputMode: 'numeric' }]
-  }
-}
 
 /** Props of SetHeader. */
 interface SetHeaderProps {
@@ -96,14 +67,14 @@ interface SetRowProps {
   unit: WeightUnit
   /** Ticks or unticks it. */
   onToggle: () => void
-  /** A field typed in. */
-  onChange: (field: SetField, value: string) => void
+  /** A tap on a field: the stepper opens on it. */
+  onOpenStepper: (field: SetField) => void
   /** A tap on its number: the next type. */
   onCycleType: () => void
 }
 
 /** A row of the sets' table. */
-export function SetRow({ set, number, loggingType, unit, onToggle, onChange, onCycleType }: SetRowProps) {
+export function SetRow({ set, number, loggingType, unit, onToggle, onOpenStepper, onCycleType }: SetRowProps) {
   const { t, i18n } = useTranslation()
   // The interface's language, for the decimal separator
   const language = i18n.language
@@ -131,16 +102,19 @@ export function SetRow({ set, number, loggingType, unit, onToggle, onChange, onC
       {/* Last time, in the column of the same name */}
       <span className="w-16 shrink-0 text-center text-sm text-muted-foreground tabular-nums">{lastText}</span>
 
-      {fieldsFor(loggingType, unit, t).map(({ field, spoken, placeholder, inputMode }) => (
-        <Input
+      {/* Each field: a button that looks like the text box it replaced
+          (the Input's border and background), showing the value, or a dash
+          when empty. Its name says the value too: "Set 1, kg: 80" */}
+      {fieldsFor(loggingType, unit, t).map(({ field, spoken, placeholder }) => (
+        <button
           key={field}
-          aria-label={`${name}, ${spoken}`}
-          placeholder={placeholder}
-          inputMode={inputMode}
-          value={set[field]}
-          onChange={event => onChange(field, event.target.value)}
-          className="h-12 min-w-0 flex-1 rounded-xl text-center text-lg font-semibold tabular-nums"
-        />
+          type="button"
+          aria-label={t('workout.fieldButton', { name, field: spoken, value: set[field] === '' ? t('workout.fieldEmpty') : set[field] })}
+          onClick={() => onOpenStepper(field)}
+          className="h-12 min-w-0 flex-1 truncate rounded-xl border border-input bg-transparent px-2 text-center text-lg font-semibold tabular-nums transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50"
+        >
+          {set[field] === '' ? <span className="text-muted-foreground">{placeholder ?? ''}</span> : set[field]}
+        </button>
       ))}
 
       {/* ✓. aria-pressed says whether the set is done, in words for screen

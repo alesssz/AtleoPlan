@@ -8,7 +8,7 @@ import type { LastSets } from '@/api/sessions'
 import { testPlan } from '@/test/plan-helpers'
 import { clock } from './clock'
 import { testExercise } from '@/test/exercise-helpers'
-import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, startFreeSession, startSession, supersetNext, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
+import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, restLeft, setNumbers, startFreeSession, startSession, supersetNext, swappedExercise, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
 
 /** The moment the workout starts: 18:00 UTC. */
 const START = new Date('2026-11-09T18:00:00Z')
@@ -280,5 +280,92 @@ describe('toSessionInput', () => {
     )
 
     expect(toSessionInput(session, 'lb', new Date(at(60))).exercises[0]?.sets[0]?.weight_kg).toBe(61.235)
+  })
+})
+
+describe('the exercise\'s menu: swap, skip, note', () => {
+  /** Last time's dumbbell press: a warm-up of 12 × 12, then 30 × 10. */
+  const lastDumbbell: LastSets = {
+    exercise_id: 50,
+    session_id: 'session-old',
+    started_at: '2026-11-02T18:00:00Z',
+    sets: [
+      { id: 'old-3', set_type: 'warm_up', weight_kg: '12.000', reps: 12, duration_seconds: null, distance_meters: null, completed_at: '2026-11-02T18:05:00Z' },
+      { id: 'old-4', set_type: 'normal', weight_kg: '30.000', reps: 10, duration_seconds: null, distance_meters: null, completed_at: '2026-11-02T18:08:00Z' },
+    ],
+  }
+  /** The exercise swapped in for the bench press. */
+  const dumbbell = testExercise({ id: 50, name: 'Dumbbell Bench Press' })
+  /** Unit and language of the new sets. */
+  const options = { unit: 'kg' as const, language: 'en' }
+
+  it('swaps an exercise: same place, sets and types; values from its own last time', () => {
+    const session = dayA()
+    const bench = session.exercises[0]!
+    const swapped = swappedExercise(bench, dumbbell, [lastDumbbell], options)
+
+    expect(swapped).toMatchObject({ id: bench.id, plan_item: bench.plan_item, rest_seconds: 90, previous: lastDumbbell.sets })
+    expect(swapped.exercise.name).toBe('Dumbbell Bench Press')
+    // Six sets, as before, the two warm-ups kept as warm-ups; the first two
+    // from last time, the others with the plan's reps but not its 80 kg,
+    // which were meant for the barbell
+    expect(swapped.sets.map(set => [set.set_type, set.weight, set.reps])).toEqual([
+      ['warm_up', '12', '12'],
+      ['warm_up', '30', '10'],
+      ['normal', '', '8'],
+      ['normal', '', '8'],
+      ['normal', '', '8'],
+      ['normal', '', '8'],
+    ])
+    expect(swapped.sets[1]?.last?.reps).toBe(10)
+
+    const next = run(session, { type: 'swapExercise', exercise: 0, replacement: swapped })
+    expect(next.exercises.map(item => item.exercise.name)).toEqual(['Dumbbell Bench Press', 'Bent Over Barbell Row', 'Pullups'])
+  })
+
+  it('does not swap an exercise once one of its sets is ticked', () => {
+    const ticked = run(dayA(), { type: 'toggleSet', exercise: 0, set: 0, now: at(60) })
+    const swapped = swappedExercise(ticked.exercises[0]!, dumbbell, [], options)
+
+    expect(run(ticked, { type: 'swapExercise', exercise: 0, replacement: swapped }).exercises[0]?.exercise.name).toBe('Barbell Bench Press')
+  })
+
+  it('skips an exercise: the next opens, and its sets are no longer work left', () => {
+    const start = dayA()
+    const skipped = run(start, { type: 'skipExercise', exercise: 0, skipped: true })
+
+    expect(skipped.current).toBe(1)
+    expect(hasWorkLeft(skipped.exercises[0]!)).toBe(false)
+    // The bench press's four sets that count leave the total
+    expect(countSets(skipped).total).toBe(countSets(start).total - 4)
+    expect(allSetsDone(skipped)).toBe(false)
+    // Every exercise skipped: nothing left, time to finish
+    const all = run(skipped, { type: 'skipExercise', exercise: 1, skipped: true }, { type: 'skipExercise', exercise: 2, skipped: true })
+    expect(allSetsDone(all)).toBe(true)
+    // The last one skipped: no next exercise to open
+    expect(all.current).toBe(2)
+  })
+
+  it('takes a skip back when asked, or when one of its sets is ticked', () => {
+    const skipped = run(dayA(), { type: 'skipExercise', exercise: 0, skipped: true })
+
+    expect(run(skipped, { type: 'skipExercise', exercise: 0, skipped: false }).exercises[0]?.skipped).toBe(false)
+    expect(run(skipped, { type: 'toggleSet', exercise: 0, set: 0, now: at(60) }).exercises[0]?.skipped).toBe(false)
+  })
+
+  it('in a superset, a skipped exercise ends the round', () => {
+    // The pull-ups (2) skipped: after a set of rows (1) the round is over,
+    // with its rest, and Next points nowhere in the superset
+    const session = run(dayA(), { type: 'skipExercise', exercise: 2, skipped: true }, { type: 'toggleSet', exercise: 1, set: 0, now: at(60) })
+
+    expect(session.rest?.total).toBe(90)
+    expect(supersetNext(session, 1)).toBeNull()
+  })
+
+  it('sends the note without spaces around it, and an empty one as none', () => {
+    const session = run(dayA(), { type: 'setNote', exercise: 0, notes: '  Seat on 4 ' }, { type: 'setNote', exercise: 1, notes: '   ' })
+    const input = toSessionInput(session, 'kg', new Date(at(600)))
+
+    expect(input.exercises.map(item => item.notes)).toEqual(['Seat on 4', null, null])
   })
 })

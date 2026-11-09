@@ -16,7 +16,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
-  - [UI-6 Workout mode: the big stepper and the exercise menu](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu)
+  - [UI-7 Profile: the workout preferences](#ui-7-profile-the-workout-preferences)
 - [FEAT](#feat)
   - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
   - [FEAT-5 New records during a workout](#feat-5-new-records-during-a-workout)
@@ -60,7 +60,7 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 1. The exercise library: its API, import, translation and screens are done; left are its admin screen, where translations are reviewed, and its media ([BE-1](#be-1-exercise-library-api-and-admin))
 2. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
 
-The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
+The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [FEAT-5](#feat-5-new-records-during-a-workout) (live records) and [UI-7](#ui-7-profile-the-workout-preferences) (its preferences on Profile). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
 
 ## OPS
 
@@ -127,19 +127,17 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Recommended.** B: it reuses the editor, its draft and its rules, and the user sees the result before saving.
 
-### UI-6 Workout mode: the big stepper and the exercise menu
+### UI-7 Profile: the workout preferences
 
-**Priority:** medium · **Kind:** missing interaction · **Found:** 2026-11-07
+**Priority:** medium · **Kind:** missing screen · **Found:** 2026-11-09
 
-**What is missing.** Two parts of [D1.4.9](../design/D1-ui.md#d149-workout-mode) that workout mode ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)) leaves out:
-- **The stepper:** a tap on a set's weight or reps opens a large control with ±2.5 kg (the step is a setting, `weight_step`) and ±1 rep. Today the fields are typed with the phone's keyboard, which is slow with sweaty hands.
-- **The exercise menu:** swap the exercise (with alternatives for the same muscle), skip it, add a note, watch the video. Today an exercise is skipped by not ticking its sets; swapping is not possible.
+**What is missing.** [D1.4.14](../design/D1-ui.md#d1414-profile-and-settings) lists the preferences that workout mode reads: the unit (kg or lb), the default rest, the stepper's weight step, the timer's sound and vibration. They are columns of `users` with their defaults ([D3](../design/D3-data-model.md)), sent by `GET /api/user`, but Profile changes only the language and the theme: someone who trains in pounds, or loads plates of 1.25 kg, cannot say so.
 
 **Options.**
-- A) The stepper as a bottom sheet (Radix Dialog at the bottom), opened by the field; the menu as a "⋯" button beside the exercise's name, the swap reusing `ExercisePicker` filtered by the exercise's main muscle.
-- B) Steppers always visible, − and + beside each field: no extra tap, but a row too wide for a phone.
+- A) Rows on Profile, each saved on change like the language (a select for the unit, a number for the rest and the step, two switches), through the endpoint that already saves the language and the theme, extended with its validation.
+- B) A separate "Workout" settings page.
 
-**Recommended.** A, the stepper first: it is used on every set. The swap needs a new action in the reducer (`swapExercise`), which keeps the sets' values and empties `last`; a note goes in the exercise's `notes`, which the API already accepts.
+**Recommended.** A: five rows fit the page's settings list, and the endpoint and its pattern exist. Changing the unit converts nothing: weights are kept in kilograms ([D3.2.3](../design/D3-data-model.md#d323-weights-are-always-in-kilograms)).
 
 ## FEAT
 
@@ -149,7 +147,7 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Done:**
 - the three tables and the API: saving a whole workout sent by the phone, late and twice, listing and reading with totals, deleting, the sets of last time, and Home's data with the suggested day (`feat/workout-api`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints), [H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built));
-- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode), [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built)). Its refinements are in [UI-6](#ui-6-workout-mode-the-big-stepper-and-the-exercise-menu) and [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end came with FEAT-4 ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history));
+- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode), [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built)). The big stepper and the exercise menu came with UI-6 ([C1.17.7](../concepts/C1-frontend.md#c1177-the-big-stepper-and-the-exercises-menu)); live records wait in [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end came with FEAT-4 ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history));
 - Home: the active plan's card with the suggested day, Start and a chip per day, the banner with Resume, Free workout (with Add exercises in workout mode), the week strip and its numbers (`feat/home`, [C1.18](../concepts/C1-frontend.md#c118-home), [H3.16](../how-to/H3-frontend.md#h316-home-as-built)). The recent records wait for Progress (phase 2).
 
 **What is missing.** One part, on its own branch:
