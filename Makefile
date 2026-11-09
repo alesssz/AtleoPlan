@@ -11,7 +11,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore exercises-import exercises-translate plans-demo \
+        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-translate plans-demo \
         dev fe-install fe-build \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit toc toc-check \
         branch sync push merge
@@ -41,7 +41,9 @@ doctor: ## Check this computer and clone (Docker, disk, Node, npm cache, Git ide
 #   crashes and keeps restarting until the packages arrive.
 # - The key is generated only when empty, because replacing it would invalidate
 #   existing sessions. grep -q tests the file and prints nothing: it holds secrets.
-setup: ## New clone: Git hook, backend/.env and its key, image, Composer and npm packages, containers, test database, migrations
+# - The fixed lists (muscles, equipment) come right after the migrations: the
+#   app and the exercise import both need them (reference-data below).
+setup: ## New clone, or after a pull: Git hook, backend/.env and its key, image, packages, containers, test database, migrations, muscles and equipment
 	git config core.hooksPath .githooks
 	test -f backend/.env || cp backend/.env.example backend/.env
 	$(DC) build
@@ -51,6 +53,7 @@ setup: ## New clone: Git hook, backend/.env and its key, image, Composer and npm
 	$(NPM) install
 	$(MAKE) --no-print-directory test-db
 	$(ARTISAN) migrate
+	$(MAKE) --no-print-directory reference-data
 	# public/storage → storage/app/public: the web server can then serve the
 	# photos, at /storage/… (docs/how-to/H3-frontend.md H3.12)
 	$(ARTISAN) storage:link
@@ -150,8 +153,17 @@ FREE_EXERCISE_DB := backend/storage/app/free-exercise-db
 # kept in backend/database/data/exercise-translations (docs/how-to/H1-database.md
 # H1.14). A language an exercise already has is kept, so running both again
 # never undoes a correction made by hand.
+# The muscles and the equipment, the fixed lists every exercise points to
+# (docs/design/D3-data-model.md D3.4.1). Their seeders use updateOrCreate(),
+# so running them again changes nothing: setup and exercises-import call this
+# every time, and a database emptied without --seed is covered too.
+reference-data: ## Muscles and equipment, the lists the library points to; safe to run again (setup and exercises-import do it)
+	$(ARTISAN) db:seed --class=MuscleSeeder
+	$(ARTISAN) db:seed --class=EquipmentSeeder
+
 exercises-import: ## Fill the public exercise library from free-exercise-db (downloads it the first time), then translate it: make exercises-import o="--limit=5"
 	@test -d $(FREE_EXERCISE_DB) || git clone --depth 1 https://github.com/yuhonas/free-exercise-db.git $(FREE_EXERCISE_DB)
+	$(MAKE) --no-print-directory reference-data
 	$(ARTISAN) exercises:import $(o)
 	$(ARTISAN) exercises:translate
 
