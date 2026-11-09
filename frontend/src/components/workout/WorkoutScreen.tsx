@@ -17,6 +17,10 @@
  * Exercises can be added on the way (Add exercises, the plan editor's
  * picker): in any workout, and in a free workout (Home), which starts with
  * none and shows only that until the first is added.
+ *
+ * Two panels from the bottom (UI-6): the big stepper, opened by a tap on a
+ * set's value (SetStepper.tsx), and the exercise's menu, behind the "⋯"
+ * beside its name (ExerciseMenu.tsx): swap, skip, a note, the video.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Dumbbell, Link2, ListPlus, Plus, X } from 'lucide-react'
@@ -39,9 +43,20 @@ import { RestBar } from './RestBar'
 import { finishWorkout } from './finish-workout'
 import { FinishButton } from './FinishButton'
 import { storeActiveSession } from './session-storage'
+import { ExerciseMenu } from './ExerciseMenu'
 import { SetHeader, SetRow } from './SetRow'
+import { SetStepper } from './SetStepper'
 import { FALLBACK_REST_SECONDS } from './useStartWorkout'
-import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, supersetNext, supersetOf, workoutReducer, type ActiveSession } from './workout-session'
+import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, workoutReducer, type ActiveSession, type SetField } from './workout-session'
+
+/**
+ * The one touch the two "add" buttons, Add set and Add exercises, have
+ * beyond the app's outlined buttons: a lime ＋, the signal that something
+ * can be added. `[&_svg]:` styles the elements inside, here the icon.
+ * Otherwise they are the standard outline buttons, as Previous and Next,
+ * for a coherent screen (docs/how-to/H3-frontend.md H3.20.7).
+ */
+const ADD_ICON = '[&_svg]:text-primary'
 
 /** Props of WorkoutScreen. */
 interface WorkoutScreenProps {
@@ -69,6 +84,13 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const [announce, setAnnounce] = useState('')
   // True while Finish is sending
   const [finishing, setFinishing] = useState(false)
+  // The big stepper: whether it is open, and on which set and field of the
+  // exercise on screen. Kept apart, so the panel keeps its content while it
+  // slides away
+  const [stepperOpen, setStepperOpen] = useState(false)
+  const [stepping, setStepping] = useState<{ set: number, field: SetField }>({ set: 0, field: 'weight' })
+  // The picker of Swap exercise, opened from the exercise's menu
+  const [swapOpen, setSwapOpen] = useState(false)
 
   // The screen stays on (Wake Lock API) for the whole workout
   useWakeLock(true)
@@ -133,6 +155,9 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const wide = finishTime || supersetTarget !== null
   // A free workout with no exercise yet: the screen shows only how to add one
   const empty = total === 0
+  // The name of the set in the stepper: "Set 1", "Warm-up 2"
+  const stepNumber = numbers[stepping.set]
+  const stepName = stepNumber?.warmUp ? t('workout.warmUpName', { number: stepNumber.number }) : t('workout.setName', { number: stepNumber?.number ?? stepping.set + 1 })
   // The settings an added exercise needs
   const addOptions = { unit, language: i18n.language, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS }
 
@@ -145,6 +170,18 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
     // Last time's sets of these exercises; an empty list offline
     const lastSets = await fetchLastSets(exercises.map(exercise => exercise.id)).catch(() => [])
     dispatch({ type: 'addExercises', exercises: exercises.map(exercise => exerciseFrom(exercise, lastSets, addOptions)) })
+  }
+
+  /**
+   * Swap, from the exercise's menu: the exercise on screen gives its place
+   * to the one picked, with that one's sets of last time (none offline).
+   * @param exercise the exercise picked
+   */
+  async function swap(exercise: Exercise) {
+    if (!item) return
+    // Last time's sets of the new exercise; an empty list offline
+    const lastSets = await fetchLastSets([exercise.id]).catch(() => [])
+    dispatch({ type: 'swapExercise', exercise: index, replacement: swappedExercise(item, exercise, lastSets, addOptions) })
   }
 
   /** Cancel, on an empty free workout: nothing was done, so nothing is kept. */
@@ -219,38 +256,61 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
             </div>
           )}
 
-          {/* Where we are: a dot per exercise, each a button to jump to it */}
+          {/* Where we are: a dot per exercise, each a button to jump to it,
+              and on the right of the row "＋ Add exercises" (the
+              library's picker, as in the plan editor:
+              src/components/plans/editor/ExercisePicker.tsx). The dots are
+              the workout's exercises, so adding one belongs beside them:
+              rare in a planned day, out of the way up here, yet
+              always at hand (a free workout's first exercises come from
+              the big lime button instead, above) */}
           {!empty && (
             <nav aria-label={t('workout.exerciseOf', { number: index + 1, total })} className="mb-5">
-              <ol className="mb-2 flex flex-wrap gap-1.5">
-                {session.exercises.map((exercise, position) => (
-                  <li key={exercise.id}>
-                    <button
-                      type="button"
-                      aria-label={t('workout.jumpTo', { number: position + 1, name: exercise.exercise.name })}
-                      // aria-current="step": the step being done, for screen readers
-                      aria-current={position === index ? 'step' : undefined}
-                      onClick={() => dispatch({ type: 'goTo', exercise: position })}
-                      className={cn(
-                        'size-3 rounded-full',
-                        position === index ? 'bg-primary ring-2 ring-primary/40' : exercise.sets.some(set => set.done) ? 'bg-primary/60' : 'bg-muted',
-                      )}
-                    />
-                  </li>
-                ))}
-              </ol>
+              <div className="mb-2 flex items-center gap-3">
+                <ol className="flex flex-wrap gap-1.5">
+                  {session.exercises.map((exercise, position) => (
+                    <li key={exercise.id}>
+                      <button
+                        type="button"
+                        aria-label={exercise.skipped ? t('workout.jumpToSkipped', { number: position + 1, name: exercise.exercise.name }) : t('workout.jumpTo', { number: position + 1, name: exercise.exercise.name })}
+                        // aria-current="step": the step being done, for screen readers
+                        aria-current={position === index ? 'step' : undefined}
+                        onClick={() => dispatch({ type: 'goTo', exercise: position })}
+                        className={cn(
+                          'size-3 rounded-full',
+                          // On screen; with a set done; skipped (greyer); not yet
+                          position === index ? 'bg-primary ring-2 ring-primary/40' : exercise.sets.some(set => set.done) ? 'bg-primary/60' : exercise.skipped ? 'bg-muted-foreground/30' : 'bg-muted',
+                        )}
+                      />
+                    </li>
+                  ))}
+                </ol>
+                {/* On the right of the row (ml-auto), with its words: a ＋
+                    alone was not understood. The same outlined button as
+                    Add set */}
+                <ExercisePicker
+                  trigger={(
+                    <Button variant="outline" size="xl" className={cn('ml-auto px-4', ADD_ICON)}>
+                      <Plus aria-hidden="true" />
+                      {t('workout.addExercises')}
+                    </Button>
+                  )}
+                  onAdd={exercises => void addExercises(exercises)}
+                />
+              </div>
               <p className="text-sm text-muted-foreground">{t('workout.exerciseOf', { number: index + 1, total })}</p>
             </nav>
           )}
 
           {item && (
             <section aria-labelledby="exercise-name">
-              {/* The exercise: photo, name, what was planned, the plan's notes */}
+              {/* The exercise: photo, name, what was planned, the plan's
+                  notes, the user's own note, and its menu (⋯) on the right */}
               <div className="mb-6 flex gap-4">
                 {cover
                   ? <img src={cover.url} alt="" className="size-20 shrink-0 rounded-2xl bg-muted object-cover" />
                   : <div aria-hidden="true" className="grid size-20 shrink-0 place-items-center rounded-2xl bg-muted"><Dumbbell className="size-7 text-muted-foreground" /></div>}
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h2 id="exercise-name" className="font-heading text-xl font-extrabold">{item.exercise.name}</h2>
                   {item.plan_item && (
                     <p className="text-sm text-muted-foreground tabular-nums">
@@ -258,6 +318,13 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                     </p>
                   )}
                   {item.plan_item?.notes && <p className="mt-1 text-sm italic">{item.plan_item.notes}</p>}
+                  {/* The note written from the menu, today */}
+                  {item.notes && (
+                    <p className="mt-1 text-sm">
+                      <span className="font-semibold">{`${t('workout.yourNote')}: `}</span>
+                      {item.notes}
+                    </p>
+                  )}
                   {/* In a superset: its exercises, in turn. It says why
                       Next, at the bottom, names another exercise */}
                   {superset.length > 1 && (
@@ -267,11 +334,28 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                     </p>
                   )}
                 </div>
+                <ExerciseMenu
+                  item={item}
+                  onSwap={() => setSwapOpen(true)}
+                  onSkip={skipped => dispatch({ type: 'skipExercise', exercise: index, skipped })}
+                  onSaveNote={notes => dispatch({ type: 'setNote', exercise: index, notes })}
+                />
               </div>
+
+              {/* Skipped: said above the sets, with the way back. The sets
+                  stay, dimmed: ticking one takes the skip back too */}
+              {item.skipped && (
+                <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl bg-muted/50 p-3">
+                  <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">{t('workout.skippedText')}</p>
+                  <Button variant="outline" size="xl" onClick={() => dispatch({ type: 'skipExercise', exercise: index, skipped: false })}>
+                    {t('workout.unskip')}
+                  </Button>
+                </div>
+              )}
 
               {/* The sets: the column titles, then a row each */}
               <SetHeader loggingType={item.exercise.logging_type} unit={unit} />
-              <ol className="flex flex-col gap-2 sm:gap-3">
+              <ol className={cn('flex flex-col gap-2 sm:gap-3', item.skipped && 'opacity-60')}>
                 {item.sets.map((set, position) => (
                   <SetRow
                     key={set.id}
@@ -280,30 +364,38 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                     loggingType={item.exercise.logging_type}
                     unit={unit}
                     onToggle={() => dispatch({ type: 'toggleSet', exercise: index, set: position, now: new Date().toISOString() })}
-                    onChange={(field, value) => dispatch({ type: 'setField', exercise: index, set: position, field, value })}
+                    onOpenStepper={(field) => {
+                      setStepping({ set: position, field })
+                      setStepperOpen(true)
+                    }}
                     onCycleType={() => dispatch({ type: 'cycleSetType', exercise: index, set: position })}
                   />
                 ))}
               </ol>
-              {/* Outlined and 48 px tall, like the plan editor's Add set */}
-              {/* Add set, and Add exercises: the library's picker, as in the
-                  plan editor (src/components/plans/editor/ExercisePicker.tsx).
-                  flex-wrap: on a narrow phone the second goes under the first */}
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Button variant="outline" size="xl" onClick={() => dispatch({ type: 'addSet', exercise: index })}>
-                  <Plus aria-hidden="true" />
-                  {t('plans.editor.addSet')}
-                </Button>
-                <ExercisePicker
-                  trigger={(
-                    <Button variant="outline" size="xl">
-                      <ListPlus aria-hidden="true" />
-                      {t('workout.addExercises')}
-                    </Button>
-                  )}
-                  onAdd={exercises => void addExercises(exercises)}
-                />
-              </div>
+              {/* The big stepper of the set tapped, one for the screen */}
+              <SetStepper
+                open={stepperOpen}
+                onOpenChange={setStepperOpen}
+                set={item.sets[stepping.set]}
+                name={stepName}
+                exerciseName={item.exercise.name}
+                loggingType={item.exercise.logging_type}
+                unit={unit}
+                weightStep={user?.weight_step}
+                focus={stepping.field}
+                onChange={(field, value) => dispatch({ type: 'setField', exercise: index, set: stepping.set, field, value })}
+              />
+              {/* Swap exercise's picker: opened by the menu, one tap picks */}
+              <ExercisePicker open={swapOpen} onOpenChange={setSwapOpen} replacing={item.exercise} onAdd={exercises => void (exercises[0] && swap(exercises[0]))} />
+              {/* Add set: the row closing the table, as in D1.4.9's
+                  drawing, for the set more than planned (a good day, a
+                  back-off set). An outlined button as wide as the rows, as
+                  the app's other secondary actions, with a lime ＋.
+                  The new set copies the last one's values */}
+              <Button variant="outline" size="xl" onClick={() => dispatch({ type: 'addSet', exercise: index })} className={cn('mt-2 w-full sm:mt-3', ADD_ICON)}>
+                <Plus aria-hidden="true" />
+                {t('plans.editor.addSet')}
+              </Button>
             </section>
           )}
 

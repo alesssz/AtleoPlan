@@ -5,12 +5,19 @@
  * box. "Add (n)" puts the ticked ones in the day, in the order they were
  * ticked.
  *
+ * Workout mode uses it twice: Add exercises, as here, and **Swap exercise**
+ * from the exercise's menu (UI-6), where `replacing` turns it into a
+ * one-tap choice: no tick boxes and no Add, a tap on a row picks it, and the
+ * list starts filtered by the replaced exercise's main muscle, with a chip
+ * to show every muscle. That window is opened by the menu, not by a
+ * button of its own: `open` and `onOpenChange` let the screen control it.
+ *
  * It reads the library with the same hook as the Exercises page,
  * useExercises() (src/api/exercises.ts), so a search typed here and one typed
  * there share the cache. The window is shadcn/ui's Dialog
  * (src/components/ui/dialog.tsx).
  */
-import { Dumbbell, Search } from 'lucide-react'
+import { Dumbbell, Search, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useExercises, type Exercise } from '@/api/exercises'
@@ -26,46 +33,60 @@ const SEARCH_DELAY_MS = 300
 
 /** Props of ExercisePicker. */
 interface ExercisePickerProps {
-  /** The button that opens it, drawn by the day. */
-  trigger: ReactNode
+  /** The button that opens it, drawn by the day; none when `open` is given. */
+  trigger?: ReactNode
+  /** Open or closed, when the caller controls it; left out, the picker does. */
+  open?: boolean
+  /** Called when the window opens or closes, with `open`. */
+  onOpenChange?: (open: boolean) => void
   /** True when the day is full: the window does not open. */
   disabled?: boolean
-  /** Called with the ticked exercises, in the order they were ticked. */
+  /**
+   * The exercise being swapped, in workout mode: one tap picks one, the
+   * list starts filtered by its main muscle, and it is left out of the list.
+   */
+  replacing?: Exercise
+  /** Called with the ticked exercises, in the order they were ticked; one when swapping. */
   onAdd: (exercises: Exercise[]) => void
 }
 
 /** The button, and the window it opens. */
-export function ExercisePicker({ trigger, disabled = false, onAdd }: ExercisePickerProps) {
+export function ExercisePicker({ trigger, open: openProp, onOpenChange, disabled = false, replacing, onAdd }: ExercisePickerProps) {
   const { t } = useTranslation()
-  // Whether the window is open, controlled here so that "Add" can close it
-  const [open, setOpen] = useState(false)
+  // Whether the window is open, kept here unless the caller passes `open`
+  // ("controlled"): `??` takes the caller's when there is one
+  const [ownOpen, setOwnOpen] = useState(false)
+  const open = openProp ?? ownOpen
 
   /**
    * Opens or closes the window.
    * @param next true to open
    */
   function change(next: boolean) {
-    if (!disabled) setOpen(next)
+    if (disabled) return
+    setOwnOpen(next)
+    onOpenChange?.(next)
   }
 
   return (
     <Dialog open={open} onOpenChange={change}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       {/* sm:max-w-lg: wider than shadcn's default on a computer.
           max-h and the flex column: the list scrolls inside the window,
           and the Add button stays in sight */}
       <DialogContent closeLabel={t('common.close')} className="flex max-h-[85vh] flex-col gap-4 sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-heading text-xl font-extrabold">{t('plans.editor.picker.title')}</DialogTitle>
-          <DialogDescription>{t('plans.editor.picker.description')}</DialogDescription>
+          <DialogTitle className="font-heading text-xl font-extrabold">{replacing ? t('workout.swapTitle') : t('plans.editor.picker.title')}</DialogTitle>
+          <DialogDescription>{replacing ? t('workout.swapText', { name: replacing.name }) : t('plans.editor.picker.description')}</DialogDescription>
         </DialogHeader>
         {/* The content is drawn only while open: closing forgets the
             search and the ticks, so the next opening starts afresh */}
         {open && (
           <PickerBody
+            replacing={replacing}
             onAdd={(exercises) => {
               onAdd(exercises)
-              setOpen(false)
+              change(false)
             }}
           />
         )}
@@ -76,20 +97,27 @@ export function ExercisePicker({ trigger, disabled = false, onAdd }: ExercisePic
 
 /** Props of PickerBody. */
 interface PickerBodyProps {
-  /** Called with the ticked exercises. */
+  /** The exercise being swapped; undefined when adding. */
+  replacing?: Exercise
+  /** Called with the ticked exercises, or the one tapped when swapping. */
   onAdd: (exercises: Exercise[]) => void
 }
 
 /** The search, the list with its tick boxes, and the Add button. */
-function PickerBody({ onAdd }: PickerBodyProps) {
+function PickerBody({ replacing, onAdd }: PickerBodyProps) {
   const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
   // The ticked exercises, in the order they were ticked
   const [chosen, setChosen] = useState<Exercise[]>([])
+  // Swapping: the replaced exercise's first main muscle, the filter the
+  // list starts with; the chip turns it off and on
+  const muscle = replacing?.muscles.find(candidate => candidate.role === 'primary')
+  const [sameMuscle, setSameMuscle] = useState(muscle !== undefined)
   const debounced = useDebouncedValue(search, SEARCH_DELAY_MS)
-  const list = useExercises({ search: debounced }, i18n.language)
-  // Every exercise read so far, the pages one after the other
-  const exercises = list.data?.pages.flatMap(page => page.data) ?? []
+  const list = useExercises({ search: debounced, muscle: sameMuscle ? muscle?.slug : undefined }, i18n.language)
+  // Every exercise read so far, the pages one after the other; the one
+  // being swapped left out
+  const exercises = (list.data?.pages.flatMap(page => page.data) ?? []).filter(exercise => exercise.id !== replacing?.id)
 
   /**
    * Ticks or unticks an exercise.
@@ -115,6 +143,15 @@ function PickerBody({ onAdd }: PickerBodyProps) {
         />
       </div>
 
+      {/* Swapping: the muscle filter, as a chip. aria-pressed says whether
+          it is on; pressed, its X says it can be taken off */}
+      {muscle && (
+        <Button variant={sameMuscle ? 'secondary' : 'outline'} aria-pressed={sameMuscle} onClick={() => setSameMuscle(!sameMuscle)} className="self-start rounded-full">
+          {t('workout.sameMuscle', { muscle: muscle.name })}
+          {sameMuscle && <X aria-hidden="true" />}
+        </Button>
+      )}
+
       {/* The list scrolls; min-h-0 lets it shrink inside the flex column */}
       <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
         {list.isPending && (
@@ -132,16 +169,27 @@ function PickerBody({ onAdd }: PickerBodyProps) {
             const ticked = chosen.some(other => other.id === exercise.id)
             return (
               <li key={exercise.id}>
-                {/* The whole row is the tick box's label: a tap anywhere on
+                {/* Swapping: the row is a button, and a tap picks it */}
+                {replacing && (
+                  <button type="button" onClick={() => onAdd([exercise])} className="flex min-h-14 w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-muted">
+                    {cover
+                      ? <img src={cover.url} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-muted object-cover" />
+                      : <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted"><Dumbbell className="size-4 text-muted-foreground" /></span>}
+                    <span className="min-w-0 flex-1 truncate font-semibold">{exercise.name}</span>
+                  </button>
+                )}
+                {/* Adding: the whole row is the tick box's label: a tap anywhere on
                     it ticks. Radix's Checkbox is a button, so the label
                     names it for screen readers too */}
-                <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl p-2 hover:bg-muted">
-                  <Checkbox checked={ticked} onCheckedChange={value => toggle(exercise, value === true)} aria-label={t('plans.editor.picker.choose', { name: exercise.name })} className="size-5" />
-                  {cover
-                    ? <img src={cover.url} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-muted object-cover" />
-                    : <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted"><Dumbbell className="size-4 text-muted-foreground" /></span>}
-                  <span className="min-w-0 flex-1 truncate font-semibold">{exercise.name}</span>
-                </label>
+                {!replacing && (
+                  <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl p-2 hover:bg-muted">
+                    <Checkbox checked={ticked} onCheckedChange={value => toggle(exercise, value === true)} aria-label={t('plans.editor.picker.choose', { name: exercise.name })} className="size-5" />
+                    {cover
+                      ? <img src={cover.url} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-muted object-cover" />
+                      : <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted"><Dumbbell className="size-4 text-muted-foreground" /></span>}
+                    <span className="min-w-0 flex-1 truncate font-semibold">{exercise.name}</span>
+                  </label>
+                )}
               </li>
             )
           })}
@@ -154,11 +202,14 @@ function PickerBody({ onAdd }: PickerBodyProps) {
         )}
       </div>
 
-      <DialogFooter>
-        <Button size="xl" disabled={chosen.length === 0} onClick={() => onAdd(chosen)}>
-          {t('plans.editor.picker.add', { number: chosen.length })}
-        </Button>
-      </DialogFooter>
+      {/* Add (n), when adding; swapping needs none, a tap is enough */}
+      {!replacing && (
+        <DialogFooter>
+          <Button size="xl" disabled={chosen.length === 0} onClick={() => onAdd(chosen)}>
+            {t('plans.editor.picker.add', { number: chosen.length })}
+          </Button>
+        </DialogFooter>
+      )}
     </>
   )
 }

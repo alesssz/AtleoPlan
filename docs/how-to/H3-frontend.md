@@ -97,6 +97,15 @@
   - [H3.18.4 Three broken links, and checking them all](#h3184-three-broken-links-and-checking-them-all)
   - [H3.18.5 The checks](#h3185-the-checks)
 - [H3.19 The logo, as built](#h319-the-logo-as-built)
+- [H3.20 The stepper and the exercise menu, as built](#h320-the-stepper-and-the-exercise-menu-as-built)
+  - [H3.20.1 The order of building](#h3201-the-order-of-building)
+  - [H3.20.2 The panel: shadcn's Sheet](#h3202-the-panel-shadcns-sheet)
+  - [H3.20.3 The files](#h3203-the-files)
+  - [H3.20.4 The errors met](#h3204-the-errors-met)
+  - [H3.20.5 The tests, proving they can fail](#h3205-the-tests-proving-they-can-fail)
+  - [H3.20.6 Looking at it at a phone's width](#h3206-looking-at-it-at-a-phones-width)
+  - [H3.20.7 Second to sixth pass: Add set and Add exercises out of the way, not out of sight](#h3207-second-to-sixth-pass-add-set-and-add-exercises-out-of-the-way-not-out-of-sight)
+  - [H3.20.8 The checks](#h3208-the-checks)
 
 ---
 
@@ -697,6 +706,8 @@ npx eslint src/components/ui/badge.tsx
 | `Port 5673 is already in use` | Another `make dev` is still running | Close it; Vite never picks another port (`strictPort`) |
 | Lint errors after `shadcn add` | The copied file has shadcn's style | `make fix` ([H3.9](#h39-a-shadcnui-component)) |
 | `shadcn add` stops at `Would you like to overwrite?` | The component depends on one we changed, such as `button.tsx` | Add it alone and answer no: `printf 'n\n' \| npx shadcn add name` ([H3.12.2](#h3122-five-shadcnui-components)) |
+| `Fast refresh only works when a file only exports components` | A function or constant exported from a component's file | Move it to a `.ts` file of its own ([H3.20.4](#h3204-the-errors-met)) |
+| A test on a request's address does not find `filter[muscle]=…` | `URLSearchParams` escapes the brackets: `filter%5Bmuscle%5D` | Compare with `decodeURIComponent(path)` ([H3.20.4](#h3204-the-errors-met)) |
 | `ResizeObserver is not defined` in a test | A Radix component measures itself; jsdom has no `ResizeObserver` | `src/test/setup.ts` gives one ([H3.12.5](#h3125-the-tests-and-the-errors-met)) |
 | `"undefined" is not valid JSON` from `sentBody` | No call to that path sent a body | Check the path, and that the request was sent before reading it |
 | Photos do not load, 404 on `/storage/…` | No `public/storage` link on this computer | `make artisan c="storage:link"` ([H3.12.1](#h3121-the-photos-reach-the-browser)) |
@@ -2612,6 +2623,167 @@ The placeholder "A" on a lime tile became the chosen logo ([D1.5](../design/D1-u
 **Checking it:** `npm run dev`, then the sidebar (36 px), the phone's top bar (28 px, DevTools' device mode), the sign-in page (40 px) and the tab. Browsers cache the tab's icon hard: if the old icon stays, a hard reload (Cmd+Shift+R) or a new tab shows the new one.
 
 **Not here yet:** the icons of the installed app (PNG at 192 and 512 px, and the Apple touch icon) come with the PWA (FEAT-3), drawn from `mark-lime.svg`; the admin panel keeps Filament's own look.
+
+---
+
+## H3.20 The stepper and the exercise menu, as built
+
+UI-6 (`feat/workout-stepper`), the last two pieces of workout mode's screen in [D1.4.9](../design/D1-ui.md#d149-workout-mode): a tap on a set's value opens a big stepper from the bottom, and a "⋯" beside the exercise's name opens its menu (swap, skip, a note, the video). How they work: [C1.17.7](../concepts/C1-frontend.md#c1177-the-big-stepper-and-the-exercises-menu). How they were built, by hand:
+
+### H3.20.1 The order of building
+
+1. **The arithmetic first, with no React** (`stepper.ts` and its test): the step of each field, the next value after a tap. The rules are easier to get right in a function of four arguments than in a panel.
+2. **The reducer's three actions** (`swapExercise`, `skipExercise`, `setNote`, with `swappedExercise()` and `hasWorkLeft()` in `workout-session.ts`) and their tests.
+3. **The panel component** from shadcn/ui, then `SetStepper`, `ExerciseMenu` and the picker's swap mode.
+4. **Wiring** in `WorkoutScreen`, the translations in four languages, the page's tests.
+5. **Looking at it** at a phone's width, then the docs.
+
+### H3.20.2 The panel: shadcn's Sheet
+
+In `frontend/`. A drop-down menu was added in the same command, for the "⋯", and removed later (below):
+
+```sh
+printf 'n\nn\n' | npx shadcn@latest add sheet dropdown-menu
+```
+
+```
+✔ Checking registry.
+✔ The file button.tsx already exists. Would you like to overwrite? … no
+✔ Created 2 files:
+  - src/components/ui/dropdown-menu.tsx
+  - src/components/ui/sheet.tsx
+ℹ Skipped 1 file: (files might be identical, use --overwrite to overwrite)
+  - src/components/ui/button.tsx
+```
+
+`printf 'n\n…' |` answers no to overwriting our `button.tsx` ([H3.9](#h39-a-shadcnui-component)). No npm package is added: both are built on Radix, already installed as the single `radix-ui` package. Then `sheet.tsx` was brought to our style, as `dialog.tsx` was ([H3.14.2](#h3142-the-dialog-component)): the comments, single quotes, and a `closeLabel` prop for the X's hidden text, which shadcn writes as the English word "Close".
+
+**The drop-down, removed.** Its rows are 28 px tall, small text: fine with a mouse, thin for a thumb between two sets. The menu became a Sheet too, with 48 px rows; `rm src/components/ui/dropdown-menu.tsx`. One kind of panel for both.
+
+### H3.20.3 The files
+
+| File | What |
+|---|---|
+| `components/workout/stepper.ts`, `stepper.test.ts` | `fieldStep()`, `stepValue()`: the steps and the next value |
+| `components/workout/set-fields.ts` | `fieldsFor()`, moved out of `SetRow.tsx` (below): the fields of a set, for the rows, their titles and the stepper |
+| `components/workout/SetStepper.tsx` | The stepper's panel |
+| `components/workout/ExerciseMenu.tsx` | The "⋯" and its panel |
+| `components/workout/workout-session.ts`, its test | `notes` and `skipped` on an exercise; `swappedExercise()`, `hasWorkLeft()`; the three actions; `toSessionInput()` sends the note |
+| `components/workout/SetRow.tsx` | The fields become buttons that open the stepper |
+| `components/workout/WorkoutScreen.tsx` | The two panels, the swap picker, the note under the name, the skipped box, the dots |
+| `components/plans/editor/ExercisePicker.tsx` | `open` / `onOpenChange` (controlled), and `replacing`: one tap, the muscle filter |
+| `components/ui/sheet.tsx` | The panel |
+| `i18n/locales/*.json` | 24 texts under `workout`, in four languages |
+| `pages/WorkoutPage.test.tsx` | Three tests updated, two new |
+
+### H3.20.4 The errors met
+
+**A test that passed without the code.** The first `stepValue()` rounded the weight to two decimals, and a test checked it: `0.1 + 0.2` must read `0.3`. With the rounding taken out on purpose, to see the test fail, it still passed: `formatNumber(value, language, { maximumFractionDigits: 2 })` already rounds when it writes the number. The rounding was dead code, and the test was testing `Intl`. The line went; what rounding is really needed for, reps typed as `8,5`, got its own test, which fails without it:
+
+```
+ FAIL  src/components/workout/stepper.test.ts > stepValue > keeps reps, seconds and meters whole
+AssertionError: expected '9,5' to be '10' // Object.is equality
+      Tests  1 failed | 7 passed (8)
+```
+
+**A function exported from a component's file.** `SetStepper` needs the same fields as the row, so `fieldsFor()` was exported from `SetRow.tsx`:
+
+```
+/…/frontend/src/components/workout/SetRow.tsx
+  50:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+```
+
+Vite's Fast Refresh updates an edited component in the page without losing its state, but only for files that export components alone. `fieldsFor()` moved to `set-fields.ts`, imported by both.
+
+**Indentation.** The picker's rows, wrapped in `{!replacing && ( … )}`, kept their old indentation: seven `@stylistic/indent` errors, all fixed by `npx eslint --fix src` (`make fix`).
+
+**The page's tests looked for text boxes.** The fields became buttons, so three tests broke as they should:
+
+```
+TestingLibraryElementError: Unable to find a label with the text of: Warm-up 2, kg
+```
+
+They now look for the buttons by their names, value included (`getByRole('button', { name: 'Set 1, kg: 80' })`), and type in the stepper's box, which kept the old name (`Set 1, Reps`).
+
+**The muscle in the address.** The new test checked that the swap picker asked for `muscle=chest`, and failed (`expected false to be true`). The list's filter is sent as `filter[muscle]=chest` (`exerciseListQuery()` in `api/exercises.ts`, [C1.14.3](../concepts/C1-frontend.md#c1143-filters-in-the-address)), and `URLSearchParams` writes the brackets escaped: `filter%5Bmuscle%5D=chest`. The test reads the address through `decodeURIComponent()` first.
+
+### H3.20.5 The tests, proving they can fail
+
+```sh
+npx vitest run src/components/workout/stepper.test.ts
+npx vitest run src/components/workout/workout-session.test.ts
+npx vitest run src/pages/WorkoutPage.test.tsx
+```
+
+```
+      Tests  8 passed (8)
+      Tests  23 passed (23)
+      Tests  12 passed (12)
+```
+
+Two rules broken on purpose in `workout-session.ts`, the plan's weight kept in a swap and the skip ignored by `hasWorkLeft()`, then the file restored:
+
+```
+ FAIL  … > the exercise's menu: swap, skip, note > swaps an exercise: same place, sets and types; values from its own last time
+ FAIL  … > the exercise's menu: swap, skip, note > skips an exercise: the next opens, and its sets are no longer work left
+ FAIL  … > the exercise's menu: swap, skip, note > in a superset, a skipped exercise ends the round
+      Tests  3 failed | 20 passed (23)
+```
+
+### H3.20.6 Looking at it at a phone's width
+
+Without a phone at hand, a throw-away page drew `WorkoutScreen` with a workout and a user put straight into the cache (`queryClient.setQueryData(authKeys.user, …)`), in Italian, and clicked "Serie 1, kg" or "Opzioni per…" by itself after drawing (`document.querySelector(…).click()` in a `setTimeout`). Built with `npx vite build --config preview-tmp/vite.config.ts` and photographed with headless Chrome, as in [H3.15.10](#h31510-fourth-pass-looking-at-the-screen-for-real); deleted afterwards. Two things learnt:
+
+- **Tailwind looks for class names under Vite's root.** With the page's own folder as the root, the build had no classes at all and the screen was bare text. The root must be `frontend/`, with the page given as the build's input (`build.rolldownOptions.input`).
+- **Headless Chrome will not make its window narrower than about 500 px:** a 390 px window gave a page wider than the photo. The page, inside an `<iframe width="390">`, is drawn at a phone's width.
+
+What the photos showed: the values as buttons, the "⋯" beside the name, the stepper with `−2,5` / `+2,5` and `−1` / `+1` and last time's set under the title, the menu's three rows (no video: the test exercise has none), the skipped box. One change came of it: **Do it after all** was a small button, now 48 px like the screen's others.
+
+**In the browser,** `make start`, signed in, a plan's day started:
+
+- tap a weight: the panel rises with that set's fields; **+2,5** twice, the box reads two steps more, the row behind too; **Fatto**/**Done** closes;
+- take a weight down to 0: the field empties (the body alone), and ✓ still works;
+- **⋯** → **Aggiungi una nota**, Save: the note under the name; at the end it is in the workout's history page, under the exercise;
+- **⋯** → **Salta esercizio**: the next exercise opens, the dot turns grey; back on it, **Fallo comunque**;
+- **⋯** → **Sostituisci esercizio**: the picker, **Solo Petto** pressed; tap one: it takes the place, the plan's reps, no weight; tick a set and the menu's Swap is disabled, saying why.
+
+### H3.20.7 Second to sixth pass: Add set and Add exercises out of the way, not out of sight
+
+**Seen on a phone:** **Aggiungi serie** and **Aggiungi esercizi**, two outlined buttons under the sets, did not fit side by side (about 420 px for both, 360 px available), so `flex-wrap` put the second under the first, both on the left at different widths. It looked like a mistake.
+
+**First fix, tried:** below 640 px, two equal halves of one row (`grid grid-cols-2`, `sm:flex` above) with short labels, **＋ Serie** and **≡＋ Esercizi**, each written twice and shown by width (`sm:hidden`, `max-sm:hidden`), the full name kept for screen readers in `aria-label`. It fitted, in German too. It broke one test, which found the column title "Set" by its text and now found the English short label too (`Found multiple elements with the text: Set`).
+
+**Then the real question:** in a day of a plan, ready and started, are the two buttons worth that place? Both are rare there, and in the way under the sets every time. But not useless: a set more than planned (a good day, a back-off set) happens; an exercise more, less often (a busy machine has **Swap** now); and a free workout needs Add exercises to have anything at all. So they stay, quieter:
+
+- **Add set** is the last row of the table, as in D1.4.9's drawing: a ghost button as wide as the rows, dashed border, grey text. The ghost variant's border is transparent (`border-transparent` in the base classes), so `border-dashed` alone drew nothing; `border-border dark:border-input` gives it the outline buttons' colour.
+- **Add exercises** is a dashed **＋** of 36 px after the dots, in the `<nav>` of the workout's exercises: the dots are the exercises, so a ＋ after them reads "one more". It sits beside the `<ol>` of dots, not inside it, so a screen reader does not count it as an exercise. Its name is `aria-label` "Add exercises". A free workout with no exercise keeps the big lime button.
+
+The short labels and their texts went again; the column-titles test is back to plain `getByText`, and checks the two buttons where they now are:
+
+```tsx
+expect(screen.getByRole('button', { name: 'Add set' })).toBeInTheDocument()
+expect(within(screen.getByRole('navigation', { name: 'Exercise 1 of 3' })).getByRole('button', { name: 'Add exercises' })).toBeInTheDocument()
+```
+
+**Fourth pass: too quiet.** Seen in the app, grey text and a grey dashed border on the near-black background were nearly invisible, and a ＋ alone said nothing. Secondary is not hidden. The two buttons got light semibold text, a lime ＋, a lighter dashed border, and Add exercises its words: a pill, **＋ Aggiungi esercizi**, on the right of the dots' row (`ml-auto`), 36 px tall (`h-9`, `text-sm`).
+
+**Fifth pass: no dashes.** Seen, the dashed lines were ugly: a soft grey fill with no border replaced them, and the skipped box lost its dashes the same way (`bg-muted/50`).
+
+**Sixth pass: like the other buttons.** The grey pill, 36 px and fully round, did not match the screen's other buttons, 48 px with `rounded-xl` corners. The lesson of the six passes: a secondary action needs no look of its own, the app already has one, the **outlined** button (Previous, Next, Concludi). Both are now `variant="outline" size="xl"`, Add set as wide as the rows, Add exercises with Previous's padding (`px-4`); the one touch kept is the lime ＋:
+
+```tsx
+const ADD_ICON = '[&_svg]:text-primary'
+
+<Button variant="outline" size="xl" className={cn('mt-2 w-full sm:mt-3', ADD_ICON)} …>
+```
+
+`[&_svg]:text-primary` is an **arbitrary variant**, Tailwind's way of styling the elements inside: every `<svg>` in the button, the ＋, is lime.
+
+Photographed at 390 px in the dark and the light theme ([H3.20.6](#h3206-looking-at-it-at-a-phones-width)): seen at once, of a piece with Concludi and Successivo.
+
+### H3.20.8 The checks
+
+`make check`: everything passes, with 222 frontend tests (206 before, 16 new: 8 for the stepper, 6 for the reducer, 2 for the page).
 
 ---
 

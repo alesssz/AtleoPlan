@@ -42,10 +42,15 @@ describe('WorkoutPage', () => {
     expect(screen.getByText('Exercise 1 of 3')).toBeInTheDocument()
     // A title above each column: Set, Last, kg, Reps
     for (const title of ['Set', 'Last', 'kg', 'Reps']) expect(screen.getByText(title)).toBeInTheDocument()
+    // Add set closes the table; Add exercises is the ＋ after the dots,
+    // in the navigation between exercises
+    expect(screen.getByRole('button', { name: 'Add set' })).toBeInTheDocument()
+    expect(within(screen.getByRole('navigation', { name: 'Exercise 1 of 3' })).getByRole('button', { name: 'Add exercises' })).toBeInTheDocument()
     // Two warm-ups, then the sets that count, numbered from 1
-    expect(screen.getByLabelText('Warm-up 2, kg')).toHaveValue('40')
-    expect(screen.getByLabelText('Set 1, kg')).toHaveValue('80')
-    expect(screen.getByLabelText('Set 1, Reps')).toHaveValue('8')
+    // Each value is a button that opens the stepper, named with its value
+    expect(screen.getByRole('button', { name: 'Warm-up 2, kg: 40' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set 1, kg: 80' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set 1, Reps: 8' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Set 1, normal: tap to change the type' })).toHaveTextContent('1')
   })
 
@@ -80,7 +85,7 @@ describe('WorkoutPage', () => {
     expect(screen.getByText('Superset: Bent Over Barbell Row + Pullups')).toBeInTheDocument()
     // A bodyweight exercise: reps, and an added weight that may stay empty
     expect(screen.getByText('+kg')).toBeInTheDocument()
-    expect(screen.getByLabelText('Set 1, added weight, kg')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Set 1, added weight, kg: empty' })).toBeInTheDocument()
 
     // The last exercise, but the rows have sets left: the bottom bar names
     // them, instead of Finish workout
@@ -88,7 +93,10 @@ describe('WorkoutPage', () => {
     const toRows = screen.getByRole('button', { name: 'Next: Bent Over Barbell Row' })
     // A set ticked: the screen stays on the pull-ups, the set in sight, and
     // the round's rest starts
-    await userEvent.type(screen.getByLabelText('Set 1, Reps'), '10')
+    // The reps typed in the stepper's box, then Done
+    await userEvent.click(screen.getByRole('button', { name: 'Set 1, Reps: empty' }))
+    await userEvent.type(within(await screen.findByRole('dialog', { name: 'Set 1' })).getByLabelText('Set 1, Reps'), '10')
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }))
     await userEvent.click(screen.getByRole('button', { name: 'Tick: Set 1' }))
     expect(screen.getByRole('heading', { level: 2, name: 'Pullups' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
@@ -190,8 +198,8 @@ describe('WorkoutPage', () => {
 
     // The squat, filled with last time's 100 × 5, kept on the phone
     expect(await screen.findByRole('heading', { level: 2, name: 'Barbell Squat' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Set 1, kg')).toHaveValue('100')
-    expect(screen.getByLabelText('Set 1, Reps')).toHaveValue('5')
+    expect(screen.getByRole('button', { name: 'Set 1, kg: 100' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set 1, Reps: 5' })).toBeInTheDocument()
     expect(loadActiveSession()?.exercises).toHaveLength(1)
   })
 
@@ -206,6 +214,84 @@ describe('WorkoutPage', () => {
     expect(router.state.location.pathname).toBe('/')
     expect(loadActiveSession()).toBeNull()
     expect(loadPending()).toEqual({})
+  })
+
+  it('changes a set\'s values with the big stepper, by the user\'s weight step', async () => {
+    const session = startDayA()
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, `/session/${session.id}`)
+    const user = userEvent.setup()
+
+    // A tap on the weight opens the panel of that set, the weight's + ready
+    await user.click(await screen.findByRole('button', { name: 'Set 1, kg: 80' }))
+    const panel = await screen.findByRole('dialog', { name: 'Set 1' })
+    expect(within(panel).getByRole('button', { name: 'kg: 2.5 more' })).toHaveFocus()
+    // +2.5 twice, −1 rep: the values change at once
+    await user.click(within(panel).getByRole('button', { name: 'kg: 2.5 more' }))
+    await user.click(within(panel).getByRole('button', { name: 'kg: 2.5 more' }))
+    await user.click(within(panel).getByRole('button', { name: 'Reps: 1 less' }))
+    expect(within(panel).getByLabelText('Set 1, kg')).toHaveValue('85')
+    expect(within(panel).getByLabelText('Set 1, Reps')).toHaveValue('7')
+
+    // Done closes; the row shows the new values, kept on the phone
+    await user.click(within(panel).getByRole('button', { name: 'Done' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set 1, kg: 85' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set 1, Reps: 7' })).toBeInTheDocument()
+    expect(loadActiveSession()?.exercises[0]?.sets[2]).toMatchObject({ weight: '85', reps: '7' })
+  })
+
+  it('offers a note, Skip and Swap in the exercise\'s menu', async () => {
+    const session = startDayA()
+    const fake = fakeApi({
+      'GET /api/user': signedInAs(),
+      'GET /api/exercises': exercisePage([testExercise(), testExercise({ id: 50, name: 'Dumbbell Bench Press', photos: [] })]),
+      'GET /api/sessions/last-sets': { status: 200, body: { data: [] } },
+    })
+    renderRoutes(routes, `/session/${session.id}`)
+    const user = userEvent.setup()
+    // The menu's button, beside the exercise's name
+    const openMenu = async (name: string) => {
+      await user.click(await screen.findByRole('button', { name: `Options for ${name}` }))
+      return screen.findByRole('dialog', { name })
+    }
+
+    // A note: written in the panel, shown under the name
+    await user.click(within(await openMenu('Barbell Bench Press')).getByRole('button', { name: 'Add a note' }))
+    await user.type(screen.getByLabelText('Note on this exercise'), 'Seat on 4')
+    await user.click(screen.getByRole('button', { name: 'Save note' }))
+    expect(screen.getByText('Seat on 4')).toBeInTheDocument()
+    expect(loadActiveSession()?.exercises[0]?.notes).toBe('Seat on 4')
+
+    // Skip: the next exercise opens; the dot says it was skipped; back on
+    // it, a line says so, with the way back
+    await user.click(within(await openMenu('Barbell Bench Press')).getByRole('button', { name: 'Skip exercise' }))
+    expect(screen.getByRole('heading', { level: 2, name: 'Bent Over Barbell Row' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Exercise 1: Barbell Bench Press, skipped' }))
+    expect(screen.getByText('Skipped: the sets not ticked will not be saved.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Do it after all' }))
+    expect(screen.queryByText(/^Skipped/)).not.toBeInTheDocument()
+
+    // Swap: the picker, filtered by the main muscle, without the bench
+    // press itself; one tap swaps
+    await user.click(within(await openMenu('Barbell Bench Press')).getByRole('button', { name: 'Swap exercise' }))
+    const picker = await screen.findByRole('dialog', { name: 'Swap exercise' })
+    expect(within(picker).getByRole('button', { name: 'Only Chest' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(await within(picker).findByRole('button', { name: 'Dumbbell Bench Press' }))
+    expect(within(picker).queryByRole('button', { name: 'Barbell Bench Press' })).not.toBeInTheDocument()
+    expect(fake.mock.calls.some(([path]) => path.startsWith('/api/exercises?') && decodeURIComponent(path).includes('filter[muscle]=chest'))).toBe(true)
+    // In its place, the same sets: the plan's reps, not its 80 kg, meant
+    // for the barbell; the note, about the old exercise, gone
+    expect(await screen.findByRole('heading', { level: 2, name: 'Dumbbell Bench Press' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set 1, kg: empty' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set 1, Reps: 8' })).toBeInTheDocument()
+    expect(screen.queryByText('Seat on 4')).not.toBeInTheDocument()
+
+    // A set ticked: no more swapping, and the menu says why
+    await user.click(screen.getByRole('button', { name: 'Tick: Warm-up 1' }))
+    const menu = await openMenu('Dumbbell Bench Press')
+    expect(within(menu).getByRole('button', { name: 'Swap exercise' })).toBeDisabled()
+    expect(within(menu).getByText('Only before its first set is ticked.')).toBeInTheDocument()
   })
 
   it('says so for a workout that is not on this phone', async () => {

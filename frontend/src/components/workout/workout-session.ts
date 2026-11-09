@@ -68,6 +68,18 @@ export interface WorkoutExercise {
    * offline because of it. Missing in a workout started before FEAT-4.
    */
   previous?: LoggedSet[]
+  /**
+   * The user's own note on it, written during the workout from the
+   * exercise's menu ("seat on 4"); sent as the exercise's `notes`. Missing
+   * in a workout started before UI-6, which reads as no note.
+   */
+  notes?: string
+  /**
+   * True once **Skip** in the exercise's menu was tapped: its sets not
+   * ticked no longer count as work left (Next, Finish, the count of sets).
+   * Ticking one of its sets takes the skip back. Missing reads as false.
+   */
+  skipped?: boolean
 }
 
 /** The rest timer, while it runs. */
@@ -262,6 +274,44 @@ export function exerciseFrom(exercise: Exercise, lastSets: LastSets[], options: 
   }
 }
 
+/**
+ * The exercise that takes another's place, from the exercise's menu
+ * (**Swap**): the same place in the workout, the same number of sets with
+ * the same types, the same plan item, superset and rest; the values and
+ * "Last" from the new exercise's own last time.
+ *
+ * With no last time, the plan's targets fill the reps, seconds and meters,
+ * but not the weight: the plan's 80 kg were meant for the old exercise, and
+ * a dumbbell press is not done with them. Only before any set is ticked
+ * (the reducer checks): a ticked set belongs to the exercise it was done
+ * with.
+ *
+ * Built outside the reducer, as exerciseFrom, because it makes new UUIDs.
+ * @param current the exercise being replaced
+ * @param exercise the new exercise, as the library sends it
+ * @param lastSets the sets of last time, from GET /api/sessions/last-sets; empty when offline
+ * @param options unit and language
+ */
+export function swappedExercise(current: WorkoutExercise, exercise: Exercise, lastSets: LastSets[], options: Pick<StartOptions, 'unit' | 'language'>): WorkoutExercise {
+  // The new exercise's sets of last time; empty when never done
+  const last = lastSets.find(entry => entry.exercise_id === exercise.id)?.sets ?? []
+  return {
+    ...current,
+    exercise,
+    // A note was about the old exercise; a skip too
+    notes: undefined,
+    skipped: undefined,
+    sets: current.sets.map((set, index) => {
+      // The plan's set in this place, without its weight (see above)
+      const planned = current.plan_item?.sets[index]
+      const target = planned ? { ...planned, target_weight_kg: null } : null
+      // set_type: the type the set has now, which the user may have changed
+      return { ...setFrom(target, last[index] ?? null, options), set_type: set.set_type }
+    }),
+    previous: last,
+  }
+}
+
 // --- Reading it -----------------------------------------------------------------
 
 /**
@@ -315,6 +365,15 @@ export function canComplete(set: WorkoutSet, loggingType: LoggingType): boolean 
 }
 
 /**
+ * Whether an exercise still has work: a set not ticked, and not skipped.
+ * Next in a superset, Finish workout and the dots read it.
+ * @param item the exercise
+ */
+export function hasWorkLeft(item: WorkoutExercise): boolean {
+  return !item.skipped && item.sets.some(set => !set.done)
+}
+
+/**
  * The indexes of the exercises of the superset an exercise is in, in order;
  * just its own index when it is not in one.
  * @param session the workout
@@ -353,8 +412,11 @@ export function supersetOf(session: ActiveSession, index: number): number[] {
 export function supersetNext(session: ActiveSession, index: number, scope: 'round' | 'next' = 'next'): number | null {
   const group = supersetOf(session, index)
   if (group.length < 2) return null
-  // Whether an exercise still has a set to tick
-  const hasWork = (position: number) => session.exercises[position]?.sets.some(set => !set.done) ?? false
+  // Whether an exercise still has a set to tick, and was not skipped
+  const hasWork = (position: number) => {
+    const item = session.exercises[position]
+    return item !== undefined && hasWorkLeft(item)
+  }
   // This round: the exercises after this one, the first with work
   const following = group.slice(group.indexOf(index) + 1).find(hasWork)
   if (following !== undefined || scope === 'round') return following ?? null
@@ -401,6 +463,9 @@ export type WorkoutAction
     | { type: 'cycleSetType', exercise: number, set: number }
     | { type: 'addSet', exercise: number }
     | { type: 'addExercises', exercises: WorkoutExercise[] }
+    | { type: 'swapExercise', exercise: number, replacement: WorkoutExercise }
+    | { type: 'skipExercise', exercise: number, skipped: boolean }
+    | { type: 'setNote', exercise: number, notes: string }
     | { type: 'goTo', exercise: number }
     | { type: 'adjustRest', seconds: number }
     | { type: 'endRest' }
@@ -456,6 +521,8 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       if (!canComplete(set, exercise.exercise.logging_type)) break
       set.done = true
       set.completed_at = action.now
+      // A set ticked on a skipped exercise: it is being done after all
+      exercise.skipped = false
       // The screen never moves by itself: the user goes on with Next, which
       // in a superset points to its next exercise (supersetNext). Moving on
       // its own, the screen left the set just ticked out of sight, and
@@ -502,6 +569,22 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       if (action.exercises.length === 0) break
       next.current = next.exercises.length
       next.exercises.push(...structuredClone(action.exercises))
+      break
+    case 'swapExercise':
+      // Only before any of its sets is ticked (swappedExercise)
+      if (!exercise || exercise.sets.some(candidate => candidate.done)) break
+      next.exercises[action.exercise] = structuredClone(action.replacement)
+      break
+    case 'skipExercise':
+      if (!exercise) break
+      exercise.skipped = action.skipped
+      // Skipping is a choice to move on: the next exercise opens, when
+      // there is one. A tap, not a tick, so the rule that the screen never
+      // moves by itself after a tick (H3.15.16) still holds
+      if (action.skipped && action.exercise < next.exercises.length - 1) next.current = action.exercise + 1
+      break
+    case 'setNote':
+      if (exercise) exercise.notes = action.notes
       break
     case 'goTo':
       if (action.exercise >= 0 && action.exercise < next.exercises.length) next.current = action.exercise
@@ -559,7 +642,8 @@ export function toSessionInput(session: ActiveSession, unit: WeightUnit, now: Da
       exercise_id: item.exercise.id,
       plan_item_id: item.plan_item?.id ?? null,
       superset_group: item.superset_group,
-      notes: null,
+      // The user's note, without spaces around it; null when there is none
+      notes: item.notes?.trim() || null,
       sets: item.sets.filter(set => set.done).map((set) => {
         // How the exercise is logged, which decides the values sent
         const type = item.exercise.logging_type
@@ -591,20 +675,25 @@ export interface SetCount {
 
 /**
  * How many sets were ticked and how many there are, warm-ups excluded, for
- * the Finish dialog: finishing early says how many will not be saved.
+ * the Finish dialog: finishing early says how many will not be saved. A
+ * skipped exercise counts only the sets ticked before the skip: the others
+ * were given up on purpose, and are no surprise at the end.
  * @param session the workout
  */
 export function countSets(session: ActiveSession): SetCount {
-  // Every set of every exercise, warm-ups left out
-  const counted = session.exercises.flatMap(item => item.sets).filter(set => set.set_type !== 'warm_up')
+  // Every set of every exercise, warm-ups left out, and the sets not done
+  // of a skipped exercise
+  const counted = session.exercises
+    .flatMap(item => (item.skipped ? item.sets.filter(set => set.done) : item.sets))
+    .filter(set => set.set_type !== 'warm_up')
   return { done: counted.filter(set => set.done).length, total: counted.length }
 }
 
 /**
- * Whether every set of the workout, warm-ups included, is ticked: the
- * screen then offers to finish.
+ * Whether nothing is left to do, warm-ups included: every set ticked, or
+ * its exercise skipped. The screen then offers to finish.
  * @param session the workout
  */
 export function allSetsDone(session: ActiveSession): boolean {
-  return session.exercises.every(item => item.sets.every(set => set.done))
+  return session.exercises.every(item => !hasWorkLeft(item))
 }
