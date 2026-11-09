@@ -118,9 +118,32 @@ A new service follows the same rule. To use another port once: `APP_PORT=8600 do
 3. builds the image;
 4. installs the Composer packages, before the stack starts: without `vendor/` the queue worker crashes and keeps restarting until they arrive;
 5. generates Laravel's key, only if it is empty: replacing it would invalidate existing sessions;
-6. starts the containers, installs the npm packages, creates the test database and runs the migrations.
+6. starts the containers, installs the npm packages, creates the test database and runs the migrations;
+7. fills the muscles and the equipment (`make reference-data`): the fixed lists every exercise points to ([D3.4.1](../design/D3-data-model.md#d341-muscles-and-equipment)), which the app and the exercise import both need.
 
 It can be run again safely: what is already in place stays as it is.
+
+**After a pull, on either computer,** run `make setup` again: it brings the image, the packages and the database up to date with what was pulled, so new packages and new migrations are never forgotten. `make doctor` is not enough for this: it checks that the packages are installed, not that they are the latest. Then, if the exercise library is empty (on a new database, or the first time after the library was added), run `make exercises-import`.
+
+What the last step of `make setup` prints. The seeders write with `updateOrCreate()`, so a second run changes nothing:
+
+```
+docker compose exec backend php artisan db:seed --class=MuscleSeeder
+
+   INFO  Seeding database.
+
+  Database\Seeders\MuscleSeeder ...................................... RUNNING
+  Database\Seeders\MuscleSeeder ................................... 74 ms DONE
+
+docker compose exec backend php artisan db:seed --class=EquipmentSeeder
+
+   INFO  Seeding database.
+
+  Database\Seeders\EquipmentSeeder ................................... RUNNING
+  Database\Seeders\EquipmentSeeder ................................ 58 ms DONE
+```
+
+**How to check:** `make psql`, then `select count(*) from muscles;` gives 17, and `select count(*) from equipment;` gives 12.
 
 **The first account.** The database starts empty: create an account at http://localhost:5673/register, after `make dev`. For an admin, which also opens `/admin`, run `make artisan c="db:seed"`: it creates `test@example.com`, password `password` ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
 
@@ -335,7 +358,8 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | What | Command |
 |---|---|
 | Is everything in order? Docker and its disk, Node, npm cache, Git identity and hook, packages, ports, test database; prints the fix for each problem | `make doctor` |
-| New clone: hook, `backend/.env` and its key, image, packages, test database, migrations ([S1.5](#s15-first-start-the-docker-stack)) | `make setup` |
+| New clone, or after a pull: hook, `backend/.env` and its key, image, packages, test database, migrations, muscles and equipment ([S1.5](#s15-first-start-the-docker-stack)) | `make setup` |
+| Only the muscles and the equipment; safe to run again | `make reference-data` |
 | Start everything (stack, then React) / only the stack / stop | `make start` / `make up` / `make down` |
 | The local addresses | `make urls` |
 | Any artisan or Composer command | `make artisan c="route:list"`, `make composer c="require vendor/package"` |
@@ -404,6 +428,8 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | Symptom | Cause and fix |
 |---|---|
 | A build fails in `apt-get update` with **"At least one invalid signature was encountered"** | Docker Desktop's disk is full, not a signature problem. `docker system df` shows it; `docker builder prune -af` (build cache) and `docker image prune -af` (unused images) free space without touching data. |
+| `exercises:import` fails with **`Unknown equipment "barbell"`** or **`Unknown muscle`** for every exercise | The muscles and the equipment are missing, as on a database made with `make migrate` alone. `make reference-data`, then the import again; `make exercises-import` and `make setup` now do it themselves ([S1.5](#s15-first-start-the-docker-stack)) |
+| A new screen shows an error after a pull, or a table "does not exist" | The pull brought new migrations or packages: `make setup` ([S1.5](#s15-first-start-the-docker-stack)) |
 | **"port is already allocated"** | Another project uses that port. Check with `lsof -nP -iTCP:8500 -sTCP:LISTEN` (on Windows, `netstat -ano \| grep :8500`); change it once with the variable of [S1.4](#s14-ports). |
 | `make` stops with **`"grep" is not recognized`**, or **`cp`** is not recognized | The terminal is the Command Prompt or PowerShell: on Windows, use Git Bash ([S1.2](#s12-prerequisites)). |
 | `migrate` says **"APPLICATION IN PRODUCTION"** on a new clone | `backend/.env` is missing, so Laravel assumes production. `make setup` creates it ([S1.5](#s15-first-start-the-docker-stack)). |

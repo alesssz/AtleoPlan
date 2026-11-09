@@ -1145,6 +1145,7 @@ Tests:    16 passed (97 assertions)
 | Undo the last batch | `make artisan c="migrate:rollback"` |
 | Rebuild the database with the seeders | `make fresh` (**deletes all data**; `make db-dump` first) |
 | All seeders, or one | `make artisan c="db:seed"`, `make artisan c="db:seed --class=MuscleSeeder"` |
+| Only the muscles and the equipment, harmless to repeat | `make reference-data` (`make setup` and `make exercises-import` run it) |
 | PHP console | `make tinker` |
 | SQL console | `make psql` |
 | A table, a model, the database | `make artisan c="db:table muscles"`, `c="model:show Muscle"`, `c="db:show"` |
@@ -1260,7 +1261,7 @@ Resolving deltas: 100% (171/171), done.
 
 ### H1.12.3 Try it on five exercises
 
-The muscles and the equipment must be there first: they are, after `make fresh` or `make artisan c="db:seed --class=MuscleSeeder"` and `--class=EquipmentSeeder`.
+The muscles and the equipment must be there first. `make exercises-import` makes sure of it, running `make reference-data` (the two seeders, harmless to repeat) before the command; `make setup` and `make fresh` fill them too. Calling `make artisan c="exercises:import"` directly skips that step.
 
 ```sh
 make exercises-import o="--limit=5"
@@ -1457,7 +1458,7 @@ They never read the real dataset. Each test writes a few exercises, in the same 
 | Message or symptom | Cause | Fix |
 |---|---|---|
 | `free-exercise-db not found: … does not exist.` | The dataset is not downloaded, or `--path` is wrong | `make exercises-import` clones it; check the folder `backend/storage/app/free-exercise-db/dist` |
-| `Unknown equipment "body only": run the EquipmentSeeder…` (or `Unknown muscle`) for every exercise | A database without the fixed lists, such as after `make migrate` on a new one | `make artisan c="db:seed --class=MuscleSeeder"` and `--class=EquipmentSeeder`, then the import again |
+| `Unknown equipment "body only": run the EquipmentSeeder…` (or `Unknown muscle`) for every exercise | A database without the fixed lists, such as after `make migrate` on a new one, with the command called directly. Met on the Windows computer after a pull, before `make exercises-import` filled them itself | `make reference-data` (the two seeders), then the import again |
 | `Failed: 1` with one exercise named | That exercise has a value we do not know | The message says which; the others are imported. Add the value to the seeder if it is real |
 | `Photos added: 0` on the first run | `o="--without-photos"`, or the dataset has no `exercises/` folder | Run again without the option: the missing photos are added |
 | `git: command not found` | Git is not on the path of the terminal | On Windows, run `make` from Git Bash ([S1.2](../start/S1-setup.md#s12-prerequisites)) |
