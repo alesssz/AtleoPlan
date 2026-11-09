@@ -310,7 +310,7 @@ The estimated one-rep max uses the Epley formula, weight × (1 + reps / 30), on 
 
 - Account details, **Sign out**. Profile picture and change password in phase 2.
 - **Language:** Italian, English, Spanish, German, saved on the account with the theme, so both follow the user to other devices. Numbers and dates follow it: `82,5 kg` in Italian, Spanish and German, `82.5 kg` in English.
-- Preferences: units kg/lb, default rest, stepper weight step, timer sound and vibration, theme (dark / light / system). Language and theme are built; the others are stored on the account with their defaults but cannot be changed yet ([UI-7](../project/backlog.md#ui-7-profile-the-workout-preferences)).
+- Preferences: units kg/lb, default rest, stepper weight step, timer sound and vibration, theme (dark / light / system). All built: language and theme in **Preferences**; the five read by workout mode in a card of their own, **Workout** (UI-7, `feat/workout-preferences`, [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)). The unit cannot change while a workout is in progress, and changing it sets the step that suits the new unit (2.5 kg, 5 lb).
 - **Export my data** (JSON or CSV) and **Delete account**: required by the GDPR once the app is public.
 
 ### D1.4.15 Admin panel (Filament)

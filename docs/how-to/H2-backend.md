@@ -696,6 +696,7 @@ How each package of the project was installed: [S1.6](../start/S1-setup.md#s16-c
 | 403 for everyone, admins included | `authorize()` from `make:request` returns `false` | Delete it ([H2.3.6](#h236-the-trap-of-the-generated-authorize)) |
 | 403 for an admin, or 200 for anyone | The policy method is missing or wrong, or `Gate::authorize()` was forgotten | A test for each case ([H2.3.5](#h235-the-tests-success-and-every-refusal)) |
 | 401 in a test | No `actingAs($user)` | Add it |
+| 204, yet nothing saved | The column is not in the model's `#[Fillable([...])]`: `update($request->validated())` silently skips it | Add it to the list ([H3.21.2](H3-frontend.md#h3212-the-backend-five-rules-and-the-fillable-trap)) |
 | 404 on a route that exists | A typo in the URL, or the route is outside the `auth:sanctum` group you expected, or the id does not exist | `make artisan c="route:list --path=api"` |
 | 405 Method Not Allowed | The URL exists but with another method (`POST` instead of `PATCH`) | Check the route's method |
 | 419 | The CSRF cookie or header is missing ([C2.7.1](../concepts/C2-backend.md#c271-how-a-session-works)) | From the React app it is automatic (`src/lib/http.ts`); in tests it is not checked |

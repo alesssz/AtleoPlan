@@ -24,7 +24,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.13.1 The one idea: who is signed in is server data](#c1131-the-one-idea-who-is-signed-in-is-server-data)
   - [C1.13.2 The guards](#c1132-the-guards)
   - [C1.13.3 A form, step by step](#c1133-a-form-step-by-step)
-  - [C1.13.4 Language and theme on the account](#c1134-language-and-theme-on-the-account)
+  - [C1.13.4 Preferences on the account](#c1134-preferences-on-the-account)
   - [C1.13.5 Details that are easy to miss](#c1135-details-that-are-easy-to-miss)
   - [C1.13.6 Testing a screen with the API](#c1136-testing-a-screen-with-the-api)
 - [C1.14 The exercise library screens](#c114-the-exercise-library-screens)
@@ -400,7 +400,7 @@ New screens add their own group (`plans.editor.*`, …).
 **The theme.**
 
 - **How it is applied:** the `dark` class on `<html>` switches every token to its dark value. `index.html` sets it before React loads, and `ThemeProvider` keeps it in step with the user's choice. With "Same as the device" (`system`), it follows the operating system live.
-- **Where the choice is saved:** on the account, so it follows the user, and in this browser (`localStorage`, key `atleoplan.theme`), so `index.html` can apply it before anything is drawn ([C1.13.4](#c1134-language-and-theme-on-the-account)).
+- **Where the choice is saved:** on the account, so it follows the user, and in this browser (`localStorage`, key `atleoplan.theme`), so `index.html` can apply it before anything is drawn ([C1.13.4](#c1134-preferences-on-the-account)).
 - **To read it from a component:** `useTheme()`. **To change it:** `useUpdatePreferences()` (`src/api/auth.ts`).
 
 **shadcn/ui.** These are not a library imported from `node_modules`. They are source files copied into `src/components/ui/`, and they are ours to change.
@@ -421,6 +421,7 @@ New screens add their own group (`plans.editor.*`, …).
 | `PageHeader eyebrow="…"` | The lime capitals above a page title | every page but Home |
 | `EmptyState` | Illustration, title, sentence, actions; `comingSoon` adds the badge | Plans, Exercises, Progress, Home |
 | `SettingRow` | One settings row: icon tile, label, hint, control | Profile |
+| `WorkoutPreferences` | Profile's Workout card: the unit, the default rest, the weight step (Selects), the timer's sound and vibration (Switches) | Profile ([C1.13.4](#c1134-preferences-on-the-account)) |
 | `BrandMark`, `Wordmark` | The logo | sidebar, phone header |
 
 Utilities like these are written in `index.css` with `@utility name { … }` and then work like Tailwind's own classes, prefixes included (`lg:border-glow`, `group-aria-[current=page]:glow-primary`).
@@ -522,6 +523,7 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 ## C1.11 Known limits
 
 - **Bundle size.** The production build is one JavaScript file of 921 kB (286 kB compressed) since workout mode, and Vite warns above 500 kB. The plan editor, with dnd-kit and the Dialog, is the first candidate for a page loaded only when opened. When the screens grow, load each page only when opened: `lazy` routes in React Router, which split the bundle per page.
+- **A plan draft follows the unit of the moment.** An unsaved plan draft kept in the browser holds weights typed in the unit of then; after changing the unit (Profile) it is read in the new one. Rare, and not guarded ([C1.13.4](#c1134-preferences-on-the-account)).
 - **A preference changed with no connection is not saved.** It stays on screen until the page reloads, then the account's value returns. Finished workouts already have a queue of their own ([C1.17.5](#c1175-the-queue-of-workouts-to-send)); preferences will join a general one with the offline work (FEAT-3).
 - **Workout mode needs the app loaded.** A workout in progress lives on the phone and survives a reload, but with no network the app itself does not open yet: the PWA's offline cache comes with FEAT-3.
 - **Not yet in place**, each with the feature that needs it:
@@ -673,14 +675,16 @@ function onSubmit(values: SignInValues) {
 
 `FormField` (`src/components/FormField.tsx`) draws the label, the 48 px input and the error, linked for screen readers through `htmlFor`, `aria-invalid` and `aria-describedby`.
 
-### C1.13.4 Language and theme on the account
+### C1.13.4 Preferences on the account
 
-A choice made on the phone follows the user to the computer ([D1.4.14](../design/D1-ui.md#d1414-profile-and-settings)). The data flows one way, around a circle:
+A choice made on the phone follows the user to the computer ([D1.4.14](../design/D1-ui.md#d1414-profile-and-settings)). Profile has two cards of them: **Preferences**, the language and the theme, and **Workout** (`WorkoutPreferences`), the five that workout mode reads. All seven are saved by the same hook, `useUpdatePreferences`, to the same endpoint, `PATCH /api/user/preferences`, one field per request ([C2.7](C2-backend.md#c27-signing-in-sanctum)). The data flows one way, around a circle:
 
 ```
 LanguageSelect, ThemeSelect ──▶ useUpdatePreferences ──▶ the cache (at once) and the server
                                                               │
         i18next, ThemeProvider ◀── useAccountPreferences ◀────┘
+
+WorkoutPreferences ──▶ useUpdatePreferences ──▶ the cache ──▶ workout mode reads the user (useCurrentUser)
 ```
 
 The pickers only change the account, and `useAccountPreferences`, called by `RequireAuth`, applies the account to the page. A device with no saved choice therefore gets the account's as soon as it signs in. A visitor uses the browser's language, and whatever this browser last saved.
@@ -701,6 +705,19 @@ The tests passed, because the fake API answered in order. A test in a real brows
 
 `src/api/auth.test.tsx` reproduces it, with one request held back. **The lesson for any optimistic update:** an answer can describe the past.
 
+**The workout's five** (`components/WorkoutPreferences.tsx`, UI-7) need no `useAccountPreferences`: nothing outside React must be told, as i18next and the theme are. Workout mode reads them from the cached user (`useCurrentUser()`), so a change shows at the next draw.
+
+| Row | Control | Saved as | Read by |
+|---|---|---|---|
+| Weight unit | Select: Kilograms (kg), Pounds (lb) | `weight_unit` (with `weight_step`, below) | every weight on screen, and every weight typed ([D3.2.3](../design/D3-data-model.md#d323-weights-are-always-in-kilograms)) |
+| Default rest | Select: No timer, 30 s … 5 min | `default_rest_seconds` (0 for no timer) | a workout started from then on, for exercises with no rest of their own |
+| Weight step | Select: the plates of the unit (0.5 … 5 kg, 1 … 10 lb) | `weight_step`, as text with two decimals (`"1.25"`) | the big stepper's − and + ([C1.17.7](#c1177-the-big-stepper-and-the-exercises-menu)) |
+| Sound, Vibration | Switch (`components/ui/switch.tsx`) | `timer_sound`, `timer_vibration` | the end of the rest (`lib/alarm.ts`) |
+
+- **A Select's values are text.** The rest goes in as `String(90)` and comes back as `Number(value)`; the step is compared as `step.toFixed(2)`, the very text the account keeps (`"2.50"`). A value not in the list, saved some other way, is added to it (`withCurrent()`), so the Select always shows the account's value.
+- **The unit comes with its step.** Changing the unit sends `{ weight_unit: 'lb', weight_step: '5.00' }` in one request: a step of 2.5 chosen in kilograms would mean 2.5 lb, too fine a step for most gyms.
+- **Not while a workout is in progress.** A workout's fields hold weights as typed, in the unit of the moment (C1.17.3); read in another unit at Finish, 80 kg would become 80 lb. With a workout on the phone (`loadActiveSession()`), the unit's Select is disabled and its hint says why. The plan editor's unsaved drafts (`atleoplan.planDraft.…`) have the same weakness and no guard: changing the unit with an unsaved draft open on another tab reads it in the new unit ([C1.11](#c111-known-limits)).
+
 ### C1.13.5 Details that are easy to miss
 
 - **`remember: true` is always sent.** A session lasts two hours, and a phone at the gym must not ask for a password. So there is no checkbox.
@@ -719,7 +736,7 @@ Tests never call a real server. `src/test/auth-helpers.tsx` gives them:
 
 `src/pages/auth-pages.test.tsx` uses them with `userEvent`, typing and clicking as a person would. Prefer `findBy…`, which waits, when the element appears after an answer.
 
-**What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers. Before calling a feature done, try it in a browser against the real stack, as [C1.13.4](#c1134-language-and-theme-on-the-account) shows.
+**What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers. Before calling a feature done, try it in a browser against the real stack, as [C1.13.4](#c1134-preferences-on-the-account) shows.
 
 ---
 

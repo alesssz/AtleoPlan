@@ -44,7 +44,22 @@
     "language": "Idioma",
     "theme": "Tema",
     "languageHint": "Textos, números y fechas: {{weight}}",
-    "themeHint": "El oscuro cansa menos la vista en el gimnasio."
+    "themeHint": "El oscuro cansa menos la vista en el gimnasio.",
+    "workoutTitle": "Entrenamiento",
+    "unit": "Unidad de peso",
+    "unitHint": "Cómo se muestran y escriben los pesos. Se guardan en kilogramos, así que no se convierte nada.",
+    "unitBusy": "Primero termina el entrenamiento en curso: sus pesos están escritos en la unidad actual.",
+    "kg": "Kilogramos (kg)",
+    "lb": "Libras (lb)",
+    "rest": "Descanso por defecto",
+    "restHint": "Cuando un ejercicio del plan no tiene descanso propio.",
+    "restNone": "Sin temporizador",
+    "step": "Paso del peso",
+    "stepHint": "Cuánto cambian el peso − y + en el modo entrenamiento.",
+    "sound": "Sonido al terminar el descanso",
+    "soundHint": "Dos pitidos cortos.",
+    "vibration": "Vibración al terminar el descanso",
+    "vibrationHint": "En los teléfonos que vibran (no en iPhone)."
   },
   "theme": {
     "dark": "Oscuro",

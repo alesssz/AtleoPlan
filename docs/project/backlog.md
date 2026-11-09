@@ -16,7 +16,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
-  - [UI-7 Profile: the workout preferences](#ui-7-profile-the-workout-preferences)
 - [FEAT](#feat)
   - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
   - [FEAT-5 New records during a workout](#feat-5-new-records-during-a-workout)
@@ -60,7 +59,7 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 1. The exercise library: its API, import, translation and screens are done; left are its admin screen, where translations are reviewed, and its media ([BE-1](#be-1-exercise-library-api-and-admin))
 2. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
 
-The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [FEAT-5](#feat-5-new-records-during-a-workout) (live records) and [UI-7](#ui-7-profile-the-workout-preferences) (its preferences on Profile). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
+The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [FEAT-5](#feat-5-new-records-during-a-workout) (live records); its preferences are on Profile (UI-7, [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
 
 ## OPS
 
@@ -126,18 +125,6 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - B) Open the plan's editor with the exercise already added: `/plans/:id/edit?add=12&day=2`.
 
 **Recommended.** B: it reuses the editor, its draft and its rules, and the user sees the result before saving.
-
-### UI-7 Profile: the workout preferences
-
-**Priority:** medium · **Kind:** missing screen · **Found:** 2026-11-09
-
-**What is missing.** [D1.4.14](../design/D1-ui.md#d1414-profile-and-settings) lists the preferences that workout mode reads: the unit (kg or lb), the default rest, the stepper's weight step, the timer's sound and vibration. They are columns of `users` with their defaults ([D3](../design/D3-data-model.md)), sent by `GET /api/user`, but Profile changes only the language and the theme: someone who trains in pounds, or loads plates of 1.25 kg, cannot say so.
-
-**Options.**
-- A) Rows on Profile, each saved on change like the language (a select for the unit, a number for the rest and the step, two switches), through the endpoint that already saves the language and the theme, extended with its validation.
-- B) A separate "Workout" settings page.
-
-**Recommended.** A: five rows fit the page's settings list, and the endpoint and its pattern exist. Changing the unit converts nothing: weights are kept in kilograms ([D3.2.3](../design/D3-data-model.md#d323-weights-are-always-in-kilograms)).
 
 ## FEAT
 

@@ -28,6 +28,17 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 }
 
+// Three more things jsdom lacks, which Radix's Select (src/components/ui/
+// select.tsx, the Profile's pickers) calls when it opens: whether an element
+// holds the pointer, letting it go, and scrolling the chosen option into
+// view. Without them, a click on a Select in a test fails with
+// "target.hasPointerCapture is not a function" (docs/how-to/H3-frontend.md
+// H3.21). Doing nothing is enough here, as for ResizeObserver.
+// Element.prototype: what every element of the page inherits
+Element.prototype.hasPointerCapture ??= () => false
+Element.prototype.releasePointerCapture ??= () => {}
+Element.prototype.scrollIntoView ??= () => {}
+
 // beforeEach(fn) runs fn before each test (`it(…)`) of every file.
 // `async () => { … }` is an arrow function (a short way to write a function)
 // marked async: inside it, `await` pauses until a Promise (a value that

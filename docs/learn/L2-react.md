@@ -945,7 +945,7 @@ create.isError, create.error                    // failed, with the ApiError
 | Write the answer | `setQueryData(key, newData)`: puts the server's answer in the cache, no extra request | `useSignOut()` sets the user to `null` |
 | Optimistic update | Write the expected result **before** the server answers; correct it after | `useUpdatePreferences()`: the theme changes at once |
 
-Start with invalidating: it is always right. The optimistic update is for actions that must feel instant, and has traps of its own, explained in [C1.13.4](../concepts/C1-frontend.md#c1134-language-and-theme-on-the-account).
+Start with invalidating: it is always right. The optimistic update is for actions that must feel instant, and has traps of its own, explained in [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account).
 
 **`mutate(data, { onSuccess, onError })`** also takes callbacks for this one call, used by the form for what concerns the screen (empty the field, show errors); the hook's own `onSuccess` is for the cache.
 

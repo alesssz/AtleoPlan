@@ -47,7 +47,7 @@ Route::get('/health', fn () => response()->json(['status' => 'ok']))->name('heal
 Route::middleware('auth:sanctum')->group(function () {
     // Who is signed in; the React app asks at start-up
     Route::get('/user', [CurrentUserController::class, 'show']);
-    // Saves the language or the theme on the account
+    // Saves the language, the theme or a workout preference on the account
     Route::patch('/user/preferences', [CurrentUserController::class, 'updatePreferences']);
 
     // The exercise library (docs/concepts/C2-backend.md C2.5.4): the two

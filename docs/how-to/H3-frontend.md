@@ -106,6 +106,13 @@
   - [H3.20.6 Looking at it at a phone's width](#h3206-looking-at-it-at-a-phones-width)
   - [H3.20.7 Second to sixth pass: Add set and Add exercises out of the way, not out of sight](#h3207-second-to-sixth-pass-add-set-and-add-exercises-out-of-the-way-not-out-of-sight)
   - [H3.20.8 The checks](#h3208-the-checks)
+- [H3.21 The workout preferences, as built](#h321-the-workout-preferences-as-built)
+  - [H3.21.1 The order of building](#h3211-the-order-of-building)
+  - [H3.21.2 The backend: five rules, and the fillable trap](#h3212-the-backend-five-rules-and-the-fillable-trap)
+  - [H3.21.3 The frontend](#h3213-the-frontend)
+  - [H3.21.4 Testing Radix Selects](#h3214-testing-radix-selects)
+  - [H3.21.5 Checking it](#h3215-checking-it)
+  - [H3.21.6 The checks](#h3216-the-checks)
 
 ---
 
@@ -708,6 +715,7 @@ npx eslint src/components/ui/badge.tsx
 | `shadcn add` stops at `Would you like to overwrite?` | The component depends on one we changed, such as `button.tsx` | Add it alone and answer no: `printf 'n\n' \| npx shadcn add name` ([H3.12.2](#h3122-five-shadcnui-components)) |
 | `Fast refresh only works when a file only exports components` | A function or constant exported from a component's file | Move it to a `.ts` file of its own ([H3.20.4](#h3204-the-errors-met)) |
 | A test on a request's address does not find `filter[muscle]=…` | `URLSearchParams` escapes the brackets: `filter%5Bmuscle%5D` | Compare with `decodeURIComponent(path)` ([H3.20.4](#h3204-the-errors-met)) |
+| `target.hasPointerCapture is not a function` in a test | A Radix Select opened in jsdom, which lacks three pointer functions | `src/test/setup.ts` gives them ([H3.21.4](#h3214-testing-radix-selects)) |
 | `ResizeObserver is not defined` in a test | A Radix component measures itself; jsdom has no `ResizeObserver` | `src/test/setup.ts` gives one ([H3.12.5](#h3125-the-tests-and-the-errors-met)) |
 | `"undefined" is not valid JSON` from `sentBody` | No call to that path sent a body | Check the path, and that the request was sent before reading it |
 | Photos do not load, 404 on `/storage/…` | No `public/storage` link on this computer | `make artisan c="storage:link"` ([H3.12.1](#h3121-the-photos-reach-the-browser)) |
@@ -2784,6 +2792,142 @@ Photographed at 390 px in the dark and the light theme ([H3.20.6](#h3206-looking
 ### H3.20.8 The checks
 
 `make check`: everything passes, with 222 frontend tests (206 before, 16 new: 8 for the stepper, 6 for the reducer, 2 for the page).
+
+---
+
+## H3.21 The workout preferences, as built
+
+UI-7 (`feat/workout-preferences`): Profile gets a **Workout** card with the five preferences workout mode reads, the weight unit, the default rest, the stepper's weight step, the rest timer's sound and vibration ([D1.4.14](../design/D1-ui.md#d1414-profile-and-settings)). The columns existed with their defaults, and `GET /api/user` sent them; nothing could change them. How it works: [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account). How it was built:
+
+### H3.21.1 The order of building
+
+1. **The backend:** the endpoint that saves the language and the theme takes five more fields; its tests first.
+2. **The frontend:** shadcn's Switch, the request's type, the card, its texts, the page's tests.
+3. **A look** at a phone's and a laptop's width, then the docs.
+
+### H3.21.2 The backend: five rules, and the fillable trap
+
+No new endpoint: `PATCH /api/user/preferences` already saved one preference at a time. Three files:
+
+| File | Change |
+|---|---|
+| `app/Http/Requests/UpdatePreferencesRequest.php` | Five rules, each `sometimes` (checked only when sent) |
+| `app/Models/User.php` | The five columns added to `#[Fillable([...])]` |
+| `tests/Feature/Auth/CurrentUserTest.php` | Two tests: the five saved one at a time; values out of range refused |
+
+```php
+'weight_unit' => ['sometimes', Rule::enum(WeightUnit::class)],
+'default_rest_seconds' => ['sometimes', 'integer', 'between:0,600'],
+'weight_step' => ['sometimes', 'numeric', 'between:0.25,50', 'decimal:0,2'],
+'timer_sound' => ['sometimes', 'boolean'],
+'timer_vibration' => ['sometimes', 'boolean'],
+```
+
+`decimal:0,2` refuses more than two decimals (`1.125`), which the column, `numeric(5,2)`, could not keep. `boolean` takes `true`, `false`, `1`, `0`, `"1"`, `"0"`.
+
+```sh
+docker compose exec backend php artisan test --filter=CurrentUserTest
+```
+
+```
+  ✓ it saves the workout preferences, one at a time
+  ✓ it refuses workout preferences out of range
+
+  Tests:    8 passed (49 assertions)
+```
+
+**The trap, shown by breaking it on purpose.** The controller saves with `update($request->validated())`, a *mass assignment*: several columns at once, from an array. Laravel then writes only the columns listed in the model's `#[Fillable([...])]` and **silently skips the others**. With the five left out of the list, the request is valid, the answer is 204, and nothing is saved:
+
+```
+  ⨯ it saves the workout preferences, one at a time
+  Failed asserting that two variables reference the same object.
+  Tests:    1 failed, 7 passed (45 assertions)
+```
+
+Only the test that reads the row back (`$user->fresh()`) notices. The list is a protection, against a request slipping in `is_admin` ([C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders)); the price is remembering it for every new column a request may change.
+
+### H3.21.3 The frontend
+
+In `frontend/`, shadcn's on/off switch:
+
+```sh
+printf 'n\n' | npx shadcn@latest add switch
+```
+
+```
+✔ Checking registry.
+✔ Created 1 file:
+  - src/components/ui/switch.tsx
+```
+
+Brought to our style, as `sheet.tsx` was ([H3.20.2](#h3202-the-panel-shadcns-sheet)), with a third size, `lg`, 48 × 28 px: shadcn's default is 32 × 18, small for a finger.
+
+| File | What |
+|---|---|
+| `components/ui/switch.tsx` | The switch, with `size="lg"` |
+| `components/WorkoutPreferences.tsx` | The card: three Selects, two Switches, each saved on change |
+| `pages/ProfilePage.tsx` | The card, between Preferences and Information |
+| `api/auth.ts` | `PreferencesData` with the five fields |
+| `i18n/locales/*.json` | 16 texts under `preferences`, in four languages |
+| `test/setup.ts` | Three pointer functions for Radix's Select (below) |
+| `pages/ProfilePage.test.tsx` | Three tests |
+
+Two choices, explained in [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account): the unit is sent with the step that suits it (2.5 kg, 5 lb), and cannot change while a workout is in progress.
+
+### H3.21.4 Testing Radix Selects
+
+The language and theme pickers had no test that opened them. The first one written here failed on opening:
+
+```
+TypeError: target.hasPointerCapture is not a function
+TestingLibraryElementError: Unable to find role="option" and name "2 min"
+```
+
+Radix's Select calls three element functions jsdom does not have: `hasPointerCapture`, `releasePointerCapture`, `scrollIntoView`. `src/test/setup.ts` now gives every element versions that do nothing, as it does for `ResizeObserver`:
+
+```ts
+Element.prototype.hasPointerCapture ??= () => false
+Element.prototype.releasePointerCapture ??= () => {}
+Element.prototype.scrollIntoView ??= () => {}
+```
+
+`??=` assigns only when there is nothing yet: a real browser keeps its own. Then a Select is used as a person would: a click on the `combobox` (named by its label), a click on the `option`.
+
+```tsx
+await user.click(within(card).getByRole('combobox', { name: 'Default rest' }))
+await user.click(await screen.findByRole('option', { name: '2 min' }))
+```
+
+**A fake server that forgets.** The next test clicked the sound's switch and expected it off at once; it failed:
+
+```
+Error: expect(element).toHaveAttribute("aria-checked", "false")
+```
+
+Two reasons. `useUpdatePreferences` writes the change into the cache after an `await` (it first cancels the reads in flight), so not before the next line of the test: `waitFor(() => …)` waits for it. And after the last change Profile reads the user again, and the fake `GET /api/user` gave the first values back. The fake now remembers, as the real server does: a function entry is called at each request, and merges every body sent so far into the user:
+
+```tsx
+const fake = fakeApi({
+  'GET /api/user': () => signedInAs(Object.assign({ ...testUser }, ...preferencesSent(fake))),
+  …
+})
+```
+
+### H3.21.5 Checking it
+
+Photographed at 390 and 900 px with a throw-away page ([H3.20.6](#h3206-looking-at-it-at-a-phones-width)), this time wrapped in `ThemeProvider` too: without it, `ThemeSelect` stops the page with `useTheme() must be used inside <ThemeProvider>`. The Workout card has the Preferences card's look; on a phone each control goes under its text, as the other rows'.
+
+**In the browser,** `make start`, signed in, Profile:
+
+- **Default rest** → 2 min; start a plan's day: an exercise with no rest of its own rests 2 minutes;
+- **Weight step** → 1.25 kg; in a workout the stepper shows −1,25 / +1,25;
+- **Weight unit** → Pounds: the step becomes 5 lb, the plans' and workouts' weights are shown in pounds; back to kilograms, nothing has drifted (the database kept kilograms);
+- with a workout in progress, the unit's picker is greyed, and says why;
+- **Sound** off: a rest ends with the vibration alone.
+
+### H3.21.6 The checks
+
+`make check`: everything passes, with 245 backend tests (2 new) and 225 frontend tests (3 new).
 
 ---
 

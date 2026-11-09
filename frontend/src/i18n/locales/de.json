@@ -44,7 +44,22 @@
     "language": "Sprache",
     "theme": "Design",
     "languageHint": "Texte, Zahlen und Daten: {{weight}}",
-    "themeHint": "Dunkel schont im Studio die Augen."
+    "themeHint": "Dunkel schont im Studio die Augen.",
+    "workoutTitle": "Training",
+    "unit": "Gewichtseinheit",
+    "unitHint": "Wie Gewichte angezeigt und eingegeben werden. Sie werden in Kilogramm gespeichert, nichts wird umgerechnet.",
+    "unitBusy": "Beende zuerst das laufende Training: Seine Gewichte sind in der aktuellen Einheit eingegeben.",
+    "kg": "Kilogramm (kg)",
+    "lb": "Pfund (lb)",
+    "rest": "Standardpause",
+    "restHint": "Wenn eine Übung im Plan keine eigene Pause hat.",
+    "restNone": "Kein Timer",
+    "step": "Gewichtsschritt",
+    "stepHint": "Um wie viel − und + das Gewicht im Trainingsmodus ändern.",
+    "sound": "Ton am Ende der Pause",
+    "soundHint": "Zwei kurze Pieptöne.",
+    "vibration": "Vibration am Ende der Pause",
+    "vibrationHint": "Auf Handys, die vibrieren können (nicht iPhones)."
   },
   "theme": {
     "dark": "Dunkel",

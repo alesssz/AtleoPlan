@@ -44,7 +44,22 @@
     "language": "Lingua",
     "theme": "Tema",
     "languageHint": "Testi, numeri e date: {{weight}}",
-    "themeHint": "Lo scuro affatica meno gli occhi in palestra."
+    "themeHint": "Lo scuro affatica meno gli occhi in palestra.",
+    "workoutTitle": "Allenamento",
+    "unit": "Unità di peso",
+    "unitHint": "Come vengono mostrati e scritti i pesi. Sono salvati in chilogrammi, quindi nulla viene convertito.",
+    "unitBusy": "Prima concludi l'allenamento in corso: i suoi pesi sono scritti nell'unità attuale.",
+    "kg": "Chilogrammi (kg)",
+    "lb": "Libbre (lb)",
+    "rest": "Recupero predefinito",
+    "restHint": "Quando un esercizio del piano non ha un recupero suo.",
+    "restNone": "Nessun timer",
+    "step": "Passo del peso",
+    "stepHint": "Di quanto − e + cambiano il peso in modalità allenamento.",
+    "sound": "Suono a fine recupero",
+    "soundHint": "Due brevi bip.",
+    "vibration": "Vibrazione a fine recupero",
+    "vibrationHint": "Sui telefoni che vibrano (non gli iPhone)."
   },
   "theme": {
     "dark": "Scuro",

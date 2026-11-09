@@ -3,10 +3,13 @@
  * working screen:
  * - an account header: name, email and the button to sign out;
  * - the preferences, language and theme, as rows of a settings list;
+ * - the workout's preferences: unit, default rest, weight step, the rest
+ *   timer's sound and vibration (WorkoutPreferences);
  * - the connection to the server.
  *
  * Built from small components: SettingRow for each row, LanguageSelect and
- * ThemeSelect as controls, ServerStatus for the server.
+ * ThemeSelect as controls, WorkoutPreferences for the workout's card,
+ * ServerStatus for the server.
  */
 import { Languages, LogOut, Palette, Server, UserRound } from 'lucide-react'
 import { useId } from 'react'
@@ -17,6 +20,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { ServerStatus } from '@/components/ServerStatus'
 import { SettingRow } from '@/components/SettingRow'
 import { ThemeSelect } from '@/components/ThemeSelect'
+import { WorkoutPreferences } from '@/components/WorkoutPreferences'
 import { Button } from '@/components/ui/button'
 import { formatWeight } from '@/lib/format'
 
@@ -42,7 +46,7 @@ export function ProfilePage() {
     <>
       <PageHeader eyebrow={t('pages.profile.eyebrow')} title={t('pages.profile.title')} description={t('pages.profile.description')} />
 
-      {/* Three blocks, 24 px apart (flex column + gap) */}
+      {/* Four blocks, 24 px apart (flex column + gap) */}
       <div className="flex flex-col gap-6">
         {/* Account header: the gradient-bordered card, avatar + name + email +
             sign out. A column on phones, a row from 640 px up.
@@ -97,6 +101,9 @@ export function ProfilePage() {
             </SettingRow>
           </div>
         </section>
+
+        {/* The workout's preferences, in a card of the same look */}
+        <WorkoutPreferences />
 
         {/* About: the connection to the backend, from GET /api/health */}
         <section aria-labelledby="about-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
