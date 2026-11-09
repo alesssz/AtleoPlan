@@ -7,6 +7,7 @@
 
 use App\Enums\Locale;
 use App\Enums\Theme;
+use App\Enums\WeightUnit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -67,4 +68,37 @@ it('ignores anything that is not a preference', function () {
     expect($user->fresh())
         ->is_admin->toBeFalse()
         ->email->toBe($user->email);
+});
+
+it('saves the workout preferences, one at a time', function () {
+    $user = User::factory()->create();
+
+    // Each request sends one, as the Profile's rows do
+    foreach ([['weight_unit' => 'lb'], ['default_rest_seconds' => 120], ['weight_step' => '1.25'], ['timer_sound' => false], ['timer_vibration' => false]] as $change) {
+        $this->actingAs($user)->patchJson('/api/user/preferences', $change)->assertNoContent();
+    }
+
+    expect($user->fresh())
+        ->weight_unit->toBe(WeightUnit::Lb)
+        ->default_rest_seconds->toBe(120)
+        ->weight_step->toBe('1.25')
+        ->timer_sound->toBeFalse()
+        ->timer_vibration->toBeFalse();
+});
+
+it('refuses workout preferences out of range', function () {
+    $user = User::factory()->create();
+
+    // A unit not in the list, a rest over 10 minutes, a step too small and
+    // one with three decimals, a sound that is not true or false
+    $this->actingAs($user)->patchJson('/api/user/preferences', ['weight_unit' => 'st', 'default_rest_seconds' => 601, 'weight_step' => 0.1, 'timer_sound' => 'loud'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['weight_unit', 'default_rest_seconds', 'weight_step', 'timer_sound']);
+    $this->actingAs($user)->patchJson('/api/user/preferences', ['weight_step' => 1.125])
+        ->assertJsonValidationErrors(['weight_step']);
+
+    // Nothing changed
+    expect($user->fresh())
+        ->weight_unit->toBe(WeightUnit::Kg)
+        ->weight_step->toBe('2.50');
 });

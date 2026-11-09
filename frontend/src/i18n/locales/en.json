@@ -44,7 +44,22 @@
     "language": "Language",
     "theme": "Theme",
     "languageHint": "Texts, numbers and dates: {{weight}}",
-    "themeHint": "Dark is easier on the eyes at the gym."
+    "themeHint": "Dark is easier on the eyes at the gym.",
+    "workoutTitle": "Workout",
+    "unit": "Weight unit",
+    "unitHint": "How weights are shown and typed. They are kept in kilograms, so nothing is converted.",
+    "unitBusy": "Finish the workout in progress first: its weights are typed in the current unit.",
+    "kg": "Kilograms (kg)",
+    "lb": "Pounds (lb)",
+    "rest": "Default rest",
+    "restHint": "When an exercise of the plan sets no rest of its own.",
+    "restNone": "No timer",
+    "step": "Weight step",
+    "stepHint": "How much − and + move the weight in workout mode.",
+    "sound": "Sound at the end of the rest",
+    "soundHint": "Two short beeps.",
+    "vibration": "Vibration at the end of the rest",
+    "vibrationHint": "On phones that can vibrate (not iPhones)."
   },
   "theme": {
     "dark": "Dark",

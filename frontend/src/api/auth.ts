@@ -74,12 +74,26 @@ export interface ResetPasswordData {
   password_confirmation: string
 }
 
-/** The preferences that can be saved so far; send only those that change. */
+/**
+ * The preferences that can be saved (PATCH /api/user/preferences); send only
+ * those that change. The names and types are the User's, so the optimistic
+ * update below can copy them into the cached user as they are.
+ */
 export interface PreferencesData {
   /** The interface's language. */
   locale?: Language
   /** The theme. */
   theme?: Theme
+  /** The unit weights are shown and typed in; they stay in kilograms. */
+  weight_unit?: User['weight_unit']
+  /** The rest when a plan item sets none, in seconds; 0 for no timer. */
+  default_rest_seconds?: number
+  /** The stepper's weight step, as text with two decimals: "1.25". */
+  weight_step?: string
+  /** Whether the rest timer ends with a sound. */
+  timer_sound?: boolean
+  /** Whether the rest timer ends with a vibration. */
+  timer_vibration?: boolean
 }
 
 /** The cache keys of this resource (what a key is: src/api/health.ts). */

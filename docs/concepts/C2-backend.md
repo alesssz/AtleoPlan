@@ -692,7 +692,7 @@ Browser (localhost:5673)                        Laravel, through Vite's proxy
 | `POST /api/auth/forgot-password` | Sends the email | 200; 422 if the email is unknown |
 | `POST /api/auth/reset-password` | Sets the new password | 200; 422 if the token is wrong |
 | `GET /api/user` (ours) | Who is signed in | 200; 401 for a visitor |
-| `PATCH /api/user/preferences` (ours) | Saves the language or theme | 204; 422 if not valid |
+| `PATCH /api/user/preferences` (ours) | Saves the language, the theme, or one of the five workout preferences (unit, default rest 0–600 s, weight step 0.25–50 with two decimals at most, timer sound, vibration); only the fields sent | 204; 422 if not valid |
 
 ### C2.7.2 Signing in and out
 

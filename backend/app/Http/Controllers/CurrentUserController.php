@@ -29,8 +29,9 @@ class CurrentUserController extends Controller
     }
 
     /**
-     * PATCH /api/user/preferences: saves the language or the theme on the
-     * account (docs/design/D1-ui.md D1.4.14).
+     * PATCH /api/user/preferences: saves the language, the theme or a workout
+     * preference (unit, default rest, weight step, timer sound and
+     * vibration) on the account (docs/design/D1-ui.md D1.4.14).
      *
      * Having the Form Request as a parameter is what makes Laravel validate
      * first. validated() holds only the fields that passed its rules, so nothing

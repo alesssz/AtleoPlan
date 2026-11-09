@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\Locale;
 use App\Enums\Theme;
+use App\Enums\WeightUnit;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,8 +20,16 @@ class UpdatePreferencesRequest extends FormRequest
 {
     /**
      * The rules. `sometimes` checks a field only when it is sent, so the app can
-     * change one preference at a time. The other preferences of
-     * docs/design/D3-data-model.md D3.3 join here with the full settings (phase 2).
+     * change one preference at a time: the language, the theme, and the five
+     * that workout mode reads (docs/design/D3-data-model.md D3.3, D1.4.14).
+     *
+     * - weight_unit: kg or lb. Only how weights are shown and typed; they stay
+     *   in kilograms (D3.2.3), so changing it converts nothing.
+     * - default_rest_seconds: from 0 (no rest timer) to 10 minutes.
+     * - weight_step: the stepper's step, in the user's unit; 0.25 (micro
+     *   plates) to 50, two decimals at most, as the column keeps them
+     *   (`numeric(5,2)`). `decimal:0,2` counts the decimals of what is sent.
+     * - timer_sound, timer_vibration: true or false (also 1, 0, "1", "0").
      *
      * @return array<string, array<int, mixed>>
      */
@@ -29,6 +38,11 @@ class UpdatePreferencesRequest extends FormRequest
         return [
             'locale' => ['sometimes', Rule::enum(Locale::class)],
             'theme' => ['sometimes', Rule::enum(Theme::class)],
+            'weight_unit' => ['sometimes', Rule::enum(WeightUnit::class)],
+            'default_rest_seconds' => ['sometimes', 'integer', 'between:0,600'],
+            'weight_step' => ['sometimes', 'numeric', 'between:0.25,50', 'decimal:0,2'],
+            'timer_sound' => ['sometimes', 'boolean'],
+            'timer_vibration' => ['sometimes', 'boolean'],
         ];
     }
 }
