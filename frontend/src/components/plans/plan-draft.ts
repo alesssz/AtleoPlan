@@ -83,7 +83,7 @@ export interface PlanDraft {
 /** The limits of the backend (PlanRequest), enforced on screen too. */
 export const LIMITS = { days: 14, items: 30, sets: 20 } as const
 
-/** The order a tap on a set's number goes through (D1.4.8). */
+/** The set types, in the order the list of SetTypeSelect.tsx shows them (D1.4.8). */
 export const SET_TYPES: readonly SetType[] = ['normal', 'warm_up', 'drop', 'failure']
 
 /** The short sign of each type, shown instead of the set's number: "W" for a warm-up. */
@@ -519,7 +519,7 @@ export type DraftAction
     | { type: 'addSet', day: number, item: number }
     | { type: 'removeSet', day: number, item: number, set: number }
     | { type: 'setSetField', day: number, item: number, set: number, field: SetField, value: string }
-    | { type: 'cycleSetType', day: number, item: number, set: number }
+    | { type: 'setSetType', day: number, item: number, set: number, setType: SetType }
     | { type: 'replace', draft: PlanDraft }
 
 /**
@@ -625,13 +625,9 @@ export function draftReducer(draft: PlanDraft, action: DraftAction): PlanDraft {
       if (set) set[action.field] = action.value
       break
     }
-    case 'cycleSetType': {
+    case 'setSetType': {
       const set = day?.items[action.item]?.sets[action.set]
-      if (set) {
-        // The next type in SET_TYPES, back to the first after the last.
-        // `%`: the remainder, which wraps 4 back to 0
-        set.set_type = SET_TYPES[(SET_TYPES.indexOf(set.set_type) + 1) % SET_TYPES.length] ?? 'normal'
-      }
+      if (set) set.set_type = action.setType
       break
     }
   }

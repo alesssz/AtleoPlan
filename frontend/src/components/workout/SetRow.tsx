@@ -1,6 +1,6 @@
 /*
- * One set in workout mode (docs/design/D1-ui.md D1.4.9): its number, which a
- * tap turns into W, D or F; what the set in the same place did last time;
+ * One set in workout mode (docs/design/D1-ui.md D1.4.9): its number, which
+ * opens the list of set types (W, D, F: SetTypeSelect.tsx); what the set in the same place did last time;
  * the fields, filled with last time's values or the plan's targets; and ✓,
  * which completes it and starts the rest. SetHeader is the row of titles
  * above the sets, with the same widths, so each number sits under its name.
@@ -10,15 +10,20 @@
  * phone's keyboard, slow with sweaty hands (D1.4.9). The stepper still has
  * a text box, for a value far from the one shown.
  *
+ * An exercise logged by time has one more button before ✓: ▶, which opens
+ * the stopwatch (StopwatchPanel.tsx); its Stop fills the seconds and ticks
+ * the set. A done set keeps the place empty, so the columns stay aligned.
+ *
  * ✓ is disabled while a value the exercise needs is missing or does not
  * read as a number: the backend would refuse the set (canComplete,
  * workout-session.ts). The weight may stay empty: a set with the body alone.
  * A bodyweight exercise (pull-ups, dips) shows it as "+kg", the added weight.
  */
-import { Check } from 'lucide-react'
+import { Check, Play } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { LoggingType } from '@/api/exercises'
-import { SET_TYPE_SIGNS } from '@/components/plans/plan-draft'
+import type { SetType } from '@/api/plans'
+import { SetTypeSelect } from '@/components/plans/SetTypeSelect'
 import { Button } from '@/components/ui/button'
 import type { WeightUnit } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -36,8 +41,9 @@ interface SetHeaderProps {
 
 /**
  * The titles above the sets: Set, Last, then one per field (kg, Reps…), and
- * an empty place above ✓. The widths are the rows' own: w-12 for the
- * number's 48 px button, w-16 for Last, flex-1 for each field, w-12 for ✓.
+ * an empty place above ✓ (and above ▶, for a timed exercise). The widths
+ * are the rows' own: w-12 for the number's 48 px button, w-16 for Last,
+ * flex-1 for each field, w-12 for ▶ and ✓.
  * Hidden from screen readers, which hear each field's own name instead.
  */
 export function SetHeader({ loggingType, unit }: SetHeaderProps) {
@@ -50,6 +56,7 @@ export function SetHeader({ loggingType, unit }: SetHeaderProps) {
       {fieldsFor(loggingType, unit, t).map(({ field, label }) => (
         <span key={field} className="min-w-0 flex-1 text-center">{label}</span>
       ))}
+      {loggingType === 'time' && <span className="w-12 shrink-0" />}
       <span className="w-12 shrink-0" />
     </div>
   )
@@ -69,12 +76,14 @@ interface SetRowProps {
   onToggle: () => void
   /** A tap on a field: the stepper opens on it. */
   onOpenStepper: (field: SetField) => void
-  /** A tap on its number: the next type. */
-  onCycleType: () => void
+  /** A type chosen in the list under its number. */
+  onTypeChange: (type: SetType) => void
+  /** ▶, on a timed exercise: the stopwatch starts on this set. */
+  onStartStopwatch: () => void
 }
 
 /** A row of the sets' table. */
-export function SetRow({ set, number, loggingType, unit, onToggle, onOpenStepper, onCycleType }: SetRowProps) {
+export function SetRow({ set, number, loggingType, unit, onToggle, onOpenStepper, onTypeChange, onStartStopwatch }: SetRowProps) {
   const { t, i18n } = useTranslation()
   // The interface's language, for the decimal separator
   const language = i18n.language
@@ -88,16 +97,14 @@ export function SetRow({ set, number, loggingType, unit, onToggle, onOpenStepper
 
   return (
     <li className={cn('flex items-center gap-2 rounded-xl p-1 sm:gap-3', set.done && 'bg-primary/10')}>
-      {/* The number, or the type's letter; the name says the type in words */}
-      <Button
+      {/* The number, or the type's letter: a tap opens the list of types */}
+      <SetTypeSelect
+        value={set.set_type}
+        onChange={onTypeChange}
+        number={number.number}
+        label={t('workout.typeButton', { name, type: t(`plans.editor.setTypes.${set.set_type}`) })}
         variant="ghost"
-        size="icon-xl"
-        aria-label={t('workout.typeButton', { name, type: t(`plans.editor.setTypes.${set.set_type}`) })}
-        onClick={onCycleType}
-        className={cn('font-heading text-base font-extrabold', set.set_type === 'warm_up' ? 'text-muted-foreground' : set.set_type !== 'normal' && 'text-primary')}
-      >
-        {SET_TYPE_SIGNS[set.set_type] ?? number.number}
-      </Button>
+      />
 
       {/* Last time, in the column of the same name */}
       <span className="w-16 shrink-0 text-center text-sm text-muted-foreground tabular-nums">{lastText}</span>
@@ -116,6 +123,16 @@ export function SetRow({ set, number, loggingType, unit, onToggle, onOpenStepper
           {set[field] === '' ? <span className="text-muted-foreground">{placeholder ?? ''}</span> : set[field]}
         </button>
       ))}
+
+      {/* ▶, on a timed exercise: the stopwatch. Lime outline, the way to
+          do a timed set; gone once the set is done, its place kept */}
+      {loggingType === 'time' && (set.done
+        ? <span className="w-12 shrink-0" />
+        : (
+            <Button size="icon-xl" variant="outline" className="border-primary/70 text-primary" aria-label={t('workout.stopwatch.start', { name })} onClick={onStartStopwatch}>
+              <Play aria-hidden="true" className="fill-current" />
+            </Button>
+          ))}
 
       {/* ✓. aria-pressed says whether the set is done, in words for screen
           readers; the colour says it for the eyes */}

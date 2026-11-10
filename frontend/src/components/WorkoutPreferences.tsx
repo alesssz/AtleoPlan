@@ -1,6 +1,7 @@
 /*
  * The workout preferences on Profile (docs/design/D1-ui.md D1.4.14, UI-7):
- * five rows of the settings list, read by workout mode.
+ * six rows of the settings list, five read by workout mode and one by the
+ * plan editor.
  *
  * - **Weight unit**, kg or lb: how weights are shown and typed. They are
  *   kept in kilograms (docs/design/D3-data-model.md D3.2.3), so changing
@@ -11,7 +12,10 @@
  *   none; "No timer" is 0.
  * - **Weight step**: how much the big stepper's − and + move the weight
  *   (src/components/workout/SetStepper.tsx), in the user's unit.
- * - **Sound** and **vibration** at the end of the rest (src/lib/alarm.ts).
+ * - **Sound** and **vibration** at the end of the rest (src/lib/alarm.ts),
+ *   and when the stopwatch of a timed set reaches its target.
+ * - **RPE in plans**: whether the plan editor shows the RPE field beside each
+ *   set's reps (src/components/plans/editor/EditorSet.tsx). Off by default.
  *
  * Each change is saved at once, one field per request, through the same
  * hook as the language and the theme (useUpdatePreferences, src/api/auth.ts),
@@ -19,7 +23,7 @@
  * follows without waiting. How it works: docs/concepts/C1-frontend.md
  * C1.13.4; how it was built: docs/how-to/H3-frontend.md H3.21.
  */
-import { SlidersHorizontal, Timer, Vibrate, Volume2, Weight } from 'lucide-react'
+import { Gauge, SlidersHorizontal, Timer, Vibrate, Volume2, Weight } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentUser, useUpdatePreferences, type User } from '@/api/auth'
@@ -79,7 +83,7 @@ function withCurrent(choices: number[], current: number): number[] {
   return choices.includes(current) ? choices : [...choices, current].sort((a, b) => a - b)
 }
 
-/** The card with the five workout preferences. */
+/** The card with the six workout preferences. */
 export function WorkoutPreferences() {
   // t() translates a key; i18n holds the current language
   const { t, i18n } = useTranslation()
@@ -100,6 +104,7 @@ export function WorkoutPreferences() {
   const stepId = useId()
   const soundId = useId()
   const vibrationId = useId()
+  const rpeId = useId()
 
   // No user yet: nothing to show. This early return comes after every hook
   // above, never before: React needs the same hooks, in the same order, at
@@ -177,6 +182,11 @@ export function WorkoutPreferences() {
         </SettingRow>
         <SettingRow icon={Vibrate} label={t('preferences.vibration')} description={t('preferences.vibrationHint')} controlId={vibrationId}>
           <Switch id={vibrationId} size="lg" checked={user.timer_vibration} onCheckedChange={checked => updatePreferences.mutate({ timer_vibration: checked })} />
+        </SettingRow>
+
+        {/* The plan editor's RPE field, shown or hidden */}
+        <SettingRow icon={Gauge} label={t('preferences.rpe')} description={t('preferences.rpeHint')} controlId={rpeId}>
+          <Switch id={rpeId} size="lg" checked={user.show_rpe} onCheckedChange={checked => updatePreferences.mutate({ show_rpe: checked })} />
         </SettingRow>
       </div>
     </section>

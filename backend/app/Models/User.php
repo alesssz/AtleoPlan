@@ -61,7 +61,7 @@ use Illuminate\Notifications\Notifiable;
  * - HasLocalePreference: preferredLocale(), which language emails to this user
  *   are written in.
  */
-#[Fillable(['name', 'email', 'password', 'locale', 'theme', 'weight_unit', 'default_rest_seconds', 'weight_step', 'timer_sound', 'timer_vibration'])]
+#[Fillable(['name', 'email', 'password', 'locale', 'theme', 'weight_unit', 'default_rest_seconds', 'weight_step', 'timer_sound', 'timer_vibration', 'show_rpe'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasLocalePreference
 {
@@ -103,6 +103,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
             'weight_step' => 'decimal:2',
             'timer_sound' => 'boolean',
             'timer_vibration' => 'boolean',
+            'show_rpe' => 'boolean',
         ];
     }
 

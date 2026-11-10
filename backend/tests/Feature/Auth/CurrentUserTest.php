@@ -27,6 +27,7 @@ it('returns the signed-in user, without anything secret', function () {
         ->assertJsonPath('data.locale', 'it')
         ->assertJsonPath('data.theme', 'dark')
         ->assertJsonPath('data.is_admin', false)
+        ->assertJsonPath('data.show_rpe', false)
         ->assertJsonMissingPath('data.password')
         ->assertJsonMissingPath('data.remember_token');
 });
@@ -74,7 +75,7 @@ it('saves the workout preferences, one at a time', function () {
     $user = User::factory()->create();
 
     // Each request sends one, as the Profile's rows do
-    foreach ([['weight_unit' => 'lb'], ['default_rest_seconds' => 120], ['weight_step' => '1.25'], ['timer_sound' => false], ['timer_vibration' => false]] as $change) {
+    foreach ([['weight_unit' => 'lb'], ['default_rest_seconds' => 120], ['weight_step' => '1.25'], ['timer_sound' => false], ['timer_vibration' => false], ['show_rpe' => true]] as $change) {
         $this->actingAs($user)->patchJson('/api/user/preferences', $change)->assertNoContent();
     }
 
@@ -83,17 +84,19 @@ it('saves the workout preferences, one at a time', function () {
         ->default_rest_seconds->toBe(120)
         ->weight_step->toBe('1.25')
         ->timer_sound->toBeFalse()
-        ->timer_vibration->toBeFalse();
+        ->timer_vibration->toBeFalse()
+        ->show_rpe->toBeTrue();
 });
 
 it('refuses workout preferences out of range', function () {
     $user = User::factory()->create();
 
     // A unit not in the list, a rest over 10 minutes, a step too small and
-    // one with three decimals, a sound that is not true or false
-    $this->actingAs($user)->patchJson('/api/user/preferences', ['weight_unit' => 'st', 'default_rest_seconds' => 601, 'weight_step' => 0.1, 'timer_sound' => 'loud'])
+    // one with three decimals, a sound and an RPE switch that are not true
+    // or false
+    $this->actingAs($user)->patchJson('/api/user/preferences', ['weight_unit' => 'st', 'default_rest_seconds' => 601, 'weight_step' => 0.1, 'timer_sound' => 'loud', 'show_rpe' => 'maybe'])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors(['weight_unit', 'default_rest_seconds', 'weight_step', 'timer_sound']);
+        ->assertJsonValidationErrors(['weight_unit', 'default_rest_seconds', 'weight_step', 'timer_sound', 'show_rpe']);
     $this->actingAs($user)->patchJson('/api/user/preferences', ['weight_step' => 1.125])
         ->assertJsonValidationErrors(['weight_step']);
 

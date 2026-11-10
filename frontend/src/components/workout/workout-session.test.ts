@@ -8,7 +8,7 @@ import type { LastSets } from '@/api/sessions'
 import { testPlan } from '@/test/plan-helpers'
 import { clock } from './clock'
 import { testExercise } from '@/test/exercise-helpers'
-import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, restLeft, setNumbers, startFreeSession, startSession, supersetNext, swappedExercise, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
+import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, restLeft, setNumbers, startFreeSession, startSession, stopwatchSeconds, supersetNext, swappedExercise, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
 
 /** The moment the workout starts: 18:00 UTC. */
 const START = new Date('2026-11-09T18:00:00Z')
@@ -117,8 +117,65 @@ describe('setNumbers', () => {
       { warmUp: false, number: 4 },
     ])
     // A set turned into a warm-up: the numbers after it move up
-    const changed = run(dayA(), { type: 'cycleSetType', exercise: 0, set: 2 }).exercises[0]!
+    const changed = run(dayA(), { type: 'setSetType', exercise: 0, set: 2, setType: 'warm_up' }).exercises[0]!
     expect(setNumbers(changed.sets).map(entry => entry.number)).toEqual([1, 2, 3, 1, 2, 3])
+  })
+})
+
+/**
+ * A free workout with one timed exercise, a hold of two sets, the first
+ * aiming at 30 seconds, the second empty; a rest of 60 seconds.
+ */
+function holdWorkout(): ActiveSession {
+  const hold = exerciseFrom(testExercise({ id: 90, name: 'Dead Hang', logging_type: 'time' }), [], { unit: 'kg', language: 'en', defaultRestSeconds: 60 })
+  return run(
+    startFreeSession(START),
+    { type: 'addExercises', exercises: [hold] },
+    { type: 'addSet', exercise: 0 },
+    { type: 'setField', exercise: 0, set: 0, field: 'seconds', value: '30' },
+  )
+}
+
+describe('the stopwatch', () => {
+  it('starts on a set with its seconds as the target, and ends the rest', () => {
+    const resting = { ...holdWorkout(), rest: { ends_at: at(100), total: 60 } }
+    const session = run(resting, { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) })
+
+    expect(session.stopwatch).toEqual({ set_id: session.exercises[0]?.sets[0]?.id, started_at: at(10), target: 30 })
+    expect(session.rest).toBeNull()
+    // Counted from the start, in whole seconds
+    expect(stopwatchSeconds(session.stopwatch!, new Date(at(42.7)))).toBe(32)
+  })
+
+  it('stops: the time goes into the set, which is ticked, and the rest starts', () => {
+    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'stopStopwatch', now: at(42.7) })
+    const set = session.exercises[0]?.sets[0]
+
+    expect(session.stopwatch).toBeNull()
+    expect(set).toMatchObject({ seconds: '32', done: true, completed_at: at(42.7) })
+    expect(session.rest).toEqual({ ends_at: at(102.7), total: 60 })
+  })
+
+  it('has no target on an empty set, and records at least a second', () => {
+    const started = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 1, now: at(10) })
+    const stopped = run(started, { type: 'stopStopwatch', now: at(10.2) })
+
+    expect(started.stopwatch?.target).toBeNull()
+    expect(stopped.exercises[0]?.sets[1]?.seconds).toBe('1')
+  })
+
+  it('cancels, leaving the set as it was', () => {
+    const before = holdWorkout()
+    const session = run(before, { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'cancelStopwatch' })
+
+    expect(session.stopwatch).toBeNull()
+    expect(session.exercises[0]?.sets[0]).toEqual(before.exercises[0]?.sets[0])
+  })
+
+  it('does not start on a set already done', () => {
+    const done = run(holdWorkout(), { type: 'toggleSet', exercise: 0, set: 0, now: at(10) })
+
+    expect(run(done, { type: 'startStopwatch', exercise: 0, set: 0, now: at(20) }).stopwatch ?? null).toBeNull()
   })
 })
 
@@ -211,8 +268,8 @@ describe('workoutReducer', () => {
     expect(session.exercises[0]?.sets[6]).toMatchObject({ weight: '85', reps: '8', done: false, last: null })
   })
 
-  it('cycles a set\'s type', () => {
-    const session = run(dayA(), { type: 'cycleSetType', exercise: 0, set: 2 }, { type: 'cycleSetType', exercise: 0, set: 2 })
+  it('sets a set\'s type', () => {
+    const session = run(dayA(), { type: 'setSetType', exercise: 0, set: 2, setType: 'drop' })
 
     expect(session.exercises[0]?.sets[2]?.set_type).toBe('drop')
   })

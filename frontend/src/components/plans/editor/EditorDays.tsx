@@ -30,6 +30,8 @@ interface EditorDaysProps {
   hasErrors: (prefix: string) => boolean
   /** The user's weight unit. */
   unit: WeightUnit
+  /** Whether the user wants the RPE field (Profile, `show_rpe`). */
+  showRpe: boolean
   /** The user's default rest, in seconds. */
   defaultRestSeconds: number
   /** The interface's language. */
@@ -42,7 +44,7 @@ interface EditorDaysProps {
 
 /** The editor's second step: the days as tabs, each with its exercises. */
 export function EditorDays(props: EditorDaysProps) {
-  const { draft, openDay, dispatch, errorOf, hasErrors, unit, defaultRestSeconds, language, onOpenDay, onBack } = props
+  const { draft, openDay, dispatch, errorOf, hasErrors, unit, showRpe, defaultRestSeconds, language, onOpenDay, onBack } = props
   const { t } = useTranslation()
 
   return (
@@ -91,6 +93,7 @@ export function EditorDays(props: EditorDaysProps) {
               dispatch={dispatch}
               errorOf={errorOf}
               unit={unit}
+              showRpe={showRpe}
               defaultRestSeconds={defaultRestSeconds}
               language={language}
             />

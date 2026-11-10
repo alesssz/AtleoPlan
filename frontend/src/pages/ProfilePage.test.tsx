@@ -75,7 +75,8 @@ describe('ProfilePage', () => {
     renderRoutes(routes, '/profile')
     const user = userEvent.setup()
 
-    // The card, with the account's values: kg, 90 s, 2.5 kg, sound and vibration on
+    // The card, with the account's values: kg, 90 s, 2.5 kg, sound and
+    // vibration on, RPE off
     const card = await screen.findByRole('region', { name: 'Workout' })
     expect(within(card).getByRole('combobox', { name: 'Weight unit' })).toHaveTextContent('Kilograms (kg)')
     expect(within(card).getByRole('combobox', { name: 'Default rest' })).toHaveTextContent('90 sec')
@@ -93,8 +94,13 @@ describe('ProfilePage', () => {
     // waitFor: the cached user changes after an `await` in the hook
     await waitFor(() => expect(sound).toHaveAttribute('aria-checked', 'false'))
     expect(within(card).getByRole('combobox', { name: 'Default rest' })).toHaveTextContent('2 min')
+    // The plan editor's RPE field: off at first, on with a tap
+    const rpe = within(card).getByRole('switch', { name: 'RPE in plans' })
+    expect(rpe).toHaveAttribute('aria-checked', 'false')
+    await user.click(rpe)
+    await waitFor(() => expect(rpe).toHaveAttribute('aria-checked', 'true'))
 
-    expect(preferencesSent(fake)).toEqual([{ default_rest_seconds: 120 }, { weight_step: '1.25' }, { timer_sound: false }])
+    expect(preferencesSent(fake)).toEqual([{ default_rest_seconds: 120 }, { weight_step: '1.25' }, { timer_sound: false }, { show_rpe: true }])
   })
 
   it('changes the unit with the step that suits it', async () => {

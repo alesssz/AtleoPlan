@@ -21,14 +21,11 @@ import { formatNumber, type WeightUnit } from '@/lib/format'
 import { newId, parseDecimal, parseWhole, toKilograms } from '@/components/plans/plan-draft'
 import { weightIn } from '@/components/plans/plan-format'
 
-/** The order a tap on a set's number goes through, as in the plan editor (D1.4.8). */
-const SET_TYPES: readonly SetType[] = ['normal', 'warm_up', 'drop', 'failure']
-
 /** One set of the workout: planned, or added; done or not yet. */
 export interface WorkoutSet {
   /** A UUID made here; the backend keeps it. */
   id: string
-  /** Its type; a tap on its number changes it. */
+  /** Its type, chosen from the list under its number (SetTypeSelect). */
   set_type: SetType
   /** The weight as typed, in the user's unit, "82,5" or "82.5". */
   weight: string
@@ -90,6 +87,21 @@ export interface Rest {
   total: number
 }
 
+/**
+ * The stopwatch of a timed set (D1.4.9): like the rest, a moment rather
+ * than a counter, so it keeps running with the screen off or the app
+ * closed. The set is named by its id, which stays the same when exercises
+ * are added or sets are added.
+ */
+export interface Stopwatch {
+  /** The id of the set being timed. */
+  set_id: string
+  /** When it started, as ISO 8601 text. */
+  started_at: string
+  /** The seconds to reach, from the set's field at the start; null when empty. */
+  target: number | null
+}
+
 /** The whole workout in progress. */
 export interface ActiveSession {
   /** A UUID made here when Start was tapped; the backend keeps it. */
@@ -114,6 +126,11 @@ export interface ActiveSession {
   current: number
   /** The rest timer; null when not resting. */
   rest: Rest | null
+  /**
+   * The stopwatch of a timed set; null when none runs. Optional (`?`): a
+   * workout kept on the phone before the stopwatch existed has no such key.
+   */
+  stopwatch?: Stopwatch | null
   /** The exercises, in order. */
   exercises: WorkoutExercise[]
 }
@@ -242,6 +259,7 @@ function emptySession(now: Date): ActiveSession {
     finished_at: null,
     current: 0,
     rest: null,
+    stopwatch: null,
     exercises: [],
   }
 }
@@ -340,6 +358,29 @@ export function restLeft(session: ActiveSession, now: Date): number {
   // Seconds to the end, rounded up: 0.2 s left still shows 0:01
   const left = Math.ceil((Date.parse(session.rest.ends_at) - now.getTime()) / 1000)
   return Math.min(session.rest.total, Math.max(0, left))
+}
+
+/**
+ * The seconds a stopwatch has run, whole, never below 0.
+ * @param stopwatch the stopwatch
+ * @param now the current moment
+ */
+export function stopwatchSeconds(stopwatch: Stopwatch, now: Date): number {
+  return Math.max(0, Math.floor((now.getTime() - Date.parse(stopwatch.started_at)) / 1000))
+}
+
+/**
+ * Where a set is, by its id: its exercise's index and its own; null when
+ * it is no longer in the workout (its exercise swapped away).
+ * @param session the workout
+ * @param setId the set's id
+ */
+export function findSet(session: ActiveSession, setId: string): { exercise: number, set: number } | null {
+  for (const [exercise, item] of session.exercises.entries()) {
+    const set = item.sets.findIndex(candidate => candidate.id === setId)
+    if (set !== -1) return { exercise, set }
+  }
+  return null
 }
 
 /**
@@ -460,7 +501,7 @@ export type SetField = 'weight' | 'reps' | 'seconds' | 'meters'
 export type WorkoutAction
   = | { type: 'toggleSet', exercise: number, set: number, now: string }
     | { type: 'setField', exercise: number, set: number, field: SetField, value: string }
-    | { type: 'cycleSetType', exercise: number, set: number }
+    | { type: 'setSetType', exercise: number, set: number, setType: SetType }
     | { type: 'addSet', exercise: number }
     | { type: 'addExercises', exercises: WorkoutExercise[] }
     | { type: 'swapExercise', exercise: number, replacement: WorkoutExercise }
@@ -469,6 +510,9 @@ export type WorkoutAction
     | { type: 'goTo', exercise: number }
     | { type: 'adjustRest', seconds: number }
     | { type: 'endRest' }
+    | { type: 'startStopwatch', exercise: number, set: number, now: string }
+    | { type: 'stopStopwatch', now: string }
+    | { type: 'cancelStopwatch' }
     | { type: 'pause', now: string }
     | { type: 'resume', now: string }
     | { type: 'finish', now: string }
@@ -543,8 +587,8 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
     case 'setField':
       if (set) set[action.field] = action.value
       break
-    case 'cycleSetType':
-      if (set) set.set_type = SET_TYPES[(SET_TYPES.indexOf(set.set_type) + 1) % SET_TYPES.length] ?? 'normal'
+    case 'setSetType':
+      if (set) set.set_type = action.setType
       break
     case 'addSet': {
       if (!exercise) break
@@ -606,10 +650,41 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
     case 'resume':
       if (next.running_since === null && next.finished_at === null) next.running_since = action.now
       break
+    case 'startStopwatch': {
+      if (!set || set.done) break
+      // The target: the seconds in the set's field, the plan's or last
+      // time's, when it holds a number above 0
+      const target = parseWhole(set.seconds)
+      next.stopwatch = { set_id: set.id, started_at: action.now, target: target !== null && target > 0 ? target : null }
+      // The set begins: the rest before it is over
+      next.rest = null
+      break
+    }
+    case 'stopStopwatch': {
+      const timed = next.stopwatch ? findSet(next, next.stopwatch.set_id) : null
+      if (!next.stopwatch || !timed) {
+        next.stopwatch = null
+        break
+      }
+      // The time, in whole seconds, never 0: the backend wants at least 1
+      const seconds = Math.max(1, stopwatchSeconds(next.stopwatch, new Date(action.now)))
+      next.stopwatch = null
+      const timedSet = next.exercises[timed.exercise]?.sets[timed.set]
+      if (!timedSet) break
+      timedSet.seconds = String(seconds)
+      // Ticked as ✓ would, rest and superset included; a set ticked
+      // meanwhile keeps its tick, with the new time
+      if (!timedSet.done) return workoutReducer(next, { type: 'toggleSet', exercise: timed.exercise, set: timed.set, now: action.now })
+      break
+    }
+    case 'cancelStopwatch':
+      next.stopwatch = null
+      break
     case 'finish':
       stopClock(next, action.now)
       next.finished_at = action.now
       next.rest = null
+      next.stopwatch = null
       break
   }
   return next

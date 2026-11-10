@@ -49,6 +49,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.16.6 Testing it](#c1166-testing-it)
   - [C1.16.7 Two steps, one draft](#c1167-two-steps-one-draft)
   - [C1.16.8 Creating an exercise from the picker](#c1168-creating-an-exercise-from-the-picker)
+  - [C1.16.9 Set types and the RPE field](#c1169-set-types-and-the-rpe-field)
 - [C1.17 Workout mode](#c117-workout-mode)
   - [C1.17.1 The pieces](#c1171-the-pieces)
   - [C1.17.2 Starting: the plan becomes a workout](#c1172-starting-the-plan-becomes-a-workout)
@@ -57,6 +58,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.17.5 The queue of workouts to send](#c1175-the-queue-of-workouts-to-send)
   - [C1.17.6 Testing it](#c1176-testing-it)
   - [C1.17.7 The big stepper and the exercise's menu](#c1177-the-big-stepper-and-the-exercises-menu)
+  - [C1.17.8 The stopwatch of a timed set](#c1178-the-stopwatch-of-a-timed-set)
 - [C1.18 Home](#c118-home)
   - [C1.18.1 The pieces](#c1181-the-pieces)
   - [C1.18.2 Starting from Home: one hook for two pages](#c1182-starting-from-home-one-hook-for-two-pages)
@@ -707,14 +709,15 @@ The tests passed, because the fake API answered in order. A test in a real brows
 
 `src/api/auth.test.tsx` reproduces it, with one request held back. **The lesson for any optimistic update:** an answer can describe the past.
 
-**The workout's five** (`components/WorkoutPreferences.tsx`, UI-7) need no `useAccountPreferences`: nothing outside React must be told, as i18next and the theme are. Workout mode reads them from the cached user (`useCurrentUser()`), so a change shows at the next draw.
+**The workout's six** (`components/WorkoutPreferences.tsx`, UI-7) need no `useAccountPreferences`: nothing outside React must be told, as i18next and the theme are. Workout mode and the plan editor read them from the cached user (`useCurrentUser()`), so a change shows at the next draw.
 
 | Row | Control | Saved as | Read by |
 |---|---|---|---|
 | Weight unit | Select: Kilograms (kg), Pounds (lb) | `weight_unit` (with `weight_step`, below) | every weight on screen, and every weight typed ([D3.2.3](../design/D3-data-model.md#d323-weights-are-always-in-kilograms)) |
 | Default rest | Select: No timer, 30 s … 5 min | `default_rest_seconds` (0 for no timer) | a workout started from then on, for exercises with no rest of their own |
 | Weight step | Select: the plates of the unit (0.5 … 5 kg, 1 … 10 lb) | `weight_step`, as text with two decimals (`"1.25"`) | the big stepper's − and + ([C1.17.7](#c1177-the-big-stepper-and-the-exercises-menu)) |
-| Sound, Vibration | Switch (`components/ui/switch.tsx`) | `timer_sound`, `timer_vibration` | the end of the rest (`lib/alarm.ts`) |
+| Sound, Vibration | Switch (`components/ui/switch.tsx`) | `timer_sound`, `timer_vibration` | the end of the rest, and a stopwatch's target (`lib/alarm.ts`, C1.17.8) |
+| RPE in plans | Switch | `show_rpe` | the plan editor's RPE field ([C1.16.9](#c1169-set-types-and-the-rpe-field)) |
 
 - **A Select's values are text.** The rest goes in as `String(90)` and comes back as `Number(value)`; the step is compared as `step.toFixed(2)`, the very text the account keeps (`"2.50"`). A value not in the list, saved some other way, is added to it (`withCurrent()`), so the Select always shows the account's value.
 - **The unit comes with its step.** Changing the unit sends `{ weight_unit: 'lb', weight_step: '5.00' }` in one request: a step of 2.5 chosen in kilograms would mean 2.5 lb, too fine a step for most gyms.
@@ -938,7 +941,8 @@ PlanEditorPage            /plans/new: an empty draft; /plans/:id/edit: reads the
             │             "Make a superset"
             ├── EditorItem    an exercise: drag handle, summary line; open: its sets, rest, notes,
             │   │             move to another day, leave the superset, remove
-            │   └── EditorSet a set: its number, a tap cycles the type (W, D, F); its targets; remove
+            │   └── EditorSet a set: its number, opening the list of types (SetTypeSelect: W, D, F);
+            │                 its targets, RPE only when wanted (C1.16.9); remove
             └── ExercisePicker the library in a Dialog, a tick box on each row, "Add (n)";
                                "Create «…»": the exercise editor's form in the window (C1.16.8)
 ```
@@ -949,18 +953,19 @@ PlanEditorPage            /plans/new: an empty draft; /plans/:id/edit: reads the
 | `components/plans/draft-storage.ts` | Keeping the draft in the browser |
 | `components/plans/editor/*.tsx` | The components above |
 | `components/ui/dialog.tsx` | shadcn/ui's Dialog, for the exercise picker |
+| `components/plans/SetTypeSelect.tsx` | The set's number and its list of types, shared with workout mode (C1.16.9) |
 | `api/plans.ts` | `useCreatePlan()`, `useUpdatePlan(id)`, and the types of the body (`PlanInput`) |
 
 **What is not here,** with where it went: the desktop layout of D1.4.8, the library in a column beside the plan with exercises dragged across ([UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)); "Add to plan" from an exercise's page ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)). On every width, exercises come from the picker window.
 
 ### C1.16.2 The draft and its reducer
 
-The exercise editor is a form of fields side by side, and react-hook-form fits it ([C1.14.4](#c1144-the-editors-form)). A plan is a tree: a day holds exercises, an exercise holds sets, and the changes are not only typing. A set's type cycles, an exercise moves to another day, two exercises join a superset, a drag reorders a list. These are written as **actions** handled by one function, the **reducer**, with React's **`useReducer`**:
+The exercise editor is a form of fields side by side, and react-hook-form fits it ([C1.14.4](#c1144-the-editors-form)). A plan is a tree: a day holds exercises, an exercise holds sets, and the changes are not only typing. A set's type changes, an exercise moves to another day, two exercises join a superset, a drag reorders a list. These are written as **actions** handled by one function, the **reducer**, with React's **`useReducer`**:
 
 ```tsx
 const [draft, dispatch] = useReducer(draftReducer, initial)
 
-dispatch({ type: 'cycleSetType', day: 0, item: 1, set: 2 })     // a tap on set 3's number
+dispatch({ type: 'setSetType', day: 0, item: 1, set: 2, setType: 'drop' })  // set 3's type, from the list
 dispatch({ type: 'moveItem', day: 0, from: 3, to: 0 })           // the end of a drag
 ```
 
@@ -1112,6 +1117,41 @@ A plan written from paper meets exercises the library does not have, or has unde
 
 Tailwind 4 has them built in: `@container` on the parent, `@sm:`, `@md:`, `@lg:`, `@xl:` (24, 28, 32, 36 rem) on what is inside. On the editor's page the form is wider than 576 px from a laptop up, so it looks as before there; on a tablet in portrait it now keeps one column. How it was built: [H3.23](../how-to/H3-frontend.md#h323-creating-an-exercise-from-the-picker-as-built).
 
+### C1.16.9 Set types and the RPE field
+
+Two changes to a set's row, after writing a real plan into the editor: the letters W, D, F said nothing to someone who did not know them, and the RPE field took a third of every row for a number most people never set.
+
+**The type, from a list.** The set's number used to go through the four types one tap at a time (`cycleSetType`). Now it opens a list, `SetTypeSelect` (`components/plans/SetTypeSelect.tsx`), shared by the editor and workout mode: each type with its letter in a square, its name and a line on what it is ("Warm-up: light, before the working sets; not counted"). The reducers take the type chosen, `{ type: 'setSetType', day, item, set, setType: 'warm_up' }` here and `{ type: 'setSetType', exercise, set, setType }` in workout mode.
+
+```tsx
+<Select value={value} onValueChange={type => onChange(type as SetType)}>
+  <SelectPrimitive.Trigger asChild>
+    <Button variant={variant} size="icon-xl" aria-label={label}>{SET_TYPE_SIGNS[value] ?? number}</Button>
+  </SelectPrimitive.Trigger>
+  <SelectContent position="popper" align="start">
+    {SET_TYPES.map(type => <SelectItem key={type} value={type}>…</SelectItem>)}
+  </SelectContent>
+</Select>
+```
+
+- **The same Select as Profile's** (`components/ui/select.tsx`, [C1.13.4](#c1134-preferences-on-the-account)), with keyboard, focus and screen-reader roles from Radix, but **its own trigger**: shadcn's `SelectTrigger` draws a bordered field with a chevron, too wide for a 48 px square.
+- **`asChild`** is Radix's way to lend a part's behaviour to another element: `SelectPrimitive.Trigger asChild` draws no button of its own, and passes its handlers, its `role="combobox"` and its `aria-expanded` to our `Button`. The button looks as before; only what a tap does changed.
+- **`position="popper"`** opens the list under the button, aligned to its left edge (`align="start"`), rather than over it with the chosen item on the button, the Select's default, which on a 48 px square would hide the row.
+- **Tests** find the button as a combobox, `getByRole('combobox', { name: 'Set 1, normal: change the type' })`, and the type as an option, `findByRole('option', { name: /^Warm-up/ })`: the option's name is its whole text, hint included.
+
+**The RPE field, a preference.** `users.show_rpe` ([D3.3](../design/D3-data-model.md#d33-users-and-preferences)), off by default, is the last row of Profile's **Workout** card, **RPE in plans** (C1.13.4). `PlanEditor` reads it from the cached user and passes it down, as it does the unit: `PlanEditor` → `EditorDays` → `EditorDay` → `EditorItem` → `EditorSet`. `EditorItem` adds one rule:
+
+```tsx
+const [hadRpe] = useState(() => item.sets.some(set => set.rpe !== ''))
+const withRpe = showRpe || hadRpe
+```
+
+- **An RPE already there is shown,** preference or not: a plan written before the preference, or by someone who uses it, would otherwise be saved with a value nobody sees.
+- **Read once, when the exercise is first drawn.** `useState(() => …)` keeps the first answer. Worked out at every draw, the field would vanish under the finger the moment its last RPE was erased.
+- **The plan's page** still writes "RPE 8" in an exercise's line when a target has one; only the editor's field depends on the preference.
+
+How it was built: [H3.24](../how-to/H3-frontend.md#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built).
+
 ## C1.17 Workout mode
 
 The first part of FEAT-3 on screen ([D1.4.9](../design/D1-ui.md#d149-workout-mode)): **Start** on a day of a plan opens `/session/:id`, a full screen where the user ticks the sets one by one, with the rest timer between them, and **Finish** sends the workout to `PUT /api/sessions/{id}` ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)). It is the screen used in the gym, with sweaty hands and a bad connection, so two rules come before everything else: **nothing is ever lost**, and **one tap per set**. How it was built, with the real output: [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built).
@@ -1127,7 +1167,9 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
     │                    stores every change; keeps the screen on
     ├── ExerciseMenu     "⋯" beside the exercise's name: swap, skip, a note, the video (a panel from the bottom)
     ├── SetHeader        the titles above the sets: Set, Last, kg, Reps (or Sec, m)
-    ├── SetRow           a set: its number or type letter, last time, the fields (buttons), ✓
+    ├── SetRow           a set: its number or type letter (the list of types), last time, the fields (buttons);
+    │                    ▶ on a timed exercise; ✓
+    ├── StopwatchPanel   the stopwatch of a timed set, full screen: the time, a ring to the target, Stop, Cancel (C1.17.8)
     ├── SetStepper       the big stepper of the set tapped: − and + for each field (a panel from the bottom)
     ├── ExercisePicker   Add exercises; and Swap exercise, one tap, filtered by the main muscle
     └── RestBar          the rest timer: time left, a shrinking bar, −15, +15, Skip
@@ -1142,6 +1184,7 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 | `components/workout/set-fields.ts` | `fieldsFor()`: the fields of a set by the way its exercise is logged, shared by the rows, their titles and the stepper |
 | `components/workout/SetStepper.tsx`, `stepper.ts` | The big stepper, and its arithmetic: the step of each field, the next value after a tap (C1.17.7) |
 | `components/workout/ExerciseMenu.tsx` | The exercise's menu (C1.17.7) |
+| `components/workout/StopwatchPanel.tsx` | The stopwatch (C1.17.8) |
 | `components/ui/sheet.tsx` | shadcn/ui's Sheet: a dialog against an edge of the screen, the two panels' frame |
 | `components/workout/layout.ts` | `WORKOUT_COLUMN`, the side margins shared by the screen's parts |
 | `components/workout/useStartWorkout.ts`, `ResumeBanner.tsx` | Starting a workout, and the banner with Resume: shared by the plan's page and Home ([C1.18](#c118-home)) |
@@ -1312,6 +1355,44 @@ Two panels that slide up from the bottom of the screen, added by UI-6 ([D1.4.9](
 - **Older workouts** kept on the phone before UI-6 have no `notes` and no `skipped`: both are optional (`notes?: string`), and missing reads as none.
 
 **Testing them.** The arithmetic in `stepper.test.ts`, the three actions in `workout-session.test.ts`, the panels in `WorkoutPage.test.tsx`: a tap on "Set 1, kg: 80", the dialog named "Set 1", "kg: 2.5 more" twice, the box reads 85; the note, Skip and its way back, Swap with the muscle in the request's address.
+
+### C1.17.8 The stopwatch of a timed set
+
+A set of an exercise logged by time had only a box for the seconds: fine for a plank timed by the gym's clock, poor for "30 s dead hang" or "50 push-ups as fast as possible" (one's own exercise, logged by time: the time is the result). Such a row now has **▶** before ✓, which opens `StopwatchPanel`, full screen: the time counting up inside a ring, the target under it, **Last time**, **Stop** and **Cancel**.
+
+**A moment, like the rest** (C1.17.4). The workout keeps when the stopwatch started, not a counter:
+
+```ts
+session.stopwatch = { set_id: '0192…', started_at: '2026-11-10T18:05:12.000Z', target: 30 }
+stopwatchSeconds(stopwatch, now)   // (now − started_at) in whole seconds
+```
+
+- **Stored with the workout** (`session-storage.ts`), so the screen off, the app closed and opened again, or a reload lose nothing: the time is still right. `stopwatch?` is optional in `ActiveSession`, since workouts kept on a phone before it have no such key.
+- **The set by its id,** not by its indexes: exercises can be added while it runs, and `findSet(session, id)` finds it wherever it is.
+- **The target** is the set's `seconds` when ▶ is tapped: the plan's target, or last time's time, which fill the field (C1.17.2). For a hold it is the time to reach; for a race, last time's time to beat. Empty, there is none.
+- **Starting ends the rest**, if one was running: the set has begun.
+
+**Four actions of the reducer:**
+
+| Action | Does |
+|---|---|
+| `startStopwatch` | `{ set_id, started_at: now, target }`, the rest ended; nothing on a set already done |
+| `stopStopwatch` | The seconds, at least 1 (the backend's minimum), into the set; then the set is ticked by calling the reducer again with `toggleSet`, so the rest and the superset's round follow the rules of ✓ |
+| `cancelStopwatch` | Forgets it; the set stays as it was |
+| `finish` | Also forgets it |
+
+`stopStopwatch` calls `workoutReducer` from inside `workoutReducer`: a reducer is a plain function, and the copy it already made is simply passed on. Ticking has one set of rules, in one place.
+
+**The panel.**
+
+- **The ring** is an SVG circle whose line is drawn as one dash: `stroke-dasharray` the circle's length (2πr), `stroke-dashoffset` the part not yet filled, `CIRCUMFERENCE * (1 - share)`. `share` is `seconds / target`; with no target, the seconds of the current minute, a stopwatch's hand. `-rotate-90` starts it at the top.
+- **Its own clock,** `useNow(250)`: four times a second, so the seconds change on time, not up to a second late as with the screen's clock.
+- **The target's signal** is the rest's (`restOver()`, with the user's sound and vibration), from a `setTimeout` set for that moment, as in C1.17.4; none when the moment is already past (the app opened again after it), or it would ring late. "Target reached" replaces "Target 0:30", in lime, and is read out (`aria-live`).
+- **A Dialog that does not close by itself.** It is shadcn/ui's `Dialog` stretched to the whole screen (`h-dvh w-full max-w-none rounded-none`), always `open` while it is drawn; `onEscapeKeyDown` and `onInteractOutside` call `event.preventDefault()`, which tells Radix to stay open. A time ends with Stop or Cancel only, never with a stray touch. The Dialog still traps the focus and names itself after the exercise (`DialogTitle`).
+
+**Testing it.** `workout-session.test.ts`: the start with its target and the rest ended, Stop with the time and the tick and the rest, no target and at least a second, Cancel, no start on a set done. `WorkoutPage.test.tsx`: ▶, the panel named after the exercise with "Target 0:45" and "Last time 0:45", the stopwatch kept on the phone, Stop, the set ticked with its seconds, the rest running.
+
+How it was built: [H3.24](../how-to/H3-frontend.md#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built).
 
 ## C1.18 Home
 

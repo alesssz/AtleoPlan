@@ -46,6 +46,8 @@ interface EditorDayProps {
   errorOf: (path: string) => string | undefined
   /** The user's weight unit. */
   unit: WeightUnit
+  /** Whether the user wants the RPE field (Profile, `show_rpe`). */
+  showRpe: boolean
   /** The user's default rest, in seconds. */
   defaultRestSeconds: number
   /** The interface's language. */
@@ -53,7 +55,7 @@ interface EditorDayProps {
 }
 
 /** A day of the plan, being edited. */
-export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, defaultRestSeconds, language }: EditorDayProps) {
+export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, showRpe, defaultRestSeconds, language }: EditorDayProps) {
   const { t } = useTranslation()
   // Whether the day is choosing exercises for a superset, and which ones (by id)
   const [selecting, setSelecting] = useState(false)
@@ -144,6 +146,7 @@ export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, defaul
                       dispatch={dispatch}
                       errorOf={errorOf}
                       unit={unit}
+                      showRpe={showRpe}
                       defaultRestSeconds={defaultRestSeconds}
                       language={language}
                       open={open.includes(item.id)}

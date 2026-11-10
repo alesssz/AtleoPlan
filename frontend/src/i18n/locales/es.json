@@ -59,7 +59,9 @@
     "sound": "Sonido al terminar el descanso",
     "soundHint": "Dos pitidos cortos.",
     "vibration": "Vibración al terminar el descanso",
-    "vibrationHint": "En los teléfonos que vibran (no en iPhone)."
+    "vibrationHint": "En los teléfonos que vibran (no en iPhone).",
+    "rpe": "RPE en las rutinas",
+    "rpeHint": "Un esfuerzo del 1 al 10 junto a las repeticiones, en el editor de la rutina."
   },
   "theme": {
     "dark": "Oscuro",
@@ -200,7 +202,7 @@
       "dragHandle": "Mover {{name}}",
       "supersetTag": "Superserie {{number}}",
       "setLabel": "Serie {{number}}",
-      "setTypeButton": "Serie {{number}}, {{type}}: toca para cambiar el tipo",
+      "setTypeButton": "Serie {{number}}, {{type}}: cambiar el tipo",
       "setTypes": {
         "normal": "normal",
         "warm_up": "calentamiento",
@@ -251,7 +253,25 @@
       }
     },
     "lastUsed": "Usado {{when}}",
-    "neverUsed": "Aún sin usar"
+    "neverUsed": "Aún sin usar",
+    "setTypeChoices": {
+      "normal": {
+        "name": "Normal",
+        "hint": "Una serie de trabajo, cuenta en los totales"
+      },
+      "warm_up": {
+        "name": "Calentamiento",
+        "hint": "Ligera, antes de las de trabajo; no cuenta"
+      },
+      "drop": {
+        "name": "Drop set",
+        "hint": "Justo después de la anterior, con menos peso"
+      },
+      "failure": {
+        "name": "Al fallo",
+        "hint": "Hasta no poder hacer ni una repetición más"
+      }
+    }
   },
   "exercises": {
     "new": "Nuevo ejercicio",
@@ -425,7 +445,7 @@
     "addedWeight": "lastre, {{unit}}",
     "setName": "Serie {{number}}",
     "warmUpName": "Calentamiento {{number}}",
-    "typeButton": "{{name}}, {{type}}: toca para cambiar el tipo",
+    "typeButton": "{{name}}, {{type}}: cambiar el tipo",
     "tick": "Marcar: {{name}}",
     "untick": "Desmarcar: {{name}}",
     "restTitle": "Descanso",
@@ -474,7 +494,16 @@
     "noteSave": "Guardar nota",
     "noteBack": "Atrás",
     "yourNote": "Tu nota",
-    "video": "Ver el vídeo"
+    "video": "Ver el vídeo",
+    "stopwatch": {
+      "start": "Iniciar el cronómetro: {{name}}",
+      "target": "Objetivo {{time}}",
+      "reached": "Objetivo alcanzado",
+      "last": "La última vez {{time}}",
+      "stop": "Parar",
+      "stopHint": "El tiempo va a la serie y empieza el descanso.",
+      "cancel": "Cancelar, sin guardar el tiempo"
+    }
   },
   "summary": {
     "eyebrow": "Entrenamiento terminado",

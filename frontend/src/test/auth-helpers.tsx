@@ -26,6 +26,7 @@ export const testUser: User = {
   weight_step: '2.50',
   timer_sound: true,
   timer_vibration: true,
+  show_rpe: false,
 }
 
 /** One fake answer: an HTTP status and a body; null when it has none. */
