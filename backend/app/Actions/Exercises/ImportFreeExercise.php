@@ -38,6 +38,11 @@ use InvalidArgumentException;
  *       "images": ["3_4_Sit-Up/0.jpg", "3_4_Sit-Up/1.jpg"]
  *     }
  *
+ * The same action imports the project's own extra exercises
+ * (database/data/extra-exercises.json, command `exercises:import-extra`),
+ * written in that shape with two more keys: `aliases`, the English aliases,
+ * and `loggingType`, which then replaces the guess.
+ *
  * The rules (docs/concepts/C2-backend.md C2.14.3):
  * - **Found by `external_id`**, the source's `id`, so a second run never
  *   duplicates. A row deleted by an admin is found too, and left deleted.
@@ -177,6 +182,13 @@ class ImportFreeExercise
         // one language of the column (docs/design/D3-data-model.md D3.4.5)
         $exercise->setTranslation('name', 'en', trim($row['name']));
 
+        // Other English names: free-exercise-db has none, our extra exercises
+        // (database/data/extra-exercises.json) do. Only when given, so a run
+        // of free-exercise-db never removes aliases written by an admin
+        if (($row['aliases'] ?? []) !== []) {
+            $exercise->setTranslation('aliases', 'en', $row['aliases']);
+        }
+
         // The steps, cleaned; an exercise without steps has none in English
         $steps = self::cleanInstructions($row['instructions'] ?? []);
         if ($steps !== []) {
@@ -185,8 +197,15 @@ class ImportFreeExercise
             $exercise->forgetTranslation('instructions', 'en');
         }
 
+        // The logging type: the row's own when it has one (the extra
+        // exercises say it, since "Frog Stand", body weight, is held for a
+        // time and the guess would count reps), otherwise guessed.
+        // LoggingType::from() turns "time" into the enum's case, and throws
+        // on a value that is not one of them
         if ($isNew) {
-            $exercise->logging_type = self::loggingTypeFor($row['category'] ?? '', $row['equipment'] ?? null);
+            $exercise->logging_type = isset($row['loggingType'])
+                ? LoggingType::from($row['loggingType'])
+                : self::loggingTypeFor($row['category'] ?? '', $row['equipment'] ?? null);
         }
 
         $exercise->save();

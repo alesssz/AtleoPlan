@@ -86,6 +86,16 @@
   - [H1.15.1 Generate and run](#h1151-generate-and-run)
   - [H1.15.2 The models](#h1152-the-models)
   - [H1.15.3 The tests](#h1153-the-tests)
+- [H1.16 The search text, as built](#h116-the-search-text-as-built)
+  - [H1.16.1 Generate](#h1161-generate)
+  - [H1.16.2 The class, then the column](#h1162-the-class-then-the-column)
+  - [H1.16.3 Tuned on the real data](#h1163-tuned-on-the-real-data)
+  - [H1.16.4 The tests, and the errors met](#h1164-the-tests-and-the-errors-met)
+- [H1.17 The extra exercises, as built](#h117-the-extra-exercises-as-built)
+  - [H1.17.1 The command](#h1171-the-command)
+  - [H1.17.2 The data](#h1172-the-data)
+  - [H1.17.3 Run it](#h1173-run-it)
+  - [H1.17.4 The tests](#h1174-the-tests)
 
 ---
 
@@ -2006,6 +2016,288 @@ Tests:    10 passed (26 assertions)
 ```
 
 The suggested-day test walks a plan of three days through a week: nothing done (A), A done (B), C done (back to A), then a session left open and one deleted, which do not count.
+
+## H1.16 The search text, as built
+
+The library's search did not find "Pullups" for "pull up", nor anything for "trazioni" in an English interface: it compared the text as typed with the name in one language. It now looks in a column of its own, `exercises.search_text`, with every name and alias in every language, normalised ([D3.4.6](../design/D3-data-model.md#d346-searching)). What this section shows that the earlier ones do not: a class of plain helpers, a model event, a migration that fills a column for the rows already there, and a search tuned on the real data.
+
+| File | What it is |
+|---|---|
+| `app/Support/SearchText.php` | Normalising a text, building an exercise's search text, cutting a search into words |
+| `database/migrations/2026_11_10_093058_add_search_text_to_exercises_table.php` | The column, and its first filling |
+| `app/Models/Exercise.php` | `booted()`: the `saving` event; `search()`: the three rules |
+| `tests/Unit/SearchTextTest.php` | 4 unit tests, no database |
+| `tests/Feature/ExerciseLibrary/ExerciseListTest.php` | The search's tests rewritten: 2 replaced by 3 |
+
+**After pulling this branch on another computer:** `make migrate` (it fills the column), then `make exercises-extra` ([H1.17](#h117-the-extra-exercises-as-built)).
+
+### H1.16.1 Generate
+
+```sh
+docker compose exec backend php artisan make:migration add_search_text_to_exercises_table --table=exercises
+docker compose exec backend php artisan make:class Support/SearchText
+```
+
+```
+   INFO  Migration [database/migrations/2026_11_10_093058_add_search_text_to_exercises_table.php] created successfully.
+
+   INFO  Class [app/Support/SearchText.php] created successfully.
+```
+
+`--table=exercises` writes `Schema::table('exercises', …)` in both methods, for a table that exists, instead of `Schema::create()`. `make:class` writes an empty class with a constructor, in `app/Support/` (the folder is created): the constructor was removed, since every method is static.
+
+### H1.16.2 The class, then the column
+
+**`SearchText` first,** with no database: three static methods, and a unit test for each case (`tests/Unit/SearchTextTest.php`). In a unit test Laravel is not booted (tests/Pest.php binds Laravel's TestCase to `tests/Feature` only); `Str::lower()` and `Str::transliterate()` work anyway, being plain PHP.
+
+```php
+SearchText::normalize('Pull-Up');           // "pull up"
+SearchText::normalize('Klimmzüge');         // "klimmzuge"
+SearchText::forExercise(['en' => 'Pullups', 'it' => 'Trazioni alla sbarra'], ['it' => ['pull-up']]);
+                                            // "pullups | trazioni alla sbarra | pull up"
+SearchText::words('Squat-jump');            // ['squat', 'jump']
+```
+
+**The migration** adds the column and fills it, in one `up()`:
+
+```php
+Schema::table('exercises', function (Blueprint $table) {
+    $table->text('search_text')->default('');
+});
+
+DB::table('exercises')->select(['id', 'name', 'aliases'])->lazyById(1000)->each(function (object $row) {
+    DB::table('exercises')->where('id', $row->id)->update([
+        'search_text' => SearchText::forExercise(
+            json_decode($row->name, true) ?? [],
+            json_decode($row->aliases ?? '{}', true) ?? [],
+        ),
+    ]);
+});
+```
+
+- **`DB::table()`, not the model:** the model of today may not be the model of next year, and a migration must run the same on a new database years later ([C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders)). The rows come as plain objects, with the JSON columns as text, so they are decoded by hand.
+- **`lazyById(1000)`** reads a thousand rows at a time, ordered by id: memory stays small whatever the size of the table. `each()` then walks them one by one.
+- **`down()`** drops the column, nothing more.
+
+**The model** fills it at every save, in `booted()` ([C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders), "Model events"), and `search()` reads it.
+
+```sh
+docker compose exec backend php artisan migrate
+```
+
+```
+  2026_11_10_093058_add_search_text_to_exercises_table ......... 399.31ms DONE
+```
+
+400 ms for 876 rows, one `update` each. To check that it can be undone and done again, as `down()` promises:
+
+```sh
+docker compose exec backend php artisan migrate:rollback --step=1
+docker compose exec backend php artisan migrate
+```
+
+```
+  2026_11_10_093058_add_search_text_to_exercises_table .......... 60.79ms DONE
+
+  2026_11_10_093058_add_search_text_to_exercises_table ......... 359.70ms DONE
+```
+
+### H1.16.3 Tuned on the real data
+
+The tests used a few exercises built for them, and passed; the real library showed what they missed. In tinker, a few searches with their counts:
+
+```php
+> app()->setLocale('it');
+> Exercise::query()->search('pull up')->orderByName()->limit(5)->get()->map(fn ($e) => $e->name);
+```
+
+**First version: every word anywhere.** "pull up" became `like '%pull%' and like '%up%'`, and in Italian its first results were:
+
+```
+[it] pull up (15): Curl dei polsi da seduto al cavo basso a presa supina | Ginocchia al petto su panca piana | Lat machine presa supina | …
+[it] sit up (16): Curl con manubri da seduto | Curl dei polsi da seduto al cavo basso a presa supina | …
+```
+
+"up" is inside "s**up**ina" and "s**up**ination", "sit" inside the German "**sit**zend" of the same exercises: every language is searched, and a short word matches inside too many others.
+
+**Second version: words at their start, or all of them together.** Better, with two strays left:
+
+```
+[en] pull up (9): Band Assisted Pull-Up | … | Seated Two-Arm Palms-Up Low-Pulley Wrist Curl | …
+[it] dip (23): Allungamento di petto e deltoidi anteriori | Alzate posteriori da prono | …
+```
+
+"pull" starts "pulley"; "dip", written across words, is "**di p**etto".
+
+**Third version, the one kept** ([D3.4.6](../design/D3-data-model.md#d346-searching)): every word but the last must be whole (`'% pull %'`), the last may be the start of one; words typed together must start a word; and one word is looked for across two words of the text only from 5 letters, `MIN_JOINED_LETTERS`. The same searches:
+
+```
+[en] pull up (8): Band Assisted Pull-Up | Inverted Row | Pullups | Rocky Pull-Ups/Pulldowns | Scapular Pull-Up | V-Bar Pullup | Weighted Pull Ups | Wide-Grip Rear Pull-Up
+[en] trazioni (14): Band Assisted Pull-Up | Chin-Up | Gironda Sternum Chins | … | Pullups | …
+[it] sit up (7): Sit-up | Sit-up a 3/4 | Sit-up a libro | Sit-up a rana | …
+[it] dip (9): Dip agli anelli | Dip alla macchina | Dip alla panca | Dip alle parallele | …
+[it] squat jump (3): Jump squat a corpo libero | Jump squat con bilanciere | Jump squat dalle ginocchia
+```
+
+("Inverted Row" has "australian pull up" among its aliases.) Each stray became a case of the tests: "Palms-Up Low-Pulley" and "Allungamento di petto" are in `finds a name whatever the spaces, dashes and accents`.
+
+### H1.16.4 The tests, and the errors met
+
+**The old test failed, as it should.** It said that "bench" in Italian finds nothing when the exercise has an Italian name, the rule being changed:
+
+```
+  FAILED  Tests\Feature\ExerciseLibrary\ExerciseListTest > it searches the…
+  Failed asserting that two arrays are identical.
+  -Array &0 []
+  +Array &0 [
+  +    0 => 'Panca piana con bilanciere',
+  +]
+```
+
+It was rewritten for the new rule, with the other search tests:
+
+```sh
+docker compose exec backend php artisan test --filter='ExerciseListTest|SearchTextTest'
+```
+
+```
+  ✓ it normalises text: lower case, no accents, one space between words
+  ✓ it builds an exercise's search text from every name and alias, each once
+  ✓ it accepts an exercise with no aliases
+  ✓ it cuts a search into normalised words, ignoring punctuation on its own
+  …
+  ✓ it searches the name and the aliases in every language, ignoring ca…
+  ✓ it finds a name whatever the spaces, dashes and accents, and the wo…
+  ✓ it keeps the search text up to date when an exercise changes
+  ✓ it matches nothing for punctuation alone, and does not split the se…
+  …
+  Tests:    20 passed (89 assertions)
+```
+
+**The search of a `%`.** The old test `searches for a % or a comma as themselves` expected nothing for `%`. Normalised, `%` is no word at all, and a search with no words would have returned the whole library; `search()` returns nothing instead (`whereRaw('false')`), and the test was renamed after what it checks.
+
+**Proving they can fail.** Two lines broken on purpose, then put back:
+
+| Line changed | Tests that failed |
+|---|---|
+| `MIN_JOINED_LETTERS = 3` | `finds a name whatever…`: `-0 => 'Parallel Bar Dip'`, `+0 => 'Chest stretch'`, "dip" finding "di petto" |
+| `static::saving(…)` → `static::retrieved(…)` (the text never written) | 5: the four search tests that create exercises, and `makes them found in Italian once translated` of H1.17 |
+
+## H1.17 The extra exercises, as built
+
+free-exercise-db has almost no calisthenics: a real plan had 12 exercises the library lacked (frog stand, front lever, burpees, dead hang…). They are now **public exercises of our own**, 21 with their family, kept in the repository and imported by a command ([C2.14.5](../concepts/C2-backend.md#c2145-the-extra-exercises)).
+
+| File | What it is |
+|---|---|
+| `database/data/extra-exercises.json` | The 21 exercises, in English, in free-exercise-db's shape plus `aliases` and `loggingType` |
+| `database/data/exercise-translations/{it,es,de}.json` | 21 entries more in each, sorted with the others |
+| `app/Console/Commands/ImportExtraExercises.php` | `exercises:import-extra` |
+| `app/Actions/Exercises/ImportFreeExercise.php` | Reads `aliases` and `loggingType` when a row has them |
+| `Makefile` | `exercises-extra`; `exercises-import` runs the command too |
+| `tests/Feature/ExerciseLibrary/ImportExtraExercisesTest.php` | 5 tests, on the real file |
+| `tests/Feature/ExerciseLibrary/TranslateExercisesTest.php` | The files now hold 897 exercises, not 876 |
+
+**After pulling this branch on another computer:** `make migrate`, then `make exercises-extra`.
+
+### H1.17.1 The command
+
+```sh
+docker compose exec backend php artisan make:command ImportExtraExercises
+```
+
+```
+   INFO  Console command [app/Console/Commands/ImportExtraExercises.php] created successfully.
+```
+
+The class it writes has `#[Signature('app:import-extra-exercises')]` and `#[Description('Command description')]`: both were replaced, the name following the others (`exercises:import`, `exercises:translate`). `handle()` reads the file and passes each row to `ImportFreeExercise`, with no images folder and no photos (`import($row, '', $update, false)`); the summary is the same as the dataset's.
+
+**Two keys more for the action.** In `write()`:
+
+```php
+if (($row['aliases'] ?? []) !== []) {
+    $exercise->setTranslation('aliases', 'en', $row['aliases']);
+}
+
+$exercise->logging_type = isset($row['loggingType'])
+    ? LoggingType::from($row['loggingType'])
+    : self::loggingTypeFor($row['category'] ?? '', $row['equipment'] ?? null);
+```
+
+`LoggingType::from('time')` gives the enum's case, and throws on a misspelt value: the import of that exercise fails, is listed, and the others go on.
+
+### H1.17.2 The data
+
+The texts were written by Claude, as the library's translation was ([H1.14.2](#h1142-how-the-texts-were-made)), in one source file holding each exercise in the four languages; a short Node script split it into `extra-exercises.json` (English) and the three translation files. Before writing those, a check that rewriting them with Node changes nothing else:
+
+```sh
+node -e "for (const l of ['it','es','de']) { const raw = require('fs').readFileSync('database/data/exercise-translations/'+l+'.json','utf8'); console.log(l, JSON.stringify(JSON.parse(raw), null, 2)+'\n' === raw) }"
+```
+
+```
+it true
+es true
+de true
+```
+
+So the diff of the three files is only the 21 entries added: `733 insertions(+)`, no line changed.
+
+### H1.17.3 Run it
+
+```sh
+make exercises-extra
+```
+
+The first time, `exercises:translate` wrote the three languages of the new exercises and kept the others:
+
+```
+Translating into es: 897 exercises in the file
+Written: 21
+Kept, already in es: 876
+Not in the library: 0
+```
+
+A second run changes nothing:
+
+```
+Importing 21 extra exercises from /app/database/data/extra-exercises.json
+Created: 0
+Updated: 0
+Unchanged: 21
+```
+
+The exercises of the plan, searched in Italian, each with its logging type:
+
+```
+[it] frog stand: Frog stand (time)
+[it] trazioni al petto: Trazioni al petto (reps)
+[it] appeso: Appeso alla sbarra (time)
+[it] verticale al muro: Verticale al muro pancia al muro (time)
+[it] voltabraccia: Voltabraccia (reps)
+[it] swing: … | Swing con kettlebell a due mani (weight_reps) | Swing con kettlebell a un braccio (weight_reps) | …
+[it] addominali alla sbarra: Toes to bar (reps)
+```
+
+### H1.17.4 The tests
+
+```sh
+docker compose exec backend php artisan test --filter='ImportExtraExercisesTest|TranslateExercisesTest|ImportFreeExerciseTest'
+```
+
+```
+  ✓ it imports every extra exercise once, however many times it runs
+  ✓ it keeps their logging type, English aliases, equipment and muscles
+  ✓ it makes them found in Italian once translated
+  ✓ it has every extra exercise in the three translation files, step fo…
+  ✓ it fails, naming the file, when the file is missing
+  …
+  Tests:    33 passed (16390 assertions)
+```
+
+They import the repository's file, not a sample, so a mistake in it fails here: an unknown muscle (`Unknown muscle "…": run the MuscleSeeder, or add it there.`), a misspelt logging type, a translation with a step too many or too few.
+
+**Adding an exercise:** an entry in `extra-exercises.json` (an `AtleoPlan_…` id, muscles and equipment named as free-exercise-db names them), the same id in the three translation files with as many steps as the English, then `make exercises-extra` and the tests.
+
+**Found on the way, not fixed here:** a few of free-exercise-db's exercises held for a time are logged as reps, Plank among them, so "3 × 30 s plank" cannot be written; [DATA-3](../project/backlog.md#data-3-timed-exercises-of-free-exercise-db-logged-as-reps).
 
 ---
 

@@ -113,9 +113,9 @@ App (signed in)
 │   ├── Start suggested day / pick a day ──→ Workout mode ──→ Summary
 │   └── Resume the session in progress
 ├── [Tab] Plans
-│   ├── New plan ──→ Plan editor
+│   ├── New plan ──→ Plan editor (details ──→ exercises, days as tabs)
 │   └── Plan details
-│       ├── Edit ──→ Plan editor ──→ Library (select mode)
+│       ├── Edit ──→ Plan editor (details ──→ exercises ──→ Library, select mode)
 │       ├── Share (sheet)
 │       └── Start this day ──→ Workout mode
 ├── [Tab] Exercises
@@ -186,7 +186,8 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - **Filters and search live in the address** (`/exercises?q=panca&muscle=chest`): Back returns to the same list, a reload keeps it.
 - Row: thumbnail, name, main muscle, **Mine** badge for personal exercises. 50 rows at a time, then **Show more**.
 - Built in UI-1 ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)); the select mode below, with the plan editor, as its picker window ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)).
-- **Select mode** (opened from the plan editor): a checkbox on every row and a bar at the bottom, "Add (3)".
+- **Select mode** (opened from the plan editor): a checkbox on every row and a bar at the bottom, "Add (3)". After a search, **Create «…»** under the list opens the exercise editor's form inside the window, the search as its name; the new exercise is the user's own and goes straight into the day ([C1.16.8](../concepts/C1-frontend.md#c1168-creating-an-exercise-from-the-picker)).
+- **Search** looks in every language and ignores case, accents and dashes: "pull up" finds "Pullups", "trazioni" works in an English interface too ([D3.4.6](D3-data-model.md#d346-searching)).
 - **+** creates an exercise.
 
 ### D1.4.4 Exercise details
@@ -221,13 +222,17 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 
 ### D1.4.8 Plan editor
 
-- Day tabs: add, rename, reorder, delete.
+- **Two steps**, so the plan's details and the days' exercises are not mixed on one long page:
+  1. **The plan's details:** name, goal, notes; **Number of days** (1 to 14) and a name for each day (new days are named "Day C", "Day D"…). Fewer days removes the last ones; when one of them has exercises, a dialog asks first. **Next: the exercises** leads on; it is the step's lime button, and Save is outlined here.
+  2. **The exercises:** **Back to the plan's details**, then the days as tabs, and under the open tab that day's exercises. A tab with an error carries a red dot.
+  - The open tab is in the address (`?day=2`), as on the plan's page: the phone's Back button goes from the exercises to the details, and moving from tab to tab does not stack up in the history. Save, Discard and Cancel are in both steps.
+  - Days are not reordered in the editor: the number of days adds or removes them at the end, and an exercise moves to another day from its own row.
 - Each exercise is a row with a drag handle; a tap expands its parameters: sets, reps (one value or a range, "8-10"), rest, target load or RPE, notes.
 - **Set types:** each set of an exercise has a type: **normal**, **warm-up (W)**, **drop set (D)**, **to failure (F)**. The default is normal; a tap on the set's number cycles through the types, and the letter shows next to it.
 - **Supersets:** select 2 or more exercises → **Join in superset**.
 - **On desktop:** two columns, the library on the left and the plan on the right, dragging from the library into a day.
 - The draft is saved automatically; **Discard changes** goes back to the last saved version.
-- Built in FEAT-2 (`feat/plan-editor`): days as tabs, exercises from the library's select mode in a window, dragged by a handle (dnd-kit, mouse, finger and keyboard), sets cycled through their types, supersets, the draft kept in the browser. The desktop's two columns wait in [UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)).
+- Built in FEAT-2 (`feat/plan-editor`): days as tabs, exercises from the library's select mode in a window, dragged by a handle (dnd-kit, mouse, finger and keyboard), sets cycled through their types, supersets, the draft kept in the browser. Split into two steps in `feat/plan-editor-steps`: the plan's fields and the days' tabs had been on one page, with "Add day", rename, move and delete above each day's exercises. The desktop's two columns wait in [UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), in the second step ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)).
 
 ### D1.4.9 Workout mode
 
@@ -360,7 +365,7 @@ Built on shadcn/ui over Tailwind: colours are CSS variables (tokens), so the dar
 | `ExerciseListItem` | Library, plan editor | Thumbnail, name, muscle, badge; a variant with a checkbox |
 | `ExerciseMedia` | Exercise details, workout mode | Photo / video / YouTube carousel, loaded lazily |
 | `MuscleChip` | Filters, details | One colour per muscle group |
-| `PlanDayTabs` | Plan details and editor | Scrolling tabs, reorderable while editing |
+| `PlanDayTabs` | Plan details and editor | Scrolling tabs |
 | `PlanItemRow` | Plan editor | Drag handle, expandable parameters |
 | `SetTypeMarker` | Plan editor, workout mode | Set number or W / D / F; a tap cycles the type |
 | `SupersetGroup` | Editor, workout mode | Coloured side bar joining the exercises |

@@ -47,6 +47,8 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.16.4 The draft kept in the browser](#c1164-the-draft-kept-in-the-browser)
   - [C1.16.5 Saving](#c1165-saving)
   - [C1.16.6 Testing it](#c1166-testing-it)
+  - [C1.16.7 Two steps, one draft](#c1167-two-steps-one-draft)
+  - [C1.16.8 Creating an exercise from the picker](#c1168-creating-an-exercise-from-the-picker)
 - [C1.17 Workout mode](#c117-workout-mode)
   - [C1.17.1 The pieces](#c1171-the-pieces)
   - [C1.17.2 Starting: the plan becomes a workout](#c1172-starting-the-plan-becomes-a-workout)
@@ -503,7 +505,7 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 | `pages/PlanDetailPage.test.tsx` | a day's exercises summed up, the day tabs in the address, the weight unit, activate, archive, delete, a plan not found; starting a workout, resuming one, the message after Done |
 | `components/plans/plan-format.test.ts` | the line that sums up an exercise, in two languages and two units; the supersets |
 | `components/plans/plan-draft.test.ts` | the editor's draft without React: reading what is typed, to and from the API, the rules, every action of the reducer |
-| `pages/PlanEditorPage.test.tsx` | creating from the library, saving with the version and the ids, the rules and the server's messages, the warning of a plan changed elsewhere, the draft kept and discarded, supersets, days |
+| `pages/PlanEditorPage.test.tsx` | creating from the library, saving with the version and the ids, the rules and the server's messages, the warning of a plan changed elsewhere, the draft kept and discarded, supersets, the number of days and its dialog, the two steps and Back between them, an exercise created from the picker |
 | `components/workout/workout-session.test.ts` | the workout without React: starting from a day with last time's values, ticking, the rest, supersets, the clock with its pauses, the body sent |
 | `lib/pending-sessions.test.ts` | the queue of finished workouts: what leaves it on each answer of the server, what stays |
 | `pages/WorkoutPage.test.tsx` | workout mode used as a person would: a set ticked and kept on the phone, the rest timer, Next and the dots, ✕ pausing, Done sending, the network down |
@@ -928,13 +930,17 @@ The last part of FEAT-2 ([D1.4.8](../design/D1-ui.md#d148-plan-editor)), at `/pl
 ```
 PlanEditorPage            /plans/new: an empty draft; /plans/:id/edit: reads the plan, makes a draft of it
 └── PlanEditor            the draft (useReducer), kept in the browser; the sticky Save / Discard bar;
-    │                     name, goal, notes; the days as tabs; "Add day"
-    └── EditorDay         a day: its name, move earlier / later, delete; drag and drop (dnd-kit);
-        │                 "Add exercises" (ExercisePicker); "Make a superset"
-        ├── EditorItem    an exercise: drag handle, summary line; open: its sets, rest, notes,
-        │   │             move to another day, leave the superset, remove
-        │   └── EditorSet a set: its number, a tap cycles the type (W, D, F); its targets; remove
-        └── ExercisePicker the library in a Dialog, a tick box on each row, "Add (n)"
+    │                     which of the two steps shows, from ?day= (C1.16.7)
+    ├── EditorOverview    step 1: name, goal, notes; the number of days and their names;
+    │                     the dialog before removing days with exercises; "Next: the exercises"
+    └── EditorDays        step 2: "Back to the plan's details"; the days as tabs
+        └── EditorDay     the open tab: drag and drop (dnd-kit); "Add exercises" (ExercisePicker);
+            │             "Make a superset"
+            ├── EditorItem    an exercise: drag handle, summary line; open: its sets, rest, notes,
+            │   │             move to another day, leave the superset, remove
+            │   └── EditorSet a set: its number, a tap cycles the type (W, D, F); its targets; remove
+            └── ExercisePicker the library in a Dialog, a tick box on each row, "Add (n)";
+                               "Create «…»": the exercise editor's form in the window (C1.16.8)
 ```
 
 | File | Holds |
@@ -990,7 +996,7 @@ const { attributes, listeners, setNodeRef, transform, transition } = useSortable
 - **Sensors** decide how a drag starts: `PointerSensor` for a mouse or a finger, once it has moved 5 px (a tap is not a drag); `KeyboardSensor` for space or enter on the handle, then the arrow keys, then space again. `touch-none` on the handle keeps the browser from scrolling during a drag.
 - **While dragging, nothing changes in the draft:** dnd-kit only moves the row on screen, with a CSS `transform`. When the drag ends, `onDragEnd` sends one action, `moveItem`, and the reducer does the rest.
 - **Screen readers hear the drag** ("Picked up Barbell Bench Press. … dropped at position 1 of 4."). dnd-kit's own texts are English; `accessibility.announcements` and `screenReaderInstructions` give them in the user's language.
-- **Days** are moved with two buttons, earlier and later, and exercises to another day with a list, inside the opened exercise: both are one tap, and work the same with a keyboard.
+- **Exercises move to another day** with a list, inside the opened exercise: one tap, the same with a keyboard. **Days are not reordered** on screen: the number of days adds or removes them at the end (C1.16.7). The reducer still has `moveDay`, with its test, should the order come back.
 
 ### C1.16.4 The draft kept in the browser
 
@@ -1013,10 +1019,10 @@ useEffect(() => {
 
 **Save** runs, in order:
 
-1. **`validateDraft()`**, the backend's rules ([C2.5.6](C2-backend.md#c256-validating-nested-data)) checked in the browser: a name, reps as `8` or `8-10` from 1 to 999, an RPE from 1 to 10 with one decimal, a rest up to an hour… It returns a translation key per wrong field, by the field's path in the draft: `days.0.items.1.sets.2.reps`. With any error, nothing is sent: the fields turn red, a banner says so, the first day with an error opens, and its tab carries a red dot.
+1. **`validateDraft()`**, the backend's rules ([C2.5.6](C2-backend.md#c256-validating-nested-data)) checked in the browser: a name, reps as `8` or `8-10` from 1 to 999, an RPE from 1 to 10 with one decimal, a rest up to an hour… It returns a translation key per wrong field, by the field's path in the draft: `days.0.items.1.sets.2.reps`. With any error, nothing is sent: the fields turn red, a banner says so, and the step with the error opens: the first for the name or a day's name, otherwise the second, on the tab of the first day whose exercises have one. That tab, and any other day's with an error, carries a red dot (C1.16.7).
 2. **`toPlanInput()`** builds the body, and `useCreatePlan()` sends it with `POST`, or `useUpdatePlan(id)` with `PUT` and the `version` the editor started from.
 3. **A 422 from the server** carries Laravel's field names: `draftField()` turns `days.0.items.1.sets.2.target_reps_max` into `days.0.items.1.sets.2.reps`, the same indexes, since the order is the position. The message appears under that field, as the editor's own would.
-4. **Success** forgets the kept draft and opens the plan's page, replacing the editor in the history (`replace: true`). On a `PUT`, the answer's `meta.changed_elsewhere` travels with the navigation, in its **`state`**:
+4. **Success** forgets the kept draft and opens the plan's page, replacing the editor in the history (`replace: true`; from the second step, after one step back first, C1.16.7). On a `PUT`, the answer's `meta.changed_elsewhere` travels with the navigation, in its **`state`**:
 
 ```tsx
 navigate(`/plans/${plan.id}`, { replace: true, state: { changedElsewhere: true } })
@@ -1034,6 +1040,77 @@ const saved = useLocation().state as PlanSavedState | null
 - **The page** (`PlanEditorPage.test.tsx`) is used as a person would: it types, opens the picker (`findByRole('dialog', { name: 'Add exercises' })`), ticks, taps a set's number, saves; then `sentBody(fake, '/api/plans')` gives the body sent, compared with what the backend expects.
 - **The draft kept between visits:** the test draws the editor, types, calls `unmount()` (the editor disappears, as when leaving the page), draws it again, and finds the change and the banner. `src/test/setup.ts` empties `localStorage` after each test.
 - **Dragging is not drawn in tests:** jsdom has no layout, so the positions dnd-kit measures are all zero. What a drag does, `moveItem`, is tested in the reducer; the drag itself is checked in the browser ([H3.14.8](../how-to/H3-frontend.md#h3148-checking-in-the-browser)).
+- **The history's Back** is the router's: `await act(() => router.navigate(-1))` is the phone's button, and `router.state.location.search` tells which step and tab are open (C1.16.7). A native select is changed with `user.selectOptions(select, '3')`; the dialog is found by its role, `alertdialog`.
+
+### C1.16.7 Two steps, one draft
+
+The editor was first one page: the plan's fields, the days as tabs with "Add day", and above each day's exercises its name, move and delete. Three levels on one long page, the exercises far down on a phone. It is now two steps on the same draft ([D1.4.8](../design/D1-ui.md#d148-plan-editor)): first the plan's details with the number of days and their names (`EditorOverview`), then the days as tabs with their exercises (`EditorDays`).
+
+**Which step shows is in the address,** as the plan page's open tab is ([C1.15](#c115-the-plan-screens)): no `?day=` is the first step, `?day=2` the second with the second day's tab open. `PlanEditor` reads it with `useSearchParams()` and draws one step or the other:
+
+```tsx
+const requested = Number(searchParams.get('day'))
+const openDay = searchParams.has('day') && Number.isInteger(requested) && requested >= 1 && requested <= draft.days.length ? requested - 1 : null
+
+{openDay === null ? <EditorOverview … onNext={() => goToDay(0)} /> : <EditorDays openDay={openDay} onOpenDay={goToDay} … />}
+```
+
+- **The steps are not routes.** Both are drawn by `PlanEditor`, which stays on the page: the draft, the errors and a save in progress are not lost between them.
+- **A value from the address is not trusted:** `?day=9`, or a day that a Discard removed, shows the first step.
+- **Each step starts at the top:** every change of `?day=` is a new history entry, and `<ScrollRestoration />`, drawn once by the frame (`AppLayout`), is React Router's component that scrolls a new entry to the top and puts an entry gone back to where it was.
+
+**The number of days** is a native select, 1 to 14 (`LIMITS.days`, the backend's limit). More days dispatches `addDay` once per new day, named with the next letters (`dayLetter()` in `plan-draft.ts`: "Day C", "Day D"); fewer dispatches `removeDay` for the last ones, from the last down, so each index still names the day it meant. When a day to remove has exercises, the change waits in `pendingCount` and an `AlertDialog` asks first; its `open` is controlled by that state (`open={pendingCount !== null}`), not by a trigger button as on the plan's page. Removing only from the end keeps the select simple; the price is that a day in the middle cannot be removed, nor the days reordered.
+
+**Back goes to the first step, whatever the way out.** A phone's Back button, a mouse's, the browser's: all walk the history. The editor arranges the entries so that each lands on the details:
+
+| Action | History (newest last) | How |
+|---|---|---|
+| Open the editor | … · details | |
+| **Next: the exercises** | … · details · Day A | `setSearchParams({ day: '1' }, { state: { fromPlan: true } })`: a new entry |
+| The tab of Day B | … · details · Day B | the same with `replace: true`: Day B takes Day A's place |
+| Back, or **Back to the plan's details** | … · details | `navigate(-1)`, since `state.fromPlan` says the entry before is the details |
+
+The `state` is a second, invisible part of a history entry ([C1.16.5](#c1165-saving)). A tab opened another way, a reload or a link to `?day=2`, has none, and **Back to the plan's details** then replaces the entry (`setSearchParams({}, { replace: true })`) instead of leaving the editor.
+
+**Saving from the second step.** The plan's page replaces the editor's entry, so Back from it does not return to the editor. In the second step the editor's entries are two (details, exercises), and replacing only the last would leave the first. So the editor first steps back, then saves over the first step's entry:
+
+```tsx
+if (openDay !== null && fromPlan) await navigate(-1)
+onSaved(saved)   // navigate(`/plans/${id}`, { replace: true, … })
+```
+
+`await` matters: with the app's router (`createBrowserRouter`), `navigate(-1)` returns a Promise that ends once the browser has gone back. Without it, the replace would land on the exercises' entry before the step back, and the back would then reopen the editor.
+
+**One lime button at a time** ([H3.15.10](../how-to/H3-frontend.md#h31510-fourth-pass-looking-at-the-screen-for-real)): in the first step the way on is **Next: the exercises**, so Save (or **Create plan**) is outlined there (`variant="outline"`), and lime again in the second.
+
+**Errors go to their step** (`showErrors` in `PlanEditor`): a path matching `/^days\.(\d+)\.items\./` belongs to a day's exercises, any other (the name, a day's name) to the first step. The first step wins when both have one, since its fields are fewer and come first. In the second step a day's tab carries a red dot when its exercises have an error.
+
+### C1.16.8 Creating an exercise from the picker
+
+A plan written from paper meets exercises the library does not have, or has under another name. After a search, the picker shows **Create «…»** under the list, whether it found something or not (the "ponte" of a plan may be the full bridge, while the library finds glute bridges). It opens the exercise editor's form inside the same window, the search as the name; the exercise is created as the user's own (`POST /api/exercises`, `useCreateExercise()`), and goes into the day with the exercises already ticked, the window closing as Add does. When swapping in workout mode, it is the exercise chosen.
+
+```tsx
+<ExerciseForm
+  defaultValues={emptyFormValues(typed)}
+  save={create.mutateAsync}
+  onSaved={exercise => onAdd(replacing ? [exercise] : [...chosen, exercise])}
+  submitLabel={t('exercises.editor.create')}
+  onCancel={() => onCreatingChange(false)}
+/>
+```
+
+- **The form is the editor page's own** (`ExerciseForm`, [C1.14.4](#c1144-the-editors-form)). It gained `onCancel`: on a page, Cancel is a link (`cancelTo`); in a window, it goes back to the search, with the search and the ticks as they were.
+- **The state "creating" lives in `ExercisePicker`**, not in the list's component: the window's title changes too, from "Add exercises" to "New exercise". Closing the window sets it back to the search.
+- **The library's lists are read again** after the creation (`invalidateQueries`), so the new exercise is in the library and in the next search.
+
+**Columns chosen by the form's width: container queries.** The form puts its three selects (main muscle, equipment, logging type) side by side. With `sm:grid-cols-3` that happened from a screen of 640 px, and in a 512 px window on a laptop the three were squeezed and "Peso × ripetizioni" cut off. A **container query** asks the width of an element instead of the screen's: the form is marked `@container`, and its grids use `@xl:grid-cols-3`, three columns when the form itself is at least 36rem (576 px) wide.
+
+```tsx
+<form className="@container flex flex-col gap-6">
+  <div className="grid gap-6 @xl:grid-cols-3">…</div>
+```
+
+Tailwind 4 has them built in: `@container` on the parent, `@sm:`, `@md:`, `@lg:`, `@xl:` (24, 28, 32, 36 rem) on what is inside. On the editor's page the form is wider than 576 px from a laptop up, so it looks as before there; on a tablet in portrait it now keeps one column. How it was built: [H3.23](../how-to/H3-frontend.md#h323-creating-an-exercise-from-the-picker-as-built).
 
 ## C1.17 Workout mode
 

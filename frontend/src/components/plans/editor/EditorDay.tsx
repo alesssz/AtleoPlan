@@ -1,8 +1,9 @@
 /*
- * One day in the plan editor (docs/design/D1-ui.md D1.4.8): its name, the
- * buttons that move or delete it, its exercises in an order changed by
- * dragging, the choice of exercises to join in a superset, and the button
- * that adds exercises from the library.
+ * One day's exercises in the plan editor (docs/design/D1-ui.md D1.4.8), under
+ * its tab in the second step (EditorDays): the exercises in an order changed
+ * by dragging, the choice of exercises to join in a superset, and the button
+ * that adds exercises from the library. The day's name and the number of
+ * days are set in the first step (EditorOverview).
  *
  * Dragging uses dnd-kit (docs/design/D2-decisions.md D2.2), which works with
  * a mouse, a finger and the keyboard: DndContext watches the drag,
@@ -22,10 +23,9 @@ import {
 } from '@dnd-kit/core'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { ArrowLeft, ArrowRight, Link2, Plus, Trash2 } from 'lucide-react'
+import { Link2, Plus } from 'lucide-react'
 import { useState, type Dispatch } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FormField } from '@/components/FormField'
 import { Button } from '@/components/ui/button'
 import type { WeightUnit } from '@/lib/format'
 import { LIMITS, type DraftAction, type DraftDay } from '../plan-draft'
@@ -50,12 +50,10 @@ interface EditorDayProps {
   defaultRestSeconds: number
   /** The interface's language. */
   language: string
-  /** Called with the day's new index when it moves, to keep it open. */
-  onMoved: (index: number) => void
 }
 
 /** A day of the plan, being edited. */
-export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, defaultRestSeconds, language, onMoved }: EditorDayProps) {
+export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, defaultRestSeconds, language }: EditorDayProps) {
   const { t } = useTranslation()
   // Whether the day is choosing exercises for a superset, and which ones (by id)
   const [selecting, setSelecting] = useState(false)
@@ -108,15 +106,6 @@ export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, defaul
     dispatch({ type: 'moveItem', day: dayIndex, from, to })
   }
 
-  /**
-   * Moves the day one place earlier or later, and keeps it open.
-   * @param step -1 for earlier, 1 for later
-   */
-  function moveDay(step: number) {
-    dispatch({ type: 'moveDay', from: dayIndex, to: dayIndex + step })
-    onMoved(dayIndex + step)
-  }
-
   /** Ends the choice of exercises for a superset, ticking none. */
   function stopSelecting() {
     setSelecting(false)
@@ -132,31 +121,6 @@ export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, defaul
 
   return (
     <div className="flex flex-col gap-4">
-      {/* The day's name, and the buttons that move or delete it. Deleting
-          needs no confirmation: nothing is saved until Save, and Discard
-          changes brings it back */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-48 flex-1">
-          <FormField
-            label={t('plans.editor.dayName')}
-            value={day.name}
-            onChange={event => dispatch({ type: 'renameDay', day: dayIndex, name: event.target.value })}
-            error={errorOf(`days.${dayIndex}.name`)}
-            maxLength={50}
-          />
-        </div>
-        <Button variant="outline" size="icon-xl" aria-label={t('plans.editor.moveDayEarlier')} disabled={dayIndex === 0} onClick={() => moveDay(-1)}>
-          <ArrowLeft aria-hidden="true" />
-        </Button>
-        <Button variant="outline" size="icon-xl" aria-label={t('plans.editor.moveDayLater')} disabled={dayIndex === days.length - 1} onClick={() => moveDay(1)}>
-          <ArrowRight aria-hidden="true" />
-        </Button>
-        <Button variant="outline" size="xl" onClick={() => dispatch({ type: 'removeDay', day: dayIndex })}>
-          <Trash2 aria-hidden="true" />
-          {t('plans.editor.removeDay')}
-        </Button>
-      </div>
-
       {/* The exercises */}
       {day.items.length === 0
         ? <p className="text-muted-foreground">{t('plans.editor.noItems')}</p>

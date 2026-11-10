@@ -836,12 +836,13 @@ make tinker
 ```php
 > app()->setLocale('it');
 > echo Exercise::visibleTo(User::first())->search('panca')->withPrimaryMuscle('chest', 'triceps')->fromSource('mine')->orderByName()->toRawSql();
-select * from "exercises" where ("owner_id" is null or "owner_id" = 1) and (coalesce(name->>'it', name->>'en') ilike '%panca%' or coalesce(aliases->>'it', aliases->>'en') ilike '%panca%') and exists (select * from "muscles" inner join "exercise_muscle" on "muscles"."id" = "exercise_muscle"."muscle_id" where "exercises"."id" = "exercise_muscle"."exercise_id" and "slug" in ('chest', 'triceps') and "exercise_muscle"."role" = 'primary') and "owner_id" is not null and "exercises"."deleted_at" is null order by coalesce(name->>'it', name->>'en') collate "und-x-icu", "id" asc
+select * from "exercises" where ("owner_id" is null or "owner_id" = 4) and ((concat(' ', search_text, ' ') like '% panca%') or concat(' ', search_text, ' ') ~ ' p ?a ?n ?c ?a') and exists (select * from "muscles" inner join "exercise_muscle" on "muscles"."id" = "exercise_muscle"."muscle_id" where "exercises"."id" = "exercise_muscle"."exercise_id" and "slug" in ('chest', 'triceps') and "exercise_muscle"."role" = 'primary') and "owner_id" is not null and "exercises"."deleted_at" is null order by coalesce(name->>'it', name->>'en') collate "und-x-icu", "id" asc
 ```
 
 What to look for in it:
 
-- **The parentheses** around `owner_id is null or owner_id = 1`: they come from `where(fn …)`. Without them, `… or owner_id = 1 and coalesce(…) ilike …` would show someone else's exercise to anyone whose search matched.
+- **The parentheses** around `owner_id is null or owner_id = 4`: they come from `where(fn …)`. Without them, `… or owner_id = 4 and concat(…) like …` would show someone else's exercise to anyone whose search matched. The search has its own parentheses, around its rules' `or`.
+- **The search** is the one of [D3.4.6](../design/D3-data-model.md#d346-searching), since `feat/plan-editor-steps`: `search_text` holds every language, so `app()->setLocale('it')` changes only the sort. "panca" is one word of five letters, so rules A and C apply. (The output was redone then; the first version of this page showed the earlier search, `coalesce(name->>'it', name->>'en') ilike '%panca%'`.)
 - **`exists (select … )`** is what `whereHas('muscles', …)` writes: one subquery, whatever the number of muscles.
 - **`deleted_at is null`** was added by `SoftDeletes`, without asking.
 - **`toRawSql()`** fills in the values; `toSql()` shows the `?` placeholders instead.

@@ -190,8 +190,8 @@ it('ships the three languages for the same exercises, each entry complete', func
         $locale => json_decode(File::get(database_path("data/exercise-translations/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR),
     ]);
 
-    // The same 876 exercises in each, every one with its three fields
-    expect(array_keys($files['it']))->toHaveCount(876)
+    // The same 897 exercises in each (876 of free-exercise-db, 21 extra), every one with its three fields
+    expect(array_keys($files['it']))->toHaveCount(897)
         ->and(array_keys($files['es']))->toBe(array_keys($files['it']))
         ->and(array_keys($files['de']))->toBe(array_keys($files['it']));
     foreach ($files as $locale => $entries) {

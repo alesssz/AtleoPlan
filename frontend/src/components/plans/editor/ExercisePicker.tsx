@@ -16,11 +16,19 @@
  * useExercises() (src/api/exercises.ts), so a search typed here and one typed
  * there share the cache. The window is shadcn/ui's Dialog
  * (src/components/ui/dialog.tsx).
+ *
+ * **Create «…»**: after a search, a button under the list opens the exercise
+ * editor's form (ExerciseForm) inside the window, the search as the name.
+ * The exercise it creates is the user's own, and goes straight into the day
+ * with the ticked ones (or replaces the exercise, when swapping), without
+ * leaving the plan (docs/concepts/C1-frontend.md C1.16.8).
  */
-import { Dumbbell, Search, X } from 'lucide-react'
+import { ArrowLeft, Dumbbell, Plus, Search, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useExercises, type Exercise } from '@/api/exercises'
+import { useCreateExercise, useExercises, type Exercise } from '@/api/exercises'
+import { ExerciseForm } from '@/components/exercises/ExerciseForm'
+import { emptyFormValues } from '@/components/exercises/exercise-form'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -57,16 +65,27 @@ export function ExercisePicker({ trigger, open: openProp, onOpenChange, disabled
   // ("controlled"): `??` takes the caller's when there is one
   const [ownOpen, setOwnOpen] = useState(false)
   const open = openProp ?? ownOpen
+  // True while the window shows the form of a new exercise instead of the
+  // list. Kept here, not in PickerBody, because the window's title changes too
+  const [creating, setCreating] = useState(false)
 
   /**
-   * Opens or closes the window.
+   * Opens or closes the window; either way it starts again from the search.
    * @param next true to open
    */
   function change(next: boolean) {
     if (disabled) return
     setOwnOpen(next)
+    setCreating(false)
     onOpenChange?.(next)
   }
+
+  // The window's title and line under it: the new exercise's, or the
+  // search's when swapping or adding
+  const title = creating ? t('exercises.editor.newTitle') : replacing ? t('workout.swapTitle') : t('plans.editor.picker.title')
+  const description = creating
+    ? t('plans.editor.picker.createDescription')
+    : replacing ? t('workout.swapText', { name: replacing.name }) : t('plans.editor.picker.description')
 
   return (
     <Dialog open={open} onOpenChange={change}>
@@ -76,14 +95,16 @@ export function ExercisePicker({ trigger, open: openProp, onOpenChange, disabled
           and the Add button stays in sight */}
       <DialogContent closeLabel={t('common.close')} className="flex max-h-[85vh] flex-col gap-4 sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="font-heading text-xl font-extrabold">{replacing ? t('workout.swapTitle') : t('plans.editor.picker.title')}</DialogTitle>
-          <DialogDescription>{replacing ? t('workout.swapText', { name: replacing.name }) : t('plans.editor.picker.description')}</DialogDescription>
+          <DialogTitle className="font-heading text-xl font-extrabold">{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {/* The content is drawn only while open: closing forgets the
             search and the ticks, so the next opening starts afresh */}
         {open && (
           <PickerBody
             replacing={replacing}
+            creating={creating}
+            onCreatingChange={setCreating}
             onAdd={(exercises) => {
               onAdd(exercises)
               change(false)
@@ -99,14 +120,20 @@ export function ExercisePicker({ trigger, open: openProp, onOpenChange, disabled
 interface PickerBodyProps {
   /** The exercise being swapped; undefined when adding. */
   replacing?: Exercise
+  /** True to show the form of a new exercise instead of the list. */
+  creating: boolean
+  /** Shows the form (true) or goes back to the list (false). */
+  onCreatingChange: (creating: boolean) => void
   /** Called with the ticked exercises, or the one tapped when swapping. */
   onAdd: (exercises: Exercise[]) => void
 }
 
-/** The search, the list with its tick boxes, and the Add button. */
-function PickerBody({ replacing, onAdd }: PickerBodyProps) {
+/** The search, the list with its tick boxes, and the Add button; or the form that creates one. */
+function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBodyProps) {
   const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
+  // POST /api/exercises; afterwards the library's lists are read again
+  const create = useCreateExercise()
   // The ticked exercises, in the order they were ticked
   const [chosen, setChosen] = useState<Exercise[]>([])
   // Swapping: the replaced exercise's first main muscle, the filter the
@@ -126,6 +153,35 @@ function PickerBody({ replacing, onAdd }: PickerBodyProps) {
    */
   function toggle(exercise: Exercise, tick: boolean) {
     setChosen(current => (tick ? [...current, exercise] : current.filter(other => other.id !== exercise.id)))
+  }
+
+  // What was typed, without spaces around: the new exercise's name
+  const typed = search.trim()
+
+  // Creating: the exercise editor's form, in place of the list. The search
+  // and the ticks are kept, so Cancel goes back to them as they were
+  if (creating) {
+    return (
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
+        <button
+          type="button"
+          onClick={() => onCreatingChange(false)}
+          className="inline-flex min-h-12 items-center gap-2 self-start text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft aria-hidden="true" className="size-4" />
+          {t('plans.editor.picker.backToSearch')}
+        </button>
+        <ExerciseForm
+          defaultValues={emptyFormValues(typed)}
+          save={create.mutateAsync}
+          // The new exercise joins the ticked ones, in the day; when
+          // swapping, it is the one chosen
+          onSaved={exercise => onAdd(replacing ? [exercise] : [...chosen, exercise])}
+          submitLabel={t('exercises.editor.create')}
+          onCancel={() => onCreatingChange(false)}
+        />
+      </div>
+    )
   }
 
   return (
@@ -198,6 +254,16 @@ function PickerBody({ replacing, onAdd }: PickerBodyProps) {
         {list.hasNextPage && (
           <Button variant="outline" className="mt-3 w-full" onClick={() => void list.fetchNextPage()} disabled={list.isFetchingNextPage}>
             {t('exercises.showMore')}
+          </Button>
+        )}
+
+        {/* After a search: the exercise is not there, or not quite the one
+            wanted ("ponte" finds the glute bridge, not the full one), so it
+            can be created, with the search as its name */}
+        {typed !== '' && list.isSuccess && (
+          <Button variant="outline" className="mt-3 w-full" onClick={() => onCreatingChange(true)}>
+            <Plus aria-hidden="true" />
+            {t('exercises.createNamed', { search: typed })}
           </Button>
         )}
       </div>

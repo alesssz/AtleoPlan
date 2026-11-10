@@ -225,6 +225,17 @@ export function newItem(exercise: Exercise): DraftItem {
 }
 
 /**
+ * The letter of a day by its place, for the names the editor gives days
+ * ("Day A", "Day B"…) and shows for a day whose name is still empty.
+ * @param index the day's index, from 0
+ * @returns "A" for 0, "B" for 1…
+ */
+export function dayLetter(index: number): string {
+  // String.fromCharCode(65) is "A": 65 + 3 gives "D"
+  return String.fromCharCode(65 + index)
+}
+
+/**
  * A new plan with one empty day, the editor's start for /plans/new.
  * @param dayName the first day's name, translated: "Day A"
  */

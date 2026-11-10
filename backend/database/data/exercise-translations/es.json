@@ -353,6 +353,248 @@
       "Quédate abajo y sube la piedra alto sobre el pecho mientras cambias el agarre para pasar las manos por encima. Levántate empujando con la cadera. Acércate a la plataforma de carga e inclínate hacia atrás, extendiendo la cadera para subir la piedra lo más alto posible."
     ]
   },
+  "AtleoPlan_Archer_Pull-Up": {
+    "name": "Dominadas de arquero",
+    "aliases": [
+      "archer pull-up"
+    ],
+    "instructions": [
+      "Cuélgate de la barra con un agarre prono muy abierto.",
+      "Sube hacia una mano, flexionando ese brazo mientras el otro queda casi estirado a lo largo de la barra.",
+      "Baja de forma controlada y repite, alternando los lados o terminando primero uno."
+    ]
+  },
+  "AtleoPlan_Back_Lever": {
+    "name": "Back lever",
+    "aliases": [
+      "palanca dorsal"
+    ],
+    "instructions": [
+      "Cuélgate de la barra o de las anillas, recoge las rodillas y gira hacia atrás entre los brazos (skin the cat) hasta quedar boca abajo detrás de ellos.",
+      "Extiende el cuerpo hasta que quede recto y horizontal, boca abajo, con los brazos estirados.",
+      "Aguanta el tiempo previsto y luego recoge las rodillas y sal girando."
+    ]
+  },
+  "AtleoPlan_Burpee": {
+    "name": "Burpees",
+    "aliases": [
+      "burpee"
+    ],
+    "instructions": [
+      "De pie, ponte en cuclillas y apoya las manos en el suelo.",
+      "Lleva los pies atrás de un salto hasta la plancha y haz una flexión.",
+      "Vuelve a llevar los pies junto a las manos de un salto y salta con los brazos por encima de la cabeza; aterriza suave y repite."
+    ]
+  },
+  "AtleoPlan_Chest-To-Bar_Pull-Up": {
+    "name": "Dominadas al pecho",
+    "aliases": [
+      "dominadas chest to bar",
+      "chest to bar"
+    ],
+    "instructions": [
+      "Cuélgate de la barra con agarre prono, las manos algo más abiertas que los hombros.",
+      "Sube llevando el pecho por delante hasta que toque la barra; mantén los hombros abajo y el cuerpo firme.",
+      "Baja de forma controlada hasta colgar con los brazos extendidos y repite."
+    ]
+  },
+  "AtleoPlan_Chest-To-Wall_Handstand": {
+    "name": "Pino contra la pared mirando a la pared",
+    "aliases": [
+      "pino en la pared",
+      "handstand en la pared"
+    ],
+    "instructions": [
+      "Apoya las manos en el suelo a poca distancia de una pared y sube con los pies por la pared hasta que el cuerpo quede recto, con el pecho mirando a la pared.",
+      "Empuja el suelo, mantén los brazos bloqueados, las costillas cerradas y el cuerpo alineado.",
+      "Aguanta el tiempo previsto y baja los pies por la pared."
+    ]
+  },
+  "AtleoPlan_Dead_Hang": {
+    "name": "Colgarse de la barra",
+    "aliases": [
+      "dead hang",
+      "suspensión en barra"
+    ],
+    "instructions": [
+      "Agarra la barra con agarre prono, las manos a la anchura de los hombros.",
+      "Deja el cuerpo colgando con los brazos estirados y los pies sin tocar el suelo, respirando con calma.",
+      "Aguanta el tiempo previsto y luego baja."
+    ]
+  },
+  "AtleoPlan_Dragon_Flag": {
+    "name": "Dragon flag",
+    "aliases": [
+      "bandera del dragón"
+    ],
+    "instructions": [
+      "Túmbate en un banco y agárralo por detrás de la cabeza.",
+      "Eleva todo el cuerpo, recto de los hombros a los pies, hasta que apunte hacia arriba, apoyado solo en la parte alta de la espalda.",
+      "Baja despacio el cuerpo recto hasta casi tocar el banco, vuelve a subirlo y repite."
+    ]
+  },
+  "AtleoPlan_Frog_Stand": {
+    "name": "Postura de la rana",
+    "aliases": [
+      "frog stand",
+      "postura del cuervo"
+    ],
+    "instructions": [
+      "Ponte en cuclillas y apoya las manos en el suelo a la anchura de los hombros, con los dedos abiertos.",
+      "Apoya las rodillas en la parte posterior de los brazos, cerca de los codos, e inclínate hacia delante hasta que los pies se despeguen del suelo.",
+      "Mantén el equilibrio con los brazos flexionados y la mirada un poco al frente durante el tiempo previsto; luego apoya los pies."
+    ]
+  },
+  "AtleoPlan_Front_Lever": {
+    "name": "Front lever",
+    "aliases": [
+      "palanca frontal"
+    ],
+    "instructions": [
+      "Cuélgate de la barra con agarre prono y los brazos estirados.",
+      "Empuja la barra hacia la cadera y eleva el cuerpo recto hasta la horizontal, boca arriba.",
+      "Aguanta el tiempo previsto y baja las piernas de forma controlada."
+    ]
+  },
+  "AtleoPlan_Full_Bridge": {
+    "name": "Puente completo",
+    "aliases": [
+      "puente",
+      "rueda"
+    ],
+    "instructions": [
+      "Túmbate boca arriba con las rodillas flexionadas, los pies cerca de los glúteos y las manos junto a las orejas, con los dedos hacia los hombros.",
+      "Empuja con manos y pies para levantar la cadera y la cabeza del suelo, estirando los brazos todo lo que puedas.",
+      "Aguanta el tiempo previsto respirando con calma y baja despacio, apoyando primero la cabeza."
+    ]
+  },
+  "AtleoPlan_Hollow_Body_Hold": {
+    "name": "Hollow body",
+    "aliases": [
+      "posición hollow",
+      "barquito"
+    ],
+    "instructions": [
+      "Túmbate boca arriba con los brazos por encima de la cabeza y las piernas estiradas.",
+      "Pega la zona lumbar al suelo y levanta los hombros y las piernas unos centímetros, de modo que el cuerpo forme una curva suave.",
+      "Aguanta el tiempo previsto sin despegar la zona lumbar."
+    ]
+  },
+  "AtleoPlan_Ice_Cream_Maker": {
+    "name": "Ice cream maker",
+    "aliases": [
+      "del front lever a la dominada"
+    ],
+    "instructions": [
+      "Cuélgate de la barra con agarre prono.",
+      "Sube; arriba, inclínate hacia atrás y empuja la barra hacia la cadera mientras llevas el cuerpo recto a la horizontal, como en un front lever.",
+      "Vuelve a llevar el cuerpo bajo la barra a la posición alta de la dominada, baja de forma controlada y repite."
+    ]
+  },
+  "AtleoPlan_L-Sit": {
+    "name": "L-sit",
+    "aliases": [
+      "escuadra"
+    ],
+    "instructions": [
+      "Siéntate entre dos paralelas, dos agarres o en el suelo, con las manos junto a la cadera.",
+      "Empuja hacia abajo con los brazos estirados para elevar el cuerpo y sube las piernas estiradas delante hasta la altura de la cadera.",
+      "Aguanta el tiempo previsto con los hombros abajo y luego baja."
+    ]
+  },
+  "AtleoPlan_L-Sit_Pull-Up": {
+    "name": "Dominadas en L",
+    "aliases": [
+      "dominadas con piernas en escuadra",
+      "l-sit pull-up"
+    ],
+    "instructions": [
+      "Cuélgate de la barra y eleva las piernas estiradas delante de ti hasta la altura de la cadera, formando una L.",
+      "Con las piernas arriba, sube hasta que la barbilla pase la barra.",
+      "Baja de forma controlada sin bajar las piernas y repite."
+    ]
+  },
+  "AtleoPlan_Pike_Push-Up": {
+    "name": "Flexiones en pica",
+    "aliases": [
+      "pike push-up"
+    ],
+    "instructions": [
+      "Empieza en posición de flexión, acerca los pies a las manos y sube la cadera hasta que el cuerpo forme una V invertida.",
+      "Flexiona los codos para bajar la coronilla hacia el suelo entre las manos.",
+      "Empuja hasta estirar los brazos y repite."
+    ]
+  },
+  "AtleoPlan_Shoulder_Dislocates": {
+    "name": "Dislocaciones de hombro",
+    "aliases": [
+      "pases con palo",
+      "shoulder dislocates"
+    ],
+    "instructions": [
+      "Sujeta un palo o una banda delante de la cadera con agarre prono amplio.",
+      "Con los brazos estirados, súbelo por encima de la cabeza y llévalo detrás de la espalda hasta la cadera.",
+      "Devuélvelo delante por el mismo camino y repite; cierra el agarre a medida que los hombros se suelten."
+    ]
+  },
+  "AtleoPlan_Shoulder_Opener": {
+    "name": "Apertura de hombros",
+    "aliases": [
+      "estiramiento de hombros"
+    ],
+    "instructions": [
+      "Arrodíllate y apoya las manos en un banco, una silla o el suelo delante de ti, con los brazos estirados a la anchura de los hombros.",
+      "Deja caer el pecho entre los brazos, con la cadera sobre las rodillas, hasta notar el estiramiento en los hombros.",
+      "Aguanta el tiempo previsto respirando hondo."
+    ]
+  },
+  "AtleoPlan_Skin_The_Cat": {
+    "name": "Skin the cat",
+    "aliases": [
+      "rotación en barra"
+    ],
+    "instructions": [
+      "Cuélgate de la barra o de las anillas con los brazos estirados.",
+      "Recoge las rodillas y gira hacia atrás pasando las piernas entre los brazos, hasta el german hang, hasta donde los hombros lo permitan.",
+      "Vuelve por el mismo camino a la posición inicial y repite."
+    ]
+  },
+  "AtleoPlan_Toes-To-Bar": {
+    "name": "Pies a la barra",
+    "aliases": [
+      "toes to bar",
+      "t2b"
+    ],
+    "instructions": [
+      "Cuélgate de la barra con agarre prono.",
+      "Contrae el abdomen y sube las piernas hasta que las puntas de los pies toquen la barra.",
+      "Baja las piernas de forma controlada, sin balancearte, y repite."
+    ]
+  },
+  "AtleoPlan_Tuck_Planche": {
+    "name": "Plancha recogida",
+    "aliases": [
+      "tuck planche",
+      "planche"
+    ],
+    "instructions": [
+      "Apoya las manos en el suelo o en paralelas bajas a la anchura de los hombros, con los dedos un poco hacia fuera.",
+      "Inclínate hacia delante sobre las manos con los brazos estirados y levanta los pies, con las rodillas recogidas al pecho y la espalda redondeada.",
+      "Aguanta el tiempo previsto y luego apoya los pies."
+    ]
+  },
+  "AtleoPlan_Two-Arm_Kettlebell_Swing": {
+    "name": "Swing con kettlebell a dos manos",
+    "aliases": [
+      "swing a dos manos",
+      "kettlebell swing"
+    ],
+    "instructions": [
+      "De pie, con los pies algo más abiertos que la cadera, sujeta una kettlebell con las dos manos y los brazos estirados.",
+      "Flexiona la cadera dejando que la kettlebell oscile hacia atrás entre las piernas y luego empuja la cadera hacia delante para llevarla a la altura del pecho.",
+      "Déjala caer hacia el siguiente swing, con la espalda recta, y repite."
+    ]
+  },
   "Axle_Deadlift": {
     "name": "Peso muerto con axle",
     "aliases": [

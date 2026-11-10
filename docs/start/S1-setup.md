@@ -40,7 +40,7 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - **Exercise library, tables** (first part of BE-1): `muscles` and `equipment` filled with free-exercise-db's 17 muscles and 12 kinds of equipment in four languages, `exercises` and `exercise_muscle`, with their models, relations and tests ([D3.4](../design/D3-data-model.md#d34-exercise-library), [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built)).
 - **Exercise library, API** (second part of BE-1): the list with search, filters and pages, reading, creating, changing and deleting personal exercises ([C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints)).
 - **Exercise library, screens** (UI-1): the list with search and filters, an exercise's page, the editor of personal exercises, with the imported photos ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)).
-- **Exercise library, import and translation** (DATA-1): `make exercises-import` downloads free-exercise-db and fills the public library with its exercises, their muscles, equipment and photos ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)), then writes their names, other names and steps in Italian, Spanish and German from the files of the repository ([H1.14](../how-to/H1-database.md#h114-the-translation-of-the-library-as-built)).
+- **Exercise library, import and translation** (DATA-1): `make exercises-import` downloads free-exercise-db and fills the public library with its exercises, their muscles, equipment and photos ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)), adds the project's own extra exercises (calisthenics, [H1.17](../how-to/H1-database.md#h117-the-extra-exercises-as-built)), then writes their names, other names and steps in Italian, Spanish and German from the files of the repository ([H1.14](../how-to/H1-database.md#h114-the-translation-of-the-library-as-built)).
 - **Plans, tables and API** (first part of FEAT-2): `plans`, `plan_days`, `plan_items`, `plan_sets` and the user's active plan; the API lists, reads, creates and saves a whole plan, deletes, activates and archives ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints), [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built)). After pulling it: `make migrate`.
 - **Plans, screens** (second part of FEAT-2): the plan list and a plan's page, its days as tabs; `make plans-demo` gives every user two example plans ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
 - **Plans, editor** (last part of FEAT-2): days, exercises from the library, sets and their types, supersets, drag and drop, the draft kept in the browser ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)).
@@ -123,7 +123,7 @@ A new service follows the same rule. To use another port once: `APP_PORT=8600 do
 
 It can be run again safely: what is already in place stays as it is.
 
-**After a pull, on either computer,** run `make setup` again: it brings the image, the packages and the database up to date with what was pulled, so new packages and new migrations are never forgotten. `make doctor` is not enough for this: it checks that the packages are installed, not that they are the latest. Then, if the exercise library is empty (on a new database, or the first time after the library was added), run `make exercises-import`.
+**After a pull, on either computer,** run `make setup` again: it brings the image, the packages and the database up to date with what was pulled, so new packages and new migrations are never forgotten. `make doctor` is not enough for this: it checks that the packages are installed, not that they are the latest. Then, if the exercise library is empty (on a new database, or the first time after the library was added), run `make exercises-import`; if it is there but older than the extra exercises (no "Frog stand" in it), `make exercises-extra` adds them in seconds.
 
 What the last step of `make setup` prints. The seeders write with `updateOrCreate()`, so a second run changes nothing:
 
@@ -331,6 +331,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Run the migrations | `docker compose exec backend php artisan migrate` |
 | Empty the database and rebuild it, with test data | `docker compose exec backend php artisan migrate:fresh --seed` |
 | Fill the public exercise library (after a fresh database too) | `make exercises-import`: the first time it also clones free-exercise-db into `backend/storage/app/` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
+| Add the extra exercises (calisthenics) to a library imported before them | `make exercises-extra` ([H1.17](../how-to/H1-database.md#h117-the-extra-exercises-as-built)) |
 | Example plans to look at (after the import) | `make plans-demo`: two plans for every user who has none ([H3.13.1](../how-to/H3-frontend.md#h3131-plans-to-look-at)) |
 | Add a package | `docker compose exec backend composer require <package>` |
 | Interactive console | `docker compose exec backend php artisan tinker` |

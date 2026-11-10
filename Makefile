@@ -11,7 +11,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-translate plans-demo \
+        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-translate plans-demo \
         dev fe-install fe-build \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit toc toc-check \
         branch sync push merge
@@ -161,10 +161,20 @@ reference-data: ## Muscles and equipment, the lists the library points to; safe 
 	$(ARTISAN) db:seed --class=MuscleSeeder
 	$(ARTISAN) db:seed --class=EquipmentSeeder
 
-exercises-import: ## Fill the public exercise library from free-exercise-db (downloads it the first time), then translate it: make exercises-import o="--limit=5"
+exercises-import: ## Fill the public exercise library from free-exercise-db (downloads it the first time) and the extra exercises, then translate it: make exercises-import o="--limit=5"
 	@test -d $(FREE_EXERCISE_DB) || git clone --depth 1 https://github.com/yuhonas/free-exercise-db.git $(FREE_EXERCISE_DB)
 	$(MAKE) --no-print-directory reference-data
 	$(ARTISAN) exercises:import $(o)
+	$(ARTISAN) exercises:import-extra
+	$(ARTISAN) exercises:translate
+
+# The project's own exercises, those free-exercise-db lacks (calisthenics),
+# kept in backend/database/data/extra-exercises.json with their translations
+# (docs/how-to/H1-database.md H1.17). exercises-import does this too; alone,
+# it adds the extras to a library imported before they existed, in seconds.
+exercises-extra: ## Add the extra exercises (calisthenics) to the library, then translate them; safe to run again
+	$(MAKE) --no-print-directory reference-data
+	$(ARTISAN) exercises:import-extra
 	$(ARTISAN) exercises:translate
 
 exercises-translate: ## Translate the imported exercises into it, es, de; options in o="…": make exercises-translate o="--locale=it --force"
