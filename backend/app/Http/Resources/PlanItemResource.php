@@ -16,6 +16,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *       "superset_group": 1,
  *       "rest_seconds": 90,
  *       "notes": null,
+ *       "for_time": false,
  *       "exercise": { …ExerciseResource: name, muscles, photos… },
  *       "sets": [ …PlanSetResource… ]
  *     }
@@ -46,6 +47,8 @@ class PlanItemResource extends JsonResource
             // null: the user's default rest
             'rest_seconds' => $this->rest_seconds,
             'notes' => $this->notes,
+            // As fast as possible: the stopwatch in workout mode (D3.5.3)
+            'for_time' => $this->for_time,
             // new …Resource(…) for one row; whenLoaded() leaves the key out
             // when the controller did not load the exercise
             'exercise' => new ExerciseResource($this->whenLoaded('exercise')),

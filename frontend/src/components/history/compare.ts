@@ -17,6 +17,13 @@
  * | reps          | the most added weight, then most reps  | +5×6 beats 12    |
  * | time          | the longest                            | 1:30 beats 1:15  |
  * | distance      | the longest                            | 500 m beats 400 m |
+ * | reps, for time | the most reps, then the fastest       | 50 in 1:05 beats 50 in 1:12 |
+ *
+ * "For time" is an exercise counted in reps done as fast as possible (a
+ * plan item with `for_time`): its sets have seconds too. It is compared only
+ * with last time done the same way (hasTimedSets): 50 in 1:12 says nothing
+ * against 3 × 15, so GET /api/sessions/last-sets gives one last time of
+ * each kind.
  *
  * The estimated one-rep max is Epley's: weight × (1 + reps / 30), as D2.8
  * sets for records. When the best sets tie, the total reps of the working
@@ -53,8 +60,20 @@ export interface Comparison {
 }
 
 /**
+ * Whether a list of sets was timed: one of them has seconds. True for an
+ * exercise logged by time, and for one counted in reps done as fast as
+ * possible ("50 in 1:12"); the kind that last time must match.
+ * @param sets the sets
+ */
+export function hasTimedSets(sets: readonly Pick<SetValues, 'duration_seconds'>[]): boolean {
+  return sets.some(set => set.duration_seconds !== null)
+}
+
+/**
  * A set's score by the rule of its logging type, as a list compared item
  * by item: [estimated one-rep max] or [added weight, reps], [seconds], [meters].
+ * A set of reps with seconds, done as fast as possible: [weight, reps, the
+ * seconds negated], so that fewer seconds score higher.
  * @param set the set
  * @param loggingType how its exercise is logged
  */
@@ -62,6 +81,8 @@ function score(set: SetValues, loggingType: LoggingType): number[] {
   // The weight as a number; 0 for none (the body alone)
   const weight = Number(set.weight_kg ?? 0)
   const reps = set.reps ?? 0
+  // Reps done as fast as possible: the same reps in less time is better
+  if ((loggingType === 'weight_reps' || loggingType === 'reps') && set.duration_seconds !== null) return [weight, reps, -set.duration_seconds]
   switch (loggingType) {
     case 'weight_reps': return [weight * (1 + reps / 30)]
     case 'reps': return [weight, reps]
@@ -158,9 +179,14 @@ interface ComparedExercise {
 /**
  * Every exercise of a workout against last time, in order.
  * @param exercises the workout's exercises
- * @param lastSets last time's sets, by exercise; an exercise missing was never done
+ * @param lastSets last time's sets, by exercise and kind (two entries for an exercise done both for reps and for time); an exercise missing was never done
  * @returns one comparison per exercise; null for one with nothing that counts
  */
 export function compareWorkout(exercises: readonly ComparedExercise[], lastSets: readonly { exercise_id: number, sets: readonly SetValues[] }[]): (Comparison | null)[] {
-  return exercises.map(item => compareExercise(item.sets, lastSets.find(entry => entry.exercise_id === item.exercise_id)?.sets ?? [], item.exercise.logging_type))
+  return exercises.map((item) => {
+    // Last time of the same exercise, done the same way: timed or not
+    const timed = hasTimedSets(item.sets)
+    const previous = lastSets.find(entry => entry.exercise_id === item.exercise_id && hasTimedSets(entry.sets) === timed)?.sets ?? []
+    return compareExercise(item.sets, previous, item.exercise.logging_type)
+  })
 }

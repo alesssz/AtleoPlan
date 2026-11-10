@@ -169,7 +169,8 @@
       "warmUps_other": "+ {{count}} Aufwärmsätze",
       "max": "max.",
       "rpe": "RPE {{value}}",
-      "changedElsewhere": "Dieser Plan wurde inzwischen woanders geändert. Deine Version hat ihn ersetzt."
+      "changedElsewhere": "Dieser Plan wurde inzwischen woanders geändert. Deine Version hat ihn ersetzt.",
+      "forTime": "so schnell wie möglich"
     },
     "editor": {
       "newTitle": "Neuer Plan",
@@ -250,7 +251,9 @@
         "movedOver": "{{name}} ist an Position {{position}} von {{total}}.",
         "dropped": "{{name}} an Position {{position}} von {{total}} abgelegt.",
         "cancelled": "Verschieben von {{name}} abgebrochen."
-      }
+      },
+      "forTime": "So schnell wie möglich",
+      "forTimeHint": "Die Wiederholungen stehen fest: Im Training misst eine Stoppuhr, wie lange sie dauern."
     },
     "lastUsed": "Zuletzt {{when}} genutzt",
     "neverUsed": "Noch nie genutzt",
@@ -502,8 +505,13 @@
       "last": "Letztes Mal {{time}}",
       "stop": "Stopp",
       "stopHint": "Die Zeit kommt in den Satz, und die Pause beginnt.",
-      "cancel": "Abbrechen, ohne die Zeit zu speichern"
-    }
+      "cancel": "Abbrechen, ohne die Zeit zu speichern",
+      "toBeat": "Zu schlagen {{time}}",
+      "over": "{{time}} darüber",
+      "goal_one": "{{count}} Wiederholung",
+      "goal_other": "{{count}} Wiederholungen"
+    },
+    "repsInTime": "{{reps}} in {{time}}"
   },
   "summary": {
     "eyebrow": "Training beendet",

@@ -323,6 +323,36 @@ describe('WorkoutPage', () => {
     expect(screen.queryByRole('button', { name: 'Start the stopwatch: Set 1' })).not.toBeInTheDocument()
   })
 
+  it('races an exercise done as fast as possible against last time', async () => {
+    // A plan's day with push-ups, 50 for time; last time 50 in 1:12
+    const plan = testPlan()
+    const bench = plan.days[0]!.items[0]!
+    const day = { id: 'day-c', name: 'Day C', items: [{ ...bench, id: 'item-race', exercise_id: 50, exercise: testExercise({ id: 50, name: 'Pushups', logging_type: 'reps' as const, photos: [] }), for_time: true, sets: [{ ...bench.sets[2]!, target_reps_min: 50, target_reps_max: 50, target_weight_kg: null }] }] }
+    const last = [{ exercise_id: 50, session_id: 'old', started_at: '2026-11-02T18:00:00Z', sets: [{ id: 'old-1', set_type: 'normal' as const, weight_kg: null, reps: 50, duration_seconds: 72, distance_meters: null, completed_at: '2026-11-02T18:05:00Z' }] }]
+    const session = startSession(plan, day, { unit: 'kg', defaultRestSeconds: 90, lastSets: last, language: 'en', now: new Date() })
+    storeActiveSession(session)
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, `/session/${session.id}`)
+    const user = userEvent.setup()
+
+    // The row: the reps and the seconds, last time's time in them; no Last column
+    expect(await screen.findByRole('button', { name: 'Set 1, Reps: 50' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set 1, Sec: 72' })).toBeInTheDocument()
+    expect(screen.queryByText('Last')).not.toBeInTheDocument()
+
+    // The stopwatch: the reps to do, the time to beat
+    await user.click(screen.getByRole('button', { name: 'Start the stopwatch: Set 1' }))
+    const panel = screen.getByRole('dialog', { name: 'Pushups' })
+    expect(within(panel).getByText('Set 1 · 50 reps')).toBeInTheDocument()
+    expect(within(panel).getByText('To beat 1:12')).toBeInTheDocument()
+    await user.click(within(panel).getByRole('button', { name: 'Stop' }))
+
+    // Ticked with its time, the reps kept
+    expect(screen.getByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Set 1, Sec: 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Set 1, Reps: 50' })).toBeInTheDocument()
+  })
+
   it('says so for a workout that is not on this phone', async () => {
     fakeApi({ 'GET /api/user': signedInAs() })
     renderRoutes(routes, '/session/0192f4a7-0000-7000-8000-000000000000')

@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built).
 
 ## Contents
 
@@ -138,6 +138,15 @@
   - [H3.24.7 Looking at it](#h3247-looking-at-it)
   - [H3.24.8 Checking in the browser](#h3248-checking-in-the-browser)
   - [H3.24.9 The checks](#h3249-the-checks)
+- [H3.25 Exercises done as fast as possible, as built](#h325-exercises-done-as-fast-as-possible-as-built)
+  - [H3.25.1 The order of building](#h3251-the-order-of-building)
+  - [H3.25.2 The backend: a column, a rule, and last time of each kind](#h3252-the-backend-a-column-a-rule-and-last-time-of-each-kind)
+  - [H3.25.3 The plan: draft and switch](#h3253-the-plan-draft-and-switch)
+  - [H3.25.4 Workout mode](#h3254-workout-mode)
+  - [H3.25.5 The tests, and proving they can fail](#h3255-the-tests-and-proving-they-can-fail)
+  - [H3.25.6 Looking at it](#h3256-looking-at-it)
+  - [H3.25.7 Checking in the browser](#h3257-checking-in-the-browser)
+  - [H3.25.8 The checks](#h3258-the-checks)
 
 ---
 
@@ -3528,6 +3537,197 @@ npx vitest run
 ```
 
 Then `make toc` for the new headings, and `make check`.
+
+## H3.25 Exercises done as fast as possible, as built
+
+A plan with 9 exercises out of 21 written "50 push-ups", "50 sit-ups", "50 squat jumps", each as fast as possible. A switch on the plan's item marks them; workout mode times them with the stopwatch of [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), and saves the reps and the time together. How it works: [C1.17.9](../concepts/C1-frontend.md#c1179-exercises-done-as-fast-as-possible); how it looks: [D1.4.8](../design/D1-ui.md#d148-plan-editor), [D1.4.9](../design/D1-ui.md#d149-workout-mode).
+
+| File | Change |
+|---|---|
+| `backend/database/migrations/…_add_for_time_to_plan_items_table.php` | New: `plan_items.for_time`, boolean, false |
+| `backend/app/Models/PlanItem.php`, `database/factories/PlanItemFactory.php` | Fillable, cast to boolean; false in the factory |
+| `backend/app/Http/Requests/PlanRequest.php`, `Actions/Plans/SavePlan.php`, `Http/Resources/PlanItemResource.php` | The rule `['sometimes', 'boolean']`, the value saved (false when missing), the field sent |
+| `backend/app/Http/Requests/SaveSessionRequest.php` | `duration_seconds` optional on `weight_reps` and `reps` |
+| `backend/app/Actions/Workouts/FindLastSets.php` | Last time of each exercise **and kind** |
+| `frontend/src/api/plans.ts`, `components/plans/plan-draft.ts` | `for_time`; `canBeForTime()`; the action `setItemForTime` |
+| `frontend/src/components/plans/editor/EditorItem.tsx`, `plan-format.ts` | The switch; its words in the exercise's line |
+| `frontend/src/components/workout/workout-session.ts` | `isForTime()`, `lastOfKind()`; `canComplete()` and `toSessionInput()` with the seconds |
+| `frontend/src/components/workout/set-fields.ts`, `SetRow.tsx`, `SetStepper.tsx`, `WorkoutScreen.tsx`, `StopwatchPanel.tsx` | Reps and seconds, ▶, no Last; the stopwatch's race |
+| `frontend/src/components/history/compare.ts`, `components/workout/set-text.ts` | `hasTimedSets()`, the score of a race, last time of the same kind; "50 in 1:12" |
+| `frontend/src/i18n/locales/*.json` | `plans.editor.forTime`, `forTimeHint`, `plans.detail.forTime`, `workout.repsInTime`, `workout.stopwatch.toBeat`, `over`, `goal` |
+| Tests | 2 backend tests new, 2 changed; 10 frontend tests new |
+
+### H3.25.1 The order of building
+
+1. **The backend:** the column, the plan's rule and save, the set's seconds, last time of each kind; their tests.
+2. **The plan:** types, draft, switch, the exercise's line.
+3. **Workout mode:** `isForTime()` and what follows from it, then the stopwatch's race.
+4. **History:** the set's text, the comparison.
+5. **The tests,** then each new rule broken on purpose; a look at a phone's and a laptop's width; the docs.
+
+### H3.25.2 The backend: a column, a rule, and last time of each kind
+
+```sh
+docker compose exec backend php artisan make:migration add_for_time_to_plan_items_table --table=plan_items
+```
+
+```
+   INFO  Migration [database/migrations/2026_11_10_131111_add_for_time_to_plan_items_table.php] created successfully.
+```
+
+`$table->boolean('for_time')->default(false)` in `up()`, `dropColumn('for_time')` in `down()`, then:
+
+```sh
+docker compose exec backend php artisan migrate
+```
+
+```
+  2026_11_10_131111_add_for_time_to_plan_items_table ............ 56.37ms DONE
+```
+
+**The plan.** `PlanItem`'s `#[Fillable]` and `casts()` (`'for_time' => 'boolean'`), the factory's default, `PlanRequest`'s rule, `SavePlan`'s `fill()` with `$itemData['for_time'] ?? false`, the resource's field. The rule is `sometimes`, not `required`: a phone with the app of yesterday, which does not send it, still saves its plans, as false.
+
+**The set.** A set of 50 push-ups in 1:12 has `reps` and `duration_seconds`. `SaveSessionRequest` refused that: on an exercise logged by reps, any field but the reps and the weight had to be empty (`OPTIONAL_BY_LOGGING`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)). One line each:
+
+```php
+'weight_reps' => ['weight_kg', 'duration_seconds'],
+'reps' => ['weight_kg', 'duration_seconds'],
+```
+
+One case of the test "asks for the values that fit how the exercise is logged" checked exactly what is now allowed, `'reps only, with a time'`; it became `'reps only, with meters'`, still refused, and a new test saves 50 in 72 seconds.
+
+**Last time of each kind** ([D3.6.4](../design/D3-data-model.md#d364-how-the-screens-use-these-tables)). `FindLastSets` kept the latest workout of each exercise with `distinct on (exercise_id)`. Now the kind is a second key, an SQL expression true when one of the sets has seconds:
+
+```php
+$timed = 'exists (select 1 from logged_sets as timed_sets where timed_sets.session_exercise_id = session_exercises.id and timed_sets.duration_seconds is not null)';
+
+->selectRaw("distinct on (session_exercises.exercise_id, {$timed}) session_exercises.id, …")
+…
+->orderBy('session_exercises.exercise_id')
+->orderByRaw($timed)
+->orderByDesc('workout_sessions.started_at')
+```
+
+Postgres asks that the expressions of `distinct on` be the first ones of `order by`, in the same order: hence the expression in a PHP variable, written twice. The table name `timed_sets` is an alias, so that the subquery's `logged_sets` is not confused with any other.
+
+The test: push-ups 50 in 1:12 two days ago, 3 × 15 yesterday, two entries back. The 72 seconds are written with a plain update after `workoutOf()`, the test file's helper, which only knows reps.
+
+```sh
+docker compose exec backend php artisan test --filter='SavePlanApiTest|SaveSessionApiTest|SessionReadApiTest'
+```
+
+```
+  Tests:    55 passed (233 assertions)
+```
+
+Broken on purpose, back to `distinct on (session_exercises.exercise_id)` without the `orderByRaw`:
+
+```
+  FAILED  Tests\Feature\Workouts\SessionReadApiTest > it gives last time of…
+  Failed asserting that actual size 1 matches expected size 2.
+```
+
+On another computer: `make migrate`.
+
+### H3.25.3 The plan: draft and switch
+
+`PlanItem` gains `for_time`; `DraftItem` gains `for_time?`, optional because a draft kept in the browser (`atleoplan.planDraft.…`, [C1.16.4](../concepts/C1-frontend.md#c1164-the-draft-kept-in-the-browser)) before this change has none, and `undefined === true` is false: nothing breaks. One helper says where the switch makes sense:
+
+```ts
+export function canBeForTime(loggingType: LoggingType): boolean {
+  return loggingType === 'weight_reps' || loggingType === 'reps'
+}
+```
+
+`toPlanInput()` sends `item.for_time === true && canBeForTime(…)`. `EditorItem` draws the switch above the sets (they are what it changes), as a row with a timer icon, a `<Label htmlFor>` and the hint linked by `aria-describedby`; the test finds it as `getByRole('switch', { name: 'As fast as possible' })`.
+
+**The texts came last, and TypeScript said so.** The keys were used before being written in the JSON files; i18next's types (C1.7) know every key, so:
+
+```
+src/components/plans/editor/EditorItem.tsx(172,81): error TS2345: Argument of type '["plans.editor.forTime"]' is not assignable to parameter of type …
+      Type '"plans.editor.forTime"' is not assignable to type '"nav.label" | … | ("nav.label" | ... 486 more ... | TemplateStringsArray)[]'. Did you mean '"plans.editor.rpe"'?
+```
+
+A misspelt key is a compile error, not an English key shown on screen.
+
+### H3.25.4 Workout mode
+
+One function, `isForTime(item)`, and every piece asks it: `fieldsFor()` gives `[reps, seconds]`; `SetRow` and `SetHeader` show ▶ and drop the Last column; `canComplete()` wants the seconds; `toSessionInput()` sends them. The row at 360 px was worked out first: the number 48 px, Last 64, ▶ and ✓ 48 each, five gaps of 8: two fields beside all that would be 32 px each, too narrow for a thumb; without Last, 68. Last time's time stays in sight: it fills the seconds' field, the time to beat.
+
+**Last time of the same kind.** The answer of `last-sets` may now have two entries for one exercise. Every place that did `lastSets.find(entry => entry.exercise_id === id)` would take whichever came first; they go through `lastOfKind(lastSets, id, timed)` instead, with `hasTimedSets()` of `compare.ts`. Three places in `workout-session.ts` (start, Add exercises, Swap) and one in `compare.ts` (`compareWorkout`, for the summary and history). `grep` found them:
+
+```sh
+grep -rn "exercise_id === " src --include=*.ts --include=*.tsx
+```
+
+**The stopwatch's race.** `StopwatchPanel` gets `race: { reps } | null`: "Set 2 · 50 reps" under the title; "To beat 1:12", then "0:14 over"; no beep (`isRace` in the effect's dependencies, so the timer is not even set).
+
+**"50 in 1:12"** comes from `set-text.ts`, a plain function used by the stepper's "Last", history and the summary. It has no hook to translate with, so it calls the i18next instance itself, with the language it is given:
+
+```ts
+import i18n from '@/i18n'
+…
+if (set.duration_seconds !== null) return i18n.t('workout.repsInTime', { lng: language, reps, time: clock(set.duration_seconds) })
+```
+
+### H3.25.5 The tests, and proving they can fail
+
+They passed at the first run but one, a property that does not exist (`set.session_id` on a `LoggedSet`), which `npx tsc -b` caught before Vitest ran:
+
+```
+src/components/workout/workout-session.test.ts(206,42): error TS2339: Property 'session_id' does not exist on type 'LoggedSet'.
+```
+
+Then each rule broken, the tests run, the code put back:
+
+- **`isForTime()` always false:**
+
+```
+     × starts with last time done the same way: its time is the one to beat 4ms
+     × needs the seconds to tick a set, and sends them with the reps 2ms
+     × races an exercise done as fast as possible against last time 37ms
+      Tests  3 failed | 50 passed (53)
+```
+
+- **The race's score with the seconds not negated** (`[weight, reps, set.duration_seconds]`: the slower would win):
+
+```
+     × reps for time: the same reps in less time wins 4ms
+     × compares with last time done the same way: for time, or for reps 3ms
+      Tests  2 failed | 8 passed (10)
+```
+
+### H3.25.6 Looking at it
+
+As in [H3.24.7](#h3247-looking-at-it), with Vite's root at `frontend/` from the start: the editor with a plan whose first exercise is push-ups for time, put into the query cache; workout mode with a day of push-ups 3 × 50 for time, last time 72, 75, 80 seconds, its first set done, and the stopwatch stored as running for 40 seconds, then 83.
+
+**What the photos showed.** The editor, at 360 and 1000 px: the switch in a grey band above the sets, on, its hint on three lines on a phone; the exercise's line "1 × 50 · nel minor tempo · 90 s". Workout mode: "Serie, Rip., Sec" over the rows, 50 and 75 in each, ▶ and ✓, the done row lime; the fields wide enough at 360 px. The stopwatch at 0:46: "Serie 2 · 50 ripetizioni", the ring two thirds full, "Da battere 1:15". One fault, at 1:29: "0:14 in più" in red, but the ring **full and lime**, the colour of a target reached. Once a race's time is gone the ring now turns red as well (`stroke-destructive`).
+
+**At the first real use** the line read "1 × 50 · for time · 90 s" (the app was in English), and "for time" said little to someone who had just turned on "As fast as possible". The line now uses the switch's own words in every language: "as fast as possible", "nel minor tempo possibile", "lo más rápido posible", "so schnell wie möglich" (`plans.detail.forTime`).
+
+### H3.25.7 Checking in the browser
+
+With `make start` (`make migrate` first on another computer):
+
+- **The plan:** edit it, the exercises step, open push-ups: **Nel minor tempo possibile** on, the sets at 50. The line says "nel minor tempo possibile". Save; on the plan's page, the same line.
+- **Workout:** Start that day. Push-ups: Rip. and Sec, no Ultima. ▶: "Serie 1 · 50 ripetizioni"; with no time yet, no ring target. **Stop**: the set ticked, 50 and the seconds, the rest running.
+- **The next time:** the seconds' field holds last time's, the stopwatch says "Da battere …"; past it, red.
+- **History:** the workout's page writes "50 in 1:12"; the verdict is better with less time. A day with push-ups for reps keeps comparing with the days done for reps.
+
+### H3.25.8 The checks
+
+```sh
+docker compose exec backend php artisan test
+npx vitest run
+```
+
+```
+  Tests:    257 passed (17384 assertions)
+ Test Files  28 passed (28)
+      Tests  246 passed (246)
+```
+
+Then `make toc` and `make check`.
 
 ---
 

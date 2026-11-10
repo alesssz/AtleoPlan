@@ -59,6 +59,20 @@ describe('from the API and back', () => {
     expect(input.days[0]?.items[2]?.sets[0]?.target_weight_kg).toBeNull()
   })
 
+  it('keeps "as fast as possible", and sends it only for an exercise counted in reps', () => {
+    // The bench press done for time, then flagged on a timed exercise too
+    const plan = testPlan()
+    const [dayA] = plan.days
+    const withRace = testPlan({ days: [{ ...dayA!, items: [{ ...dayA!.items[0]!, for_time: true }, ...dayA!.items.slice(1)] }, ...plan.days.slice(1)] })
+    const raced = draftFromPlan(withRace, 'kg', 'en')
+    const hold = { ...newItem(testExercise({ id: 90, name: 'Dead Hang', logging_type: 'time' })), for_time: true }
+    raced.days[0]!.items.push(hold)
+
+    const input = toPlanInput(raced, 'kg')
+    expect(raced.days[0]?.items[0]?.for_time).toBe(true)
+    expect(input.days[0]?.items.map(item => item.for_time)).toEqual([true, false, false, false])
+  })
+
   it('shows weights in the user\'s unit and language, and sends kilograms', () => {
     const inPounds = draftFromPlan(testPlan(), 'lb', 'it')
     const bench = inPounds.days[0]?.items[0]
@@ -130,6 +144,16 @@ describe('draftReducer', () => {
     const added = next.days[1]?.items[1]
     expect(added?.exercise.name).toBe('Barbell Squat')
     expect(added?.sets.map(set => [set.reps, set.weight])).toEqual([['8-10', ''], ['8-10', ''], ['8-10', '100'], ['8-10', '100']])
+  })
+
+  it('turns "as fast as possible" on and off', () => {
+    const on = draftReducer(draft(), { type: 'setItemForTime', day: 0, item: 2, value: true })
+    const off = draftReducer(on, { type: 'setItemForTime', day: 0, item: 2, value: false })
+
+    expect(on.days[0]?.items[2]?.for_time).toBe(true)
+    expect(off.days[0]?.items[2]?.for_time).toBe(false)
+    // A new exercise starts without it
+    expect(newItem(testExercise()).for_time).toBe(false)
   })
 
   it('sets a set\'s type, leaving the other sets as they are', () => {

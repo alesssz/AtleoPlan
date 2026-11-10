@@ -32,6 +32,12 @@ describe('itemSummary', () => {
     expect(itemSummary(item, { ...options, weightUnit: 'lb' })).toBe('1 × 8–10 · 181.88 lb · RPE 8.5 · 2 min')
   })
 
+  it('says when an exercise is done as fast as possible', () => {
+    const item = testPlanItem({ for_time: true, sets: [testPlanSet({ target_reps_min: 50, target_reps_max: 50, target_weight_kg: null })] })
+
+    expect(itemSummary(item, options)).toBe('1 × 50 · as fast as possible · 90 sec')
+  })
+
   it('lists each set when they ask for different things', () => {
     const item = testPlanItem({
       rest_seconds: null,

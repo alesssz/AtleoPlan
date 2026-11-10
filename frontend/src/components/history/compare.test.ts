@@ -3,7 +3,7 @@
  * of logging, warm-ups left out, ties decided by the total reps.
  */
 import { describe, expect, it } from 'vitest'
-import { bestSet, compareExercise, countVerdicts, exerciseVolume, type SetValues } from './compare'
+import { bestSet, compareExercise, compareWorkout, countVerdicts, exerciseVolume, hasTimedSets, type SetValues } from './compare'
 
 /**
  * A normal set by reps, with a weight or none.
@@ -42,6 +42,29 @@ describe('compareExercise', () => {
     expect(compareExercise([timed(90)], [timed(75)], 'time')?.verdict).toBe('better')
     const run = (meters: number): SetValues => ({ set_type: 'normal', weight_kg: null, reps: null, duration_seconds: null, distance_meters: meters })
     expect(compareExercise([run(400)], [run(500)], 'distance')?.verdict).toBe('worse')
+  })
+
+  it('reps for time: the same reps in less time wins', () => {
+    // 50 in 1:05 against 50 in 1:12
+    const race = (seconds: number): SetValues => ({ ...set(null, 50), duration_seconds: seconds })
+
+    expect(compareExercise([race(65)], [race(72)], 'reps')?.verdict).toBe('better')
+    expect(compareExercise([race(80)], [race(72)], 'reps')?.verdict).toBe('worse')
+    expect(bestSet([race(80), race(70)], 'reps')?.duration_seconds).toBe(70)
+  })
+
+  it('compares with last time done the same way: for time, or for reps', () => {
+    const race = { ...set(null, 50), duration_seconds: 72 }
+    // Last time of each kind, as GET /api/sessions/last-sets gives them
+    const lastSets = [
+      { exercise_id: 31, sets: [set(null, 15), set(null, 15)] },
+      { exercise_id: 31, sets: [race] },
+    ]
+    const today = [{ exercise_id: 31, exercise: { logging_type: 'reps' as const }, sets: [{ ...race, duration_seconds: 65 }] }]
+
+    expect(hasTimedSets([race])).toBe(true)
+    expect(hasTimedSets([set(null, 15)])).toBe(false)
+    expect(compareWorkout(today, lastSets)[0]).toMatchObject({ verdict: 'better', previousBest: race })
   })
 
   it('says "first" when never done before, and nothing for an exercise skipped', () => {

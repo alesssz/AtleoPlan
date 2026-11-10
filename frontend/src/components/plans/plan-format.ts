@@ -121,6 +121,8 @@ export interface SummaryOptions {
  * - the weight, for an exercise logged with one: "80 kg", or "60–80 kg"
  *   when it changes from set to set; in the user's unit;
  * - the RPE, when every set asks for the same: "RPE 8";
+ * - "as fast as possible", the words of the editor's switch, for an
+ *   exercise done for time (`for_time`); first "for time", which said little;
  * - the rest, the exercise's own or the user's default: "90 s".
  *
  * @param item the exercise of the plan, with its sets
@@ -167,6 +169,10 @@ export function itemSummary(item: PlanItem, options: SummaryOptions): string {
   if (rpes.size === 1 && rpe !== null && rpe !== undefined) {
     parts.push(t('plans.detail.rpe', { value: formatNumber(Number(rpe), language) }))
   }
+
+  // Done as fast as possible: the reps above are fixed, the time is the
+  // result. `=== true`: a plan item read before the field existed has none
+  if (item.for_time === true) parts.push(t('plans.detail.forTime'))
 
   parts.push(formatSeconds(item.rest_seconds ?? defaultRestSeconds, language))
 

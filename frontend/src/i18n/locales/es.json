@@ -169,7 +169,8 @@
       "warmUps_other": "+ {{count}} de calentamiento",
       "max": "máx.",
       "rpe": "RPE {{value}}",
-      "changedElsewhere": "Esta rutina se cambió en otro lugar mientras tanto. Tu versión la ha reemplazado."
+      "changedElsewhere": "Esta rutina se cambió en otro lugar mientras tanto. Tu versión la ha reemplazado.",
+      "forTime": "lo más rápido posible"
     },
     "editor": {
       "newTitle": "Nueva rutina",
@@ -250,7 +251,9 @@
         "movedOver": "{{name}} está en la posición {{position}} de {{total}}.",
         "dropped": "{{name}} soltado en la posición {{position}} de {{total}}.",
         "cancelled": "Se canceló el movimiento de {{name}}."
-      }
+      },
+      "forTime": "Lo más rápido posible",
+      "forTimeHint": "Las repeticiones son fijas: en el entrenamiento, un cronómetro mide cuánto tardas."
     },
     "lastUsed": "Usado {{when}}",
     "neverUsed": "Aún sin usar",
@@ -502,8 +505,13 @@
       "last": "La última vez {{time}}",
       "stop": "Parar",
       "stopHint": "El tiempo va a la serie y empieza el descanso.",
-      "cancel": "Cancelar, sin guardar el tiempo"
-    }
+      "cancel": "Cancelar, sin guardar el tiempo",
+      "toBeat": "A batir {{time}}",
+      "over": "{{time}} de más",
+      "goal_one": "{{count}} repetición",
+      "goal_other": "{{count}} repeticiones"
+    },
+    "repsInTime": "{{reps}} en {{time}}"
   },
   "summary": {
     "eyebrow": "Entrenamiento terminado",

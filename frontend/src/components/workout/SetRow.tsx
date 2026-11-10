@@ -13,6 +13,10 @@
  * An exercise logged by time has one more button before ✓: ▶, which opens
  * the stopwatch (StopwatchPanel.tsx); its Stop fills the seconds and ticks
  * the set. A done set keeps the place empty, so the columns stay aligned.
+ * So has one counted in reps and done as fast as possible (`forTime`): its
+ * row shows the reps and the seconds, and no Last column, for room. Last
+ * time is in the seconds' field, the time to beat, in the stepper and in
+ * the stopwatch.
  *
  * ✓ is disabled while a value the exercise needs is missing or does not
  * read as a number: the backend would refuse the set (canComplete,
@@ -37,6 +41,8 @@ interface SetHeaderProps {
   loggingType: LoggingType
   /** The user's weight unit. */
   unit: WeightUnit
+  /** Done as fast as possible: reps and seconds, no Last. */
+  forTime: boolean
 }
 
 /**
@@ -46,17 +52,17 @@ interface SetHeaderProps {
  * flex-1 for each field, w-12 for ▶ and ✓.
  * Hidden from screen readers, which hear each field's own name instead.
  */
-export function SetHeader({ loggingType, unit }: SetHeaderProps) {
+export function SetHeader({ loggingType, unit, forTime }: SetHeaderProps) {
   const { t } = useTranslation()
 
   return (
     <div aria-hidden="true" className="mb-2 flex items-center gap-2 px-1 text-xs sm:gap-3 font-bold tracking-wider text-muted-foreground uppercase">
       <span className="w-12 shrink-0 text-center">{t('workout.colSet')}</span>
-      <span className="w-16 shrink-0 text-center">{t('workout.colLast')}</span>
-      {fieldsFor(loggingType, unit, t).map(({ field, label }) => (
+      {!forTime && <span className="w-16 shrink-0 text-center">{t('workout.colLast')}</span>}
+      {fieldsFor(loggingType, unit, t, forTime).map(({ field, label }) => (
         <span key={field} className="min-w-0 flex-1 text-center">{label}</span>
       ))}
-      {loggingType === 'time' && <span className="w-12 shrink-0" />}
+      {(loggingType === 'time' || forTime) && <span className="w-12 shrink-0" />}
       <span className="w-12 shrink-0" />
     </div>
   )
@@ -72,6 +78,8 @@ interface SetRowProps {
   loggingType: LoggingType
   /** The user's weight unit. */
   unit: WeightUnit
+  /** Done as fast as possible: reps and seconds, ▶, no Last (isForTime). */
+  forTime: boolean
   /** Ticks or unticks it. */
   onToggle: () => void
   /** A tap on a field: the stepper opens on it. */
@@ -83,7 +91,7 @@ interface SetRowProps {
 }
 
 /** A row of the sets' table. */
-export function SetRow({ set, number, loggingType, unit, onToggle, onOpenStepper, onTypeChange, onStartStopwatch }: SetRowProps) {
+export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOpenStepper, onTypeChange, onStartStopwatch }: SetRowProps) {
   const { t, i18n } = useTranslation()
   // The interface's language, for the decimal separator
   const language = i18n.language
@@ -107,12 +115,12 @@ export function SetRow({ set, number, loggingType, unit, onToggle, onOpenStepper
       />
 
       {/* Last time, in the column of the same name */}
-      <span className="w-16 shrink-0 text-center text-sm text-muted-foreground tabular-nums">{lastText}</span>
+      {!forTime && <span className="w-16 shrink-0 text-center text-sm text-muted-foreground tabular-nums">{lastText}</span>}
 
       {/* Each field: a button that looks like the text box it replaced
           (the Input's border and background), showing the value, or a dash
           when empty. Its name says the value too: "Set 1, kg: 80" */}
-      {fieldsFor(loggingType, unit, t).map(({ field, spoken, placeholder }) => (
+      {fieldsFor(loggingType, unit, t, forTime).map(({ field, spoken, placeholder }) => (
         <button
           key={field}
           type="button"
@@ -126,7 +134,7 @@ export function SetRow({ set, number, loggingType, unit, onToggle, onOpenStepper
 
       {/* ▶, on a timed exercise: the stopwatch. Lime outline, the way to
           do a timed set; gone once the set is done, its place kept */}
-      {loggingType === 'time' && (set.done
+      {(loggingType === 'time' || forTime) && (set.done
         ? <span className="w-12 shrink-0" />
         : (
             <Button size="icon-xl" variant="outline" className="border-primary/70 text-primary" aria-label={t('workout.stopwatch.start', { name })} onClick={onStartStopwatch}>
@@ -141,7 +149,7 @@ export function SetRow({ set, number, loggingType, unit, onToggle, onOpenStepper
         variant={set.done ? 'default' : 'outline'}
         aria-pressed={set.done}
         aria-label={set.done ? t('workout.untick', { name }) : t('workout.tick', { name })}
-        disabled={!set.done && !canComplete(set, loggingType)}
+        disabled={!set.done && !canComplete(set, loggingType, forTime)}
         onClick={onToggle}
       >
         <Check aria-hidden="true" />

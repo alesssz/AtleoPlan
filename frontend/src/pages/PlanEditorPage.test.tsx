@@ -121,6 +121,26 @@ describe('PlanEditorPage', () => {
     expect(screen.getAllByLabelText('Set 1, RPE')).toHaveLength(1)
   })
 
+  it('marks an exercise counted in reps as done as fast as possible', async () => {
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': savedPlan, 'PUT /api/plans/plan-ppl': savedAgain })
+    renderRoutes(routes, '/plans/plan-ppl/edit')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Next: the exercises' }))
+    await user.click(screen.getByRole('button', { name: /^Pullups/ }))
+    // The switch, off; on with a tap, and said in the exercise's line
+    const race = screen.getByRole('switch', { name: 'As fast as possible' })
+    expect(race).toHaveAttribute('aria-checked', 'false')
+    await user.click(race)
+    expect(race).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('button', { name: /^Pullups/ })).toHaveTextContent('as fast as possible')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await screen.findByText('the plan page')
+    const body = sentBody(fake, '/api/plans/plan-ppl') as PlanInput
+    expect(body.days[0]?.items.map(item => item.for_time)).toEqual([false, false, true])
+  })
+
   it('creates an exercise from the picker\'s search, and puts it in the day', async () => {
     const fake = fakeApi({
       ...fixedLists,

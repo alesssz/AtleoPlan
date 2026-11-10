@@ -11,6 +11,10 @@
  *   vibration) and says "Target reached". With no target, the ring goes
  *   round once a minute, as a stopwatch's hand.
  * - **Last time**, under it, to beat.
+ * - **A race** (`race`: an exercise counted in reps, done as fast as
+ *   possible, C1.17.9): the reps to do under the set's name, "50 reps";
+ *   the target is a time to beat, "To beat 1:12", then "0:05 over" once
+ *   past it, with no signal: reaching it is not the goal there.
  * - **Stop** writes the time into the set and ticks it, which starts the
  *   rest as ✓ does; **Cancel** throws the time away.
  *
@@ -44,6 +48,8 @@ interface StopwatchPanelProps {
   exerciseName: string
   /** The set's name: "Set 1". */
   setName: string
+  /** A race: the reps to do (null when none typed); null for a hold. */
+  race: { reps: number | null } | null
   /** Last time's time for this set, as text ("1:31"); null when none. */
   lastText: string | null
   /** Whether the target is signalled with a sound and a vibration (Profile). */
@@ -55,7 +61,7 @@ interface StopwatchPanelProps {
 }
 
 /** The full-screen stopwatch. */
-export function StopwatchPanel({ stopwatch, exerciseName, setName, lastText, alarm, onStop, onCancel }: StopwatchPanelProps) {
+export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastText, alarm, onStop, onCancel }: StopwatchPanelProps) {
   const { t } = useTranslation()
   // The current moment, four times a second: the seconds change on time,
   // not up to a second late as with the workout's clock
@@ -63,23 +69,32 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, lastText, ala
   // The seconds so far
   const seconds = stopwatchSeconds(stopwatch, now)
   const { target } = stopwatch
-  // Whether the target is reached
+  // Whether the target is reached: in a race, the time to beat is gone
   const reached = target !== null && seconds >= target
+  // The line under the time: the target, then reached; in a race, the
+  // time to beat, then how far past it
+  const targetText = target === null
+    ? null
+    : race
+      ? (reached ? t('workout.stopwatch.over', { time: clock(seconds - target) }) : t('workout.stopwatch.toBeat', { time: clock(target) }))
+      : (reached ? t('workout.stopwatch.reached') : t('workout.stopwatch.target', { time: clock(target) }))
   // How much of the ring is filled, 0 to 1: the share of the target, or
   // the seconds of the current minute when there is none
   const share = target !== null ? Math.min(1, seconds / target) : (seconds % 60) / 60
 
   // The signal at the target: a timer set for that moment, as the rest's
   // end is (WorkoutScreen). Not when the moment is already past, as when the
-  // app is opened again after it: the signal would come late, and twice
+  // app is opened again after it: the signal would come late, and twice.
+  // Not in a race either: there the target is a time not to reach
   const { sound, vibration } = alarm
+  const isRace = race !== null
   useEffect(() => {
-    if (stopwatch.target === null) return
+    if (stopwatch.target === null || isRace) return
     const delay = Date.parse(stopwatch.started_at) + stopwatch.target * 1000 - Date.now()
     if (delay < 0) return
     const timer = setTimeout(() => restOver({ sound, vibration }), delay)
     return () => clearTimeout(timer)
-  }, [stopwatch, sound, vibration])
+  }, [stopwatch, sound, vibration, isRace])
 
   return (
     // Always open while it exists: WorkoutScreen draws it only with a
@@ -97,7 +112,10 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, lastText, ala
         {/* The exercise and the set */}
         <div className="flex flex-col items-center gap-1 text-center">
           <DialogTitle className="font-heading text-xl font-extrabold">{exerciseName}</DialogTitle>
-          <DialogDescription className="text-base">{setName}</DialogDescription>
+          <DialogDescription className="text-base">
+            {setName}
+            {race?.reps ? ` · ${t('workout.stopwatch.goal', { count: race.reps })}` : ''}
+          </DialogDescription>
         </div>
 
         {/* The ring and the time. The SVG is a picture (aria-hidden); the
@@ -116,20 +134,21 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, lastText, ala
               strokeLinecap="round"
               strokeDasharray={CIRCUMFERENCE}
               strokeDashoffset={CIRCUMFERENCE * (1 - share)}
-              className="stroke-primary transition-[stroke-dashoffset] duration-200 ease-linear"
+              // Lime; red once a race's time to beat is gone, as the line under the time
+              className={cn('transition-[stroke-dashoffset] duration-200 ease-linear', race && reached ? 'stroke-destructive' : 'stroke-primary')}
             />
           </svg>
           <div className="flex flex-col items-center gap-1">
             <span role="timer" className="font-heading text-6xl font-extrabold tabular-nums">{clock(seconds)}</span>
-            {target !== null && (
-              <span className={cn('text-base font-semibold', reached ? 'text-primary' : 'text-muted-foreground')}>
-                {reached ? t('workout.stopwatch.reached') : t('workout.stopwatch.target', { time: clock(target) })}
+            {targetText !== null && (
+              <span className={cn('text-base font-semibold', !reached ? 'text-muted-foreground' : race ? 'text-destructive' : 'text-primary')}>
+                {targetText}
               </span>
             )}
           </div>
         </div>
-        {/* Read out once, when the target is reached */}
-        <p aria-live="polite" className="sr-only">{reached ? t('workout.stopwatch.reached') : ''}</p>
+        {/* Read out once, when the target of a hold is reached */}
+        <p aria-live="polite" className="sr-only">{reached && !race ? t('workout.stopwatch.reached') : ''}</p>
 
         {/* Last time, then the two buttons, as wide as the phone */}
         <div className="flex w-full max-w-sm flex-col gap-3">

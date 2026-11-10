@@ -150,6 +150,7 @@ class SavePlan
                     'superset_group' => $itemData['superset_group'] ?? null,
                     'rest_seconds' => $itemData['rest_seconds'] ?? null,
                     'notes' => $itemData['notes'] ?? null,
+                    'for_time' => $itemData['for_time'] ?? false,
                 ]);
                 // Set here, not through a relation: the item may be new, or
                 // may come from another day of the same plan

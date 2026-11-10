@@ -10,7 +10,7 @@
  */
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronDown, Dumbbell, GripVertical, Plus, Trash2, Unlink } from 'lucide-react'
+import { ChevronDown, Dumbbell, GripVertical, Plus, Timer, Trash2, Unlink } from 'lucide-react'
 import { useId, useState, type Dispatch } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FormField } from '@/components/FormField'
@@ -18,10 +18,11 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import type { WeightUnit } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { LIMITS, draftItemAsPlanItem, type DraftAction, type DraftDay, type DraftItem } from '../plan-draft'
+import { LIMITS, canBeForTime, draftItemAsPlanItem, type DraftAction, type DraftDay, type DraftItem } from '../plan-draft'
 import { formatSeconds, itemSummary, warmUpCount } from '../plan-format'
 import { EditorSet } from './EditorSet'
 
@@ -160,6 +161,27 @@ export function EditorItem(props: EditorItemProps) {
 
       {open && (
         <div id={panelId} className="flex flex-col gap-5 border-t p-4">
+          {/* As fast as possible, above the sets it changes the meaning
+              of: their reps become a fixed amount, the time the result.
+              Only on an exercise that counts reps (canBeForTime). The
+              label is a <label> for the switch: a tap on the words flips it */}
+          {canBeForTime(item.exercise.logging_type) && (
+            <div className="flex items-start gap-3 rounded-xl bg-muted/50 p-3">
+              <Timer aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <Label htmlFor={`${panelId}-for-time`} className="text-base">{t('plans.editor.forTime')}</Label>
+                <p id={`${panelId}-for-time-hint`} className="text-sm text-muted-foreground">{t('plans.editor.forTimeHint')}</p>
+              </div>
+              <Switch
+                id={`${panelId}-for-time`}
+                size="lg"
+                aria-describedby={`${panelId}-for-time-hint`}
+                checked={item.for_time === true}
+                onCheckedChange={checked => dispatch({ type: 'setItemForTime', ...at, value: checked })}
+              />
+            </div>
+          )}
+
           {/* The sets, in order */}
           <ol className="flex flex-col gap-2">
             {item.sets.map((set, index) => (

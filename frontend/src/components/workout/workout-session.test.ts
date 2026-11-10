@@ -8,7 +8,8 @@ import type { LastSets } from '@/api/sessions'
 import { testPlan } from '@/test/plan-helpers'
 import { clock } from './clock'
 import { testExercise } from '@/test/exercise-helpers'
-import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, restLeft, setNumbers, startFreeSession, startSession, stopwatchSeconds, supersetNext, swappedExercise, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
+import { loggedSetText } from './set-text'
+import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, isForTime, restLeft, setNumbers, startFreeSession, startSession, stopwatchSeconds, supersetNext, swappedExercise, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
 
 /** The moment the workout starts: 18:00 UTC. */
 const START = new Date('2026-11-09T18:00:00Z')
@@ -176,6 +177,54 @@ describe('the stopwatch', () => {
     const done = run(holdWorkout(), { type: 'toggleSet', exercise: 0, set: 0, now: at(10) })
 
     expect(run(done, { type: 'startStopwatch', exercise: 0, set: 0, now: at(20) }).stopwatch ?? null).toBeNull()
+  })
+})
+
+/**
+ * A plan's day with one exercise done as fast as possible: push-ups, one
+ * set of 50, for time. Last time, two kinds: 3 × 15 for reps two days ago,
+ * 50 in 1:12 a week ago.
+ */
+function raceDay(): ActiveSession {
+  const pushups = testExercise({ id: 50, name: 'Pushups', logging_type: 'reps', photos: [] })
+  const plan = testPlan()
+  const day = { id: 'day-c', name: 'Day C', items: [{ ...plan.days[0]!.items[0]!, id: 'item-race', exercise_id: 50, exercise: pushups, for_time: true, superset_group: null, rest_seconds: 60, sets: [{ ...plan.days[0]!.items[0]!.sets[2]!, target_reps_min: 50, target_reps_max: 50, target_weight_kg: null }] }] }
+  const set = (id: string, reps: number, seconds: number | null) => ({ id, set_type: 'normal' as const, weight_kg: null, reps, duration_seconds: seconds, distance_meters: null, completed_at: '2026-11-02T18:05:00Z' })
+  const lastSets: LastSets[] = [
+    { exercise_id: 50, session_id: 'session-reps', started_at: '2026-11-07T18:00:00Z', sets: [set('r1', 15, null), set('r2', 15, null), set('r3', 15, null)] },
+    { exercise_id: 50, session_id: 'session-race', started_at: '2026-11-02T18:00:00Z', sets: [set('t1', 50, 72)] },
+  ]
+  return startSession(plan, day, { unit: 'kg', defaultRestSeconds: 90, lastSets, language: 'en', now: START })
+}
+
+describe('as fast as possible', () => {
+  it('starts with last time done the same way: its time is the one to beat', () => {
+    const race = raceDay().exercises[0]!
+
+    expect(isForTime(race)).toBe(true)
+    // 50 in 1:12, not 3 × 15
+    expect(race.previous?.map(set => set.id)).toEqual(['t1'])
+    expect(race.sets[0]).toMatchObject({ reps: '50', seconds: '72' })
+  })
+
+  it('needs the seconds to tick a set, and sends them with the reps', () => {
+    const start = raceDay()
+    const noTime = run(start, { type: 'setField', exercise: 0, set: 0, field: 'seconds', value: '' })
+    expect(canComplete(noTime.exercises[0]!.sets[0]!, 'reps', true)).toBe(false)
+    expect(canComplete(noTime.exercises[0]!.sets[0]!, 'reps')).toBe(true)
+
+    // The stopwatch, from 10 s to 1:15: 65 seconds, ticked, the rest started
+    const done = run(start, { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'stopStopwatch', now: at(75) })
+    expect(done.exercises[0]?.sets[0]).toMatchObject({ reps: '50', seconds: '65', done: true })
+    expect(done.rest?.total).toBe(60)
+    expect(toSessionInput(done, 'kg', new Date(at(120))).exercises[0]?.sets[0]).toMatchObject({ reps: 50, duration_seconds: 65, weight_kg: null })
+  })
+
+  it('writes such a set as "50 in 1:12"', () => {
+    const values = { weight_kg: null, reps: 50, duration_seconds: 72, distance_meters: null }
+
+    expect(loggedSetText(values, 'reps', 'kg', 'en')).toBe('50 in 1:12')
+    expect(loggedSetText(values, 'reps', 'kg', 'es')).toBe('50 en 1:12')
   })
 })
 

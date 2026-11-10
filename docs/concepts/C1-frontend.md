@@ -59,6 +59,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.17.6 Testing it](#c1176-testing-it)
   - [C1.17.7 The big stepper and the exercise's menu](#c1177-the-big-stepper-and-the-exercises-menu)
   - [C1.17.8 The stopwatch of a timed set](#c1178-the-stopwatch-of-a-timed-set)
+  - [C1.17.9 Exercises done as fast as possible](#c1179-exercises-done-as-fast-as-possible)
 - [C1.18 Home](#c118-home)
   - [C1.18.1 The pieces](#c1181-the-pieces)
   - [C1.18.2 Starting from Home: one hook for two pages](#c1182-starting-from-home-one-hook-for-two-pages)
@@ -939,7 +940,7 @@ PlanEditorPage            /plans/new: an empty draft; /plans/:id/edit: reads the
     └── EditorDays        step 2: "Back to the plan's details"; the days as tabs
         └── EditorDay     the open tab: drag and drop (dnd-kit); "Add exercises" (ExercisePicker);
             │             "Make a superset"
-            ├── EditorItem    an exercise: drag handle, summary line; open: its sets, rest, notes,
+            ├── EditorItem    an exercise: drag handle, summary line; open: "As fast as possible" (C1.17.9), its sets, rest, notes,
             │   │             move to another day, leave the superset, remove
             │   └── EditorSet a set: its number, opening the list of types (SetTypeSelect: W, D, F);
             │                 its targets, RPE only when wanted (C1.16.9); remove
@@ -1358,7 +1359,7 @@ Two panels that slide up from the bottom of the screen, added by UI-6 ([D1.4.9](
 
 ### C1.17.8 The stopwatch of a timed set
 
-A set of an exercise logged by time had only a box for the seconds: fine for a plank timed by the gym's clock, poor for "30 s dead hang" or "50 push-ups as fast as possible" (one's own exercise, logged by time: the time is the result). Such a row now has **▶** before ✓, which opens `StopwatchPanel`, full screen: the time counting up inside a ring, the target under it, **Last time**, **Stop** and **Cancel**.
+A set of an exercise logged by time had only a box for the seconds: fine for a plank timed by the gym's clock, poor for "30 s dead hang". Such a row now has **▶** before ✓, which opens `StopwatchPanel`, full screen: the time counting up inside a ring, the target under it, **Last time**, **Stop** and **Cancel**.
 
 **A moment, like the rest** (C1.17.4). The workout keeps when the stopwatch started, not a counter:
 
@@ -1369,7 +1370,7 @@ stopwatchSeconds(stopwatch, now)   // (now − started_at) in whole seconds
 
 - **Stored with the workout** (`session-storage.ts`), so the screen off, the app closed and opened again, or a reload lose nothing: the time is still right. `stopwatch?` is optional in `ActiveSession`, since workouts kept on a phone before it have no such key.
 - **The set by its id,** not by its indexes: exercises can be added while it runs, and `findSet(session, id)` finds it wherever it is.
-- **The target** is the set's `seconds` when ▶ is tapped: the plan's target, or last time's time, which fill the field (C1.17.2). For a hold it is the time to reach; for a race, last time's time to beat. Empty, there is none.
+- **The target** is the set's `seconds` when ▶ is tapped: the plan's target, or last time's time, which fill the field (C1.17.2). For a hold it is the time to reach; for reps done as fast as possible (C1.17.9), last time's time to beat. Empty, there is none.
 - **Starting ends the rest**, if one was running: the set has begun.
 
 **Four actions of the reducer:**
@@ -1393,6 +1394,28 @@ stopwatchSeconds(stopwatch, now)   // (now − started_at) in whole seconds
 **Testing it.** `workout-session.test.ts`: the start with its target and the rest ended, Stop with the time and the tick and the rest, no target and at least a second, Cancel, no start on a set done. `WorkoutPage.test.tsx`: ▶, the panel named after the exercise with "Target 0:45" and "Last time 0:45", the stopwatch kept on the phone, Stop, the set ticked with its seconds, the rest running.
 
 How it was built: [H3.24](../how-to/H3-frontend.md#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built).
+
+### C1.17.9 Exercises done as fast as possible
+
+A plan of calisthenics has many lines such as "50 push-ups, 50 sit-ups, 50 squat jumps", each as fast as possible: 9 of the 21 exercises of the plan that asked for it. The reps are fixed, the time is the result. Before, such a line had to be one's own exercise logged by time ("50 push-ups"), apart from the push-ups done for reps on other days.
+
+**In the plan, a switch on the item.** `plan_items.for_time` ([D3.5.3](../design/D3-data-model.md#d353-plan_items)), `for_time` in `PlanItem` and `PlanItemInput` (`api/plans.ts`), `for_time?` in `DraftItem`: optional, since a draft kept in the browser before has none. `EditorItem` shows the switch above the sets of an exercise that counts reps, `canBeForTime(loggingType)` in `plan-draft.ts`; the action is `setItemForTime`. `toPlanInput()` sends `for_time` true only for such an exercise. `itemSummary()` adds the switch's words to the exercise's line: "1 × 50 · as fast as possible · 90 s".
+
+**In workout mode, one question: `isForTime(item)`** (`workout-session.ts`): the plan item says so, and the exercise counts reps. Everything else follows from it:
+
+| Where | Done as fast as possible |
+|---|---|
+| `fieldsFor(loggingType, unit, t, forTime)` | `[reps, seconds]`: the row, its titles and the stepper. The weight, if any, stays the plan's or last time's: three fields beside ▶ and ✓ do not fit a phone |
+| `SetRow`, `SetHeader` | ▶ before ✓, as on a timed exercise; **no Last column**: 48 + 64 px less, so the two fields keep a thumb's width at 360 px. Last time's time is in the seconds' field (C1.17.2), in the stepper and in the stopwatch |
+| `canComplete(set, loggingType, forTime)` | The seconds are needed too |
+| `toSessionInput()` | `duration_seconds` beside `reps`; the backend takes it (`OPTIONAL_BY_LOGGING`, [C2.5.7](C2-backend.md#c257-the-workouts-endpoints)) |
+| `StopwatchPanel`'s `race` | "Set 2 · 50 reps"; **To beat 1:12**, then "0:14 over" and the ring in red; no signal at the target, which is not the goal here |
+
+**Last time of the same kind.** Push-ups done 3 × 15 on Monday and 50 for time on Thursday: Thursday's time to beat is last Thursday's, not Monday's 15. The backend gives one last time per exercise **and kind** ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)), so an exercise done both ways has two entries; the app picks with `hasTimedSets(entry.sets)` (`compare.ts`): one set with seconds makes it timed. `lastOfKind()` in `workout-session.ts` does it for a workout's start, Add exercises and Swap; `compareWorkout()` for the summary and history. No flag is stored with the workout: a set with reps and seconds says it by itself.
+
+**Written and compared.** `loggedSetText()` writes such a set "50 in 1:12" (`workout.repsInTime`: "en" in Spanish). The text comes from `i18n.t()` with `lng: language`: `set-text.ts` is a plain function, with no `useTranslation()`, and the same i18next instance gives the same translations outside React. `compare.ts` scores it `[weight, reps, −seconds]`: more reps first, then fewer seconds, since a list of scores is compared item by item and the higher wins (C1.19.3).
+
+**Testing it.** `plan-draft.test.ts`: the switch on and off, sent only for reps. `plan-format.test.ts`: "1 × 50 · as fast as possible · 90 sec". `compare.test.ts`: less time wins; last time of the same kind. `workout-session.test.ts`: last time of the same kind at the start, the seconds needed, the stopwatch's time sent with the reps, "50 in 1:12" and "50 en 1:12". `PlanEditorPage.test.tsx`: the switch and the body sent. `WorkoutPage.test.tsx`: the row with Reps and Sec and no Last, the panel's "Set 1 · 50 reps" and "To beat 1:12", Stop. How it was built: [H3.25](../how-to/H3-frontend.md#h325-exercises-done-as-fast-as-possible-as-built).
 
 ## C1.18 Home
 
@@ -1555,6 +1578,7 @@ compareExercise(sets, previous, loggingType)
 | weight × reps | the highest estimated one-rep max, Epley's weight × (1 + reps / 30) | 82.5×8 (104.5) beats 85×5 (99.2) |
 | reps | the most added weight, then the most reps | +5×6 beats 12; 12 beats 10 |
 | time, distance | the longest | 1:30 beats 1:15 |
+| reps, as fast as possible | the most reps, then the shortest time; only against last time done the same way ([C1.17.9](#c1179-exercises-done-as-fast-as-possible)) | 50 in 1:05 beats 50 in 1:12 |
 
 - **Warm-ups never count;** an exercise with warm-ups only, or skipped, has no verdict (`null`) and is not counted.
 - **A tie of the best sets** is decided by the total reps of the sets that count: 3×8 beats 2×8 at the same weight.

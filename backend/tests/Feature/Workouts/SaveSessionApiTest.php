@@ -213,10 +213,22 @@ it('asks for the values that fit how the exercise is logged, and only those', fu
         ->assertJsonValidationErrors(array_map(fn (string $field) => "exercises.0.sets.0.{$field}", $errors));
 })->with([
     'weight and reps, no reps' => [LoggingType::WeightReps, ['reps' => null], ['reps']],
-    'reps only, with a time' => [LoggingType::Reps, ['duration_seconds' => 30], ['duration_seconds']],
+    'reps only, with meters' => [LoggingType::Reps, ['distance_meters' => 400], ['distance_meters']],
     'time, with reps and no time' => [LoggingType::Time, ['weight_kg' => null], ['reps', 'duration_seconds']],
     'distance, with nothing' => [LoggingType::Distance, ['weight_kg' => null, 'reps' => null], ['distance_meters']],
 ]);
+
+it('takes the seconds of a set done as fast as possible, beside its reps', function () {
+    $pushup = Exercise::factory()->create(['logging_type' => LoggingType::Reps]);
+    $body = phoneSession($pushup);
+    // 50 push-ups in 1:12, with the body alone
+    $body['exercises'][0]['sets'] = [phoneSet(['weight_kg' => null, 'reps' => 50, 'duration_seconds' => 72])];
+
+    $this->actingAs(User::factory()->create())->putJson('/api/sessions/'.phoneId(), $body)
+        ->assertCreated()
+        ->assertJsonPath('data.exercises.0.sets.0.reps', 50)
+        ->assertJsonPath('data.exercises.0.sets.0.duration_seconds', 72);
+});
 
 it('takes the weight as optional: none for the body alone, an added weight on a pull-up', function () {
     $lunge = Exercise::factory()->create(['logging_type' => LoggingType::WeightReps]);

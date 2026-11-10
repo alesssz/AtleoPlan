@@ -169,7 +169,8 @@
       "warmUps_other": "+ {{count}} di riscaldamento",
       "max": "max",
       "rpe": "RPE {{value}}",
-      "changedElsewhere": "Questa scheda è stata modificata altrove nel frattempo. La tua versione l'ha sostituita."
+      "changedElsewhere": "Questa scheda è stata modificata altrove nel frattempo. La tua versione l'ha sostituita.",
+      "forTime": "nel minor tempo possibile"
     },
     "editor": {
       "newTitle": "Nuova scheda",
@@ -250,7 +251,9 @@
         "movedOver": "{{name}} è in posizione {{position}} di {{total}}.",
         "dropped": "{{name}} lasciato in posizione {{position}} di {{total}}.",
         "cancelled": "Spostamento di {{name}} annullato."
-      }
+      },
+      "forTime": "Nel minor tempo possibile",
+      "forTimeHint": "Le ripetizioni sono fisse: in allenamento un cronometro misura quanto ci metti."
     },
     "lastUsed": "Usato {{when}}",
     "neverUsed": "Mai usato",
@@ -502,8 +505,13 @@
       "last": "Ultima volta {{time}}",
       "stop": "Stop",
       "stopHint": "Il tempo va nella serie, e parte il recupero.",
-      "cancel": "Annulla, senza salvare il tempo"
-    }
+      "cancel": "Annulla, senza salvare il tempo",
+      "toBeat": "Da battere {{time}}",
+      "over": "{{time}} in più",
+      "goal_one": "{{count}} ripetizione",
+      "goal_other": "{{count}} ripetizioni"
+    },
+    "repsInTime": "{{reps}} in {{time}}"
   },
   "summary": {
     "eyebrow": "Allenamento concluso",

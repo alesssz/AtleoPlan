@@ -76,13 +76,16 @@ class SaveSessionRequest extends FormRequest
      * The fields each way of logging may fill or leave empty. The weight is
      * one: on weight_reps, empty for a set done with the body alone (lunges
      * without dumbbells); on reps, the added weight of a weighted pull-up or
-     * dip, empty for the body alone. Any field in neither list must be empty.
+     * dip, empty for the body alone. The seconds are another, on both: the
+     * time taken by a set done as fast as possible, "50 push-ups in 1:12"
+     * (a plan item with `for_time`, D3.6.3). Any field in neither list must
+     * be empty.
      *
      * @var array<string, list<string>>
      */
     private const OPTIONAL_BY_LOGGING = [
-        'weight_reps' => ['weight_kg'],
-        'reps' => ['weight_kg'],
+        'weight_reps' => ['weight_kg', 'duration_seconds'],
+        'reps' => ['weight_kg', 'duration_seconds'],
         'time' => [],
         'distance' => [],
     ];
