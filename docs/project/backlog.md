@@ -12,7 +12,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [OPS](#ops)
   - [OPS-2 Check that the AtleoPlan name is free](#ops-2-check-that-the-atleoplan-name-is-free)
   - [OPS-3 Deploy to the free server](#ops-3-deploy-to-the-free-server)
-  - [OPS-4 Open the development app from a phone](#ops-4-open-the-development-app-from-a-phone)
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
@@ -86,19 +85,6 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - Write the deployment section of the docs ([P1.3](P1-conventions.md#p13-documentation)).
 
 **Recommended.** Keep the local stack close to the production one (same Docker images, Postgres rather than SQLite), so that deploying is a configuration step and not a rewrite.
-
-### OPS-4 Open the development app from a phone
-
-**Priority:** medium · **Kind:** tooling, phones · **Found:** 2026-11-07
-
-**What is missing.** Workout mode is made for a phone, and some of it can only be seen there: the screen kept on (Wake Lock), the vibration, the beep with the phone asleep, the layout under a real notch. The development app answers only on the computer itself (`localhost:5673`); a phone on the same Wi-Fi cannot open it.
-
-**Options.**
-- A) Vite listening on the local network (`server.host: true`, or `npm run dev -- --host`), the phone opening `http://<the computer's IP>:5673`. The Wake Lock API, like most powerful browser APIs, works only on HTTPS or `localhost`, so the phone would see everything but the screen kept on.
-- B) A) plus HTTPS in development, with a local certificate (`@vitejs/plugin-basic-ssl`, or `mkcert`) the phone trusts, and the session cookie's settings checked for the new address ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)).
-- C) Chrome's remote debugging of an Android phone over USB, with port forwarding: the phone opens `localhost:5673` as the computer does.
-
-**Recommended.** C for an Android phone: no certificate, no change to the cookies, and DevTools on the computer shows the phone's page. B when an iPhone must be checked; a how-to in H3.8 in either case.
 
 ## UI
 

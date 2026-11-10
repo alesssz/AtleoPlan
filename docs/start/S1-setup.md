@@ -369,6 +369,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | A change seems ignored (config, routes cached) | `make clear` |
 | Logs | `make logs` (backend), `make logs s=queue` |
 | React dev server | `make dev` |
+| An Android phone on USB opens the dev app at its own `localhost:5673` ([H3.8.2](../how-to/H3-frontend.md#h382-a-real-android-phone-over-usb)) | `make phone` |
 | Tests, all or some | `make test`, `make test f=TestDatabase` |
 | Fix PHP format and ESLint problems automatically | `make fix` |
 | Every check before a merge: Pint, tests, lint, types, the docs' contents lists | `make check` (needs the stack up) |

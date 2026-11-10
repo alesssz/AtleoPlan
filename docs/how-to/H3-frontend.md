@@ -7,7 +7,7 @@
 **How to read this page:**
 
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
-- Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser), ready-made components [H3.9](#h39-a-shadcnui-component).
+- Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
 - Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), workout mode [H3.15](#h315-workout-mode-as-built).
 
@@ -30,6 +30,7 @@
 - [H3.7 Adding an npm package](#h37-adding-an-npm-package)
 - [H3.8 Checking in the browser](#h38-checking-in-the-browser)
   - [H3.8.1 Phone, tablet and desktop widths](#h381-phone-tablet-and-desktop-widths)
+  - [H3.8.2 A real Android phone over USB](#h382-a-real-android-phone-over-usb)
 - [H3.9 A shadcn/ui component](#h39-a-shadcnui-component)
 - [H3.10 When something goes wrong](#h310-when-something-goes-wrong)
 - [H3.11 Commands at a glance](#h311-commands-at-a-glance)
@@ -661,7 +662,119 @@ Two things the device toolbar also does when a phone is picked: the pointer beco
 
 **A check to try it on:** `/exercises` ([H3.12.7](#h3127-checking-in-the-browser)). With *iPhone SE*, scroll the list: only the search box stays at the top. With *iPad Air*: the search box and the filters, in one row. Leave the device toolbar: the same, with the sidebar's labels.
 
-A real phone is a different matter: it must reach the computer over the network, and the session cookie must accept that address. It is not set up yet.
+A real phone is a different matter: it must reach the computer's Vite server. For an Android phone, a USB cable is enough: [H3.8.2](#h382-a-real-android-phone-over-usb).
+
+### H3.8.2 A real Android phone over USB
+
+The device toolbar shows the widths, but not what only a real phone does: the screen kept on during a workout (Wake Lock), the vibration at the end of the rest, the beep with the phone in a pocket, the notch, a real finger on a real keyboard. For those, the app has to run on the phone.
+
+**The idea.** The development app answers only at `localhost:5673`, on the computer. **adb** (Android Debug Bridge, Google's tool for talking to an Android phone over USB) can **forward a port** the other way round: `adb reverse tcp:5673 tcp:5673` makes the phone's own `localhost:5673` lead down the cable to the computer's Vite, which forwards `/api` to Laravel as usual ([S1.4](../start/S1-setup.md#s14-ports)). For the phone it is `localhost`, so:
+
+- **nothing changes in the cookie or Sanctum settings**: Sanctum already treats `localhost:5673` as its own app, and the session cookie works as on the computer ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum));
+- the page is a **secure context**, as on the computer: the browser APIs held back on plain http (Wake Lock, `crypto.randomUUID()`, [H3.18.1](#h3181-start-without-https-a-uuid-by-hand)) work, with no certificate;
+- Vite's live reload goes down the same cable: a saved file updates on the phone too.
+
+The other ways (Vite on the Wi-Fi at `http://<the computer's IP>:5673`, with or without a local HTTPS certificate) were weighed in the backlog as OPS-4: without HTTPS the phone would not keep the screen on, and with it the cookie settings would have to change. They remain the way for an iPhone.
+
+**Chrome alone was tried first, and did not do it.** Chrome on the computer has the same forwarding built in (`chrome://inspect/#devices` → *Port forwarding…*), with nothing to install. On Windows, with a Pixel 10a, the phone never appeared there, and it never asked *Allow USB debugging?*, the question that authorizes a computer, even after changing the USB mode, revoking the authorizations and switching USB debugging off and on. Windows saw the phone and its driver fine (the PowerShell check in the table below), and the first `adb devices` made the question appear at once. Hence adb.
+
+**Once, on the phone** (a Pixel, Android 16; other phones are similar):
+
+1. **Turn on developer options:** Settings → *About phone* → tap *Build number* seven times, then the phone's PIN. A message says *You are now a developer!*
+2. **Turn on USB debugging:** Settings → *System* → *Developer options* → *USB debugging*, on; confirm with *OK*.
+
+**Once, on the computer: adb.** It comes in Google's *platform-tools*, a zip with no installer. On the Mac, `brew install android-platform-tools` puts it on the PATH (not yet tried on this project). On Windows, from Git Bash:
+
+```sh
+curl -L -o ~/platform-tools.zip https://dl.google.com/android/repository/platform-tools-latest-windows.zip
+powershell -command "Expand-Archive ~/platform-tools.zip -DestinationPath $HOME"
+```
+
+This makes `C:\Users\<you>\platform-tools\adb.exe`, where `make phone` looks for it when `adb` is not on the PATH. Two traps met:
+
+- **`winget install Google.PlatformTools` failed:** its recipe points at a versioned file Google had removed: `Download request status is not success. 0x80190194 : Non trovato (404).` The `-latest-` link above is the one Google keeps current.
+- **The commands above are for Git Bash.** In PowerShell, `curl` is another command (an alias of `Invoke-WebRequest`) that refuses `-L`, and nothing is downloaded.
+
+Downloaded from Google, `adb.exe` is signed by Google LLC: in PowerShell, `Get-AuthenticodeSignature $HOME\platform-tools\adb.exe` answers `Status : Valid`.
+
+**The first time, the authorization.** With the phone plugged in (a USB-C cable that carries data) and **unlocked**:
+
+```sh
+~/platform-tools/adb.exe devices -l
+```
+
+```
+* daemon not running; starting now at tcp:5037
+* daemon started successfully
+List of devices attached
+5B291JEA307657         unauthorized transport_id:1
+```
+
+The first time, adb starts its background server (the *daemon*). `unauthorized` means the phone has not yet accepted this computer, and the question is now on its screen: *Allow USB debugging?*, with the computer's key fingerprint. Tick *Always allow from this computer*, tap *Allow*, and ask again:
+
+```
+List of devices attached
+5B291JEA307657         device product:stallion model:Pixel_10a device:stallion transport_id:2
+```
+
+**Each time:**
+
+1. **The stack running:** `make start` (or `make up` and `make dev`).
+2. **The phone plugged in**, then, from the repository's root:
+
+   ```sh
+   make phone
+   ```
+
+   ```
+   List of devices attached
+   5B291JEA307657         device product:stallion model:Pixel_10a device:stallion transport_id:2
+
+   ✔ On the phone, in Chrome: http://localhost:5673 (until the cable is unplugged)
+   ```
+
+   The target runs `adb devices -l` (is the phone there, and authorized?) and `adb reverse tcp:5673 tcp:5673`. By hand, `adb reverse --list` shows the rule: `UsbFfs tcp:5673 tcp:5673`.
+3. **On the phone**, open Chrome at `http://localhost:5673`. Sign in as on the computer: the phone has its own session and its own `localStorage`.
+
+The rule lasts until the cable is unplugged or adb is restarted; then `make phone` again.
+
+**Checking the way through without looking at the phone.** `adb shell` runs a command on the phone; Android's `toybox nc` sends a request by hand, so the phone itself asks its own `localhost:5673`:
+
+```sh
+~/platform-tools/adb.exe shell "(printf 'GET /sanctum/csrf-cookie HTTP/1.1\r\nHost: localhost:5673\r\nConnection: close\r\n\r\n'; sleep 8) | toybox nc 127.0.0.1 5673 | head -8"
+```
+
+```
+HTTP/1.1 204 No Content
+Vary: Origin
+access-control-allow-origin: *
+cache-control: no-cache, private
+date: Tue, 10 Nov 2026 08:26:08 GMT
+server: FrankenPHP Caddy
+set-cookie: XSRF-TOKEN=eyJpdiI6…
+set-cookie: atleoplan-session=eyJpdiI6…
+```
+
+The whole way works: phone, cable, Vite, Laravel, and back with the two cookies of signing in. The `sleep` keeps the connection open while Laravel answers: with `sleep 3`, nothing came back. `GET /` the same way answers `HTTP/1.1 200 OK` with `Content-Type: text/html`: the React app.
+
+**The phone's page in the computer's DevTools:** `chrome://inspect/#devices` lists the tabs open in the phone's Chrome; **inspect** opens DevTools for one, with the tabs of [H3.8](#h38-checking-in-the-browser) about the phone's page and a live picture of its screen. On Windows the phone did not appear there (see above); whether it does once adb has authorized it is still to be tried.
+
+**What to check there, for workout mode** ([H3.15.7](#h3157-checking-in-the-browser-and-on-a-phone)):
+
+- **The screen kept on:** set the phone's Settings → *Display* → *Screen timeout* to 15 seconds, start a workout and leave the phone alone for a minute: the screen stays on. Close workout mode (✕): it turns off after 15 seconds. Put the timeout back afterwards.
+- **The vibration and the beep:** tick a set with a short rest; at its end the phone vibrates and beeps (sound on, the volume up, vibration on in Settings → *Sound and vibration*).
+- **The notch and the bars:** nothing hidden under the camera or the gesture bar at the bottom.
+
+**When it does not work:**
+
+| What you see | Why, and what to do |
+|---|---|
+| `adb devices` lists nothing | The cable only charges (try another); or USB debugging is off; or, on Windows, the phone has no driver for debugging. To see what Windows found, in PowerShell: `Get-PnpDevice -PresentOnly \| Where-Object InstanceId -match 'VID_18D1'` (18D1 is Google's USB id). A Pixel ready for debugging shows an `ADB Interface` with Status `OK` next to the `Pixel 10a` line. With only the `Pixel 10a` line, USB debugging is off or the driver is missing: install the *Google USB Driver* (developer.android.com → *Get the Google USB Driver*) and pick it in Device Manager → the phone → *Update driver* |
+| `unauthorized`, and no question on the phone | The phone is locked: unlock it and run `adb devices` again. Still nothing: Developer options → *Revoke USB debugging authorizations*, unplug and plug again |
+| `make phone`: `command not found`, or *No such file or directory* | adb is neither on the PATH nor in `~/platform-tools`: see *Once, on the computer* above |
+| The phone says *This site can't be reached* at `localhost:5673`, though the computer opens it | Met on Windows: Vite was listening on `::1`, IPv6's "this computer", and not on `127.0.0.1`, IPv4's, where the forwarding connects. `netstat -ano \| grep 5673` printed only `TCP [::1]:5673 ... LISTENING`; `curl http://127.0.0.1:5673/` failed while `curl "http://[::1]:5673/"` answered 200. The computer's own browser hid it, since it tries both. The fix is `server.host: '127.0.0.1'` in `frontend/vite.config.ts`; restart `make dev` after pulling it. The line then reads `TCP 127.0.0.1:5673 ... LISTENING` |
+| The phone says *This site can't be reached* at `localhost:5673` | The cable was unplugged since `make phone` (run it again), or the stack is not running: check http://localhost:5673 on the computer first |
+| The page opens, the sign-in fails | The same as on the computer: [S1.10](../start/S1-setup.md#s110-troubleshooting). The address must be exactly `localhost:5673`; `127.0.0.1:5673` is not the address Sanctum knows |
 
 ---
 
@@ -1636,7 +1749,7 @@ With `make start`, signed in, at http://localhost:5673/plans, open a plan with e
 - **Supersets:** on a plan with a superset, tick a set of its first exercise: the screen moves to the second with no rest; tick there: the rest starts and the screen goes back to the first.
 - **Pause:** ✕ goes back to the plan, with the banner "Workout in progress" and **Resume**; Start is disabled. **Resume** (or a reload of the workout's page): the sets ticked are still ticked, and the clock did not count the pause.
 - **Finish with no network:** DevTools → Network → **Offline**, then **Finish**, **Finish and save**: the plan's page says the workout will be sent when online (since FEAT-4 the summary says it, [H3.17](#h317-the-summary-and-history-as-built)), and `atleoplan.pendingSessions` holds it. Back **Online** (No throttling): the `online` event sends it; the Network tab shows `PUT /api/sessions/<id>` with 201, and the key disappears. In TablePlus ([H4](H4-database-tools.md)), the workout is in `workout_sessions`, its exercises in `session_exercises`, its sets in `logged_sets`.
-- **On a phone** (where the screen staying on and the vibration can be seen): the phone must reach the computer's Vite server on the local network, which is not set up yet ([OPS-4](../project/backlog.md#ops-4-open-the-development-app-from-a-phone)). Until then, Chrome's device mode ([H3.8.1](#h381-phone-tablet-and-desktop-widths)) shows the layout; the wake lock and the vibration wait for the phone.
+- **On a phone** (where the screen staying on and the vibration can be seen): an Android phone plugged in by USB opens the development app at `localhost:5673` through adb's port forwarding (`make phone`); how, and what to check there: [H3.8.2](#h382-a-real-android-phone-over-usb). Without a phone, Chrome's device mode ([H3.8.1](#h381-phone-tablet-and-desktop-widths)) shows the layout, but not the wake lock and the vibration.
 
 ### H3.15.8 Second pass: what was not clear on screen
 
@@ -2499,7 +2612,7 @@ Four small things found while listing what was left after FEAT-4, done together 
 
 ### H3.18.1 Start without HTTPS: a UUID by hand
 
-**The problem, found by reading, before it bit.** Every row a phone creates gets a UUID from `newId()`, which called `crypto.randomUUID()`. Browsers give that function only to a **secure context**: a page on HTTPS, or on `localhost`. The development app opened from a phone at `http://192.168.1.20:5673` ([OPS-4](../project/backlog.md#ops-4-open-the-development-app-from-a-phone)) is neither: the function is missing, and Start would fail with `TypeError: crypto.randomUUID is not a function`. In DevTools' Console on any page opened by IP over http, `typeof crypto.randomUUID` answers `'undefined'`; on `localhost`, `'function'`.
+**The problem, found by reading, before it bit.** Every row a phone creates gets a UUID from `newId()`, which called `crypto.randomUUID()`. Browsers give that function only to a **secure context**: a page on HTTPS, or on `localhost`. The development app opened from a phone over the Wi-Fi, at `http://192.168.1.20:5673`, is neither (over USB it is `localhost`, [H3.8.2](#h382-a-real-android-phone-over-usb)): the function is missing, and Start would fail with `TypeError: crypto.randomUUID is not a function`. In DevTools' Console on any page opened by IP over http, `typeof crypto.randomUUID` answers `'undefined'`; on `localhost`, `'function'`.
 
 **The fix:** when the function is missing, the same kind of UUID, version 4, is built from `crypto.getRandomValues()`, which every page has:
 
@@ -2528,7 +2641,7 @@ export function randomUuid(): string {
 TypeError: crypto.randomUUID is not a function
 ```
 
-The Wake Lock API is held back on plain http in the same way; it simply does nothing there ([H3.15.3](#h3153-the-browsers-own-apis)). Seeing it on a phone needs HTTPS ([OPS-4](../project/backlog.md#ops-4-open-the-development-app-from-a-phone), [OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
+The Wake Lock API is held back on plain http in the same way; it simply does nothing there ([H3.15.3](#h3153-the-browsers-own-apis)). Seeing it on a phone needs HTTPS or `localhost`: an Android phone over USB ([H3.8.2](#h382-a-real-android-phone-over-usb)), or the app on the server ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ### H3.18.2 "Last used" on each plan
 
