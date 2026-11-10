@@ -15,7 +15,7 @@
  * user's language, so its key has one, as the library's keys do.
  */
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import type { Exercise } from '@/api/exercises'
+import { exerciseKeys, type Exercise } from '@/api/exercises'
 import { homeKeys } from '@/api/home'
 import { request } from '@/lib/http'
 
@@ -290,6 +290,46 @@ export function useUpdatePlan(id: string) {
       request<{ data: Plan, meta: { changed_elsewhere: boolean } }>(`/api/plans/${id}`, { method: 'PUT', body: input })
         .then(answer => ({ plan: answer.data, changedElsewhere: answer.meta.changed_elsewhere })),
     onSuccess: () => refreshPlans(queryClient),
+  })
+}
+
+/**
+ * A plan as a file's content (GET /api/plans/{id}/export, backend
+ * ExportPlan): the plan without ids, and each exercise it uses described
+ * in full. Kept as `unknown`: the app does not read it, only saves it as
+ * a file (src/lib/download.ts) and sends it back on import, as it is.
+ * @param id the plan's UUID
+ */
+export function fetchPlanFile(id: string): Promise<unknown> {
+  return request<unknown>(`/api/plans/${id}/export`)
+}
+
+/** What an import gives back: the new plan, and the exercises it had to create. */
+export interface PlanImported {
+  /** The new plan, as GET /api/plans/{id} sends it. */
+  plan: Plan
+  /** The names of the exercises the file had and this server did not, created as the user's own. */
+  createdExercises: string[]
+}
+
+/**
+ * Hook: a plan file as a new plan (POST /api/plans/import, backend
+ * ImportPlan). The body is the file's content, as read; the backend checks
+ * it. Afterwards every list is read again, the library's too: the import
+ * may have created exercises.
+ * @example const importPlan = useImportPlan(); await importPlan.mutateAsync(JSON.parse(text))
+ */
+export function useImportPlan() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (file: unknown): Promise<PlanImported> =>
+      request<{ data: Plan, meta: { created_exercises: string[] } }>('/api/plans/import', { method: 'POST', body: file })
+        .then(answer => ({ plan: answer.data, createdExercises: answer.meta.created_exercises })),
+    onSuccess: async (imported) => {
+      await refreshPlans(queryClient)
+      // New exercises: the library's lists read again
+      if (imported.createdExercises.length > 0) await queryClient.invalidateQueries({ queryKey: exerciseKeys.all })
+    },
   })
 }
 

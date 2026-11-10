@@ -170,7 +170,9 @@
       "max": "máx.",
       "rpe": "RPE {{value}}",
       "changedElsewhere": "Esta rutina se cambió en otro lugar mientras tanto. Tu versión la ha reemplazado.",
-      "forTime": "lo más rápido posible"
+      "forTime": "lo más rápido posible",
+      "export": "Exportar",
+      "exportError": "No se pudo exportar la rutina. Inténtalo de nuevo."
     },
     "editor": {
       "newTitle": "Nueva rutina",
@@ -274,6 +276,14 @@
         "name": "Al fallo",
         "hint": "Hasta no poder hacer ni una repetición más"
       }
+    },
+    "import": {
+      "button": "Importar rutina",
+      "invalid": "Este archivo no es una rutina exportada de AtleoPlan.",
+      "failed": "No se pudo importar la rutina. Inténtalo de nuevo.",
+      "done": "Rutina importada.",
+      "created_one": "Faltaba {{count}} ejercicio y se ha creado entre los tuyos: {{names}}.",
+      "created_other": "Faltaban {{count}} ejercicios y se han creado entre los tuyos: {{names}}."
     }
   },
   "exercises": {

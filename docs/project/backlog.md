@@ -20,6 +20,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-5 New records during a workout](#feat-5-new-records-during-a-workout)
   - [FEAT-6 Edit a past workout](#feat-6-edit-a-past-workout)
   - [FEAT-7 An exercise's own history](#feat-7-an-exercises-own-history)
+  - [FEAT-8 Write a plan in a spreadsheet, and import it](#feat-8-write-a-plan-in-a-spreadsheet-and-import-it)
 - [BE](#be)
   - [BE-1 Exercise library: API and admin](#be-1-exercise-library-api-and-admin)
   - [BE-2 Manage users in the admin panel](#be-2-manage-users-in-the-admin-panel)
@@ -165,6 +166,19 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - B) Wait for Progress's "by exercise" chart (phase 2), which needs the same data, and build both together.
 
 **Recommended.** B, unless the tab is missed before phase 2: the data, the endpoint and the best-set rules are the same as the chart's.
+
+### FEAT-8 Write a plan in a spreadsheet, and import it
+
+**Priority:** low · **Kind:** idea · **Found:** 2026-11-10
+
+**What is missing.** A plan can be imported from a file made by Export ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)), JSON, complete but not meant to be written by hand ([D2.9](../design/D2-decisions.md#d29-plan-files)). Writing a long plan from paper might be quicker in a spreadsheet than in the editor: a row per exercise, columns for day, exercise, sets, reps, weight, rest, notes.
+
+**Options.**
+- A) A downloadable Excel template and its import: `.xlsx` read on the server (a PHP library such as PhpSpreadsheet) or in the browser (SheetJS); exercises matched by name, as the JSON import does by its third rule, and the unknown ones listed for the user to pick or create.
+- B) The same with CSV only: no library, but Excel opens and saves CSV with the computer's separator (`;` in Italy) and may turn "8-10" into a date.
+- C) Nothing: the editor, with the picker's search and Create «…», is quick enough.
+
+**Recommended.** Wait until a second plan has to be written from paper; then A, with the template in Excel, since that is what people use.
 
 ## BE
 

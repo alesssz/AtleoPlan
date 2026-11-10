@@ -170,7 +170,9 @@
       "max": "max",
       "rpe": "RPE {{value}}",
       "changedElsewhere": "This plan was changed somewhere else in the meantime. Your version was saved over it.",
-      "forTime": "as fast as possible"
+      "forTime": "as fast as possible",
+      "export": "Export",
+      "exportError": "The plan could not be exported. Try again."
     },
     "editor": {
       "newTitle": "New plan",
@@ -274,6 +276,14 @@
         "name": "To failure",
         "hint": "Until not one more rep is possible"
       }
+    },
+    "import": {
+      "button": "Import plan",
+      "invalid": "This file is not a plan exported from AtleoPlan.",
+      "failed": "The plan could not be imported. Try again.",
+      "done": "Plan imported.",
+      "created_one": "{{count}} exercise was missing and is now among yours: {{names}}.",
+      "created_other": "{{count}} exercises were missing and are now among yours: {{names}}."
     }
   },
   "exercises": {

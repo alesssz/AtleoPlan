@@ -47,6 +47,7 @@ Every table of the MVP ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)):
   - [D3.5.5 The relations in code](#d355-the-relations-in-code)
   - [D3.5.6 Saving a plan](#d356-saving-a-plan)
   - [D3.5.7 When a plan is changed in two places](#d357-when-a-plan-is-changed-in-two-places)
+  - [D3.5.8 The plan file](#d358-the-plan-file)
 - [D3.6 Workouts](#d36-workouts)
   - [D3.6.1 `workout_sessions`](#d361-workout_sessions)
   - [D3.6.2 `session_exercises`](#d362-session_exercises)
@@ -802,6 +803,44 @@ The two levels differ on purpose. Days and items **keep their UUIDs** across sav
 At step 4, the phone started from 3 but the server is at 4, so someone else got there first. The save still goes through, and the answer carries the warning "This plan was changed somewhere else" ([D1.6](D1-ui.md#d16-states-and-edge-cases)).
 
 **Why a number and not `updated_at`.** Comparing times would mean trusting two clocks to agree, and a phone's clock can be minutes off. A counter cannot be wrong that way.
+
+### D3.5.8 The plan file
+
+A plan saved as a file by **Export** and read back by **Import plan** ([D1.4.7](D1-ui.md#d147-plan-details), why JSON: [D2.9](D2-decisions.md#d29-plan-files)). Not a table: the shape of `GET /api/plans/{id}/export` and of the body of `POST /api/plans/import` ([C2.5.8](../concepts/C2-backend.md#c258-a-plan-as-a-file)).
+
+```json
+{
+  "format": "atleoplan.plan",
+  "version": 1,
+  "exported_at": "2026-11-10T14:00:00.000000Z",
+  "plan": {
+    "name": "Calisthenics", "goal": null, "notes": null,
+    "days": [
+      { "name": "Day A", "items": [
+        { "exercise": "e1", "superset_group": null, "rest_seconds": 90, "notes": null, "for_time": true,
+          "sets": [ { "set_type": "normal", "target_reps_min": 50, "target_reps_max": 50, "target_weight_kg": null,
+                      "target_rpe": null, "target_duration_seconds": null, "target_distance_meters": null } ] }
+      ] }
+    ]
+  },
+  "exercises": [
+    { "ref": "e1", "external_id": "Pushups", "name": "Piegamenti", "logging_type": "reps", "equipment": "body-only",
+      "muscles": [ { "muscle": "chest", "role": "primary" } ],
+      "description": null, "instructions": ["…"], "youtube_url": null }
+  ]
+}
+```
+
+| Key | What it is |
+|---|---|
+| `format`, `version` | What the file is, and the version of its shape: the import refuses another format or a version it does not read |
+| `plan` | The plan's fields, `plan_days` and `plan_items` with their `plan_sets`, in order, **without ids**: the import makes new ones |
+| `plan…items[].exercise` | A reference to one of `exercises`, `e1`, `e2`…: only within the file |
+| `exercises[].external_id` | A public exercise's stable id ([D3.4.6](#d346-searching)), the same on every server; `null` for a personal one |
+| `exercises[].name`, `description`, `instructions` | In the language of the export, the app's |
+| `exercises[].equipment`, `muscles` | By slug (`body-only`, `chest`), the same on every server; a slug the other server lacks is left out |
+
+**The import finds each exercise used,** in order: a public one with the same `external_id`; one of the importer's own with the same name, in any language, ignoring case and spaces around it; a public one with that name in the request's language. Deleted exercises never match. None found: it is created as the importer's own from the file, without photos, and named in the answer.
 
 ---
 

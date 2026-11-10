@@ -12,6 +12,7 @@ The choices made before writing code, each with its reason and what was set asid
 - [D2.6 Hosting](#d26-hosting)
 - [D2.7 Offline and sync](#d27-offline-and-sync)
 - [D2.8 Workout rules](#d28-workout-rules)
+- [D2.9 Plan files](#d29-plan-files)
 
 ---
 
@@ -165,6 +166,15 @@ Free tiers change often: they are checked again when the app is first deployed.
 - **Volume:** sets × reps × weight, warm-up excluded, **per exercise** (and, in phase 2, per muscle group). Only the weight that is known counts: a set with the body alone adds nothing, a weighted pull-up adds its added weight (+10 kg × 6 = 60 kg). The body's own weight is not known, so bodyweight work is followed by its reps rather than by volume.
 - **No workout volume.** A workout's or a week's volume, everything added together, is not shown: it adds up unlike exercises (a kilogram of squat is not a kilogram of curl), and counts nothing done with the body alone, so a calisthenics workout weighed 0. A workout shows its time, exercises, sets and **reps** (the body alone included); a week its workouts, sets and **minutes**. Volume stays beside each exercise with weights. (Decided in FEAT-4, after the first summary showed the total.)
 - **Better than last time, exercise by exercise.** Each exercise is compared with the last time it was done, in any plan, by its best set, the rule fitting how it is logged: weight × reps by the estimated one-rep max; reps by the added weight, then the reps; time and distance by the longest; reps done as fast as possible by the reps, then the shortest time, and only against last time done the same way. When the best sets tie, the total reps decide. The verdict is better, the same, lower, or first time; the summary and history count them ("2 better · 1 same", [D1.4.10](D1-ui.md#d1410-workout-summary)). This works for bodyweight exercises, which a volume cannot.
+
+## D2.9 Plan files
+
+A plan can be saved as a file and imported again, on the same server or another ([D1.4.7](D1-ui.md#d147-plan-details), [D3.5.8](D3-data-model.md#d358-the-plan-file)). Decided in `feat/plan-import-export`, to move a real plan from development to production without writing it again.
+
+- **JSON, not CSV or Excel.** A plan is a tree: days, their exercises with supersets and notes, their sets; each exercise with several muscles and a list of instructions. JSON holds that as it is, and both Laravel and the browser read it with nothing added. A CSV is one table: a row per set, the plan, day and exercise repeated on each, lists squeezed into a cell; a semicolon in a note, or a spreadsheet turning "8-10" into a date, breaks it. Excel has the same limits and needs a library. A spreadsheet stays a good way to **write** a plan by hand, a different feature with a format made for people ([FEAT-8](../project/backlog.md#feat-8-write-a-plan-in-a-spreadsheet-and-import-it)).
+- **The plan only, with the exercises it uses.** No workout history and no photos: the plan is what takes time to write again; a personal exercise's photos are few and can be added by hand. History and photos belong to the full **Export my data** the GDPR asks for ([D1.4.14](D1-ui.md#d1414-profile-and-settings)).
+- **Each exercise described in full,** public ones too, so that an exercise missing on the other server is created as the importer's own rather than refusing the file: an extra exercise not yet imported there, a personal one.
+- **An import never changes anything:** the plan arrives as a new one. Exercises already there are reused, found by their stable id or their name, so importing twice does not duplicate them.
 
 ---
 
