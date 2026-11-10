@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), workout mode [H3.15](#h315-workout-mode-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built).
 
 ## Contents
 
@@ -114,6 +114,20 @@
   - [H3.21.4 Testing Radix Selects](#h3214-testing-radix-selects)
   - [H3.21.5 Checking it](#h3215-checking-it)
   - [H3.21.6 The checks](#h3216-the-checks)
+- [H3.22 The plan editor in two steps, as built](#h322-the-plan-editor-in-two-steps-as-built)
+  - [H3.22.1 The order of building](#h3221-the-order-of-building)
+  - [H3.22.2 The files](#h3222-the-files)
+  - [H3.22.3 The address and the history](#h3223-the-address-and-the-history)
+  - [H3.22.4 The tests, and proving they can fail](#h3224-the-tests-and-proving-they-can-fail)
+  - [H3.22.5 Looking at it](#h3225-looking-at-it)
+  - [H3.22.6 Checking in the browser](#h3226-checking-in-the-browser)
+  - [H3.22.7 The checks](#h3227-the-checks)
+- [H3.23 Creating an exercise from the picker, as built](#h323-creating-an-exercise-from-the-picker-as-built)
+  - [H3.23.1 The order of building](#h3231-the-order-of-building)
+  - [H3.23.2 The test, and proving it can fail](#h3232-the-test-and-proving-it-can-fail)
+  - [H3.23.3 Looking at it](#h3233-looking-at-it)
+  - [H3.23.4 Checking in the browser](#h3234-checking-in-the-browser)
+  - [H3.23.5 The checks](#h3235-the-checks)
 
 ---
 
@@ -1267,7 +1281,7 @@ With `make start`, after `make exercises-import` and `make plans-demo`, at http:
 
 ## H3.14 The plan editor, as built
 
-The last part of FEAT-2 built the plan editor, at `/plans/new` and `/plans/:id/edit`. How it works is in [C1.16](../concepts/C1-frontend.md#c116-the-plan-editor); this section is the doing, with the real output, as a tutorial for the next large screen. It shows what H3.12 and H3.13 do not: state held by a reducer and tested without React, drag and drop, a modal window, a draft kept in the browser, the server's field names turned into the screen's, state passed with a navigation, and a check of the body against the real backend.
+The last part of FEAT-2 built the plan editor, at `/plans/new` and `/plans/:id/edit`. It has since been split into two steps, the plan's details and then the days' exercises ([H3.22](#h322-the-plan-editor-in-two-steps-as-built)); what follows is the first version, on one page. How it works is in [C1.16](../concepts/C1-frontend.md#c116-the-plan-editor); this section is the doing, with the real output, as a tutorial for the next large screen. It shows what H3.12 and H3.13 do not: state held by a reducer and tested without React, drag and drop, a modal window, a draft kept in the browser, the server's field names turned into the screen's, state passed with a navigation, and a check of the body against the real backend.
 
 | File | What it is |
 |---|---|
@@ -3041,6 +3055,259 @@ Photographed at 390 and 900 px with a throw-away page ([H3.20.6](#h3206-looking-
 ### H3.21.6 The checks
 
 `make check`: everything passes, with 245 backend tests (2 new) and 225 frontend tests (3 new).
+
+## H3.22 The plan editor in two steps, as built
+
+`feat/plan-editor-steps`: the plan editor of [H3.14](#h314-the-plan-editor-as-built) put the plan's fields, the days as tabs and the open day's exercises on one long page. Trying it, the verdict was that adding exercises "right there" under the plan's fields did not feel right. It now has two steps on the same draft: first the plan's details, the number of days and their names; then the days as tabs, with each day's exercises under its tab. The open tab is in the address. How it works and why: [C1.16.7](../concepts/C1-frontend.md#c1167-two-steps-one-draft); the screens: [D1.4.8](../design/D1-ui.md#d148-plan-editor). Frontend only: the draft, the reducer and the request are unchanged.
+
+### H3.22.1 The order of building
+
+**A first pass, rejected.** The first version had a "plan" screen with the days as cards (name, number of exercises, up, down, delete, **Exercises →**) and a screen per day with arrows to the days around it. It worked and its tests passed, but tried on screen it read as confusing: two ways of moving between days, buttons on every card. What was asked instead was a form in two steps: everything about the plan, including how many days, then the exercises, the days as tabs. The history handling of the first pass (below, H3.22.3) was kept; the two screens were redone:
+
+1. **The first step**, `EditorOverview`: the plan's fields, a select for the number of days, a name field per day, **Next**, and the dialog before removing days with exercises.
+2. **The second step**, `EditorDays`: the way back and the tabs; `EditorDay` keeps only a day's exercises.
+3. **`PlanEditor`** reads `?day=` and draws one step or the other.
+4. **The texts**, in four languages; **the page's tests**, rewritten for two steps, then broken on purpose.
+5. **A look** at a phone's and a laptop's width, then the docs.
+
+### H3.22.2 The files
+
+| File | Change |
+|---|---|
+| `components/plans/editor/EditorOverview.tsx` | New: step 1, the plan's fields, **Number of days**, the days' names, **Next**, the dialog |
+| `components/plans/editor/EditorDays.tsx` | New: step 2, **Back to the plan's details** and the days as tabs |
+| `components/plans/editor/EditorDay.tsx` | The day's name, move and delete gone: only the exercises |
+| `components/plans/editor/PlanEditor.tsx` | The plan's fields and the tabs moved out; `?day=`, `goToDay`, `backToPlan`, errors sent to their step, the step back before a save, Save outlined in step 1 |
+| `components/plans/plan-draft.ts` | `dayLetter(index)`: "A", "B"… for "Day A", used by both steps |
+| `i18n/locales/*.json` | Under `plans.editor`: `addDay`, `dayName`, `removeDay`, `moveDayEarlier`, `moveDayLater` gone; 7 new texts |
+| `pages/PlanEditorPage.test.tsx` | 6 of the 8 tests changed, 3 new: 11 |
+
+`dayLetter()` went into `plan-draft.ts` rather than into `EditorOverview.tsx`, where it was first written: a `.tsx` file of components should export only components, otherwise Vite's Fast Refresh (the page updating as a file is saved) cannot swap it in place, and ESLint's `react-refresh/only-export-components` says so.
+
+**The number of days is a native select** (`NativeSelect`, as "Move to another day" in an exercise): on a phone it opens the system's own list, and in a test it is changed with `user.selectOptions()`. Fewer days removes the last ones; when one has exercises, an `AlertDialog` asks, opened by state rather than by a button:
+
+```tsx
+const [pendingCount, setPendingCount] = useState<number | null>(null)
+
+function chooseCount(count: number) {
+  const removed = draft.days.slice(count)
+  if (removed.some(day => day.items.length > 0)) setPendingCount(count)
+  else applyCount(count)
+}
+
+<AlertDialog open={pendingCount !== null} onOpenChange={open => !open && setPendingCount(null)}>
+```
+
+`onOpenChange` is called with `false` by Cancel, Escape and a tap outside: all three forget the pending number, and the select, which shows `draft.days.length`, goes back by itself.
+
+### H3.22.3 The address and the history
+
+`EditorOverview` and `EditorDays` know nothing about the address: they call `onNext()`, `onOpenDay(index)` and `onBack()`, and `PlanEditor` decides how to move:
+
+```tsx
+function goToDay(index: number) {
+  if (index === openDay) return
+  if (openDay === null) setSearchParams({ day: String(index + 1) }, { state: { fromPlan: true } })
+  else setSearchParams({ day: String(index + 1) }, { replace: true, state: location.state })
+}
+
+function backToPlan() {
+  if (fromPlan) void navigate(-1)
+  else setSearchParams({}, { replace: true })
+}
+```
+
+`setSearchParams(params, options)` is a navigation to the same page with another `?…`, and takes `navigate()`'s options: `replace` and `state`. The table in C1.16.7 shows the history after each step.
+
+**Saving from the second step needs `await navigate(-1)`**, and whether that waits was not obvious: in the browser, going back is asynchronous. React Router's code says what it does with a number:
+
+```sh
+grep -rn 'typeof to === "number"' -A 5 node_modules/react-router/dist/development/lib/router/router.js
+```
+
+```
+417:		if (typeof to === "number") {
+418-			if (!pendingPopstateNavigationDfd) pendingPopstateNavigationDfd = createDeferred();
+419-			let promise = pendingPopstateNavigationDfd.promise;
+420-			init.history.go(to);
+421-			return promise;
+422-		}
+```
+
+With a router made by `createBrowserRouter` (the app's) or `createMemoryRouter` (the tests'), `navigate(-1)` returns a Promise kept until the history has moved (`pendingPopstateNavigationDfd`, a "deferred": a Promise resolved later, by the code that handles the browser's `popstate`). The other kind of router, `<BrowserRouter>`, has no such Promise (`navigator.go(to); return;` in `lib/hooks.js`): code moved to it would have to wait another way.
+
+### H3.22.4 The tests, and proving they can fail
+
+The eight tests of H3.14 drew the editor and found the exercises at once; now most of them first tap **Next: the exercises**. Three more test the steps:
+
+```sh
+npx vitest run src/pages/PlanEditorPage.test.tsx --reporter=verbose
+```
+
+```
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > creates a plan from exercises chosen in the library, then opens it
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > says what is wrong before sending anything, in the first step
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > shows the server's message under its field
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > saves a plan again with its version and its ids
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > warns on the plan's page when the plan had been changed elsewhere
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > keeps the draft when leaving, and discards it on request
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > joins two exercises in a superset
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > sets the number of days, naming the new ones with the next letters
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > asks before removing days that have exercises
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > goes from tab to tab, and Back returns to the first step
+✓ src/pages/PlanEditorPage.test.tsx > PlanEditorPage > opens a day's tab from the address, and the first step for a day that does not exist
+      Tests  11 passed (11)
+```
+
+**The phone's Back in a test** is the router's: `renderRoutes()` returns it, and `act()`, from `@testing-library/react`, lets React finish drawing before the next line runs:
+
+```tsx
+const { router } = renderRoutes(routes, '/plans')
+await act(() => router.navigate('/plans/new'))   // the list, then the editor: an entry before it
+// … Next, exercises, Create plan …
+await act(() => router.navigate(-1))
+expect(router.state.location.pathname).toBe('/plans')   // not the editor
+```
+
+The first `navigate` is there so the history has something before the editor; started at `/plans/new`, Back would have nowhere to go and prove nothing.
+
+**A tab with a red dot has a longer name.** The dot carries a hidden text for screen readers, so the tab of Day A with an error is named "Day A – Push Some fields need fixing: they are marked in red.": the test finds it by the start of its name, `{ name: /^Day A – Push/ }`, and checks the hidden text with `within(tab)`.
+
+All 11 passed at the first run. Three lines broken on purpose, then put back:
+
+| Line changed | Test that failed |
+|---|---|
+| `if (openDay !== null && fromPlan) await navigate(-1)` removed | `creates a plan…`: `AssertionError: expected '/plans/new' to be '/plans'`, Back from the saved plan reopening the editor |
+| `replace: true` → `false` in `goToDay` from a tab | `goes from tab to tab…` (first pass, same line): `TestingLibraryElementError: Unable to find a label with the text of: Name`, Back landing on Day A instead of the details |
+| `day.items.length > 0` → `< 0` in `chooseCount` (never asks) | `asks before removing days…`: `Unable to find role="alertdialog" and name "Remove Day B – Legs?"` |
+
+### H3.22.5 Looking at it
+
+Photographed as in [H3.15.10](#h31510-fourth-pass-looking-at-the-screen-for-real), this time on the Windows PC: a throw-away `frontend/preview-tmp/` drew `PlanEditorPage` in a memory router, in Italian, with the user and the tests' plan put straight into the query cache (`queryClient.setQueryData(planKeys.detail('plan-ppl', 'it'), testPlan())`), and `?day=` or `?new=1` in the page's address choosing the step. A host page held two `<iframe>`s, 360 and 1000 px wide. On Windows, Chrome is `C:\Program Files\Google\Chrome\Application\chrome.exe`; from Git Bash:
+
+```sh
+npx vite build --config preview-tmp/vite.config.ts
+"/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --allow-file-access-from-files \
+  --hide-scrollbars --window-size=1400,1100 --virtual-time-budget=5000 \
+  --screenshot="D:/…/preview-tmp/dist/shot-plan.png" "file:///D:/…/preview-tmp/dist/host-plan.html"
+```
+
+The paths given to Chrome are Windows paths with forward slashes (`cygpath -m "$PWD"` turns Git Bash's `/d/…` into `D:/…`).
+
+**What the photos showed.** Step 1 at 360 px: the fields one under the other, **Numero di giorni** with its select, a name field per day, **Avanti: gli esercizi** on the right; at 1000 px the day names two by two. Step 2: **Torna ai dati della scheda**, the tabs, the exercises under them, at both widths. One fault, in the first pass: on a new plan **two lime buttons**, **Crea scheda** in the bar and **Avanti** under the days, the very thing H3.15.10 had removed from workout mode. Save is now outlined in step 1 (`saveVariant` in `PlanEditor`), and lime again in step 2, where it is the last thing to do.
+
+**An error met at the end:** `rm -r preview-tmp` answered `rm: cannot remove 'preview-tmp': Device or resource busy`. On Windows a folder cannot be deleted while a program has it as its current folder, and the shell had been left inside it by a `cd`. Once the shell was elsewhere, `rmdir preview-tmp` removed it (by then empty).
+
+### H3.22.6 Checking in the browser
+
+With `make start`, at http://localhost:5673/plans, at a phone's width too ([H3.8.1](#h381-phone-tablet-and-desktop-widths)):
+
+- **New plan:** a name; **Number of days** → 3: "Day B" and "Day C" appear, renamed at will; **Create plan** is outlined, **Next: the exercises** lime. **Next**: the tabs, Day A open, the address ends in `?day=1`, **Create plan** lime. **Add exercises** on two tabs, **Create plan**: the plan's page. Back: the plan list, not the editor.
+- **Edit** a plan: **Next**, the tab of the second day, the third. The phone's (or browser's) Back: the details, not the second day.
+- **Fewer days:** from 3 to 2 when Day C has exercises: the dialog; **Cancel** keeps it, **Remove** removes it; **Discard changes** brings everything back.
+- **The rules:** clear the plan's name, go to the exercises, **Save**: back on the details, the name red. Type `10-8` as reps on a tab and save from the details: that tab opens with a red dot, the set red.
+- **Reload** on `?day=2`: the same tab, the draft kept; **Back to the plan's details** stays in the editor.
+
+### H3.22.7 The checks
+
+**`make toc` did nothing on Windows.** After adding C1.16.7 and this section, `make toc` answered `Contents up to date.`, and the lists had neither. On the Windows PC Git checks files out with CRLF line endings (`git config core.autocrlf` says `true`); `scripts/docs-toc.mjs` split the text on `\n`, so every line kept a `\r`, and its pattern for a heading, `/^(#{1,6}) (.+)$/`, never matched: in JavaScript `.` does not match `\r`, so `(.+)$` cannot reach the end of the line. No headings, no list to compare, "up to date", and `make check` passed on the PC with lists that would fail on the Mac. The script now turns `\r\n` into `\n` when it reads a file and writes it back with the endings it had:
+
+```sh
+node scripts/docs-toc.mjs --check
+```
+
+```
+Contents out of date in: docs\concepts\C1-frontend.md, docs\how-to\H3-frontend.md
+Run: make toc
+```
+
+Then `make toc` wrote both, and `--check` says `Contents up to date.` for real. Only these two were out of date: the lists written on the Mac were all correct.
+
+`make check`: everything passes, with 245 backend tests (unchanged) and 228 frontend tests (3 new).
+
+## H3.23 Creating an exercise from the picker, as built
+
+Writing a real plan into the editor, some exercises were not in the library, or not under the name of the plan. The plan editor's picker now offers **Create «…»** after a search: the exercise editor's form opens inside the window, and the new exercise goes into the day ([C1.16.8](../concepts/C1-frontend.md#c1168-creating-an-exercise-from-the-picker)). It came with the search of [H1.16](H1-database.md#h116-the-search-text-as-built) and the extra exercises of [H1.17](H1-database.md#h117-the-extra-exercises-as-built), which make the button needed less often.
+
+| File | Change |
+|---|---|
+| `src/components/plans/editor/ExercisePicker.tsx` | **Create «…»** under the list; the form in place of the list; the title "New exercise" |
+| `src/components/exercises/ExerciseForm.tsx` | `onCancel`, for a form in a window; `@container` and `@xl:grid-cols-3` |
+| `src/i18n/locales/*.json` | `plans.editor.picker.backToSearch`, `createDescription`; the button reuses the library's `exercises.createNamed` |
+| `src/pages/PlanEditorPage.test.tsx` | 1 test |
+
+### H3.23.1 The order of building
+
+1. **`ExerciseForm` first:** `cancelTo` optional, `onCancel` added. With `onCancel` the Cancel button is a `<Button type="button">`: inside a `<form>`, a button without a type submits it.
+2. **The picker:** a state `creating`, the button under the list, the form in its place. The state first lived in the list's component, `PickerBody`; the photos (H3.23.3) moved it up to `ExercisePicker`, which draws the title.
+3. **The texts**, the test, a look at a phone's and a laptop's width.
+
+### H3.23.2 The test, and proving it can fail
+
+The test types a search that finds nothing, creates the exercise in the window, and checks both requests: the exercise's, then the plan's with the new exercise's id.
+
+```tsx
+'GET /api/exercises': exercisePage([]),
+'POST /api/exercises': { status: 201, body: { data: testExercise({ id: 77, name: 'Frog stand', logging_type: 'time', photos: [], is_mine: true }) } },
+…
+await user.type(within(dialog).getByRole('searchbox', { name: 'Search exercises' }), 'frog stand')
+await user.click(await within(dialog).findByRole('button', { name: 'Create «frog stand»' }))
+expect(within(dialog).getByLabelText('Name')).toHaveValue('frog stand')
+await user.selectOptions(within(dialog).getByLabelText('Logged as'), 'Time')
+await user.click(within(dialog).getByRole('button', { name: 'Create exercise' }))
+expect(await screen.findByRole('button', { name: /^Frog stand/ })).toBeInTheDocument()
+```
+
+`fixedLists` (from `src/test/exercise-helpers.ts`) gives the muscles and the equipment, which the form reads. `within(dialog)` keeps every query inside the window, where the form's "Name" is: the plan's own "Name" field is not on this step, but it would be ambiguous otherwise.
+
+```sh
+npx vitest run src/pages/PlanEditorPage.test.tsx
+```
+
+```
+      Tests  12 passed (12)
+```
+
+It passed at the first run; broken on purpose, `onAdd(replacing ? [exercise] : chosen)` (the new exercise left out), it fails as it should:
+
+```
+× creates an exercise from the picker's search, and puts it in the day
+TestingLibraryElementError: Unable to find role="button" and name `/^Frog stand/`
+```
+
+### H3.23.3 Looking at it
+
+Photographed as in [H3.22.5](#h3225-looking-at-it), with two tricks more, since the picker reads the API and needs a search typed:
+
+- **No server: a fake `fetch`.** The throw-away page replaced `window.fetch` with a function answering `/api/exercises` with an empty page and `/api/muscles`, `/api/equipment` with the tests' lists (`exercisePage([])`, `fixedLists`), the same answers the tests give.
+- **Typing into a React field from outside.** Setting `input.value = '…'` is not seen by React, which tracks the value itself. The page used the browser's own setter, then an `input` event, as a keystroke does:
+
+```ts
+Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'ponte completo')
+input.dispatchEvent(new Event('input', { bubbles: true }))
+```
+
+A second timer then clicked **Crea «ponte completo»**, and a third scrolled the window to its end.
+
+**What the photos showed**, at 360 and 1000 px: the button under the empty list, under "Prova un'altra parola, oppure crealo come esercizio tuo."; then the form, scrolling inside the window. Two faults:
+
+- **The title still said "Aggiungi esercizi"** over the form. The state moved up to `ExercisePicker`, which now shows "Nuovo esercizio" and "Viene salvato tra i tuoi esercizi.".
+- **On the laptop the three selects sat side by side in a 512 px window**, "Peso × ripetizioni" cut off: `sm:grid-cols-3` looked at the screen. With container queries ([C1.16.8](../concepts/C1-frontend.md#c1168-creating-an-exercise-from-the-picker)) they stack in the window and stay side by side on the editor's page.
+
+One photo of the four came out black: headless Chrome's virtual time sometimes ends before the window's opening animation. Taking it again, or a longer `--virtual-time-budget`, is enough.
+
+### H3.23.4 Checking in the browser
+
+With `make start`, a plan's exercises step, **Add exercises**:
+
+- search "ponte completo": the full bridge of the extra exercises is there; search "ponte xyz": nothing, **Crea «ponte xyz»**;
+- the form: the name filled, **Si registra a** → Tempo, **Crea esercizio**: the window closes, the exercise is in the day, with the other ones ticked before;
+- **Annulla** in the form: back to the search, as it was;
+- in the library, filter **Miei**: the new exercise is there.
+
+### H3.23.5 The checks
+
+`npx vitest run`: 229 tests, all passing; `npx tsc -b` and `npm run lint` clean. `make check` for the whole task: [H1.17](H1-database.md#h117-the-extra-exercises-as-built) and here.
 
 ---
 

@@ -85,39 +85,74 @@ it('sorts names as a person would: capitals and accents together', function () {
     expect(listedNames($this, User::factory()->create()))->toBe(['ab wheel', 'Ápice', 'Bench', 'Curl']);
 });
 
-it('searches the name and the aliases in the user\'s language, ignoring case', function () {
+it('searches the name and the aliases in every language, ignoring case', function () {
     Exercise::factory()->create([
         'name' => ['en' => 'Barbell bench press', 'it' => 'Panca piana con bilanciere'],
         'aliases' => ['en' => ['flat bench'], 'it' => ['distensioni']],
     ]);
     Exercise::factory()->create(['name' => ['en' => 'Squat', 'it' => 'Squat']]);
-    // what to search => what is found, in Italian
+    // what to search => what is found, for a user who reads Italian
     $cases = [
         'PANCA' => ['Panca piana con bilanciere'],   // the name, whatever the case
         'distensioni' => ['Panca piana con bilanciere'],   // an alias
-        'bench' => [],   // English text, but the exercise has Italian: not searched
+        'bench' => ['Panca piana con bilanciere'],   // the English name: every language is searched
+        'flat bench' => ['Panca piana con bilanciere'],   // an English alias
         'squat' => ['Squat'],
     ];
 
     foreach ($cases as $term => $expected) {
-        expect(listedNames($this, User::factory()->create(), "filter[search]={$term}", 'it'))->toBe($expected);
+        expect(listedNames($this, User::factory()->create(), 'filter[search]='.urlencode($term), 'it'))->toBe($expected);
     }
 });
 
-it('searches the English name when the exercise has none in the user\'s language', function () {
-    Exercise::factory()->create(['name' => ['en' => 'Barbell bench press']]);
+it('finds a name whatever the spaces, dashes and accents, and the words in any order', function () {
+    Exercise::factory()->create(['name' => ['en' => 'Pullups', 'it' => 'Trazioni alla sbarra', 'de' => 'Klimmzüge']]);
+    Exercise::factory()->create(['name' => ['en' => 'Band Assisted Pull-Up']]);
+    Exercise::factory()->create(['name' => ['en' => 'Freehand Jump Squat']]);
+    Exercise::factory()->create(['name' => ['en' => 'Seated curl', 'it' => 'Curl da seduto a presa supina']]);
+    Exercise::factory()->create(['name' => ['en' => 'Seated Palms-Up Low-Pulley Wrist Curl']]);
+    Exercise::factory()->create(['name' => ['en' => 'Parallel Bar Dip']]);
+    Exercise::factory()->create(['name' => ['en' => 'Chest stretch', 'it' => 'Allungamento di petto']]);
+    $user = User::factory()->create();
+    // what to search => what is found, in English
+    $cases = [
+        'pull up' => ['Band Assisted Pull-Up', 'Pullups'],   // the words, or both as one word; not "Low-Pulley"
+        'PULLUP' => ['Band Assisted Pull-Up', 'Pullups'],   // one word, also when a name writes it as two
+        'pull-ups' => ['Pullups'],   // the "s": only the name that has it
+        'trazioni' => ['Pullups'],   // the Italian name, from an English interface
+        'klimmzuge' => ['Pullups'],   // without the umlaut
+        'squat jump' => ['Freehand Jump Squat'],   // both words, in another order
+        'squat bench' => [],   // every word must be there
+        'sit up' => [],   // "sit" and "up" inside other words (seduto, supina) do not count
+        'dip' => ['Parallel Bar Dip'],   // a short word is not looked for across two words: "di petto"
+        'trazioni al' => ['Pullups'],   // the last word as it is being typed
+    ];
 
-    expect(listedNames($this, User::factory()->create(), 'filter[search]=bench', 'it'))
-        ->toBe(['Barbell bench press']);
+    foreach ($cases as $term => $expected) {
+        expect(listedNames($this, $user, 'filter[search]='.urlencode($term)))->toBe($expected);
+    }
 });
 
-it('searches for a % or a comma as themselves', function () {
+it('keeps the search text up to date when an exercise changes', function () {
+    $exercise = Exercise::factory()->create(['name' => ['en' => 'Frog stand']]);
+    $user = User::factory()->create();
+
+    // A new Italian name and an alias, saved through the model
+    $exercise->setTranslation('name', 'it', 'Posizione della rana');
+    $exercise->setTranslation('aliases', 'it', ['corvo']);
+    $exercise->save();
+
+    expect($exercise->fresh()->search_text)->toBe('frog stand | posizione della rana | corvo')
+        ->and(listedNames($this, $user, 'filter[search]=corvo'))->toBe(['Frog stand']);
+});
+
+it('matches nothing for punctuation alone, and does not split the search at a comma', function () {
     Exercise::factory()->create(['name' => ['en' => 'Squat']]);
     Exercise::factory()->create(['name' => ['en' => 'Squat, paused']]);
 
     $user = User::factory()->create();
 
-    // %25 is "%" in a URL: without escaping, it would match everything
+    // %25 is "%" in a URL: punctuation alone matches nothing, rather than everything
     expect(listedNames($this, $user, 'filter[search]=%25'))->toBe([])
         // The comma is not a separator for the search, as it is for slugs
         ->and(listedNames($this, $user, 'filter[search]=squat, paused'))->toBe(['Squat, paused']);

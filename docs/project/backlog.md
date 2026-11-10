@@ -24,6 +24,8 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-1 Exercise library: API and admin](#be-1-exercise-library-api-and-admin)
   - [BE-2 Manage users in the admin panel](#be-2-manage-users-in-the-admin-panel)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
+- [DATA](#data)
+  - [DATA-3 Timed exercises of free-exercise-db logged as reps](#data-3-timed-exercises-of-free-exercise-db-logged-as-reps)
 
 ## How this page works
 
@@ -92,7 +94,7 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Priority:** low · **Kind:** desktop layout · **Found:** 2026-11-07
 
-**What is missing.** [D1.4.8](../design/D1-ui.md#d148-plan-editor) asks, on desktop, for two columns: the library on the left, the plan on the right, exercises dragged from the library into a day. The editor ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)) adds exercises from a picker window on every width, which works but leaves a wide screen half empty.
+**What is missing.** [D1.4.8](../design/D1-ui.md#d148-plan-editor) asks, on desktop, for two columns: the library on the left, the plan on the right, exercises dragged from the library into a day. The editor ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)) adds exercises from a picker window on every width, which works but leaves a wide screen half empty. Since the editor has two steps ([C1.16.7](../concepts/C1-frontend.md#c1167-two-steps-one-draft)), the columns belong in the second: the library on the left, the open tab's exercises on the right.
 
 **Options.**
 - A) From 1024 px, the picker's list as a left column, and dnd-kit dragging from it into the open day: a second kind of draggable, and each day a droppable.
@@ -201,3 +203,17 @@ Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). The admin scree
 - B) Leave as it is while the app is personal.
 
 **Recommended.** B for now and A before opening to other users (phase 2): with a single user nothing is at stake, and signing up will still need to say that an email is taken, unless it moves to verifying the address by email.
+
+## DATA
+
+### DATA-3 Timed exercises of free-exercise-db logged as reps
+
+**Priority:** medium · **Kind:** wrong data · **Found:** 2026-11-10
+
+**What is missing.** The import guesses the logging type ([D2.3](../design/D2-decisions.md#d23-exercise-library)), and body-weight exercises held for a time are guessed as reps: Plank, Side Bridge (the side plank), Push Up to Side Plank and a few others. A plan cannot ask for "3 × 30 s plank", and workout mode asks for reps. The extra exercises state their type and are right ([C2.14.5](../concepts/C2-backend.md#c2145-the-extra-exercises)); these are free-exercise-db's.
+
+**Options.**
+- A) A list of corrections in the repository, external id → logging type, applied by a command that `make exercises-import` runs after the import, only to exercises still on the guessed type, so an admin's choice is kept.
+- B) Correct them by hand in the admin panel, once it exists (BE-1).
+
+**Recommended.** A: it is a dozen rows, it reaches every database, and it stays right after `make fresh`.

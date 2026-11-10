@@ -2,8 +2,9 @@
  * The exercise editor's form (docs/design/D1-ui.md D1.4.5): name,
  * description, instructions, main and secondary muscles, equipment, logging
  * type and YouTube link. Used to create an exercise and to change one
- * (src/pages/ExerciseEditorPage.tsx); photos and videos come with
- * BE-1's feat/exercise-media.
+ * (src/pages/ExerciseEditorPage.tsx), and to create one without leaving the
+ * plan editor, inside its exercise picker (ExercisePicker); photos and videos
+ * come with BE-1's feat/exercise-media.
  *
  * The same four pieces as every form of the app (docs/concepts/C1-frontend.md
  * C1.13.3): a zod schema for the rules (exercise-form.ts), react-hook-form for
@@ -43,8 +44,13 @@ interface ExerciseFormProps {
   onSaved: (exercise: Exercise) => void
   /** The submit button's text: "Create exercise" or "Save". */
   submitLabel: string
-  /** Where Cancel goes back to. */
-  cancelTo: string
+  /** Where Cancel goes back to, on a page of its own. */
+  cancelTo?: string
+  /**
+   * What Cancel does instead of going to an address: inside the plan
+   * editor's exercise picker, back to the search (ExercisePicker).
+   */
+  onCancel?: () => void
 }
 
 /** The fields the API may refuse one by one: their messages go under them. */
@@ -54,7 +60,7 @@ const SERVER_FIELDS = ['name', 'description', 'instructions', 'logging_type', 'e
 const SELECT_CLASSES = 'w-full [&_select]:h-12 [&_select]:rounded-xl [&_select]:text-base'
 
 /** The editor's form. */
-export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancelTo }: ExerciseFormProps) {
+export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancelTo, onCancel }: ExerciseFormProps) {
   const { t, i18n } = useTranslation()
   // The fixed lists, for the selects and the ticks
   const muscles = useMuscles(i18n.language)
@@ -103,8 +109,12 @@ export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancel
   }
 
   return (
-    // noValidate: the messages come from the schema, in the app's language
-    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-6">
+    // noValidate: the messages come from the schema, in the app's language.
+    // @container: the form is a container, and the grids below choose their
+    // columns from its width (`@xl:` = the form at least 36rem, 576 px wide),
+    // not from the screen's (`sm:`): in the plan editor's picker the form
+    // sits in a narrow window on a wide screen (docs/concepts/C1-frontend.md C1.16.8)
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="@container flex flex-col gap-6">
       {/* An error about the whole form: no network, an unexpected answer */}
       {errors.root?.message && <FormBanner variant="error">{errors.root.message}</FormBanner>}
 
@@ -139,8 +149,8 @@ export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancel
       </div>
 
       {/* Main muscle, equipment and logging type: three selects, one column
-          on phones, three from 640 px */}
-      <div className="grid gap-6 sm:grid-cols-3">
+          when the form is narrow, three when it is 576 px wide or more */}
+      <div className="grid gap-6 @xl:grid-cols-3">
         <div className="flex flex-col gap-2">
           <Label htmlFor={ids.primary}>{t('exercises.editor.primaryMuscle')}</Label>
           {/* register() works on a <select> as on an input */}
@@ -183,8 +193,8 @@ export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancel
         render={({ field }) => (
           <fieldset className="flex flex-col gap-3">
             <legend className="mb-3 text-sm font-medium">{t('exercises.editor.secondaryMuscles')}</legend>
-            {/* Two columns on phones, three from 640 px */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+            {/* Two columns when the form is narrow, three from 576 px */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 @xl:grid-cols-3">
               {(muscles.data ?? []).map((muscle) => {
                 // This tick's id, and whether the muscle is the main one
                 const id = `${ids.secondary}-${muscle.id}`
@@ -227,9 +237,15 @@ export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancel
           for the keyboard, since it is the main action */}
       <div className="flex flex-wrap gap-3">
         <Button type="submit" size="xl" disabled={isSubmitting}>{submitLabel}</Button>
-        <Button asChild size="xl" variant="outline">
-          <Link to={cancelTo}>{t('exercises.editor.cancel')}</Link>
-        </Button>
+        {/* Cancel: a function when given (inside a window), otherwise a link.
+            type="button": inside a <form>, a plain button would submit it */}
+        {onCancel
+          ? <Button type="button" size="xl" variant="outline" onClick={onCancel}>{t('exercises.editor.cancel')}</Button>
+          : (
+              <Button asChild size="xl" variant="outline">
+                <Link to={cancelTo ?? '/exercises'}>{t('exercises.editor.cancel')}</Link>
+              </Button>
+            )}
       </div>
     </form>
   )

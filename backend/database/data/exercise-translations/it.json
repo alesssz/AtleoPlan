@@ -353,6 +353,254 @@
       "Resta basso e porta la pietra in alto sul petto, cambiando presa per arrivare sopra la pietra. Alzati spingendo con le anche. Avvicinati alla piattaforma di carico e inclinati indietro, estendendo le anche per portare la pietra il più in alto possibile."
     ]
   },
+  "AtleoPlan_Archer_Pull-Up": {
+    "name": "Trazioni ad arciere",
+    "aliases": [
+      "archer pull-up"
+    ],
+    "instructions": [
+      "Appenditi alla sbarra con una presa prona molto larga.",
+      "Tirati su verso una mano, piegando quel braccio mentre l'altro resta quasi teso lungo la sbarra.",
+      "Scendi controllando e ripeti, alternando i lati o completando prima un lato."
+    ]
+  },
+  "AtleoPlan_Back_Lever": {
+    "name": "Back lever",
+    "aliases": [
+      "leva dorsale"
+    ],
+    "instructions": [
+      "Appenditi alla sbarra o agli anelli, raccogli le ginocchia e ruota all'indietro tra le braccia (skin the cat) fino a trovarti a pancia in giù dietro di esse.",
+      "Distendi il corpo finché è dritto e orizzontale, a pancia in giù, con le braccia tese.",
+      "Mantieni per il tempo previsto, poi raccogli di nuovo le ginocchia e ruota fuori."
+    ]
+  },
+  "AtleoPlan_Burpee": {
+    "name": "Burpees",
+    "aliases": [
+      "burpee"
+    ],
+    "instructions": [
+      "Parti in piedi, poi accovacciati e appoggia le mani a terra.",
+      "Porta indietro i piedi con un salto, in posizione di plank, ed esegui un piegamento.",
+      "Riporta i piedi verso le mani con un salto, poi salta in alto con le braccia sopra la testa; atterra morbido e ripeti."
+    ]
+  },
+  "AtleoPlan_Chest-To-Bar_Pull-Up": {
+    "name": "Trazioni al petto",
+    "aliases": [
+      "trazioni chest to bar",
+      "chest to bar"
+    ],
+    "instructions": [
+      "Appenditi alla sbarra con presa prona, le mani poco più larghe delle spalle.",
+      "Tirati su portando avanti il petto finché tocca la sbarra; tieni le spalle basse e il corpo in tensione.",
+      "Scendi controllando fino alla sospensione completa e ripeti."
+    ]
+  },
+  "AtleoPlan_Chest-To-Wall_Handstand": {
+    "name": "Verticale al muro pancia al muro",
+    "aliases": [
+      "verticale al muro",
+      "isometria verticale",
+      "handstand al muro"
+    ],
+    "instructions": [
+      "Metti le mani a terra a breve distanza da un muro e sali con i piedi lungo il muro finché il corpo è dritto, con il petto rivolto al muro.",
+      "Spingi il pavimento lontano, tieni le braccia tese, le costole chiuse e il corpo in linea.",
+      "Mantieni per il tempo previsto, poi scendi con i piedi lungo il muro."
+    ]
+  },
+  "AtleoPlan_Dead_Hang": {
+    "name": "Appeso alla sbarra",
+    "aliases": [
+      "dead hang",
+      "sospensione alla sbarra"
+    ],
+    "instructions": [
+      "Afferra la sbarra con presa prona, le mani alla larghezza delle spalle.",
+      "Lascia il corpo appeso con le braccia tese e i piedi staccati da terra, respirando con calma.",
+      "Resta appeso per il tempo previsto, poi scendi."
+    ]
+  },
+  "AtleoPlan_Dragon_Flag": {
+    "name": "Dragon flag",
+    "aliases": [
+      "bandiera del drago"
+    ],
+    "instructions": [
+      "Sdraiati su una panca e afferrala dietro la testa.",
+      "Solleva tutto il corpo, dritto dalle spalle ai piedi, finché punta verso l'alto, appoggiato solo sulla parte alta della schiena.",
+      "Abbassa lentamente il corpo teso finché quasi tocca la panca, poi risollevalo e ripeti."
+    ]
+  },
+  "AtleoPlan_Frog_Stand": {
+    "name": "Frog stand",
+    "aliases": [
+      "posizione della rana",
+      "corvo",
+      "crow pose"
+    ],
+    "instructions": [
+      "Accovacciati e appoggia le mani a terra alla larghezza delle spalle, con le dita aperte.",
+      "Appoggia le ginocchia sul dorso delle braccia, vicino ai gomiti, e sbilanciati in avanti finché i piedi si staccano da terra.",
+      "Mantieni l'equilibrio con le braccia piegate e lo sguardo poco avanti per il tempo previsto, poi riappoggia i piedi."
+    ]
+  },
+  "AtleoPlan_Front_Lever": {
+    "name": "Front lever",
+    "aliases": [
+      "leva frontale"
+    ],
+    "instructions": [
+      "Appenditi alla sbarra con presa prona e braccia tese.",
+      "Spingi la sbarra verso le anche e solleva il corpo teso fino all'orizzontale, a pancia in su.",
+      "Mantieni per il tempo previsto, poi abbassa le gambe controllando."
+    ]
+  },
+  "AtleoPlan_Full_Bridge": {
+    "name": "Ponte completo",
+    "aliases": [
+      "ponte",
+      "ruota"
+    ],
+    "instructions": [
+      "Sdraiati sulla schiena con le ginocchia piegate, i piedi a terra vicino ai glutei e le mani accanto alle orecchie, con le dita verso le spalle.",
+      "Spingi su mani e piedi per sollevare bacino e testa da terra, distendendo le braccia il più possibile.",
+      "Mantieni per il tempo previsto respirando con calma, poi scendi lentamente appoggiando prima la testa."
+    ]
+  },
+  "AtleoPlan_Hollow_Body_Hold": {
+    "name": "Hollow body",
+    "aliases": [
+      "posizione hollow",
+      "barchetta"
+    ],
+    "instructions": [
+      "Sdraiati sulla schiena con le braccia sopra la testa e le gambe tese.",
+      "Premi la zona lombare contro il pavimento e solleva spalle e gambe di pochi centimetri, così che il corpo formi una leggera curva.",
+      "Mantieni per il tempo previsto senza staccare la zona lombare da terra."
+    ]
+  },
+  "AtleoPlan_Ice_Cream_Maker": {
+    "name": "Ice cream maker",
+    "aliases": [
+      "dal front lever alla trazione"
+    ],
+    "instructions": [
+      "Appenditi alla sbarra con presa prona.",
+      "Tirati su; in alto inclinati indietro e spingi la sbarra verso le anche, portando il corpo teso in orizzontale, come in un front lever.",
+      "Riporta il corpo sotto la sbarra nella posizione alta della trazione, scendi controllando e ripeti."
+    ]
+  },
+  "AtleoPlan_L-Sit": {
+    "name": "L-sit",
+    "aliases": [
+      "squadra",
+      "squadra alle parallele"
+    ],
+    "instructions": [
+      "Siediti tra due parallele, due impugnature o a terra, con le mani accanto alle anche.",
+      "Spingi verso il basso con le braccia tese per sollevare il corpo e alza le gambe tese davanti a te fino all'altezza delle anche.",
+      "Mantieni per il tempo previsto con le spalle basse, poi scendi."
+    ]
+  },
+  "AtleoPlan_L-Sit_Pull-Up": {
+    "name": "Trazioni a squadra",
+    "aliases": [
+      "trazioni con le gambe a squadra",
+      "l-sit pull-up"
+    ],
+    "instructions": [
+      "Appenditi alla sbarra e solleva le gambe tese davanti a te fino all'altezza delle anche, formando una L.",
+      "Tenendo le gambe sollevate, tirati su finché il mento supera la sbarra.",
+      "Scendi controllando senza abbassare le gambe e ripeti."
+    ]
+  },
+  "AtleoPlan_Pike_Push-Up": {
+    "name": "Piegamenti a V",
+    "aliases": [
+      "pike push-up",
+      "piegamenti carpiati"
+    ],
+    "instructions": [
+      "Parti dalla posizione del piegamento, poi avvicina i piedi alle mani e solleva le anche finché il corpo forma una V rovesciata.",
+      "Piega i gomiti e porta la sommità della testa verso il pavimento, tra le mani.",
+      "Spingi fino a distendere le braccia e ripeti."
+    ]
+  },
+  "AtleoPlan_Shoulder_Dislocates": {
+    "name": "Voltabraccia",
+    "aliases": [
+      "shoulder dislocates",
+      "passaggi con il bastone"
+    ],
+    "instructions": [
+      "Tieni un bastone o un elastico davanti alle anche con presa prona larga.",
+      "Con le braccia tese, portalo sopra la testa e poi dietro la schiena fino alle anche.",
+      "Riportalo davanti allo stesso modo e ripeti; stringi la presa man mano che le spalle si sciolgono."
+    ]
+  },
+  "AtleoPlan_Shoulder_Opener": {
+    "name": "Apertura spalle",
+    "aliases": [
+      "apertura delle spalle",
+      "allungamento spalle"
+    ],
+    "instructions": [
+      "Inginocchiati e appoggia le mani su una panca, una sedia o a terra davanti a te, con le braccia tese alla larghezza delle spalle.",
+      "Lascia scendere il petto tra le braccia, con le anche sopra le ginocchia, finché senti l'allungamento nelle spalle.",
+      "Mantieni per il tempo previsto respirando a fondo."
+    ]
+  },
+  "AtleoPlan_Skin_The_Cat": {
+    "name": "Skin the cat",
+    "aliases": [
+      "rotazione alla sbarra",
+      "german hang"
+    ],
+    "instructions": [
+      "Appenditi alla sbarra o agli anelli con le braccia tese.",
+      "Raccogli le ginocchia e ruota all'indietro facendo passare le gambe tra le braccia, fino al german hang, per quanto le spalle lo permettono.",
+      "Ritorna allo stesso modo nella posizione di partenza e ripeti."
+    ]
+  },
+  "AtleoPlan_Toes-To-Bar": {
+    "name": "Toes to bar",
+    "aliases": [
+      "piedi alla sbarra",
+      "addominali alla sbarra"
+    ],
+    "instructions": [
+      "Appenditi alla sbarra con presa prona.",
+      "Contrai gli addominali e solleva le gambe finché le punte dei piedi toccano la sbarra.",
+      "Abbassa le gambe controllando, senza oscillare, e ripeti."
+    ]
+  },
+  "AtleoPlan_Tuck_Planche": {
+    "name": "Planche raccolta",
+    "aliases": [
+      "tuck planche",
+      "planche"
+    ],
+    "instructions": [
+      "Appoggia le mani a terra o sulle parallettes alla larghezza delle spalle, con le dita leggermente in fuori.",
+      "Sbilanciati in avanti sopra le mani con le braccia tese e solleva i piedi, tenendo le ginocchia raccolte al petto e la schiena arrotondata.",
+      "Mantieni per il tempo previsto, poi riappoggia i piedi."
+    ]
+  },
+  "AtleoPlan_Two-Arm_Kettlebell_Swing": {
+    "name": "Swing con kettlebell a due mani",
+    "aliases": [
+      "swing a due mani",
+      "kettlebell swing"
+    ],
+    "instructions": [
+      "In piedi con i piedi poco più larghi delle anche, tieni un kettlebell con due mani e le braccia tese.",
+      "Piegati alle anche lasciando oscillare il kettlebell indietro tra le gambe, poi spingi le anche in avanti per portarlo all'altezza del petto.",
+      "Lascialo ricadere nello swing successivo, con la schiena dritta, e ripeti."
+    ]
+  },
   "Axle_Deadlift": {
     "name": "Stacco da terra con axle",
     "aliases": [

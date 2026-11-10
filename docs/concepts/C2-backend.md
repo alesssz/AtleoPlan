@@ -40,6 +40,7 @@ Every PHP file starts with a comment saying what it is and points to the section
   - [C2.14.2 Testing a command](#c2142-testing-a-command)
   - [C2.14.3 The free-exercise-db import](#c2143-the-free-exercise-db-import)
   - [C2.14.4 The translation of the library](#c2144-the-translation-of-the-library)
+  - [C2.14.5 The extra exercises](#c2145-the-extra-exercises)
 
 ---
 
@@ -623,6 +624,28 @@ Exercise::visibleTo($user)->search('panca')->orderByName()->get();   // scopes c
 - **`HasTranslations`** (spatie/laravel-translatable): the columns listed in `$translatable` hold one value per language, as JSON. `$muscle->name` gives the current language's value. When that language is missing, it falls back to English, then to any language there is; this is set once in `AppServiceProvider` ([D3.4.5](../design/D3-data-model.md#d345-translations)).
 - **`InteractsWithMedia`** (spatie/laravel-medialibrary), with `implements HasMedia`: files belong to the model, stored as rows of the `media` table, in named *collections* (`photos`, `videos`) declared in `registerMediaCollections()`. Attaching one: `$exercise->addMedia($path)->preservingOriginal()->toMediaCollection('photos')`, which copies the file to the media disk (`public`, `storage/app/public`); without `preservingOriginal()` the file is moved instead. Reading them: `$exercise->getMedia('photos')`, in their order. The import does both ([C2.14.3](#c2143-the-free-exercise-db-import)).
 
+**Model events.** Eloquent fires an event around every write of a model: `saving` before each insert or update, `saved` after it, `creating`, `updating`, `deleting` and others. A model registers what to do in its static `booted()` method, which Laravel calls once, the first time the class is used:
+
+```php
+protected static function booted(): void
+{
+    static::saving(function (Exercise $exercise) {
+        $exercise->search_text = SearchText::forExercise(
+            $exercise->getTranslations('name'),
+            $exercise->getTranslations('aliases'),
+        );
+    });
+}
+```
+
+- **The function receives the model about to be written** and may change it: what it sets is saved with the rest, in the same query.
+- **It runs whoever saves**: a controller, an action, an Artisan command, the admin panel, a factory in a test. That is the point of putting it on the model: `exercises.search_text` cannot be forgotten by a new piece of code ([D3.4.6](../design/D3-data-model.md#d346-searching)).
+- **Only what goes through the model fires events.** `DB::table('exercises')->update(…)` and `Exercise::where(…)->update(…)` (a "mass update", one query for many rows) do not: they write the columns they are given and nothing else.
+- **`saveQuietly()`** saves without firing any event, when that is wanted.
+- **Larger cases** move the functions to an *observer* class (`php artisan make:observer`), attached with `#[ObservedBy(…)]`; one event on one model does not need it.
+
+**A migration that writes data.** A migration usually changes structure only. When a new column must be filled for the rows already there, the same migration can do it after `Schema::table()`, reading and writing with the `DB` facade rather than the model: the model will keep changing over the years, and an old migration that uses it could break or behave differently when run on a new database. `2026_11_10_093058_add_search_text_to_exercises_table` is the first one ([H1.16](../how-to/H1-database.md#h116-the-search-text-as-built)).
+
 How these were built step by step, with the real output: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built) for the exercise library, [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built) for the plans.
 
 **Factories** build fake but realistic records for tests: `User::factory()->create()` inserts a user with a random name and email. **Seeders** fill the database with starting data: the fixed lists the app needs (the 17 muscles and the 12 kinds of equipment) and the development account. `make fresh` runs them. The public exercise library is not a seeder but an Artisan command, `make exercises-import`, because it reads a dataset from outside, takes options and reports what failed ([C2.14](#c214-artisan-commands-of-our-own)); after `make fresh`, run it again. `DemoPlanSeeder` is development data only: two example plans for every user who has none, run by hand with `make plans-demo` after the import ([H3.13.1](../how-to/H3-frontend.md#h3131-plans-to-look-at)).
@@ -1205,6 +1228,36 @@ free-exercise-db is in English only. Its 876 names and 3,738 steps were translat
 **Running it again** writes nothing new: every language is already there. `--locale=it` limits it to one language; `--force` rewrites, which undoes corrections made by hand, so it is for after a fix to the files themselves.
 
 **Where the texts show.** HasTranslations reads the request's language ([D3.4.5](../design/D3-data-model.md#d345-translations)), so with these files every screen that shows a public exercise is in the user's language: the library, its search and filters, the exercise's page, the plans. Nothing in the frontend changed.
+
+### C2.14.5 The extra exercises
+
+free-exercise-db covers weights and machines well and calisthenics barely: no frog stand, front lever, burpees or dead hang. The project's own public exercises fill the gap, kept in **`backend/database/data/extra-exercises.json`** and added by `php artisan exercises:import-extra` (`make exercises-extra`, and `make exercises-import` after the dataset).
+
+**The same shape as free-exercise-db, so the same action.** Each entry is written as the dataset's are, and `ImportFreeExercise` imports it with the rules of C2.14.3 (found again by `external_id`, left alone unless `--update`, never duplicated, an exercise deleted by an admin left deleted). Two keys are ours, and the action reads them when present:
+
+```json
+{
+  "id": "AtleoPlan_Frog_Stand",
+  "name": "Frog Stand",
+  "aliases": ["crow pose", "frog balance"],
+  "level": "beginner", "category": "strength", "equipment": "body only",
+  "loggingType": "time",
+  "primaryMuscles": ["shoulders"], "secondaryMuscles": ["triceps", "abdominals", "forearms"],
+  "instructions": ["Squat down and place your hands flat on the floor…", "…", "…"],
+  "images": []
+}
+```
+
+| Key | Why |
+|---|---|
+| `id` with `AtleoPlan_` | Never the same as one of free-exercise-db's, today or after an update of the dataset |
+| `aliases` | English other names ("crow pose"): the dataset has none, and the search looks in every language's |
+| `loggingType` | Stated, not guessed: a frog stand is body weight, which the guess would count in reps, but it is held for a time |
+| `images: []` | No photos yet; the list shows a placeholder, as for a personal exercise without photos |
+
+**Their translations** are entries of the same `exercise-translations/{it,es,de}.json` files, so `exercises:translate` writes them like the dataset's, marked machine translated (C2.14.4). 21 exercises: the 12 of a calisthenics plan that were missing (chest-to-bar and L-sit pull-ups, frog stand, ice cream maker, dead hang, chest-to-wall handstand, burpees, front lever, full bridge, shoulder dislocates, shoulder opener, two-arm kettlebell swing) and 9 of the same family (L-sit, toes-to-bar, back lever, tuck planche, hollow body hold, pike push-up, archer pull-up, skin the cat, dragon flag).
+
+**Adding one** is a new entry in the four files, then `make exercises-extra`; the tests of `ImportExtraExercisesTest.php` import the real file, so a muscle we do not have, a misspelt logging type or a missing translation fails there ([H1.17](../how-to/H1-database.md#h117-the-extra-exercises-as-built)).
 
 ---
 

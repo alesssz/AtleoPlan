@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
-// Imports: the enum of logging_type, the attribute and traits used below, the
-// types of the three relations, and the two packages' pieces (translations,
-// photos and videos)
+// Imports: the enum of logging_type, the class that builds the search text,
+// the attribute and traits used below, the types of the three relations, and
+// the two packages' pieces (translations, photos and videos)
 use App\Enums\LoggingType;
 use App\Enums\MuscleRole;
+use App\Support\SearchText;
 use Database\Factories\ExerciseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -82,6 +83,13 @@ class Exercise extends Model implements HasMedia
     }
 
     /**
+     * The shortest word the search also looks for written as two words
+     * (rule C of search()): "pullup" finds "pull up", while "dip" does not
+     * find "di petto".
+     */
+    private const MIN_JOINED_LETTERS = 5;
+
+    /**
      * The values a new exercise gets before it is saved.
      *
      * The table has the same defaults, but a new model does not read them
@@ -94,6 +102,33 @@ class Exercise extends Model implements HasMedia
         'logging_type' => 'weight_reps',
         'machine_translated' => '[]',
     ];
+
+    /**
+     * Runs once, when the class is first used: registers what happens on the
+     * model's events.
+     *
+     * Eloquent fires events around every write: `saving` before each insert
+     * or update, `saved` after, `deleting`, and so on. static::saving()
+     * registers a function for one of them; it receives the model about to
+     * be written and may change it. Here it fills search_text from the name
+     * and the aliases, so the column is right after every save whoever saves:
+     * the API, the import, the translation, an admin screen, a factory in a
+     * test (docs/concepts/C2-backend.md C2.6, "Model events").
+     *
+     * What does not go through the model, such as DB::table()->update(),
+     * fires no event: the migration that added the column fills it by hand.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Exercise $exercise) {
+            // getTranslations(): every language of a translatable column, as
+            // ['en' => 'Pullups', 'it' => 'Trazioni alla sbarra']
+            $exercise->search_text = SearchText::forExercise(
+                $exercise->getTranslations('name'),
+                $exercise->getTranslations('aliases'),
+            );
+        });
+    }
 
     /**
      * Whose exercise it is: null for a public one.
@@ -178,18 +213,40 @@ class Exercise extends Model implements HasMedia
     }
 
     /**
-     * Searches the name and the aliases, as the user reads them
-     * (docs/design/D3-data-model.md D3.4.6): in the request's language, or in
-     * English when the exercise has no text in that language. Upper and lower
-     * case do not matter.
+     * Searches the name and the aliases in every language
+     * (docs/design/D3-data-model.md D3.4.6), ignoring case, accents and
+     * dashes: "pull up" finds "Pullups" and "Band Assisted Pull-Up",
+     * "trazioni" finds "Pullups" through its Italian name in any interface,
+     * "squat jump" finds "Jump squat".
      *
-     * The SQL, for a user who reads Italian:
-     * `coalesce(name->>'it', name->>'en') ilike '%panca%'`. `->>` reads one
-     * key of a JSON column as text; coalesce() gives the first value that is
-     * not null; ilike is Postgres's case-insensitive LIKE, and `%` matches
-     * any text. The `?` are placeholders, filled by the database driver with
-     * the values in the array, so whatever the user types is never read as
-     * SQL ("SQL injection").
+     * What the user typed is cut into words, normalised as the column
+     * search_text is (App\Support\SearchText). Matches are looked for at the
+     * start of the column's words only, never inside them, so a short word
+     * such as "up" does not find "supina". An exercise is found by any of
+     * three rules:
+     *
+     * A. **The words, in any order:** each is a whole word of the text,
+     *    except the last, which only has to start one (it may still be being
+     *    typed). "squat jump" finds "freehand jump squat"; "trazioni al"
+     *    finds "trazioni alla sbarra"; "pull up" does not find "low pulley".
+     * B. **Several words typed as one:** "pull up" is "pullup", the start of
+     *    "pullups".
+     * C. **One word that the text writes as two:** "pullup" finds "pull up",
+     *    the letters in order with spaces allowed between them. Only for a
+     *    word of MIN_JOINED_LETTERS or more: a short one would match pieces
+     *    of two words, as "dip" would "di petto".
+     *
+     * The SQL, for "pull up" (rules A and B; C applies to one word only):
+     *
+     *     concat(' ', search_text, ' ') like '% pull %' and concat(' ', search_text, ' ') like '% up%'
+     *     or concat(' ', search_text, ' ') like '% pullup%'
+     *
+     * concat() puts a space at both ends, so every word, the first and the
+     * last too, has spaces around it, and "% pull %" means "the word pull".
+     * Rule C is a regular expression, Postgres's `~`: for "pullup",
+     * `' p ?u ?l ?l ?u ?p'`, where " ?" is "a space or not". The words hold
+     * only a-z and 0-9, which mean nothing special in a pattern, and the `?`
+     * placeholders keep the text out of the SQL itself ("SQL injection").
      *
      * @param  Builder<Exercise>  $query  the query being built
      * @param  string  $term  what the user typed
@@ -197,16 +254,43 @@ class Exercise extends Model implements HasMedia
     #[Scope]
     protected function search(Builder $query, string $term): void
     {
-        // The current language, set from the request by SetLocaleFromRequest
-        $locale = app()->getLocale();
-        // The text to find anywhere: `%` around it. A `%` or `_` typed by the
-        // user is escaped with a backslash, so it is looked for as itself
-        // rather than meaning "anything"
-        $pattern = '%'.addcslashes(trim($term), '\\%_').'%';
+        $words = SearchText::words($term);
 
-        $query->where(fn (Builder $q) => $q
-            ->whereRaw("coalesce(name->>?, name->>'en') ilike ?", [$locale, $pattern])
-            ->orWhereRaw("coalesce(aliases->>?, aliases->>'en') ilike ?", [$locale, $pattern]));
+        // Only punctuation typed, such as "%": nothing can match it
+        if ($words === []) {
+            $query->whereRaw('false');
+
+            return;
+        }
+
+        // The column with a space at both ends, written once for the three rules
+        $padded = "concat(' ', search_text, ' ')";
+        // array_pop() takes the last word off the list: $words keeps the others
+        $last = array_pop($words);
+
+        // The three rules in one parenthesis, so their ORs do not mix with
+        // the other filters' conditions
+        $query->where(function (Builder $any) use ($padded, $words, $last) {
+            // A. Every word but the last whole, the last at a word's start:
+            // one condition per word, all required (where() after where() is AND)
+            $any->where(function (Builder $every) use ($padded, $words, $last) {
+                foreach ($words as $word) {
+                    $every->whereRaw("{$padded} like ?", ["% {$word} %"]);
+                }
+                $every->whereRaw("{$padded} like ?", ["% {$last}%"]);
+            });
+
+            // B. Several words typed as one, at a word's start
+            if ($words !== []) {
+                $any->orWhereRaw("{$padded} like ?", ['% '.implode('', $words).$last.'%']);
+            }
+
+            // C. One long word, which the text may write as two
+            if ($words === [] && strlen($last) >= self::MIN_JOINED_LETTERS) {
+                // str_split(): the word's letters; joined by " ?", a space or not
+                $any->orWhereRaw("{$padded} ~ ?", [' '.implode(' ?', str_split($last))]);
+            }
+        });
     }
 
     /**

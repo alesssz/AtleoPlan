@@ -123,11 +123,17 @@ const files = [join(ROOT, 'README.md'), ...markdownFiles(join(ROOT, 'docs'))]
 const outdated = []
 
 for (const file of files) {
-  const source = readFileSync(file, 'utf8')
+  const raw = readFileSync(file, 'utf8')
+  // On Windows, Git checks files out with CRLF line endings (core.autocrlf).
+  // Split on "\n" alone, every line would keep a "\r", no heading would
+  // match, and the list would silently never change. So the text is read
+  // with "\n" only, and written back with the endings it had
+  const eol = raw.includes('\r\n') ? '\r\n' : '\n'
+  const source = raw.replace(/\r\n/g, '\n')
   const updated = withContents(source)
   if (updated === null || updated === source) continue
   outdated.push(relative(ROOT, file))
-  if (!CHECK_ONLY) writeFileSync(file, updated)
+  if (!CHECK_ONLY) writeFileSync(file, updated.replace(/\n/g, eol))
 }
 
 if (CHECK_ONLY && outdated.length > 0) {

@@ -387,7 +387,7 @@ The names in Italian, Spanish and German are in the seeders. Equipment reads as 
 |---|---|---|
 | `id` | bigint | A number, see [D3.2.1](#d321-which-kind-of-id) |
 | `owner_id` | bigint, nullable → `users` | Empty: public. Filled: personal |
-| `external_id` | string, nullable, unique | The id in free-exercise-db, such as `Barbell_Bench_Press`, so that the import can run again and update instead of duplicating |
+| `external_id` | string, nullable, unique | The id in free-exercise-db, such as `Barbell_Bench_Press`, or in our extra exercises, such as `AtleoPlan_Frog_Stand`, so that the import can run again and update instead of duplicating |
 | `equipment_id` | bigint, nullable → `equipment` | One value, as in free-exercise-db and in the editor ([D1.4.5](D1-ui.md#d145-exercise-editor)) |
 | `name` | jsonb, translatable | Required |
 | `aliases` | jsonb, translatable, nullable | Other names per language, searched with the name: `{"it": ["panca"]}` |
@@ -398,6 +398,7 @@ The names in Italian, Spanish and German are in the seeders. Equipment reads as 
 | `category` | string, nullable | From the import: strength, stretching, cardio… Not shown yet |
 | `machine_translated` | jsonb | Languages not yet reviewed by a person, such as `["es", "de"]`; default `[]` |
 | `youtube_url` | string, nullable | The editor's alternative to uploading a video |
+| `search_text` | text, default `''` | Every name and alias in every language, normalised, for the search ([D3.4.6](#d346-searching)); written by the model at every save, never by hand |
 | `created_at`, `updated_at`, `deleted_at` | | Soft deletes ([D3.7](#d37-what-happens-on-delete)) |
 
 ```php
@@ -519,32 +520,44 @@ $exercise->getTranslation('instructions', 'en');
 
 ### D3.4.6 Searching
 
-Search looks in the name and the aliases **as the user reads them**: in the user's language, or in English when the exercise has no text in that language. It runs among public exercises and the user's own ([D1.4.3](D1-ui.md#d143-exercise-library)). These are two scopes of the `Exercise` model, `visibleTo()` and `search()`:
+Search looks in the name and the aliases **in every language**, among public exercises and the user's own ([D1.4.3](D1-ui.md#d143-exercise-library)), ignoring upper and lower case, accents, dashes and dots. An Italian who types "pull up" finds "Trazioni alla sbarra" through its English name; an English interface finds "trazioni" through the Italian one.
 
-```php
-// Exercise::visibleTo($user)->search('panca'), for a user who reads Italian
-$query
-    ->where(fn ($q) => $q
-        ->whereNull('owner_id')                          // public…
-        ->orWhere('owner_id', $user->id))                // …or mine
-    ->where(fn ($q) => $q
-        // coalesce(): the first value that is not null, so English when Italian is missing
-        ->whereRaw("coalesce(name->>?, name->>'en') ilike ?", [$locale, "%$term%"])
-        ->orWhereRaw("coalesce(aliases->>?, aliases->>'en') ilike ?", [$locale, "%$term%"]));
+**What it looks in: `search_text`.** A column that holds every name and alias of the exercise, each **normalised** by `App\Support\SearchText`: lower case, accents taken off, every run of other characters turned into one space, the pieces separated by ` | `:
+
+```
+Pullups | Trazioni alla sbarra | Klimmzüge | pull-up      (names and aliases)
+pullups | trazioni alla sbarra | klimmzuge | pull up      (search_text)
 ```
 
-- **`name->>'it'`** reads one key of a JSON column as text.
-- **`ilike`** ignores upper and lower case.
-- **The two `where(fn …)`** become parentheses in SQL, so the `or`s do not mix.
-- **A `%` or `_` typed by the user** is escaped, so it matches itself.
+The model writes it at every save, on its `saving` event ([C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders)), so it follows the API, the import, the translation and the admin panel alike; the migration that added it filled the existing rows once ([H1.16](../how-to/H1-database.md#h116-the-search-text-as-built)).
 
-| Search, in Italian | With these exercises | Finds |
+**How a search matches.** What the user typed is normalised the same way and cut into words. Matches start at the beginning of a word of `search_text`, never inside one, and an exercise is found by any of three rules:
+
+| Rule | Example | Finds | Does not find |
+|---|---|---|---|
+| **A. The words, in any order:** each a whole word, the last only the start of one (it may still be being typed) | `squat jump`, `trazioni al` | "Freehand **Jump Squat**", "**Trazioni al**la sbarra" | "Palms-Up Low-**Pull**ey" for `pull up`: "pull" is not a whole word there |
+| **B. Several words typed as one** | `pull up` → `pullup` | "**Pullup**s" | |
+| **C. One word written as two in the text,** for words of 5 letters or more | `pullup` | "Band Assisted **Pull-Up**" | "Allungamento **di p**etto" for `dip`: too short |
+
+```php
+// Exercise::visibleTo($user)->search('pull up'): the scope's SQL, rules A and B
+(concat(' ', search_text, ' ') like '% pull %' and concat(' ', search_text, ' ') like '% up%')
+or concat(' ', search_text, ' ') like '% pullup%'
+```
+
+- **`concat(' ', search_text, ' ')`** puts a space at both ends, so "a word starting with up" is `'% up%'` and "the word pull" is `'% pull %'`, the first and the last word included.
+- **Rule C** is a regular expression, Postgres's `~`: `' p ?u ?l ?l ?u ?p'`, the letters in order with a space allowed between them.
+- **Only punctuation typed,** such as `%`, matches nothing. The words hold only a-z and 0-9, so nothing typed can act as a `%` or `_` of the pattern.
+
+| Search | With these exercises | Finds |
 |---|---|---|
-| `panca` | Public `{"en": "Barbell bench press", "it": "Panca piana con bilanciere"}` and personal `{"it": "Panca mia"}` | both, by their names |
-| `bench` | The same | none: the public one has an Italian name, and only that is searched |
-| `bench` | Public `{"en": "Barbell bench press"}`, no Italian | it: the user reads it in English |
+| `bench`, interface in Italian | `{"en": "Barbell bench press", "it": "Panca piana con bilanciere"}` | it, read as "Panca piana con bilanciere": the English name is searched too |
+| `PULLUP`, `pull up` | "Pullups", "Band Assisted Pull-Up" | both |
+| `sit up` | "Sit-Up", and "Curl da seduto a presa supina" | only the first: "seduto" and "supina" contain "sit" and "up" only inside words |
 
-No special index is needed: a thousand rows do not need one, and a full-text index can come later if search slows down.
+No special index is needed: a thousand rows do not need one. If search slows down, Postgres's `pg_trgm` extension indexes exactly this kind of `like '%…%'`.
+
+**Why a column, rather than reading the JSON at every search.** The normalisation (accents, punctuation) is easy in PHP and awkward in SQL, and done once per save it costs nothing per search. The price is keeping it in step, which the `saving` event does; code that bypasses the model (`DB::table()->update()`) must fill it itself.
 
 **Sorting by name** reads the same text, `coalesce(name->>'it', name->>'en')`, with `collate "und-x-icu"`. Postgres on Alpine compares bytes by default, which puts "Bench" before "banca" and accented letters after "z". The ICU rules sort as a reader expects ([H2.12.4](../how-to/H2-backend.md#h2124-sorting-by-name-the-collation-trap)).
 

@@ -351,6 +351,249 @@
       "Bleib tief und bring den Stein hoch an die Brust, während du umgreifst, um über den Stein zu fassen. Steh auf und drück dabei die Hüfte durch. Geh nah an die Plattform heran und lehn dich zurück, streck die Hüfte und bring den Stein so hoch wie möglich."
     ]
   },
+  "AtleoPlan_Archer_Pull-Up": {
+    "name": "Archer-Klimmzüge",
+    "aliases": [
+      "bogenschützen-klimmzüge"
+    ],
+    "instructions": [
+      "Häng dich im sehr weiten Obergriff an die Klimmzugstange.",
+      "Zieh dich zu einer Hand hoch und beug diesen Arm, während der andere fast gestreckt an der Stange bleibt.",
+      "Lass dich kontrolliert ab und wiederhole, abwechselnd oder erst eine Seite."
+    ]
+  },
+  "AtleoPlan_Back_Lever": {
+    "name": "Back Lever",
+    "aliases": [
+      "rückwaage"
+    ],
+    "instructions": [
+      "Häng dich an eine Stange oder an Ringe, zieh die Knie an und dreh dich rückwärts zwischen den Armen durch (Skin the Cat), bis du bäuchlings dahinter hängst.",
+      "Streck den Körper, bis er gerade und waagerecht ist, Bauch nach unten, die Arme gestreckt.",
+      "Halte die vorgesehene Zeit, dann zieh die Knie wieder an und dreh dich heraus."
+    ]
+  },
+  "AtleoPlan_Burpee": {
+    "name": "Burpees",
+    "aliases": [
+      "burpee"
+    ],
+    "instructions": [
+      "Aus dem Stand gehst du in die Hocke und setzt die Hände auf den Boden.",
+      "Spring mit den Füßen nach hinten in den Stütz und mach einen Liegestütz.",
+      "Spring mit den Füßen zurück zu den Händen und dann mit den Armen über dem Kopf nach oben; lande weich und wiederhole."
+    ]
+  },
+  "AtleoPlan_Chest-To-Bar_Pull-Up": {
+    "name": "Klimmzüge bis zur Brust",
+    "aliases": [
+      "chest to bar",
+      "brust-zur-stange-klimmzüge"
+    ],
+    "instructions": [
+      "Häng dich im Obergriff an die Klimmzugstange, die Hände etwas weiter als schulterbreit.",
+      "Zieh dich mit der Brust voran nach oben, bis die Brust die Stange berührt; Schultern unten, Körper angespannt.",
+      "Lass dich kontrolliert in den vollen Hang ab und wiederhole."
+    ]
+  },
+  "AtleoPlan_Chest-To-Wall_Handstand": {
+    "name": "Handstand mit Bauch zur Wand",
+    "aliases": [
+      "handstand an der wand",
+      "wandhandstand"
+    ],
+    "instructions": [
+      "Setz die Hände kurz vor einer Wand auf den Boden und lauf mit den Füßen die Wand hoch, bis der Körper gerade ist und die Brust zur Wand zeigt.",
+      "Drück dich vom Boden weg, halte die Arme gestreckt, die Rippen unten und den Körper in einer Linie.",
+      "Halte die vorgesehene Zeit, dann lauf mit den Füßen wieder hinunter."
+    ]
+  },
+  "AtleoPlan_Dead_Hang": {
+    "name": "Hängen an der Stange",
+    "aliases": [
+      "dead hang",
+      "passives hängen"
+    ],
+    "instructions": [
+      "Greif die Klimmzugstange im Obergriff, die Hände schulterbreit.",
+      "Lass den Körper mit gestreckten Armen hängen, die Füße über dem Boden, und atme ruhig.",
+      "Halte die vorgesehene Zeit, dann steig ab."
+    ]
+  },
+  "AtleoPlan_Dragon_Flag": {
+    "name": "Dragon Flag",
+    "aliases": [
+      "drachenflagge"
+    ],
+    "instructions": [
+      "Leg dich auf eine Bank und greif sie hinter dem Kopf.",
+      "Heb den ganzen Körper, gerade von den Schultern bis zu den Füßen, bis er nach oben zeigt und nur der obere Rücken aufliegt.",
+      "Senk den gestreckten Körper langsam, bis er fast die Bank berührt, heb ihn wieder an und wiederhole."
+    ]
+  },
+  "AtleoPlan_Frog_Stand": {
+    "name": "Froschstand",
+    "aliases": [
+      "frog stand",
+      "krähe"
+    ],
+    "instructions": [
+      "Geh in die Hocke und setz die Hände schulterbreit mit gespreizten Fingern auf den Boden.",
+      "Leg die Knie auf die Rückseite der Oberarme nahe den Ellbogen und lehn dich nach vorn, bis die Füße abheben.",
+      "Halte das Gleichgewicht mit gebeugten Armen und leicht nach vorn gerichtetem Blick für die vorgesehene Zeit, dann setz die Füße ab."
+    ]
+  },
+  "AtleoPlan_Front_Lever": {
+    "name": "Front Lever",
+    "aliases": [
+      "vorderwaage"
+    ],
+    "instructions": [
+      "Häng dich im Obergriff mit gestreckten Armen an die Stange.",
+      "Drück die Stange Richtung Hüfte und heb den gestreckten Körper rücklings in die Waagerechte.",
+      "Halte die vorgesehene Zeit, dann senk die Beine kontrolliert ab."
+    ]
+  },
+  "AtleoPlan_Full_Bridge": {
+    "name": "Brücke",
+    "aliases": [
+      "volle brücke",
+      "rad"
+    ],
+    "instructions": [
+      "Leg dich auf den Rücken, die Knie gebeugt, die Füße nah am Gesäß und die Hände neben den Ohren, die Finger zu den Schultern.",
+      "Drück dich über Hände und Füße hoch, sodass Hüfte und Kopf vom Boden abheben, und streck die Arme so weit wie möglich.",
+      "Halte die vorgesehene Zeit, atme ruhig und komm langsam wieder herunter, zuerst mit dem Kopf."
+    ]
+  },
+  "AtleoPlan_Hollow_Body_Hold": {
+    "name": "Hollow Body Hold",
+    "aliases": [
+      "hollow body",
+      "schiffchen"
+    ],
+    "instructions": [
+      "Leg dich auf den Rücken, die Arme über dem Kopf, die Beine gestreckt.",
+      "Drück den unteren Rücken in den Boden und heb Schultern und Beine ein paar Zentimeter an, sodass der Körper eine flache Kurve bildet.",
+      "Halte die vorgesehene Zeit, ohne dass der untere Rücken abhebt."
+    ]
+  },
+  "AtleoPlan_Ice_Cream_Maker": {
+    "name": "Ice Cream Maker",
+    "aliases": [
+      "vom front lever zum klimmzug"
+    ],
+    "instructions": [
+      "Häng dich im Obergriff an die Klimmzugstange.",
+      "Zieh dich hoch; oben lehnst du dich zurück und drückst die Stange Richtung Hüfte, während du den gestreckten Körper in die Waagerechte bringst, wie beim Front Lever.",
+      "Bring den Körper zurück unter die Stange in die obere Klimmzugposition, lass dich kontrolliert ab und wiederhole."
+    ]
+  },
+  "AtleoPlan_L-Sit": {
+    "name": "L-Sitz",
+    "aliases": [
+      "l-sit",
+      "winkelstütz"
+    ],
+    "instructions": [
+      "Setz dich zwischen zwei Barren, zwei Griffe oder auf den Boden, die Hände neben der Hüfte.",
+      "Drück dich mit gestreckten Armen hoch und heb die gestreckten Beine vor dir auf Hüfthöhe.",
+      "Halte die vorgesehene Zeit mit tiefen Schultern, dann lass dich ab."
+    ]
+  },
+  "AtleoPlan_L-Sit_Pull-Up": {
+    "name": "L-Sitz-Klimmzüge",
+    "aliases": [
+      "l-sit klimmzüge",
+      "klimmzüge mit gestreckten beinen"
+    ],
+    "instructions": [
+      "Häng dich an die Stange und hebe die gestreckten Beine vor dir auf Hüfthöhe, sodass ein L entsteht.",
+      "Halte die Beine oben und zieh dich hoch, bis das Kinn über der Stange ist.",
+      "Lass dich kontrolliert ab, ohne die Beine zu senken, und wiederhole."
+    ]
+  },
+  "AtleoPlan_Pike_Push-Up": {
+    "name": "Pike Push-ups",
+    "aliases": [
+      "schulterliegestütz",
+      "pike liegestütz"
+    ],
+    "instructions": [
+      "Beginn in der Liegestützposition, geh mit den Füßen zu den Händen und heb die Hüfte, bis der Körper ein umgedrehtes V bildet.",
+      "Beug die Ellbogen und senk den Scheitel zwischen den Händen zum Boden.",
+      "Drück dich zurück bis zu gestreckten Armen und wiederhole."
+    ]
+  },
+  "AtleoPlan_Shoulder_Dislocates": {
+    "name": "Schulter-Dislocates",
+    "aliases": [
+      "stabdurchzüge",
+      "schulterdurchzüge"
+    ],
+    "instructions": [
+      "Halte einen Stab oder ein Band im weiten Obergriff vor der Hüfte.",
+      "Führ ihn mit gestreckten Armen über den Kopf und hinter den Rücken bis zur Hüfte.",
+      "Führ ihn auf demselben Weg nach vorn zurück und wiederhole; greif enger, wenn die Schultern lockerer werden."
+    ]
+  },
+  "AtleoPlan_Shoulder_Opener": {
+    "name": "Schulteröffner",
+    "aliases": [
+      "schulterdehnung"
+    ],
+    "instructions": [
+      "Knie dich hin und setz die Hände auf eine Bank, einen Stuhl oder den Boden vor dir, die Arme gestreckt und schulterbreit.",
+      "Lass die Brust zwischen die Arme sinken, die Hüfte über den Knien, bis du die Dehnung in den Schultern spürst.",
+      "Halte die vorgesehene Zeit und atme tief."
+    ]
+  },
+  "AtleoPlan_Skin_The_Cat": {
+    "name": "Skin the Cat",
+    "aliases": [
+      "german hang"
+    ],
+    "instructions": [
+      "Häng dich mit gestreckten Armen an eine Stange oder an Ringe.",
+      "Zieh die Knie an und dreh dich rückwärts, die Beine zwischen den Armen hindurch, bis in den German Hang, soweit die Schultern es erlauben.",
+      "Dreh dich auf demselben Weg zurück in den Hang und wiederhole."
+    ]
+  },
+  "AtleoPlan_Toes-To-Bar": {
+    "name": "Toes to Bar",
+    "aliases": [
+      "füße zur stange"
+    ],
+    "instructions": [
+      "Häng dich im Obergriff an die Klimmzugstange.",
+      "Spann die Bauchmuskeln an und heb die Beine, bis die Zehenspitzen die Stange berühren.",
+      "Senk die Beine kontrolliert, ohne zu schwingen, und wiederhole."
+    ]
+  },
+  "AtleoPlan_Tuck_Planche": {
+    "name": "Gehockte Planche",
+    "aliases": [
+      "tuck planche",
+      "planche"
+    ],
+    "instructions": [
+      "Setz die Hände schulterbreit auf den Boden oder auf Parallettes, die Finger leicht nach außen.",
+      "Lehn dich mit gestreckten Armen über die Hände nach vorn und heb die Füße, die Knie an die Brust gezogen, den Rücken rund.",
+      "Halte die vorgesehene Zeit, dann setz die Füße ab."
+    ]
+  },
+  "AtleoPlan_Two-Arm_Kettlebell_Swing": {
+    "name": "Kettlebell Swing beidarmig",
+    "aliases": [
+      "kettlebell swing",
+      "russian swing"
+    ],
+    "instructions": [
+      "Stell dich etwas mehr als hüftbreit hin und halte eine Kettlebell mit beiden Händen und gestreckten Armen.",
+      "Beug dich in der Hüfte, lass die Kettlebell zwischen den Beinen nach hinten schwingen und schieb dann die Hüfte nach vorn, um sie auf Brusthöhe zu schwingen.",
+      "Lass sie in den nächsten Schwung zurückfallen, mit geradem Rücken, und wiederhole."
+    ]
+  },
   "Axle_Deadlift": {
     "name": "Kreuzheben mit der Axle",
     "aliases": [

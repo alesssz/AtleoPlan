@@ -1,0 +1,525 @@
+[
+  {
+    "id": "AtleoPlan_Archer_Pull-Up",
+    "name": "Archer Pull-Up",
+    "aliases": [
+      "archer pull up",
+      "typewriter pull-up"
+    ],
+    "level": "expert",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "lats"
+    ],
+    "secondaryMuscles": [
+      "biceps",
+      "middle back"
+    ],
+    "instructions": [
+      "Hang from a pull-up bar with a very wide overhand grip.",
+      "Pull yourself up towards one hand, bending that arm while the other stays almost straight along the bar.",
+      "Lower yourself under control and repeat, alternating the sides or finishing one side first."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Back_Lever",
+    "name": "Back Lever",
+    "aliases": [
+      "back lever hold"
+    ],
+    "level": "expert",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "lats"
+    ],
+    "secondaryMuscles": [
+      "chest",
+      "shoulders",
+      "biceps"
+    ],
+    "instructions": [
+      "Hang from a bar or rings, tuck the knees and rotate backwards through the arms (skin the cat) until you hang face down behind them.",
+      "Extend the body until it is straight and horizontal, face down, with the arms straight.",
+      "Hold for the time set, then bring the knees back in and rotate out."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Burpee",
+    "name": "Burpees",
+    "aliases": [
+      "burpee"
+    ],
+    "level": "beginner",
+    "category": "plyometrics",
+    "equipment": "body only",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "quadriceps"
+    ],
+    "secondaryMuscles": [
+      "chest",
+      "shoulders",
+      "triceps",
+      "abdominals"
+    ],
+    "instructions": [
+      "Stand up, then squat and place your hands on the floor.",
+      "Jump the feet back into a plank and do a push-up.",
+      "Jump the feet back to the hands, then jump up with the arms overhead; land softly and repeat."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Chest-To-Bar_Pull-Up",
+    "name": "Chest-to-Bar Pull-Up",
+    "aliases": [
+      "chest to bar",
+      "c2b pull-up"
+    ],
+    "level": "intermediate",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "lats"
+    ],
+    "secondaryMuscles": [
+      "biceps",
+      "middle back"
+    ],
+    "instructions": [
+      "Hang from a pull-up bar with an overhand grip, hands a little wider than the shoulders.",
+      "Pull yourself up, leading with the chest, until the chest touches the bar; keep the shoulders down and the body tight.",
+      "Lower yourself under control to a full hang and repeat."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Chest-To-Wall_Handstand",
+    "name": "Chest-to-Wall Handstand Hold",
+    "aliases": [
+      "wall handstand",
+      "handstand hold"
+    ],
+    "level": "intermediate",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "triceps",
+      "abdominals",
+      "traps"
+    ],
+    "instructions": [
+      "Place your hands on the floor a short step from a wall and walk the feet up the wall until the body is straight and the chest faces it.",
+      "Push the floor away, keep the arms locked, the ribs in and the body in one line.",
+      "Hold for the time set, then walk the feet down."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Dead_Hang",
+    "name": "Dead Hang",
+    "aliases": [
+      "bar hang",
+      "passive hang"
+    ],
+    "level": "beginner",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "forearms"
+    ],
+    "secondaryMuscles": [
+      "lats",
+      "shoulders"
+    ],
+    "instructions": [
+      "Grab a pull-up bar with an overhand grip, hands shoulder-width apart.",
+      "Let the body hang with straight arms and the feet off the floor, breathing calmly.",
+      "Hold for the time set, then step down."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Dragon_Flag",
+    "name": "Dragon Flag",
+    "aliases": [
+      "dragon flags"
+    ],
+    "level": "expert",
+    "category": "strength",
+    "equipment": "other",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "abdominals"
+    ],
+    "secondaryMuscles": [
+      "lower back",
+      "lats"
+    ],
+    "instructions": [
+      "Lie on a bench and grip it behind your head.",
+      "Lift the whole body, straight from the shoulders to the feet, until it points upwards, resting only on the upper back.",
+      "Lower the straight body slowly until it almost touches the bench, then raise it again and repeat."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Frog_Stand",
+    "name": "Frog Stand",
+    "aliases": [
+      "crow pose",
+      "frog balance"
+    ],
+    "level": "beginner",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "triceps",
+      "abdominals",
+      "forearms"
+    ],
+    "instructions": [
+      "Squat down and place your hands flat on the floor, shoulder-width apart, fingers spread.",
+      "Rest the knees on the backs of the upper arms, near the elbows, and lean forward until the feet lift off the floor.",
+      "Hold the balance with the arms bent and the gaze slightly forward for the time set, then lower the feet."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Front_Lever",
+    "name": "Front Lever",
+    "aliases": [
+      "front lever hold"
+    ],
+    "level": "expert",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "lats"
+    ],
+    "secondaryMuscles": [
+      "abdominals",
+      "shoulders",
+      "middle back"
+    ],
+    "instructions": [
+      "Hang from a pull-up bar with an overhand grip and straight arms.",
+      "Pull the bar down towards the hips and raise the straight body until it is horizontal, face up.",
+      "Hold for the time set, then lower the legs under control."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Full_Bridge",
+    "name": "Full Bridge",
+    "aliases": [
+      "wheel pose",
+      "back bridge"
+    ],
+    "level": "intermediate",
+    "category": "stretching",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "lower back"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "glutes"
+    ],
+    "instructions": [
+      "Lie on your back with the knees bent, the feet flat near the hips and the hands by the ears, fingers towards the shoulders.",
+      "Push through the hands and feet to lift the hips and the head off the floor, straightening the arms as far as you can.",
+      "Hold for the time set, breathing calmly, then lower yourself slowly, head first."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Hollow_Body_Hold",
+    "name": "Hollow Body Hold",
+    "aliases": [
+      "hollow hold",
+      "hollow body"
+    ],
+    "level": "beginner",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "abdominals"
+    ],
+    "secondaryMuscles": [
+      "quadriceps"
+    ],
+    "instructions": [
+      "Lie on your back with the arms overhead and the legs straight.",
+      "Press the lower back into the floor and lift the shoulders and the legs a few centimetres off it, so the body forms a shallow curve.",
+      "Hold for the time set without letting the lower back lift."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Ice_Cream_Maker",
+    "name": "Ice Cream Maker",
+    "aliases": [
+      "ice cream makers",
+      "front lever to pull-up"
+    ],
+    "level": "expert",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "lats"
+    ],
+    "secondaryMuscles": [
+      "abdominals",
+      "shoulders"
+    ],
+    "instructions": [
+      "Hang from a pull-up bar with an overhand grip.",
+      "Pull yourself up; at the top, lean back and push the bar towards the hips while raising the straight body to horizontal, as in a front lever.",
+      "Swing the body back under the bar into the top of the pull-up, lower yourself under control and repeat."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_L-Sit",
+    "name": "L-Sit",
+    "aliases": [
+      "l sit hold"
+    ],
+    "level": "intermediate",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "abdominals"
+    ],
+    "secondaryMuscles": [
+      "triceps",
+      "quadriceps"
+    ],
+    "instructions": [
+      "Sit between two parallel bars, two handles or on the floor, with the hands next to the hips.",
+      "Press down with straight arms to lift the body, and raise the straight legs in front until they are level with the hips.",
+      "Hold for the time set, shoulders down, then lower yourself."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_L-Sit_Pull-Up",
+    "name": "L-Sit Pull-Up",
+    "aliases": [
+      "l pull-up",
+      "pull-up with legs raised"
+    ],
+    "level": "intermediate",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "lats"
+    ],
+    "secondaryMuscles": [
+      "abdominals",
+      "biceps"
+    ],
+    "instructions": [
+      "Hang from a pull-up bar and raise your straight legs in front of you until they are level with the hips, forming an L.",
+      "Keeping the legs up, pull yourself up until the chin is over the bar.",
+      "Lower yourself under control without dropping the legs, and repeat."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Pike_Push-Up",
+    "name": "Pike Push-Up",
+    "aliases": [
+      "pike push up"
+    ],
+    "level": "beginner",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "triceps"
+    ],
+    "instructions": [
+      "Start in a push-up position, then walk the feet towards the hands and lift the hips until the body forms an upside-down V.",
+      "Bend the elbows to lower the top of the head towards the floor between the hands.",
+      "Push back up to straight arms and repeat."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Shoulder_Dislocates",
+    "name": "Shoulder Dislocates",
+    "aliases": [
+      "stick pass-throughs",
+      "shoulder pass-throughs"
+    ],
+    "level": "beginner",
+    "category": "stretching",
+    "equipment": "other",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "chest"
+    ],
+    "instructions": [
+      "Hold a stick or a band in front of the hips with a wide overhand grip.",
+      "With straight arms, raise it over the head and carry it behind the back as far as the hips.",
+      "Bring it back to the front the same way and repeat; narrow the grip as the shoulders loosen."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Shoulder_Opener",
+    "name": "Shoulder Opener Stretch",
+    "aliases": [
+      "shoulder opener",
+      "puppy pose"
+    ],
+    "level": "beginner",
+    "category": "stretching",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "chest",
+      "lats"
+    ],
+    "instructions": [
+      "Kneel and place your hands on a bench, a chair or the floor in front of you, arms straight and shoulder-width apart.",
+      "Sink the chest down between the arms, keeping the hips above the knees, until you feel the stretch in the shoulders.",
+      "Hold for the time set, breathing deeply."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Skin_The_Cat",
+    "name": "Skin the Cat",
+    "aliases": [
+      "german hang rotation"
+    ],
+    "level": "intermediate",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "lats",
+      "abdominals"
+    ],
+    "instructions": [
+      "Hang from a bar or rings with straight arms.",
+      "Tuck the knees and rotate backwards, passing the legs between the arms, until you hang behind them in a German hang as far as the shoulders allow.",
+      "Rotate back the same way to the hang and repeat."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Toes-To-Bar",
+    "name": "Toes-to-Bar",
+    "aliases": [
+      "t2b",
+      "toes to bar"
+    ],
+    "level": "intermediate",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "reps",
+    "primaryMuscles": [
+      "abdominals"
+    ],
+    "secondaryMuscles": [
+      "lats",
+      "forearms"
+    ],
+    "instructions": [
+      "Hang from a pull-up bar with an overhand grip.",
+      "Tighten the abdominals and raise the legs until the toes touch the bar.",
+      "Lower the legs under control, without swinging, and repeat."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Tuck_Planche",
+    "name": "Tuck Planche",
+    "aliases": [
+      "planche",
+      "tuck planche hold"
+    ],
+    "level": "expert",
+    "category": "strength",
+    "equipment": "body only",
+    "loggingType": "time",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "chest",
+      "triceps",
+      "abdominals"
+    ],
+    "instructions": [
+      "Place your hands on the floor or on parallettes, shoulder-width apart, fingers turned slightly out.",
+      "Lean forward over the hands with straight arms and lift the feet, keeping the knees tucked to the chest and the back rounded.",
+      "Hold for the time set, then lower the feet."
+    ],
+    "images": []
+  },
+  {
+    "id": "AtleoPlan_Two-Arm_Kettlebell_Swing",
+    "name": "Two-Arm Kettlebell Swing",
+    "aliases": [
+      "kettlebell swing",
+      "russian swing"
+    ],
+    "level": "beginner",
+    "category": "strength",
+    "equipment": "kettlebells",
+    "loggingType": "weight_reps",
+    "primaryMuscles": [
+      "hamstrings"
+    ],
+    "secondaryMuscles": [
+      "glutes",
+      "lower back",
+      "shoulders"
+    ],
+    "instructions": [
+      "Stand with the feet a little wider than the hips and hold a kettlebell with both hands, arms straight.",
+      "Hinge at the hips, letting the kettlebell swing back between the legs, then drive the hips forward to swing it to chest height.",
+      "Let it fall back into the next swing, keeping the back flat, and repeat."
+    ],
+    "images": []
+  }
+]
