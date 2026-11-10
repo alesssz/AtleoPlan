@@ -210,7 +210,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - One card per plan: name, number of days, last used, **Active** and **Shared** badges.
 - The active plan is always first.
 - **New plan**; a **Templates** section with public plans to duplicate.
-- **Import plan**, outlined beside New plan: a file saved by a plan's **Export** (D1.4.7), from this server or another, becomes a new plan, and its page opens saying "Plan imported", with the exercises that were not here and are now the user's own, by name. A file that is not a plan says so under the button.
+- **Import plan**, outlined beside New plan, opens a window: what file it wants (one saved by a plan's **Export**, D1.4.7, ending in `.atleoplan.json`), and that the plan arrives as a new one, changing nothing; **Choose the file**. The file is looked at on the device first: too big (over 1 MB), not JSON, not a plan, or a plan from a later version of the app is said in the window, and nothing is sent. A plan shows a preview, "Calisthenics · 3 days · 23 exercises" and the file's name, with **Import** and **Choose another file**. After Import, the new plan's page opens saying "Plan imported", with the exercises that were not here and are now the user's own, by name.
 - Archived plans behind a filter of their own.
 - Built in FEAT-2, without what needs a later feature: Templates and the Shared badge for phase 2. Import plan came with `feat/plan-import-export` ([C1.15.6](../concepts/C1-frontend.md#c1156-a-plan-as-a-file-export-and-import)). "Last used" ("Used 3 days ago", from the plan's latest finished workout) came once workouts existed (`fix/loose-ends`) ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
 

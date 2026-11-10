@@ -16,8 +16,8 @@ const routes = [
   { path: 'plans/:id', element: <p>a plan</p> },
 ]
 
-/** A plan file, as a plan's Export saves it. */
-const planFile = { format: 'atleoplan.plan', version: 1, plan: { name: 'Calisthenics', days: [] }, exercises: [] }
+/** A plan file, as a plan's Export saves it: two days, three exercises in all. */
+const planFile = { format: 'atleoplan.plan', version: 1, plan: { name: 'Calisthenics', days: [{ name: 'Day A', items: [{}, {}] }, { name: 'Day B', items: [{}] }] }, exercises: [] }
 
 /**
  * The file input of Import plan: hidden, so not found by role.
@@ -28,7 +28,7 @@ function fileInput(): HTMLInputElement {
 }
 
 describe('PlansPage', () => {
-  it('imports a plan file: sent as it is, then the new plan opens', async () => {
+  it('imports a plan file in a window: what is expected, the preview, then Import', async () => {
     const fake = fakeApi({
       'GET /api/plans': { status: 200, body: { data: [] } },
       'POST /api/plans/import': { status: 201, body: { data: testPlan({ id: 'plan-new' }), meta: { created_exercises: [] } } },
@@ -36,34 +36,51 @@ describe('PlansPage', () => {
     const { router } = renderRoutes(routes, '/plans')
     const user = userEvent.setup()
 
-    // upload(): what choosing a file in the browser's picker does
-    await screen.findByRole('button', { name: 'Import plan' })
-    await user.upload(fileInput(), new File([JSON.stringify(planFile)], 'calisthenics.atleoplan.json', { type: 'application/json' }))
+    // The window says what file it wants before any is chosen
+    await user.click(await screen.findByRole('button', { name: 'Import plan' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Import a plan' })
+    expect(within(dialog).getByText(/its name ends in \.atleoplan\.json/)).toBeInTheDocument()
 
+    // upload(): what choosing a file in the browser's picker does. The
+    // preview, and nothing sent yet
+    await user.upload(fileInput(), new File([JSON.stringify(planFile)], 'calisthenics.atleoplan.json', { type: 'application/json' }))
+    expect(await within(dialog).findByText('Calisthenics')).toBeInTheDocument()
+    expect(within(dialog).getByText('2 days · 3 exercises')).toBeInTheDocument()
+    expect(within(dialog).getByText('calisthenics.atleoplan.json')).toBeInTheDocument()
+    // mock.calls: every call of the fake fetch, its arguments as a list;
+    // none to the import's address yet
+    expect(fake.mock.calls.some(([path]) => path === '/api/plans/import')).toBe(false)
+
+    // Import: sent as it is, then the new plan opens
+    await user.click(within(dialog).getByRole('button', { name: 'Import' }))
     expect(await screen.findByText('a plan')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/plans/plan-new')
     expect(sentBody(fake, '/api/plans/import')).toEqual(planFile)
   })
 
-  it('says so when the file is not a plan: not JSON, or refused by the server', async () => {
+  it('says why a file is not imported: in the browser first, then the server', async () => {
     const fake = fakeApi({
       'GET /api/plans': { status: 200, body: { data: [] } },
-      'POST /api/plans/import': { status: 422, body: { message: 'Invalid.', errors: { format: ['The selected format is invalid.'] } } },
+      'POST /api/plans/import': { status: 422, body: { message: 'Invalid.', errors: { 'plan.days.0.items.0.sets.0.target_reps_max': ['Too small.'] } } },
     })
     renderRoutes(routes, '/plans')
     const user = userEvent.setup()
-    await screen.findByRole('button', { name: 'Import plan' })
+    await user.click(await screen.findByRole('button', { name: 'Import plan' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Import a plan' })
 
-    // Not JSON at all: nothing is sent. A .json name, or upload() would
-    // refuse it as the browser's picker does, by the input's `accept`
-    await user.upload(fileInput(), new File(['name;sets'], 'plan.json', { type: 'application/json' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('This file is not a plan exported from AtleoPlan.')
+    // Not JSON, then another app's JSON: said at once, nothing sent. A
+    // .json name, or upload() would refuse it as the browser's picker
+    // does, by the input's `accept`
+    await user.upload(fileInput(), new File(['day;exercise;sets'], 'plan.json', { type: 'application/json' }))
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('it is not even a JSON file')
+    await user.upload(fileInput(), new File([JSON.stringify({ ...planFile, format: 'chronovault.export' })], 'other.json', { type: 'application/json' }))
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('This file is not a plan exported from AtleoPlan.')
+    expect(fake.mock.calls.some(([path]) => path === '/api/plans/import')).toBe(false)
 
-    // JSON, but refused (422)
-    await user.upload(fileInput(), new File([JSON.stringify({ format: 'something else' })], 'other.json', { type: 'application/json' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('This file is not a plan exported from AtleoPlan.')
-    // Only the second reached the server
-    expect(fake.mock.calls.filter(([path]) => path === '/api/plans/import')).toHaveLength(1)
+    // A plan file with a value the backend refuses (422)
+    await user.upload(fileInput(), new File([JSON.stringify(planFile)], 'edited.atleoplan.json', { type: 'application/json' }))
+    await user.click(await within(dialog).findByRole('button', { name: 'Import' }))
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('it may have been edited by hand')
   })
 
   it('shows each plan as a card: name, goal, days, when it was last used, and the Active badge', async () => {

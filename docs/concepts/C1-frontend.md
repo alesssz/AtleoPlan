@@ -140,7 +140,7 @@ frontend/
     │   ├── exercises/        pieces of the library: ExerciseListItem, ExerciseFilters, ExercisePhotos, ExerciseForm and exercise-form.ts (C1.14)
     │   ├── plans/            pieces of the plan screens: PlanCard, PlanDayView, PlanItemRow, and plan-format.ts, the summary of an exercise (C1.15);
     │   │                     plan-draft.ts, the editor's draft and reducer, draft-storage.ts (C1.16);
-    │   │                     SetTypeSelect (C1.16.9); ExportPlanButton, ImportPlanButton, a plan as a file (C1.15.6)
+    │   │                     SetTypeSelect (C1.16.9); ExportPlanButton, ImportPlanButton, plan-file.ts: a plan as a file (C1.15.6)
     │   │   └── editor/         the plan editor: PlanEditor, EditorDay, EditorItem, EditorSet, ExercisePicker (C1.16)
     │   ├── workout/          workout mode: WorkoutScreen, SetRow, RestBar, clock.ts; workout-session.ts, the workout and its reducer;
     │   │                     session-storage.ts, the workout and the queue kept on the phone (C1.17);
@@ -934,20 +934,32 @@ fakeApi({
 
 **Saving a file from the browser** (`lib/download.ts`, `downloadJson()`): the JSON text goes into a **Blob**, a file held in memory; `URL.createObjectURL(blob)` gives it an address, `blob:…`; a link made by the code, with that address and `download="push-pull-legs.atleoplan.json"`, is clicked, and the browser saves instead of opening. `URL.revokeObjectURL()` frees the memory. No mutation and no cache: `fetchPlanFile(id)` asks for the file when the button is tapped. `fileNameOf()` makes the plan's name safe for a file.
 
-**Choosing a file** is the browser's own picker, an `<input type="file" accept=".json,application/json">`, hidden (`className="hidden"`), which the button clicks through a ref (`input.current?.click()`). Then:
+**Import plan is a window in three steps** (`ImportPlanButton`, a controlled `Dialog`), so that nothing is sent by surprise: what file it wants and what will happen; **Choose the file**; the preview and **Import**. Closing the window forgets the file (`changeOpen(false)`).
+
+**Choosing a file** is the browser's own picker, an `<input type="file" accept=".json,application/json">`, hidden (`className="hidden"`), which the button clicks through a ref (`input.current?.click()`).
+
+**A first look in the browser** (`components/plans/plan-file.ts`, plain functions): `readPlanFile(text, bytes)` answers either the content with a summary, or the problem, each said in its own words.
 
 ```ts
-content = JSON.parse(await file.text())           // not JSON: "This file is not a plan…"
-const imported = await importPlan.mutateAsync(content)
-void navigate(`/plans/${imported.plan.id}`, { state: { createdExercises: imported.createdExercises } })
+const reading = readPlanFile(text, file.size)
+if (reading.ok) setChosen({ fileName: file.name, summary: reading.summary, content: reading.content })
+else setError(t(`plans.import.problems.${reading.problem}`))   // tooBig, notJson, notPlan, newer
 ```
 
-- **The browser only reads and parses;** the backend checks everything. A 422 says the same as a file that is not JSON; any other failure says "try again".
+| Problem | When |
+|---|---|
+| `tooBig` | Over 1 MB (`MAX_PLAN_FILE_BYTES`), from `file.size` alone: the file is not even read. The largest plan the rules allow is about a third of it |
+| `notJson` | `JSON.parse()` throws |
+| `notPlan` | Not an object with `format: "atleoplan.plan"`, a version 1, a plan with a name and days that are objects with a list of items |
+| `newer` | Our format, a version above the one this app reads: "update the app" |
+
+- **The result is a discriminated union,** `{ ok: true, content, summary } | { ok: false, problem }`: after `if (reading.ok)` TypeScript knows which fields are there. `isObject()` is a **type guard**: its return type, `value is Record<string, unknown>`, tells TypeScript what the value is when it returns true, so `content.format` can be read.
+- **Only a first look:** the backend checks every field (`ImportPlanRequest`), and stays the one that decides. A 422 after Import says the file "looks like a plan, but holds values that are not valid: it may have been edited by hand"; any other failure says "try again".
 - **`event.target.value = ''`** empties the input after each choice: choosing the same file again, after an error, fires `change` again.
 - **The new plan's page says what happened,** from the history entry's `state`, as the editor's save does with `changedElsewhere` (C1.16.5): "Plan imported. 2 exercises were missing and are now among yours: Frog stand, L-sit." The text has a plural (`plans.import.created_one`, `_other`, from `count`).
 - **The library is read again** when exercises were created (`invalidateQueries({ queryKey: exerciseKeys.all })`), with the plans.
 
-**Testing it.** `PlanDetailPage.test.tsx`: jsdom saves no file and has no `URL.createObjectURL`; the test gives one that keeps the Blob, and replaces every link's `click()` with `vi.spyOn(HTMLAnchorElement.prototype, 'click')`; `click.mock.contexts[0]` is the link it was called on, whose `download` and `href` are checked, and the Blob's text is the file. `PlansPage.test.tsx`: `user.upload(input, new File([…], 'plan.json'))` chooses a file as the picker does; it honours `accept`, so a file named `.csv` would never arrive. `vi.restoreAllMocks()` after each test puts the spied method back.
+**Testing it.** `PlanDetailPage.test.tsx`: jsdom saves no file and has no `URL.createObjectURL`; the test gives one that keeps the Blob, and replaces every link's `click()` with `vi.spyOn(HTMLAnchorElement.prototype, 'click')`; `click.mock.contexts[0]` is the link it was called on, whose `download` and `href` are checked, and the Blob's text is the file. `PlansPage.test.tsx`: the window's text, then `user.upload(input, new File([…], 'plan.json'))`, which chooses a file as the picker does (it honours `accept`, so a file named `.csv` would never arrive); the preview, and no request until Import; the problems said in the window with nothing sent, then a 422. `plan-file.test.ts`: the summary, and each problem. `vi.restoreAllMocks()` after each test puts the spied method back.
 
 ## C1.16 The plan editor
 

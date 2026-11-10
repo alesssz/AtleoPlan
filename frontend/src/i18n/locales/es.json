@@ -279,11 +279,25 @@
     },
     "import": {
       "button": "Importar rutina",
-      "invalid": "Este archivo no es una rutina exportada de AtleoPlan.",
       "failed": "No se pudo importar la rutina. Inténtalo de nuevo.",
       "done": "Rutina importada.",
       "created_one": "Faltaba {{count}} ejercicio y se ha creado entre los tuyos: {{names}}.",
-      "created_other": "Faltaban {{count}} ejercicios y se han creado entre los tuyos: {{names}}."
+      "created_other": "Faltaban {{count}} ejercicios y se han creado entre los tuyos: {{names}}.",
+      "title": "Importar una rutina",
+      "description": "Elige un archivo creado con «Exportar» en la página de una rutina: su nombre termina en .atleoplan.json. La rutina llega como nueva; nada de lo que tienes cambia. Los ejercicios que faltan aquí se crean entre los tuyos.",
+      "choose": "Elegir el archivo",
+      "chooseAnother": "Elegir otro archivo",
+      "confirm": "Importar",
+      "cancel": "Cancelar",
+      "summary_one": "{{days}} · {{count}} ejercicio",
+      "summary_other": "{{days}} · {{count}} ejercicios",
+      "refused": "El archivo parece una rutina, pero contiene valores no válidos: quizá se editó a mano.",
+      "problems": {
+        "tooBig": "El archivo es demasiado grande para ser una rutina (1 MB como máximo).",
+        "notJson": "Este archivo no es una rutina exportada de AtleoPlan: ni siquiera es un archivo JSON.",
+        "notPlan": "Este archivo no es una rutina exportada de AtleoPlan.",
+        "newer": "Esta rutina viene de una versión más reciente de AtleoPlan: actualiza la app e inténtalo de nuevo."
+      }
     }
   },
   "exercises": {

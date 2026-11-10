@@ -279,11 +279,25 @@
     },
     "import": {
       "button": "Plan importieren",
-      "invalid": "Diese Datei ist kein aus AtleoPlan exportierter Plan.",
       "failed": "Der Plan konnte nicht importiert werden. Versuche es noch einmal.",
       "done": "Plan importiert.",
       "created_one": "{{count}} Übung fehlte und wurde bei deinen angelegt: {{names}}.",
-      "created_other": "{{count}} Übungen fehlten und wurden bei deinen angelegt: {{names}}."
+      "created_other": "{{count}} Übungen fehlten und wurden bei deinen angelegt: {{names}}.",
+      "title": "Plan importieren",
+      "description": "Wähle eine Datei, die mit „Exportieren“ auf der Seite eines Plans erstellt wurde: Ihr Name endet auf .atleoplan.json. Der Plan kommt als neuer Plan an; nichts von dem, was du hast, ändert sich. Übungen, die hier fehlen, werden bei deinen angelegt.",
+      "choose": "Datei wählen",
+      "chooseAnother": "Andere Datei wählen",
+      "confirm": "Importieren",
+      "cancel": "Abbrechen",
+      "summary_one": "{{days}} · {{count}} Übung",
+      "summary_other": "{{days}} · {{count}} Übungen",
+      "refused": "Die Datei sieht wie ein Plan aus, enthält aber ungültige Werte: Vielleicht wurde sie von Hand bearbeitet.",
+      "problems": {
+        "tooBig": "Die Datei ist zu groß für einen Plan (höchstens 1 MB).",
+        "notJson": "Diese Datei ist kein aus AtleoPlan exportierter Plan: Sie ist nicht einmal eine JSON-Datei.",
+        "notPlan": "Diese Datei ist kein aus AtleoPlan exportierter Plan.",
+        "newer": "Dieser Plan stammt aus einer neueren Version von AtleoPlan: Aktualisiere die App und versuche es noch einmal."
+      }
     }
   },
   "exercises": {

@@ -157,6 +157,7 @@
   - [H3.26.7 Looking at it](#h3267-looking-at-it)
   - [H3.26.8 Checking in the browser](#h3268-checking-in-the-browser)
   - [H3.26.9 The checks](#h3269-the-checks)
+  - [H3.26.10 Later: a window before importing](#h32610-later-a-window-before-importing)
 
 ---
 
@@ -3753,7 +3754,8 @@ To move a real plan from the development server to production without writing it
 | `backend/tests/Feature/Plans/PlanFileTest.php` | New: 8 tests, 12 runs with the dataset |
 | `frontend/src/lib/download.ts` (+ test) | New: `downloadJson()`, `fileNameOf()` |
 | `frontend/src/api/plans.ts` | `fetchPlanFile()`, `useImportPlan()` |
-| `frontend/src/components/plans/ExportPlanButton.tsx`, `ImportPlanButton.tsx` | New: the two buttons |
+| `frontend/src/components/plans/ExportPlanButton.tsx`, `ImportPlanButton.tsx` | New: the two buttons; Import plan's window (H3.26.10) |
+| `frontend/src/components/plans/plan-file.ts` (+ test) | New: the file looked at in the browser before it is sent (H3.26.10) |
 | `frontend/src/pages/PlanDetailPage.tsx`, `PlansPage.tsx` (+ tests) | The buttons; the banner after an import |
 | `frontend/src/i18n/locales/*.json` | `plans.detail.export`, `exportError`, `plans.import.*` |
 
@@ -3922,6 +3924,53 @@ npx vitest run
 ```
 
 Then `make toc` and `make check`.
+
+### H3.26.10 Later: a window before importing
+
+The first Import plan opened the picker at once and sent whatever was chosen: the backend refused anything that was not a plan, but nothing said beforehand what file it wanted, and nothing showed what was about to be imported. Now a window ([C1.15.6](../concepts/C1-frontend.md#c1156-a-plan-as-a-file-export-and-import)):
+
+1. **`plan-file.ts` first,** plain functions and their test, with no React: `readPlanFile(text, bytes)` and the four problems.
+2. **`ImportPlanButton` rewritten** as a controlled `Dialog`: the text of what is expected, Choose the file, the preview, Import. The hidden input and the request stay as they were.
+3. **The texts:** `plans.import.title`, `description`, `choose`, `chooseAnother`, `confirm`, `cancel`, `summary` (with a plural, and the days from `plans.days`), `refused`, `problems.*`; `plans.import.invalid` went.
+4. **The tests** of the page rewritten for the window.
+
+```sh
+npx vitest run src/pages/PlansPage.test.tsx src/components/plans/plan-file.test.ts
+```
+
+```
+      Tests  9 passed (9)
+```
+
+**A test that passed for the wrong reason, again** (as in H3.26.4). Broken on purpose, the format no longer checked, both tests still passed: the "file of another app" was `{ format: 'chronovault.export', version: 1 }`, refused anyway because it had no plan inside. The tests now use a real plan file with only its format changed, `{ ...file, format: 'chronovault.export' }`, and the same break gives:
+
+```
+     × names the problem of anything else 5ms
+     × says why a file is not imported: in the browser first, then the server 1199ms
+      Tests  2 failed | 7 passed (9)
+```
+
+**Looking at it.** The photos were taken as in H3.24.7, the window opened by a script, and the file "chosen" from the script too: a `DataTransfer` holds a `File`, its `files` are given to the input, and a `change` event makes React read it.
+
+```ts
+const data = new DataTransfer()
+data.items.add(new File([JSON.stringify(plan)], 'calisthenics-dal-pdf.atleoplan.json', { type: 'application/json' }))
+input.files = data.files
+input.dispatchEvent(new Event('change', { bubbles: true }))
+```
+
+Inside the host page's two `<iframe>`s the window never appeared, whatever the delays; opening `page.html` itself, one window size at a time (`--window-size=1000,760`), it did. At 1000 px: the title, the text "Scegli un file creato con «Esporta» dalla pagina di una scheda: il nome finisce in .atleoplan.json…", **Scegli il file** lime and **Annulla**; then the preview "Calisthenics (dal PDF) · 3 giorni · 23 esercizi" and the file's name, **Importa** lime. At 360 the screenshot came out cut on the right: headless Chrome does not draw a window that narrow, which is why the photos go through `<iframe>`s. On a phone the buttons stack, **Importa** at the bottom (`DialogFooter` is a reversed column below 640 px).
+
+**Checking in the browser:** **Importa scheda**: the window and its text; a photo or a `.csv` renamed `.json`: "non è nemmeno un file JSON", nothing sent (the browser's Network tab shows no request); an exported plan: the preview; **Importa**: the plan's page.
+
+```sh
+npx vitest run
+```
+
+```
+ Test Files  30 passed (30)
+      Tests  253 passed (253)
+```
 
 ---
 

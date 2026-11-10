@@ -279,11 +279,25 @@
     },
     "import": {
       "button": "Importa scheda",
-      "invalid": "Questo file non è una scheda esportata da AtleoPlan.",
       "failed": "Impossibile importare la scheda. Riprova.",
       "done": "Scheda importata.",
       "created_one": "{{count}} esercizio non c'era ed è stato creato tra i tuoi: {{names}}.",
-      "created_other": "{{count}} esercizi non c'erano e sono stati creati tra i tuoi: {{names}}."
+      "created_other": "{{count}} esercizi non c'erano e sono stati creati tra i tuoi: {{names}}.",
+      "title": "Importa una scheda",
+      "description": "Scegli un file creato con «Esporta» dalla pagina di una scheda: il nome finisce in .atleoplan.json. La scheda arriva come nuova; nulla di quello che hai cambia. Gli esercizi che qui mancano vengono creati tra i tuoi.",
+      "choose": "Scegli il file",
+      "chooseAnother": "Scegli un altro file",
+      "confirm": "Importa",
+      "cancel": "Annulla",
+      "summary_one": "{{days}} · {{count}} esercizio",
+      "summary_other": "{{days}} · {{count}} esercizi",
+      "refused": "Il file sembra una scheda, ma contiene valori non validi: forse è stato modificato a mano.",
+      "problems": {
+        "tooBig": "Il file è troppo grande per essere una scheda (al massimo 1 MB).",
+        "notJson": "Questo file non è una scheda esportata da AtleoPlan: non è nemmeno un file JSON.",
+        "notPlan": "Questo file non è una scheda esportata da AtleoPlan.",
+        "newer": "Questa scheda viene da una versione più recente di AtleoPlan: aggiorna l'app e riprova."
+      }
     }
   },
   "exercises": {

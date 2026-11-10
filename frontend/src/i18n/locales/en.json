@@ -279,11 +279,25 @@
     },
     "import": {
       "button": "Import plan",
-      "invalid": "This file is not a plan exported from AtleoPlan.",
       "failed": "The plan could not be imported. Try again.",
       "done": "Plan imported.",
       "created_one": "{{count}} exercise was missing and is now among yours: {{names}}.",
-      "created_other": "{{count}} exercises were missing and are now among yours: {{names}}."
+      "created_other": "{{count}} exercises were missing and are now among yours: {{names}}.",
+      "title": "Import a plan",
+      "description": "Choose a file made with Export, on a plan's page: its name ends in .atleoplan.json. The plan arrives as a new one; nothing you have changes. Exercises missing here are created among yours.",
+      "choose": "Choose the file",
+      "chooseAnother": "Choose another file",
+      "confirm": "Import",
+      "cancel": "Cancel",
+      "summary_one": "{{days}} · {{count}} exercise",
+      "summary_other": "{{days}} · {{count}} exercises",
+      "refused": "The file looks like a plan, but holds values that are not valid: it may have been edited by hand.",
+      "problems": {
+        "tooBig": "This file is too big to be a plan (1 MB at most).",
+        "notJson": "This file is not a plan exported from AtleoPlan: it is not even a JSON file.",
+        "notPlan": "This file is not a plan exported from AtleoPlan.",
+        "newer": "This plan comes from a later version of AtleoPlan: update the app and try again."
+      }
     }
   },
   "exercises": {
