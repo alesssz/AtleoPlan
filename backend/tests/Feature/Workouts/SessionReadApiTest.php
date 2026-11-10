@@ -147,6 +147,24 @@ it('gives the sets of the last finished workout of each exercise', function () {
         ->and(array_column($byExercise[$squat->id]['sets'], 'reps'))->toBe([5, 5, 5]);
 });
 
+it('gives last time of each kind: done for reps, and done as fast as possible', function () {
+    $user = User::factory()->create();
+    $pushup = Exercise::factory()->create();
+    // Two days ago 50 in 1:12; yesterday 3 × 15, for reps
+    $race = workoutOf($user, $pushup, 2, [50]);
+    LoggedSet::query()->where('reps', 50)->update(['duration_seconds' => 72]);
+    $forReps = workoutOf($user, $pushup, 1, [15, 15, 15]);
+
+    $answer = collect($this->actingAs($user)->getJson("/api/sessions/last-sets?exercises={$pushup->id}")->assertOk()->json('data'));
+
+    // Two entries for the one exercise, each the latest of its kind
+    expect($answer)->toHaveCount(2)
+        ->and($answer->pluck('session_id')->all())->toEqualCanonicalizing([$race->id, $forReps->id]);
+    $timed = $answer->firstWhere('session_id', $race->id);
+    expect($timed['sets'][0]['duration_seconds'])->toBe(72)
+        ->and($timed['sets'][0]['reps'])->toBe(50);
+});
+
 it('does not count a workout in progress, deleted, skipped or someone else\'s', function () {
     $user = User::factory()->create();
     $bench = Exercise::factory()->create();

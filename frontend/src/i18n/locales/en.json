@@ -169,7 +169,8 @@
       "warmUps_other": "+ {{count}} warm-up",
       "max": "max",
       "rpe": "RPE {{value}}",
-      "changedElsewhere": "This plan was changed somewhere else in the meantime. Your version was saved over it."
+      "changedElsewhere": "This plan was changed somewhere else in the meantime. Your version was saved over it.",
+      "forTime": "as fast as possible"
     },
     "editor": {
       "newTitle": "New plan",
@@ -250,7 +251,9 @@
         "movedOver": "{{name}} is at position {{position}} of {{total}}.",
         "dropped": "{{name}} dropped at position {{position}} of {{total}}.",
         "cancelled": "Moving {{name}} was cancelled."
-      }
+      },
+      "forTime": "As fast as possible",
+      "forTimeHint": "The reps are fixed: in the workout, a stopwatch times how long they take."
     },
     "lastUsed": "Used {{when}}",
     "neverUsed": "Never used yet",
@@ -502,8 +505,13 @@
       "last": "Last time {{time}}",
       "stop": "Stop",
       "stopHint": "The time goes into the set, and the rest starts.",
-      "cancel": "Cancel, without saving the time"
-    }
+      "cancel": "Cancel, without saving the time",
+      "toBeat": "To beat {{time}}",
+      "over": "{{time}} over",
+      "goal_one": "{{count}} rep",
+      "goal_other": "{{count}} reps"
+    },
+    "repsInTime": "{{reps}} in {{time}}"
   },
   "summary": {
     "eyebrow": "Workout finished",

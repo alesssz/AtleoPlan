@@ -16,6 +16,13 @@ use Illuminate\Support\Facades\DB;
  * not deleted workout of the user in which it had at least one set, in any
  * plan (docs/design/D3-data-model.md D3.6.4).
  *
+ * **Of each kind.** An exercise done by reps can also be done as fast as
+ * possible (a plan item with `for_time`): its sets then have seconds too,
+ * "50 in 1:12". Last time's 3 × 15 says nothing about the time to beat, and
+ * the other way round, so each kind has its own last time: an exercise done
+ * both ways gets two entries, the latest with timed sets and the latest
+ * without. The app tells them apart by the sets (a set with seconds).
+ *
  * Used twice:
  * - by GET /api/sessions/last-sets, for workout mode's "Last" column, when a
  *   workout starts: the latest workout of all;
@@ -30,8 +37,9 @@ use Illuminate\Support\Facades\DB;
  *         "sets": [ …LoggedSetResource… ] } ]
  *
  * Two queries, whatever the number of exercises. The first uses Postgres's
- * `distinct on (exercise_id)`: of the rows sorted by exercise and then by
- * date, newest first, it keeps the first row of each exercise, its latest.
+ * `distinct on (exercise_id, timed)`: of the rows sorted by exercise, kind
+ * and then date, newest first, it keeps the first row of each exercise and
+ * kind, its latest.
  *
  * An action (docs/concepts/C2-backend.md C2.5.3), taken out of the
  * controller when the second use came (FEAT-4).
@@ -48,11 +56,16 @@ class FindLastSets
      */
     public function for(User $user, array $exerciseIds, ?WorkoutSession $before = null): array
     {
-        // One row per exercise: its latest exercise-of-a-session, with that
-        // session's id and start
+        // The kind of an exercise of a session, as SQL: true when one of its
+        // sets has seconds (timed, or done as fast as possible)
+        $timed = 'exists (select 1 from logged_sets as timed_sets where timed_sets.session_exercise_id = session_exercises.id and timed_sets.duration_seconds is not null)';
+
+        // One row per exercise and kind: its latest exercise-of-a-session,
+        // with that session's id and start. `distinct on` must repeat the
+        // first expressions of `order by`, so the kind is written twice
         $latest = DB::table('session_exercises')
             ->join('workout_sessions', 'workout_sessions.id', '=', 'session_exercises.workout_session_id')
-            ->selectRaw('distinct on (session_exercises.exercise_id) session_exercises.id, session_exercises.exercise_id, workout_sessions.id as session_id, workout_sessions.started_at')
+            ->selectRaw("distinct on (session_exercises.exercise_id, {$timed}) session_exercises.id, session_exercises.exercise_id, workout_sessions.id as session_id, workout_sessions.started_at")
             ->where('workout_sessions.user_id', $user->id)
             ->whereNotNull('workout_sessions.finished_at')
             // A query builder, not a model: SoftDeletes does not apply, so
@@ -66,6 +79,7 @@ class FindLastSets
             ->whereIn('session_exercises.exercise_id', $exerciseIds)
             ->whereExists(fn ($sets) => $sets->from('logged_sets')->whereColumn('logged_sets.session_exercise_id', 'session_exercises.id'))
             ->orderBy('session_exercises.exercise_id')
+            ->orderByRaw($timed)
             ->orderByDesc('workout_sessions.started_at')
             ->orderBy('session_exercises.position')
             ->get();

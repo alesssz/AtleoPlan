@@ -18,7 +18,8 @@ import type { Exercise, LoggingType } from '@/api/exercises'
 import type { Plan, PlanDay, PlanItem, PlanSet, SetType } from '@/api/plans'
 import type { LastSets, LoggedSet, SessionInput } from '@/api/sessions'
 import { formatNumber, type WeightUnit } from '@/lib/format'
-import { newId, parseDecimal, parseWhole, toKilograms } from '@/components/plans/plan-draft'
+import { hasTimedSets } from '@/components/history/compare'
+import { canBeForTime, newId, parseDecimal, parseWhole, toKilograms } from '@/components/plans/plan-draft'
 import { weightIn } from '@/components/plans/plan-format'
 
 /** One set of the workout: planned, or added; done or not yet. */
@@ -196,6 +197,29 @@ function setFrom(planned: PlanSet | null, last: LoggedSet | null, options: Pick<
 }
 
 /**
+ * Whether an exercise of the workout is done as fast as possible: its plan
+ * item says so (`for_time`, D1.4.8) and it counts reps. Its sets then have
+ * the reps and the seconds, and ▶ the stopwatch (C1.17.9).
+ * @param item the exercise of the workout
+ */
+export function isForTime(item: Pick<WorkoutExercise, 'plan_item' | 'exercise'>): boolean {
+  return item.plan_item?.for_time === true && canBeForTime(item.exercise.logging_type)
+}
+
+/**
+ * Last time's sets of an exercise, of the kind it is done now: timed (an
+ * exercise logged by time, or one done as fast as possible) or not. The
+ * API gives one last time of each kind (FindLastSets); 3 × 15 is no time
+ * to beat. Empty when never done that way, or offline.
+ * @param lastSets the answer of GET /api/sessions/last-sets
+ * @param exerciseId the exercise
+ * @param timed whether it is timed now
+ */
+function lastOfKind(lastSets: readonly LastSets[], exerciseId: number, timed: boolean): LoggedSet[] {
+  return lastSets.find(entry => entry.exercise_id === exerciseId && hasTimedSets(entry.sets) === timed)?.sets ?? []
+}
+
+/**
  * Starts a workout of a plan's day: every item becomes an exercise of the
  * workout, every planned set a set to do, and the clock starts.
  * @param plan the plan, as GET /api/plans/{id} sends it
@@ -210,8 +234,9 @@ export function startSession(plan: Plan, day: PlanDay, options: StartOptions): A
     plan_name: plan.name,
     day_name: day.name,
     exercises: day.items.map((item) => {
-      // Last time's sets of this exercise, if it was done before
-      const last = options.lastSets.find(entry => entry.exercise_id === item.exercise_id)?.sets ?? []
+      // Last time's sets of this exercise, done the same way, if it was
+      // done before: timed when logged by time or done as fast as possible
+      const last = lastOfKind(options.lastSets, item.exercise_id, item.exercise.logging_type === 'time' || isForTime({ plan_item: item, exercise: item.exercise }))
       // A planned item without sets still gets one row to tick
       const planned: (PlanSet | null)[] = item.sets.length > 0 ? item.sets : [null]
       return {
@@ -277,8 +302,9 @@ function emptySession(now: Date): ActiveSession {
  * @param options unit, default rest, language
  */
 export function exerciseFrom(exercise: Exercise, lastSets: LastSets[], options: Pick<StartOptions, 'unit' | 'language' | 'defaultRestSeconds'>): WorkoutExercise {
-  // Last time's sets of this exercise; empty when it was never done
-  const last = lastSets.find(entry => entry.exercise_id === exercise.id)?.sets ?? []
+  // Last time's sets of this exercise, not done for time (no plan says so
+  // here); empty when it was never done
+  const last = lastOfKind(lastSets, exercise.id, exercise.logging_type === 'time')
   return {
     id: newId(),
     exercise,
@@ -311,8 +337,9 @@ export function exerciseFrom(exercise: Exercise, lastSets: LastSets[], options: 
  * @param options unit and language
  */
 export function swappedExercise(current: WorkoutExercise, exercise: Exercise, lastSets: LastSets[], options: Pick<StartOptions, 'unit' | 'language'>): WorkoutExercise {
-  // The new exercise's sets of last time; empty when never done
-  const last = lastSets.find(entry => entry.exercise_id === exercise.id)?.sets ?? []
+  // The new exercise's sets of last time, of the kind the plan item asks
+  // for; empty when never done
+  const last = lastOfKind(lastSets, exercise.id, exercise.logging_type === 'time' || isForTime({ plan_item: current.plan_item, exercise }))
   return {
     ...current,
     exercise,
@@ -389,17 +416,19 @@ export function findSet(session: ActiveSession, setId: string): { exercise: numb
  * The weight may be left empty: on a weighted exercise, a set done with the
  * body alone; on a bodyweight one (pull-ups), no added weight. When typed,
  * it must read.
+ * Done as fast as possible, the seconds are needed too.
  * @param set the set
  * @param loggingType how its exercise is logged
+ * @param forTime whether it is done as fast as possible (isForTime)
  */
-export function canComplete(set: WorkoutSet, loggingType: LoggingType): boolean {
+export function canComplete(set: WorkoutSet, loggingType: LoggingType, forTime = false): boolean {
   // A value that reads as a number, not empty
   const isNumber = (value: number | null) => value !== null && !Number.isNaN(value)
   // The weight: empty, or a number
   const weightOk = set.weight.trim() === '' || isNumber(parseDecimal(set.weight))
   switch (loggingType) {
     case 'weight_reps':
-    case 'reps': return weightOk && isNumber(parseWhole(set.reps))
+    case 'reps': return weightOk && isNumber(parseWhole(set.reps)) && (!forTime || isNumber(parseWhole(set.seconds)))
     case 'time': return isNumber(parseWhole(set.seconds))
     case 'distance': return isNumber(parseWhole(set.meters))
   }
@@ -562,7 +591,7 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
         set.completed_at = null
         break
       }
-      if (!canComplete(set, exercise.exercise.logging_type)) break
+      if (!canComplete(set, exercise.exercise.logging_type, isForTime(exercise))) break
       set.done = true
       set.completed_at = action.now
       // A set ticked on a skipped exercise: it is being done after all
@@ -731,7 +760,8 @@ export function toSessionInput(session: ActiveSession, unit: WeightUnit, now: Da
           set_type: set.set_type,
           weight_kg: byReps && weight !== null ? toKilograms(weight, unit) : null,
           reps: byReps ? parseWhole(set.reps) : null,
-          duration_seconds: type === 'time' ? parseWhole(set.seconds) : null,
+          // A timed exercise's seconds, or the time of reps done as fast as possible
+          duration_seconds: type === 'time' || isForTime(item) ? parseWhole(set.seconds) : null,
           distance_meters: type === 'distance' ? parseWhole(set.meters) : null,
           completed_at: set.completed_at ?? session.started_at,
         }

@@ -50,6 +50,11 @@ export interface DraftItem {
   rest: string
   /** The user's notes; '' for none. */
   notes: string
+  /**
+   * Done as fast as possible (canBeForTime). Optional: a draft kept in the
+   * browser before this existed has none, which reads as false.
+   */
+  for_time?: boolean
   /** Its sets, in order. */
   sets: DraftSet[]
 }
@@ -209,6 +214,16 @@ export function newSet(loggingType: LoggingType): DraftSet {
 }
 
 /**
+ * Whether an exercise can be done "as fast as possible": only one that
+ * counts reps, so that its reps are the fixed amount and the time the
+ * result (D1.4.8). A timed or distance exercise already has one number.
+ * @param loggingType how the exercise is logged
+ */
+export function canBeForTime(loggingType: LoggingType): boolean {
+  return loggingType === 'weight_reps' || loggingType === 'reps'
+}
+
+/**
  * An exercise just added to a day: three sets, the user's default rest.
  * @param exercise the exercise, from the library
  */
@@ -219,6 +234,7 @@ export function newItem(exercise: Exercise): DraftItem {
     superset_group: null,
     rest: '',
     notes: '',
+    for_time: false,
     // Array.from({ length: 3 }, fn): a list of three, each made by fn
     sets: Array.from({ length: 3 }, () => newSet(exercise.logging_type)),
   }
@@ -268,6 +284,7 @@ export function draftFromPlan(plan: Plan, unit: WeightUnit, language: string): P
         superset_group: item.superset_group,
         rest: text(item.rest_seconds),
         notes: item.notes ?? '',
+        for_time: item.for_time,
         sets: item.sets.map(set => ({
           set_type: set.set_type,
           reps: set.target_reps_min === null ? '' : set.target_reps_min === set.target_reps_max ? String(set.target_reps_min) : `${set.target_reps_min}-${set.target_reps_max}`,
@@ -337,6 +354,9 @@ export function toPlanInput(draft: PlanDraft, unit: WeightUnit): PlanInput {
           superset_group: item.superset_group,
           rest_seconds: rest === null || Number.isNaN(rest) ? null : rest,
           notes: orNull(item.notes),
+          // Only where it makes sense: an exercise swapped for a timed one
+          // in the editor cannot keep it
+          for_time: item.for_time === true && canBeForTime(item.exercise.logging_type),
           sets: item.sets.map(set => setInput(set, item.exercise.logging_type, unit)),
         }
       }),
@@ -514,6 +534,7 @@ export type DraftAction
     | { type: 'moveItem', day: number, from: number, to: number }
     | { type: 'moveItemToDay', day: number, item: number, toDay: number }
     | { type: 'setItemField', day: number, item: number, field: 'rest' | 'notes', value: string }
+    | { type: 'setItemForTime', day: number, item: number, value: boolean }
     | { type: 'joinSuperset', day: number, items: number[] }
     | { type: 'leaveSuperset', day: number, item: number }
     | { type: 'addSet', day: number, item: number }
@@ -598,6 +619,11 @@ export function draftReducer(draft: PlanDraft, action: DraftAction): PlanDraft {
     case 'setItemField': {
       const item = day?.items[action.item]
       if (item) item[action.field] = action.value
+      break
+    }
+    case 'setItemForTime': {
+      const item = day?.items[action.item]
+      if (item) item.for_time = action.value
       break
     }
     case 'joinSuperset':

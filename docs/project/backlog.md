@@ -140,7 +140,7 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Recommended.** A, with the records of Progress: the badge mid-workout is the motivating moment, and the comparison is a few lines once the bests are known; the summary then shows the same badges.
 
-**Timed exercises have two kinds of best.** A hold (a dead hang, a plank) is better longer; a race against the clock ("50 push-ups as fast as possible", kept as one's own exercise logged by time since the stopwatch of `feat/set-types-rpe`, [C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set)) is better shorter. The exercise does not say which: the records of a timed exercise need a choice first, such as a flag on the exercise ("lower is better") or no records for time at all.
+**Two kinds of best with a time.** A hold (a dead hang, a plank, logged by time) is better longer. Reps done as fast as possible (a plan item's `for_time`, since `feat/for-time`, [C1.17.9](../concepts/C1-frontend.md#c1179-exercises-done-as-fast-as-possible)) are better with the same reps in less time, and the set says so itself: it has both `reps` and `duration_seconds`. The comparison with last time already follows this (`compare.ts`); the records should too, and keep the two kinds apart, as last time does.
 
 ### FEAT-6 Edit a past workout
 

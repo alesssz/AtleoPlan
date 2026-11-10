@@ -32,6 +32,7 @@ use Illuminate\Validation\Rules\Unique;
  *               "superset_group": 1,            or null
  *               "rest_seconds": 90,             or null: the user's default
  *               "notes": null,
+ *               "for_time": false,              true: as fast as possible
  *               "sets": [
  *                 { "set_type": "warm_up", "target_reps_min": 10, "target_reps_max": 10, "target_weight_kg": 40 },
  *                 { "set_type": "normal",  "target_reps_min": 8,  "target_reps_max": 10, "target_weight_kg": 80 }
@@ -106,6 +107,10 @@ abstract class PlanRequest extends FormRequest
             // Up to an hour; 0 is allowed: straight on to the next set
             'days.*.items.*.rest_seconds' => ['nullable', 'integer', 'between:0,3600'],
             'days.*.items.*.notes' => ['nullable', 'string', 'max:500'],
+            // As fast as possible: the reps fixed, the time the result
+            // (D3.5.3). Optional, false when missing, so an older app that
+            // does not send it still saves its plans
+            'days.*.items.*.for_time' => ['sometimes', 'boolean'],
             'days.*.items.*.sets' => ['present', 'array', 'max:20'],
 
             // The set's fields. Which of them make sense depends on how the

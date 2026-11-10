@@ -42,6 +42,8 @@ interface SetStepperProps {
   exerciseName: string
   /** How the exercise is logged: decides the fields. */
   loggingType: LoggingType
+  /** Done as fast as possible: the reps and the seconds (fieldsFor). */
+  forTime: boolean
   /** The user's weight unit. */
   unit: WeightUnit
   /** The user's weight step, as the API sends it ("2.50"). */
@@ -53,7 +55,7 @@ interface SetStepperProps {
 }
 
 /** The panel with the steppers of one set. */
-export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggingType, unit, weightStep, focus, onChange }: SetStepperProps) {
+export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggingType, forTime, unit, weightStep, focus, onChange }: SetStepperProps) {
   const { t, i18n } = useTranslation()
   // The interface's language: decimal separator of the values and the steps
   const language = i18n.language
@@ -91,7 +93,7 @@ export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggin
             </SheetDescription>
           </SheetHeader>
 
-          {set && fieldsFor(loggingType, unit, t).map(({ field, label, spoken, placeholder, inputMode }) => {
+          {set && fieldsFor(loggingType, unit, t, forTime).map(({ field, label, spoken, placeholder, inputMode }) => {
             // How much a tap moves this field, and as the buttons write it
             const step = fieldStep(field, weightStep)
             const stepText = formatNumber(step, language, { maximumFractionDigits: 2 })

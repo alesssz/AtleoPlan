@@ -52,6 +52,7 @@ function editorBody(Exercise $first, Exercise $second): array
                     'superset_group' => 1,
                     'rest_seconds' => 90,
                     'notes' => 'Shoulder blades back',
+                    'for_time' => true,
                     'sets' => [
                         ['set_type' => 'warm_up', 'target_reps_min' => 10, 'target_reps_max' => 10, 'target_weight_kg' => 40],
                         ['set_type' => 'normal', 'target_reps_min' => 8, 'target_reps_max' => 10, 'target_weight_kg' => 82.5, 'target_rpe' => 8.5],
@@ -75,7 +76,10 @@ it('creates a whole plan, keeping the ids made on the device', function () {
         ->assertJsonPath('data.id', $body['id'])
         ->assertJsonPath('data.version', 1)
         ->assertJsonPath('data.days.0.items.*.id', array_column($body['days'][0]['items'], 'id'))
-        ->assertJsonPath('data.days.0.items.0.sets.1.target_weight_kg', '82.500');
+        ->assertJsonPath('data.days.0.items.0.sets.1.target_weight_kg', '82.500')
+        // As fast as possible on the first; the second sends nothing: false
+        ->assertJsonPath('data.days.0.items.0.for_time', true)
+        ->assertJsonPath('data.days.0.items.1.for_time', false);
 
     $plan = Plan::with('days.items.sets')->find($body['id']);
     $item = $plan->days[0]->items[0];

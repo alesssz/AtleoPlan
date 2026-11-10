@@ -31,6 +31,7 @@ class PlanItemFactory extends Factory
             'superset_group' => null,
             'rest_seconds' => 90,
             'notes' => null,
+            'for_time' => false,
         ];
     }
 }

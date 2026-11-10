@@ -55,6 +55,11 @@ export interface PlanItem {
   rest_seconds: number | null
   /** The user's notes, such as "Shoulder blades back"; null for none. */
   notes: string | null
+  /**
+   * Done as fast as possible: the reps are fixed, the time taken is the
+   * result (50 push-ups in 1:12). Only on an exercise logged by reps.
+   */
+  for_time: boolean
   /** The exercise, as the library sends it; there also when it was deleted since. */
   exercise: Exercise
   /** Its sets, in order, warm-ups included. */
@@ -213,6 +218,8 @@ export interface PlanItemInput {
   rest_seconds: number | null
   /** Up to 500 characters; null for none. */
   notes: string | null
+  /** As fast as possible; false on an exercise not logged by reps. */
+  for_time: boolean
   /** The sets, in order; at most 20. */
   sets: PlanSetInput[]
 }

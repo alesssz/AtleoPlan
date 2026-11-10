@@ -653,6 +653,7 @@ Schema::create('plan_days', function (Blueprint $table) {
 | `superset_group` | smallint, nullable | Items of a day with the same number form a superset |
 | `rest_seconds` | integer, nullable | Empty: the user's `default_rest_seconds` |
 | `notes` | text, nullable | "Shoulder blades back" |
+| `for_time` | boolean, default false | Done as fast as possible: the reps of its sets are a fixed amount, the time taken is the result ([D1.4.8](D1-ui.md#d148-plan-editor)). Meaningful only for an exercise counted in reps; the editor sends false otherwise |
 | `created_at`, `updated_at` | | |
 
 ```php
@@ -666,6 +667,11 @@ Schema::create('plan_items', function (Blueprint $table) {
     $table->text('notes')->nullable();
     $table->timestamps();
     $table->index(['plan_day_id', 'position']);
+});
+
+// With feat/for-time: …_add_for_time_to_plan_items_table.php (H3.25.2)
+Schema::table('plan_items', function (Blueprint $table) {
+    $table->boolean('for_time')->default(false);
 });
 ```
 
@@ -892,7 +898,7 @@ Schema::create('session_exercises', function (Blueprint $table) {
 | `set_type` | enum `normal`, `warm_up`, `drop`, `failure` | Warm-ups count neither for volume nor for records ([D2.8](D2-decisions.md#d28-workout-rules)) |
 | `weight_kg` | numeric(7,3), nullable | Check: not negative |
 | `reps` | integer, nullable | Check: not negative |
-| `duration_seconds` | integer, nullable | For `time` exercises |
+| `duration_seconds` | integer, nullable | For `time` exercises; and the time taken by reps done as fast as possible |
 | `distance_meters` | integer, nullable | For `distance` exercises |
 | `completed_at` | timestampTz | The moment of the tap |
 | `created_at`, `updated_at` | | |
@@ -919,12 +925,12 @@ DB::statement('ALTER TABLE logged_sets ADD CONSTRAINT logged_sets_reps_not_negat
 
 | `logging_type` | Filled | May be filled | Example |
 |---|---|---|---|
-| `weight_reps` | `reps` | `weight_kg`; empty for a set with the body alone | Bench press, 80 kg × 8; lunges without dumbbells, 12 |
-| `reps` | `reps` | `weight_kg`, the **added** weight (a belt with a plate); empty for the body alone | Pull-ups, 12; weighted pull-ups, +10 kg × 6 |
+| `weight_reps` | `reps` | `weight_kg`; empty for a set with the body alone. `duration_seconds`, done as fast as possible | Bench press, 80 kg × 8; lunges without dumbbells, 12 |
+| `reps` | `reps` | `weight_kg`, the **added** weight (a belt with a plate); empty for the body alone. `duration_seconds`, done as fast as possible | Pull-ups, 12; weighted pull-ups, +10 kg × 6; push-ups, 50 in 1:12 |
 | `time` | `duration_seconds` | – | Plank, 60 s |
 | `distance` | `distance_meters` | – | Rowing, 500 m |
 
-Every other value field stays empty. On a `reps` exercise `weight_kg` is what was added to the body, never the body's weight, which the app does not know. The rule lies across two tables, which a check constraint cannot see, so the Form Request enforces it.
+Every other value field stays empty. A set with both `reps` and `duration_seconds` was done as fast as possible (its plan item's `for_time`); the session keeps no flag of its own, the set says it. On a `reps` exercise `weight_kg` is what was added to the body, never the body's weight, which the app does not know. The rule lies across two tables, which a check constraint cannot see, so the Form Request enforces it.
 
 **Why the set type is here as well as in `plan_sets`.** The type can be changed during a workout ([D1.4.9](D1-ui.md#d149-workout-mode)), and what counts for statistics is what was really done.
 
@@ -950,6 +956,8 @@ WorkoutSession::query()                                // starts from the sessio
 ```
 
 Each row is shown next to the set in the same `position`.
+
+**Of each kind.** An exercise counted in reps may be done for reps one day and as fast as possible another. Last time's 3 × 15 is no time to beat, so last time is looked for among workouts where it was done **the same way**: timed (a set has `duration_seconds`) or not. `FindLastSets` keeps the latest of each exercise **and kind** (`distinct on (exercise_id, timed)`), so an exercise done both ways has two entries; the app picks the one of the kind it does now ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints), [C1.17.9](../concepts/C1-frontend.md#c1179-exercises-done-as-fast-as-possible)).
 
 **The suggested day** ([D2.8](D2-decisions.md#d28-workout-rules)) is the day after the last one completed, back to the first after the last:
 

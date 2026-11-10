@@ -50,7 +50,7 @@ import { SetHeader, SetRow } from './SetRow'
 import { SetStepper } from './SetStepper'
 import { StopwatchPanel } from './StopwatchPanel'
 import { FALLBACK_REST_SECONDS } from './useStartWorkout'
-import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, findSet, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, workoutReducer, type ActiveSession, type SetField } from './workout-session'
+import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, findSet, isForTime, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, workoutReducer, type ActiveSession, type SetField } from './workout-session'
 
 /**
  * The one touch the two "add" buttons, Add set and Add exercises, have
@@ -136,6 +136,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const cover = item?.exercise.photos[0]
   // The exercises of its superset, in order; just itself when alone
   const superset = supersetOf(session, index)
+  // Whether it is done as fast as possible: reps and seconds, the stopwatch
+  const forTime = item ? isForTime(item) : false
   // The on-screen numbers of its sets: W W 1 2 3, warm-ups counted apart
   const numbers = setNumbers(item?.sets ?? [])
   // The sets that count, done and in all, for the Finish dialog
@@ -366,7 +368,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
               )}
 
               {/* The sets: the column titles, then a row each */}
-              <SetHeader loggingType={item.exercise.logging_type} unit={unit} />
+              <SetHeader loggingType={item.exercise.logging_type} unit={unit} forTime={forTime} />
               <ol className={cn('flex flex-col gap-2 sm:gap-3', item.skipped && 'opacity-60')}>
                 {item.sets.map((set, position) => (
                   <SetRow
@@ -375,6 +377,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                     number={numbers[position] ?? { warmUp: false, number: position + 1 }}
                     loggingType={item.exercise.logging_type}
                     unit={unit}
+                    forTime={forTime}
                     onToggle={() => dispatch({ type: 'toggleSet', exercise: index, set: position, now: new Date().toISOString() })}
                     onOpenStepper={(field) => {
                       setStepping({ set: position, field })
@@ -393,6 +396,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                 name={stepName}
                 exerciseName={item.exercise.name}
                 loggingType={item.exercise.logging_type}
+                forTime={forTime}
                 unit={unit}
                 weightStep={user?.weight_step}
                 focus={stepping.field}
@@ -418,12 +422,15 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
       </main>
 
       {/* The stopwatch of a timed set, full screen, while it runs. Last
-          time's time as the clock shows it, "1:31" */}
+          time's time as the clock shows it, "1:31". Done as fast as
+          possible, it is a race: the target is a time to beat, and the
+          reps to do are named under the set */}
       {stopwatch && timedItem && timedSet && (
         <StopwatchPanel
           stopwatch={stopwatch}
           exerciseName={timedItem.exercise.name}
           setName={timedName}
+          race={isForTime(timedItem) ? { reps: Number(timedSet.reps) || null } : null}
           lastText={timedSet.last?.duration_seconds ? clock(timedSet.last.duration_seconds) : null}
           alarm={{ sound: user?.timer_sound ?? true, vibration: user?.timer_vibration ?? true }}
           onStop={() => dispatch({ type: 'stopStopwatch', now: new Date().toISOString() })}

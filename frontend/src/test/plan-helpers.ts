@@ -38,6 +38,7 @@ export function testPlanItem(changes: Partial<PlanItem> = {}): PlanItem {
     superset_group: null,
     rest_seconds: 90,
     notes: null,
+    for_time: false,
     exercise: testExercise(),
     sets: [
       testPlanSet({ set_type: 'warm_up', target_reps_min: 10, target_reps_max: 10, target_weight_kg: '40.000' }),
