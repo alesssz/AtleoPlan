@@ -76,9 +76,6 @@ abstract class PlanRequest extends FormRequest
      */
     public function rules(): array
     {
-        // The prefix of the fields of a set, to keep the lines short
-        $set = 'days.*.items.*.sets.*.';
-
         return [
             'name' => ['required', 'string', 'max:100'],
             'goal' => ['nullable', 'string', 'max:100'],
@@ -103,15 +100,38 @@ abstract class PlanRequest extends FormRequest
                 ->where(fn (Builder $query) => $query
                     ->whereNull('owner_id')
                     ->orWhere('owner_id', $this->user()->id))],
-            'days.*.items.*.superset_group' => ['nullable', 'integer', 'between:1,99'],
+            // The item's own values and its sets, shared with the import of a
+            // plan file (ImportPlanRequest). `...` spreads the array returned
+            // into this one; self:: calls a static method of this class
+            ...self::itemRules('days.*.items.*.'),
+        ];
+    }
+
+    /**
+     * The rules of an item's values and of its sets, for items at `$item`
+     * ("days.*.items.*."): the same in a plan sent by the editor and in a plan
+     * file being imported (ImportPlanRequest, docs/concepts/C2-backend.md
+     * C2.5.8). `static`: it needs no request, only the prefix, so another
+     * class calls it as `PlanRequest::itemRules('plan.days.*.items.*.')`.
+     *
+     * @param  string  $item  the prefix of an item's fields, ending with a dot
+     * @return array<string, array<int, mixed>>
+     */
+    public static function itemRules(string $item): array
+    {
+        // The prefix of the fields of a set, to keep the lines short
+        $set = $item.'sets.*.';
+
+        return [
+            $item.'superset_group' => ['nullable', 'integer', 'between:1,99'],
             // Up to an hour; 0 is allowed: straight on to the next set
-            'days.*.items.*.rest_seconds' => ['nullable', 'integer', 'between:0,3600'],
-            'days.*.items.*.notes' => ['nullable', 'string', 'max:500'],
+            $item.'rest_seconds' => ['nullable', 'integer', 'between:0,3600'],
+            $item.'notes' => ['nullable', 'string', 'max:500'],
             // As fast as possible: the reps fixed, the time the result
             // (D3.5.3). Optional, false when missing, so an older app that
             // does not send it still saves its plans
-            'days.*.items.*.for_time' => ['sometimes', 'boolean'],
-            'days.*.items.*.sets' => ['present', 'array', 'max:20'],
+            $item.'for_time' => ['sometimes', 'boolean'],
+            $item.'sets' => ['present', 'array', 'max:20'],
 
             // The set's fields. Which of them make sense depends on how the
             // exercise is logged (weight and reps, time…); the editor shows

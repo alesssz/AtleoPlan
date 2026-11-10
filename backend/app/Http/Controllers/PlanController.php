@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 // Imports: the action that saves, the three Form Requests, the resource, the
 // model, Gate (asks the policy), DB (for a transaction), and the request and
 // answer types
+use App\Actions\Plans\ExportPlan;
+use App\Actions\Plans\ImportPlan;
 use App\Actions\Plans\SavePlan;
+use App\Http\Requests\ImportPlanRequest;
 use App\Http\Requests\ListPlansRequest;
 use App\Http\Requests\StorePlanRequest;
 use App\Http\Requests\UpdatePlanRequest;
 use App\Http\Resources\PlanResource;
 use App\Models\Plan;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -241,5 +245,47 @@ class PlanController extends Controller
         $plan->save();
 
         return new PlanResource($plan->loadCount('days'));
+    }
+
+    /**
+     * GET /api/plans/{plan}/export: the plan as a file's content
+     * (ExportPlan), which the app saves as `<name>.atleoplan.json`. Plain
+     * JSON, not a resource: the file has its own shape, with no `data`
+     * around it, and is read back as it is.
+     *
+     * @param  Plan  $plan  the plan in the URL
+     * @param  ExportPlan  $export  builds the content
+     * @return JsonResponse the file's content
+     */
+    public function export(Plan $plan, ExportPlan $export): JsonResponse
+    {
+        // Someone else's plan: 403, as for reading it
+        Gate::authorize('view', $plan);
+
+        return response()->json($export->export($plan));
+    }
+
+    /**
+     * POST /api/plans/import: a plan file as a new plan (ImportPlan), with
+     * the exercises it had to create, by name, in `meta.created_exercises`.
+     * 201, as for a plan created by the editor.
+     *
+     * @param  ImportPlanRequest  $request  the file, validated
+     * @param  ImportPlan  $import  does the import
+     * @return JsonResponse the new plan, with the report
+     */
+    public function import(ImportPlanRequest $request, ImportPlan $import): JsonResponse
+    {
+        Gate::authorize('create', Plan::class);
+
+        $result = $import->import($request->user(), $request->validated());
+
+        // response(): the resource as an answer, to which the status is
+        // given (a resource alone would say 201 only for a model it saw
+        // being created)
+        return (new PlanResource($result['plan']->load(self::TREE)))
+            ->additional(['meta' => ['created_exercises' => $result['created']]])
+            ->response()
+            ->setStatusCode(201);
     }
 }

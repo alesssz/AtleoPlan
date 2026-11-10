@@ -40,6 +40,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.15.3 Tabs whose state is in the address](#c1153-tabs-whose-state-is-in-the-address)
   - [C1.15.4 Actions on a plan](#c1154-actions-on-a-plan)
   - [C1.15.5 Testing it](#c1155-testing-it)
+  - [C1.15.6 A plan as a file: export and import](#c1156-a-plan-as-a-file-export-and-import)
 - [C1.16 The plan editor](#c116-the-plan-editor)
   - [C1.16.1 The pieces](#c1161-the-pieces)
   - [C1.16.2 The draft and its reducer](#c1162-the-draft-and-its-reducer)
@@ -138,7 +139,8 @@ frontend/
     │   │                     feeling.ts, the five feelings (C1.19)
     │   ├── exercises/        pieces of the library: ExerciseListItem, ExerciseFilters, ExercisePhotos, ExerciseForm and exercise-form.ts (C1.14)
     │   ├── plans/            pieces of the plan screens: PlanCard, PlanDayView, PlanItemRow, and plan-format.ts, the summary of an exercise (C1.15);
-    │   │                     plan-draft.ts, the editor's draft and reducer, draft-storage.ts (C1.16)
+    │   │                     plan-draft.ts, the editor's draft and reducer, draft-storage.ts (C1.16);
+    │   │                     SetTypeSelect (C1.16.9); ExportPlanButton, ImportPlanButton, a plan as a file (C1.15.6)
     │   │   └── editor/         the plan editor: PlanEditor, EditorDay, EditorItem, EditorSet, ExercisePicker (C1.16)
     │   ├── workout/          workout mode: WorkoutScreen, SetRow, RestBar, clock.ts; workout-session.ts, the workout and its reducer;
     │   │                     session-storage.ts, the workout and the queue kept on the phone (C1.17);
@@ -152,7 +154,8 @@ frontend/
     │   ├── i18next.d.ts      makes translation keys type-checked
     │   └── locales/          it.json, en.json, es.json, de.json
     ├── lib/                plain helpers: http (fetch wrapper), query-client, form (server errors on a form), format (numbers, dates), week, utils (cn);
-    │                       pending-sessions (sending the queued workouts), alarm (beep and vibration);
+    │                       pending-sessions (sending the queued workouts), alarm (beep and vibration),
+    │                       download (a file saved from the browser, C1.15.6);
     │                       hooks: useDebouncedValue, useNow, useWakeLock, usePendingSessions
     ├── theme/              dark / light theme: logic, context, provider, hook
     └── test/               setup.ts runs before every test file; auth-helpers.tsx: a fake API and full-page rendering (C1.13); exercise-helpers.ts: exercises and lists to fake (C1.14); plan-helpers.ts: plans to fake (C1.15)
@@ -841,8 +844,8 @@ The plan list and a plan's page (the second part of FEAT-2, [D1.4.6](../design/D
 
 | Route | Page | Made of |
 |---|---|---|
-| `/plans`, `/plans?archived=1` | `PlansPage` | `PlanCard`, `EmptyState`, `ComingSoon`; `usePlans()` |
-| `/plans/:id`, `/plans/:id?day=2` | `PlanDetailPage` | `Tabs` (one per day), `PlanDayView` → `PlanItemRow`, `AlertDialog` to confirm a delete; `usePlan()`, `usePlanAction()`, `useDeletePlan()`, `useCurrentUser()` for the weight unit and the default rest |
+| `/plans`, `/plans?archived=1` | `PlansPage` | `PlanCard`, `EmptyState`, `ComingSoon`, `ImportPlanButton` (C1.15.6); `usePlans()`, `useImportPlan()` |
+| `/plans/:id`, `/plans/:id?day=2` | `PlanDetailPage` | `Tabs` (one per day), `PlanDayView` → `PlanItemRow`, `AlertDialog` to confirm a delete, `ExportPlanButton` (C1.15.6); `usePlan()`, `usePlanAction()`, `useDeletePlan()`, `useCurrentUser()` for the weight unit and the default rest |
 
 ```
 PlanDetailPage                 the plan: header, badges, actions, notes
@@ -924,6 +927,27 @@ fakeApi({
   The test then finds the Active badge, which proves the page read the plan again after the action.
 - **`GET /api/user`** is in the table of the plan page's tests, since the page asks for the user's unit; one test answers with `weight_unit: 'lb'`.
 
+
+### C1.15.6 A plan as a file: export and import
+
+**Export**, on a plan's page (`ExportPlanButton`), and **Import plan**, on the list (`ImportPlanButton`), both in `components/plans/`; the file's shape is [D3.5.8](../design/D3-data-model.md#d358-the-plan-file), the endpoints [C2.5.8](C2-backend.md#c258-a-plan-as-a-file).
+
+**Saving a file from the browser** (`lib/download.ts`, `downloadJson()`): the JSON text goes into a **Blob**, a file held in memory; `URL.createObjectURL(blob)` gives it an address, `blob:…`; a link made by the code, with that address and `download="push-pull-legs.atleoplan.json"`, is clicked, and the browser saves instead of opening. `URL.revokeObjectURL()` frees the memory. No mutation and no cache: `fetchPlanFile(id)` asks for the file when the button is tapped. `fileNameOf()` makes the plan's name safe for a file.
+
+**Choosing a file** is the browser's own picker, an `<input type="file" accept=".json,application/json">`, hidden (`className="hidden"`), which the button clicks through a ref (`input.current?.click()`). Then:
+
+```ts
+content = JSON.parse(await file.text())           // not JSON: "This file is not a plan…"
+const imported = await importPlan.mutateAsync(content)
+void navigate(`/plans/${imported.plan.id}`, { state: { createdExercises: imported.createdExercises } })
+```
+
+- **The browser only reads and parses;** the backend checks everything. A 422 says the same as a file that is not JSON; any other failure says "try again".
+- **`event.target.value = ''`** empties the input after each choice: choosing the same file again, after an error, fires `change` again.
+- **The new plan's page says what happened,** from the history entry's `state`, as the editor's save does with `changedElsewhere` (C1.16.5): "Plan imported. 2 exercises were missing and are now among yours: Frog stand, L-sit." The text has a plural (`plans.import.created_one`, `_other`, from `count`).
+- **The library is read again** when exercises were created (`invalidateQueries({ queryKey: exerciseKeys.all })`), with the plans.
+
+**Testing it.** `PlanDetailPage.test.tsx`: jsdom saves no file and has no `URL.createObjectURL`; the test gives one that keeps the Blob, and replaces every link's `click()` with `vi.spyOn(HTMLAnchorElement.prototype, 'click')`; `click.mock.contexts[0]` is the link it was called on, whose `download` and `href` are checked, and the Blob's text is the file. `PlansPage.test.tsx`: `user.upload(input, new File([…], 'plan.json'))` chooses a file as the picker does; it honours `accept`, so a file named `.csv` would never arrive. `vi.restoreAllMocks()` after each test puts the spied method back.
 
 ## C1.16 The plan editor
 

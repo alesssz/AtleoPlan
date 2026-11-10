@@ -70,6 +70,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/plans/{plan}/activate', [PlanController::class, 'activate']);
     Route::post('/plans/{plan}/archive', [PlanController::class, 'archive']);
     Route::post('/plans/{plan}/unarchive', [PlanController::class, 'unarchive']);
+    // A plan as a file, and a file as a new plan (docs/concepts/C2-backend.md
+    // C2.5.8). POST /plans/import does not meet the resource's routes: the
+    // resource has no POST on /plans/{plan}
+    Route::get('/plans/{plan}/export', [PlanController::class, 'export']);
+    Route::post('/plans/import', [PlanController::class, 'import']);
 
     // The workouts (docs/concepts/C2-backend.md C2.5.7). Written one by one:
     // saving is a PUT to the session's own UUID, made on the phone, which

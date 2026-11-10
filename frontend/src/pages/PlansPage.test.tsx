@@ -6,8 +6,8 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { fakeApi, renderRoutes } from '@/test/auth-helpers'
-import { testPlanSummary } from '@/test/plan-helpers'
+import { fakeApi, renderRoutes, sentBody } from '@/test/auth-helpers'
+import { testPlan, testPlanSummary } from '@/test/plan-helpers'
 import { PlansPage } from './PlansPage'
 
 /** The list, and a stand-in for the plan page its cards open. */
@@ -16,7 +16,56 @@ const routes = [
   { path: 'plans/:id', element: <p>a plan</p> },
 ]
 
+/** A plan file, as a plan's Export saves it. */
+const planFile = { format: 'atleoplan.plan', version: 1, plan: { name: 'Calisthenics', days: [] }, exercises: [] }
+
+/**
+ * The file input of Import plan: hidden, so not found by role.
+ * `!`: the test fails at once if it is not there.
+ */
+function fileInput(): HTMLInputElement {
+  return document.querySelector<HTMLInputElement>('input[type=file]')!
+}
+
 describe('PlansPage', () => {
+  it('imports a plan file: sent as it is, then the new plan opens', async () => {
+    const fake = fakeApi({
+      'GET /api/plans': { status: 200, body: { data: [] } },
+      'POST /api/plans/import': { status: 201, body: { data: testPlan({ id: 'plan-new' }), meta: { created_exercises: [] } } },
+    })
+    const { router } = renderRoutes(routes, '/plans')
+    const user = userEvent.setup()
+
+    // upload(): what choosing a file in the browser's picker does
+    await screen.findByRole('button', { name: 'Import plan' })
+    await user.upload(fileInput(), new File([JSON.stringify(planFile)], 'calisthenics.atleoplan.json', { type: 'application/json' }))
+
+    expect(await screen.findByText('a plan')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/plans/plan-new')
+    expect(sentBody(fake, '/api/plans/import')).toEqual(planFile)
+  })
+
+  it('says so when the file is not a plan: not JSON, or refused by the server', async () => {
+    const fake = fakeApi({
+      'GET /api/plans': { status: 200, body: { data: [] } },
+      'POST /api/plans/import': { status: 422, body: { message: 'Invalid.', errors: { format: ['The selected format is invalid.'] } } },
+    })
+    renderRoutes(routes, '/plans')
+    const user = userEvent.setup()
+    await screen.findByRole('button', { name: 'Import plan' })
+
+    // Not JSON at all: nothing is sent. A .json name, or upload() would
+    // refuse it as the browser's picker does, by the input's `accept`
+    await user.upload(fileInput(), new File(['name;sets'], 'plan.json', { type: 'application/json' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('This file is not a plan exported from AtleoPlan.')
+
+    // JSON, but refused (422)
+    await user.upload(fileInput(), new File([JSON.stringify({ format: 'something else' })], 'other.json', { type: 'application/json' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('This file is not a plan exported from AtleoPlan.')
+    // Only the second reached the server
+    expect(fake.mock.calls.filter(([path]) => path === '/api/plans/import')).toHaveLength(1)
+  })
+
   it('shows each plan as a card: name, goal, days, when it was last used, and the Active badge', async () => {
     // Used yesterday at noon, by the device's clock: always "yesterday"
     const now = new Date()

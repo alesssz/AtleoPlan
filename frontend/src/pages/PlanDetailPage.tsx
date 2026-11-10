@@ -46,6 +46,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ApiError } from '@/lib/http'
+import { ExportPlanButton } from '@/components/plans/ExportPlanButton'
+import type { PlanImportedState } from '@/components/plans/ImportPlanButton'
 import type { PlanSavedState } from '@/pages/PlanEditorPage'
 
 /** The plan page (route `/plans/:id`). */
@@ -101,7 +103,10 @@ function PlanDetail({ plan }: PlanDetailProps) {
   // What the editor passed when it opened this page after a save; null when
   // the page was opened any other way. useLocation(): the current address,
   // with the `state` given to navigate()
-  const state = useLocation().state as PlanSavedState | null
+  // An import (ImportPlanButton) passes the exercises it created instead.
+  // Partial<T>: T with every field optional, since either may be there;
+  // `&` joins the two types into one with the fields of both
+  const state = useLocation().state as (Partial<PlanSavedState> & Partial<PlanImportedState>) | null
   // The workout in progress on this phone, if any, read once
   const [active] = useState(loadActiveSession)
 
@@ -134,6 +139,16 @@ function PlanDetail({ plan }: PlanDetailProps) {
         {/* Saved over a version changed elsewhere: the last change won (D3.5.7) */}
         {state?.changedElsewhere && <FormBanner variant="error">{t('plans.detail.changedElsewhere')}</FormBanner>}
 
+        {/* Just imported from a file: said, with the exercises that were
+            not here and are now the user's own (C1.15.6) */}
+        {state?.createdExercises && (
+          <FormBanner variant="success">
+            {state.createdExercises.length > 0
+              ? `${t('plans.import.done')} ${t('plans.import.created', { count: state.createdExercises.length, names: state.createdExercises.join(', ') })}`
+              : t('plans.import.done')}
+          </FormBanner>
+        )}
+
         {/* A workout left in progress on this phone, of any plan: Resume */}
         {active && <ResumeBanner session={active} />}
 
@@ -165,6 +180,8 @@ function PlanDetail({ plan }: PlanDetailProps) {
             {archived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}
             {archived ? t('plans.detail.unarchive') : t('plans.detail.archive')}
           </Button>
+          {/* Export: the plan saved as a file (C1.15.6) */}
+          <ExportPlanButton plan={plan} />
           <DeletePlanButton plan={plan} />
         </div>
         {action.isError && <FormBanner variant="error">{t('plans.detail.actionError')}</FormBanner>}

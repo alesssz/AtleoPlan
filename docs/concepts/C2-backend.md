@@ -19,6 +19,7 @@ Every PHP file starts with a comment saying what it is and points to the section
   - [C2.5.4 The exercise library's endpoints](#c254-the-exercise-librarys-endpoints)
   - [C2.5.5 The plans' endpoints](#c255-the-plans-endpoints)
   - [C2.5.6 Validating nested data](#c256-validating-nested-data)
+  - [C2.5.8 A plan as a file](#c258-a-plan-as-a-file)
   - [C2.5.7 The workouts' endpoints](#c257-the-workouts-endpoints)
 - [C2.6 Database: migrations, models, factories, seeders](#c26-database-migrations-models-factories-seeders)
 - [C2.7 Signing in: Sanctum](#c27-signing-in-sanctum)
@@ -107,7 +108,7 @@ backend/
 ├── app/                    the application's own code (namespace App\)
 │   ├── Actions/              actions: one job of the app each, outside the controllers (C2.5.3)
 │   │   ├── Exercises/          SavePersonalExercise, ImportFreeExercise, TranslateExercise
-│   │   ├── Plans/              SavePlan: saves a whole plan (C2.5.5)
+│   │   ├── Plans/              SavePlan: saves a whole plan (C2.5.5); ExportPlan, ImportPlan: a plan as a file (C2.5.8)
 │   │   ├── Workouts/           SaveWorkoutSession, HomeSummary (C2.5.7)
 │   │   └── Fortify/            what Fortify leaves to us: creating a user, setting a new password (C2.7)
 │   ├── Console/Commands/     our own Artisan commands: exercises:import, exercises:translate (C2.14)
@@ -342,6 +343,8 @@ The workout plans' API, all under `auth:sanctum` ([D1.4.6](../design/D1-ui.md#d1
 | `POST /api/plans/{id}/activate` | Makes it the active plan, replacing the one before | 200; 403 someone else's or archived |
 | `POST /api/plans/{id}/archive` | Archives it; if it was the active plan, there is none any more | 200; 403 |
 | `POST /api/plans/{id}/unarchive` | Brings it back to the list, not active | 200; 403 |
+| `GET /api/plans/{id}/export` | The plan as a file's content ([C2.5.8](#c258-a-plan-as-a-file)) | 200; 403 |
+| `POST /api/plans/import` | A plan file as a new plan, with `meta.created_exercises` | 201; 422 not a plan file |
 
 **Actions as routes of their own.** `apiResource` gives the five routes that create, read, update and delete. Activating and archiving are none of those, so each gets a verb after the plan's address and `POST`, since it changes something. The alternative, `PATCH /api/plans/{id}` with `{"archived": true}`, would mix them into the whole-plan save, which has its own rules.
 
@@ -464,6 +467,27 @@ It is used like any rule: `'days.*.items' => ['present', 'array', new SupersetsA
 - **`validated()` keeps a list only through its items' validated fields.** A set sent as `{}` has no field with a rule, so the list `sets: [{}]` vanished from the validated data. Hence `set_type` is required.
 - **An id checked against "this plan" trusts what "this plan" is.** On a create, the days' ids are checked against the plan with the id sent; if that id is someone else's, the request is refused on `id` anyway.
 
+
+### C2.5.8 A plan as a file
+
+Export and import ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)): two endpoints of `PlanController`, an action each, `ExportPlan` and `ImportPlan` (`app/Actions/Plans/`), and a Form Request, `ImportPlanRequest`. How they were built: [H3.26](../how-to/H3-frontend.md#h326-plan-files-export-and-import-as-built).
+
+**Export answers plain JSON,** `response()->json($export->export($plan))`, not a resource: the file has its own shape, with no `data` around it, and is sent back as it is. `ExportPlan` walks days and items, gives each exercise a reference the first time it meets it (`??=`), and lists the exercises once each at the end.
+
+**Import reuses what saves plans and exercises.** `ImportPlan` finds or creates each exercise used, with `SavePersonalExercise` for the missing ones, then hands the plan to `SavePlan::create()` in the editor's own shape, with the references turned into exercise ids. All inside one `DB::transaction()`: the two actions open their own, which Laravel turns into **savepoints** of the outer one, so a failure anywhere undoes everything. The constructor receives the two actions from the service container:
+
+```php
+public function __construct(
+    private SavePlan $savePlan,
+    private SavePersonalExercise $saveExercise,
+) {}
+```
+
+`private` in a constructor's parameters (**constructor property promotion**, PHP 8) declares the property and assigns it in one line.
+
+**The rules are the editor's,** under `plan.`: `PlanRequest::itemRules($prefix)`, a `static` method shared by both, gives the rules of an item and its sets for any prefix, `'days.*.items.*.'` in the editor, `'plan.days.*.items.*.'` here. `static` because it needs no request: only the prefix. An item names `"exercise": "e1"`, checked with `Rule::in($refs)`, the references the file declares, read from the body before validation (`$this->input('exercises')`).
+
+**Answered with a status set by hand.** A resource answers 201 only when it wraps a model it saw being created; here the plan was created inside the action, so `->response()->setStatusCode(201)`.
 
 ### C2.5.7 The workouts' endpoints
 

@@ -170,7 +170,9 @@
       "max": "max.",
       "rpe": "RPE {{value}}",
       "changedElsewhere": "Dieser Plan wurde inzwischen woanders geändert. Deine Version hat ihn ersetzt.",
-      "forTime": "so schnell wie möglich"
+      "forTime": "so schnell wie möglich",
+      "export": "Exportieren",
+      "exportError": "Der Plan konnte nicht exportiert werden. Versuche es noch einmal."
     },
     "editor": {
       "newTitle": "Neuer Plan",
@@ -274,6 +276,14 @@
         "name": "Bis zum Versagen",
         "hint": "Bis keine Wiederholung mehr geht"
       }
+    },
+    "import": {
+      "button": "Plan importieren",
+      "invalid": "Diese Datei ist kein aus AtleoPlan exportierter Plan.",
+      "failed": "Der Plan konnte nicht importiert werden. Versuche es noch einmal.",
+      "done": "Plan importiert.",
+      "created_one": "{{count}} Übung fehlte und wurde bei deinen angelegt: {{names}}.",
+      "created_other": "{{count}} Übungen fehlten und wurden bei deinen angelegt: {{names}}."
     }
   },
   "exercises": {

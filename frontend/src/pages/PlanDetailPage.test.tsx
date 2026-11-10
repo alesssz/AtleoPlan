@@ -3,9 +3,9 @@
  * the day tabs kept in the address, the actions (set as active, archive,
  * restore, delete), and a plan that is not there.
  */
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadActiveSession, storeActiveSession } from '@/components/workout/session-storage'
 import { startSession } from '@/components/workout/workout-session'
 import { fakeApi, renderRoutes, signedInAs, testUser } from '@/test/auth-helpers'
@@ -25,7 +25,52 @@ function planAnswer(changes: Parameters<typeof testPlan>[0] = {}) {
   return { status: 200, body: { data: testPlan(changes) } }
 }
 
+/** A plan file, as the export answers: its content does not matter here. */
+const planFile = { format: 'atleoplan.plan', version: 1, plan: { name: 'Push Pull Legs', days: [] }, exercises: [] }
+
+afterEach(() => {
+  // Put back what the export test replaced
+  vi.restoreAllMocks()
+})
+
 describe('PlanDetailPage', () => {
+  it('exports the plan as a file, named after it', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer(), 'GET /api/plans/plan-ppl/export': { status: 200, body: planFile } })
+    // jsdom saves no file: the Blob's address and the link's click are
+    // caught instead. createObjectURL does not exist in jsdom: given here
+    const blobs: Blob[] = []
+    URL.createObjectURL = vi.fn((blob: Blob) => {
+      blobs.push(blob)
+      return 'blob:test'
+    })
+    URL.revokeObjectURL = vi.fn()
+    // spyOn() on the prototype: every link's click(), the one made by the
+    // code too; mockImplementation() replaces it with a function that does
+    // nothing. `this: HTMLAnchorElement` only names, for TypeScript, the
+    // object the method is called on; the spy records it in mock.contexts
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {})
+    renderRoutes(routes, '/plans/plan-ppl')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Export' }))
+
+    // The request is awaited first: waitFor() retries until the click came
+    await vi.waitFor(() => expect(click).toHaveBeenCalledTimes(1))
+    // The link that was clicked, made by downloadJson()
+    const link = click.mock.contexts[0] as HTMLAnchorElement
+    expect(link.download).toBe('push-pull-legs.atleoplan.json')
+    expect(link.href).toBe('blob:test')
+    expect(JSON.parse(await blobs[0]!.text())).toEqual(planFile)
+  })
+
+  it('says when it was just imported, and which exercises were created', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })
+    // The list first, then the plan with the import's state, as the import does
+    const { router } = renderRoutes(routes, '/plans')
+    await act(() => router.navigate('/plans/plan-ppl', { state: { createdExercises: ['Frog stand', 'L-sit'] } }))
+
+    expect(await screen.findByText('Plan imported. 2 exercises were missing and are now among yours: Frog stand, L-sit.')).toBeInTheDocument()
+  })
+
   it('shows the first day: each exercise summed up, warm-ups apart, the superset joined', async () => {
     fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })
     renderRoutes(routes, '/plans/plan-ppl')

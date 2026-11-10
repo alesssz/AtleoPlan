@@ -170,7 +170,9 @@
       "max": "max",
       "rpe": "RPE {{value}}",
       "changedElsewhere": "Questa scheda è stata modificata altrove nel frattempo. La tua versione l'ha sostituita.",
-      "forTime": "nel minor tempo possibile"
+      "forTime": "nel minor tempo possibile",
+      "export": "Esporta",
+      "exportError": "Impossibile esportare la scheda. Riprova."
     },
     "editor": {
       "newTitle": "Nuova scheda",
@@ -274,6 +276,14 @@
         "name": "A cedimento",
         "hint": "Finché non riesci a fare un'altra ripetizione"
       }
+    },
+    "import": {
+      "button": "Importa scheda",
+      "invalid": "Questo file non è una scheda esportata da AtleoPlan.",
+      "failed": "Impossibile importare la scheda. Riprova.",
+      "done": "Scheda importata.",
+      "created_one": "{{count}} esercizio non c'era ed è stato creato tra i tuoi: {{names}}.",
+      "created_other": "{{count}} esercizi non c'erano e sono stati creati tra i tuoi: {{names}}."
     }
   },
   "exercises": {

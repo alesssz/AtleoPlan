@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built).
 
 ## Contents
 
@@ -147,6 +147,16 @@
   - [H3.25.6 Looking at it](#h3256-looking-at-it)
   - [H3.25.7 Checking in the browser](#h3257-checking-in-the-browser)
   - [H3.25.8 The checks](#h3258-the-checks)
+- [H3.26 Plan files, export and import, as built](#h326-plan-files-export-and-import-as-built)
+  - [H3.26.1 The order of building](#h3261-the-order-of-building)
+  - [H3.26.2 Export, and the arrow function that lost the exercises](#h3262-export-and-the-arrow-function-that-lost-the-exercises)
+  - [H3.26.3 Import: rules shared, actions reused](#h3263-import-rules-shared-actions-reused)
+  - [H3.26.4 The tests, and a test that passed for the wrong reason](#h3264-the-tests-and-a-test-that-passed-for-the-wrong-reason)
+  - [H3.26.5 A round trip on the real plan](#h3265-a-round-trip-on-the-real-plan)
+  - [H3.26.6 The frontend](#h3266-the-frontend)
+  - [H3.26.7 Looking at it](#h3267-looking-at-it)
+  - [H3.26.8 Checking in the browser](#h3268-checking-in-the-browser)
+  - [H3.26.9 The checks](#h3269-the-checks)
 
 ---
 
@@ -3725,6 +3735,190 @@ npx vitest run
   Tests:    257 passed (17384 assertions)
  Test Files  28 passed (28)
       Tests  246 passed (246)
+```
+
+Then `make toc` and `make check`.
+
+## H3.26 Plan files, export and import, as built
+
+To move a real plan from the development server to production without writing it again: **Export** on a plan's page saves it as `<name>.atleoplan.json`, **Import plan** on the list makes a new plan of such a file. The file holds the plan and a description of each exercise it uses, so that the import finds each one, or creates it as the user's own, without photos. The format: [D3.5.8](../design/D3-data-model.md#d358-the-plan-file); why JSON: [D2.9](../design/D2-decisions.md#d29-plan-files); the endpoints: [C2.5.8](../concepts/C2-backend.md#c258-a-plan-as-a-file); the screens: [C1.15.6](../concepts/C1-frontend.md#c1156-a-plan-as-a-file-export-and-import).
+
+| File | Change |
+|---|---|
+| `backend/app/Actions/Plans/ExportPlan.php` | New: the plan as the file's content |
+| `backend/app/Actions/Plans/ImportPlan.php` | New: a file as a new plan, each exercise found or created |
+| `backend/app/Http/Requests/ImportPlanRequest.php` | New: the file's rules |
+| `backend/app/Http/Requests/PlanRequest.php` | The rules of an item and its sets moved into `static itemRules($prefix)`, shared |
+| `backend/app/Http/Controllers/PlanController.php`, `routes/api.php` | `export()`, `import()`; `GET /api/plans/{plan}/export`, `POST /api/plans/import` |
+| `backend/tests/Feature/Plans/PlanFileTest.php` | New: 8 tests, 12 runs with the dataset |
+| `frontend/src/lib/download.ts` (+ test) | New: `downloadJson()`, `fileNameOf()` |
+| `frontend/src/api/plans.ts` | `fetchPlanFile()`, `useImportPlan()` |
+| `frontend/src/components/plans/ExportPlanButton.tsx`, `ImportPlanButton.tsx` | New: the two buttons |
+| `frontend/src/pages/PlanDetailPage.tsx`, `PlansPage.tsx` (+ tests) | The buttons; the banner after an import |
+| `frontend/src/i18n/locales/*.json` | `plans.detail.export`, `exportError`, `plans.import.*` |
+
+### H3.26.1 The order of building
+
+1. **The backend,** export first (it gives a real file to look at), then the import, then the tests.
+2. **A round trip on the real plan,** in `tinker`, inside a transaction undone at the end.
+3. **The frontend:** download, the two buttons, the banner, the tests.
+4. **A look,** then the docs, and the spreadsheet idea in the backlog ([FEAT-8](../project/backlog.md#feat-8-write-a-plan-in-a-spreadsheet-and-import-it)).
+
+### H3.26.2 Export, and the arrow function that lost the exercises
+
+The classes, from the repository's root:
+
+```sh
+docker compose exec backend php artisan make:class Actions/Plans/ExportPlan
+docker compose exec backend php artisan make:class Actions/Plans/ImportPlan
+docker compose exec backend php artisan make:request ImportPlanRequest
+```
+
+Each writes an empty class at the path given; run a second time, `make:class` answers `ERROR  Class already exists.` and touches nothing.
+
+`ExportPlan` walks the days and their items, and collects the exercises in an array as it meets them, the first time only (`$exercises[$id] ??= …`). The first try, in `tinker`, on the real plan:
+
+```sh
+docker compose exec backend php artisan tinker --execute="app()->setLocale('it'); \$p = App\Models\Plan::query()->latest('updated_at')->first(); \$f = app(App\Actions\Plans\ExportPlan::class)->export(\$p); echo json_encode(['days' => count(\$f['plan']['days']), 'items' => …, 'exercises' => count(\$f['exercises'])]);"
+```
+
+```
+{"days":3,"items":23,"exercises":0,"own":[]}
+```
+
+23 exercises in the plan, none in the list. The days were mapped with an **arrow function**, `fn (PlanDay $day) => [...]`, and the items inside it with a `function (...) use (&$exercises)`. An arrow function captures the variables it uses **by value**: it had its own copy of `$exercises`, the inner function filled that copy by reference, and the copy was thrown away after each day. The outer one is now a `function (PlanDay $day) use (&$exercises) { return [...]; }`, and:
+
+```
+{"days":3,"items":23,"exercises":16,"own":[]}
+```
+
+16 different exercises, all public, the first one:
+
+```json
+{
+    "ref": "e1",
+    "external_id": "Pullups",
+    "name": "Trazioni alla sbarra",
+    "logging_type": "reps",
+    "equipment": "body-only",
+    "muscles": [ { "muscle": "biceps", "role": "secondary" }, { "muscle": "middle-back", "role": "secondary" }, { "muscle": "lats", "role": "primary" } ],
+    "description": null,
+    "instructions": "…",
+    "youtube_url": null
+}
+```
+
+**The lesson:** `fn () =>` is short for a function that only reads; one that must change an outer variable needs `function () use (&$variable)`, and so does every function around it that passes the variable on.
+
+### H3.26.3 Import: rules shared, actions reused
+
+**The rules.** The plan in a file must follow the editor's rules: the same set fields, limits, supersets of neighbours. They were in `PlanRequest::rules()` under `days.*.items.*.`; they moved into `PlanRequest::itemRules(string $item)`, `public static`, which gives them for any prefix. `PlanRequest` spreads `...self::itemRules('days.*.items.*.')`, `ImportPlanRequest` `...PlanRequest::itemRules('plan.days.*.items.*.')`. The 26 tests of `SavePlanApiTest` passed unchanged after the move, which is what proves a refactoring.
+
+**The exercises.** `ImportPlan::find()` tries, in order: the public exercise with the same `external_id`, one of the user's own with the same name in any language, a public one with that name in the request's language (`whereRaw('lower(trim(name->>?)) = ?', [app()->getLocale(), $name])`: `->>` reads one key of the JSON column as text). None: `SavePersonalExercise::create()`, with muscles and equipment turned from slugs into this server's ids, unknown ones left out.
+
+**The plan.** `SavePlan::create()` receives the editor's shape, the file's references turned into exercise ids. No ids for days and items: `SavePlan` makes them, as for a body sent without (H2.13).
+
+**One transaction around everything.** `SavePlan` and `SavePersonalExercise` each open their own `DB::transaction()`; inside `ImportPlan`'s, Laravel makes them **savepoints**, so a failure at the last set undoes the exercises created at the start.
+
+### H3.26.4 The tests, and a test that passed for the wrong reason
+
+```sh
+docker compose exec backend php artisan test --filter=PlanFileTest
+```
+
+```
+  Tests:    11 passed (90 assertions)
+```
+
+The first run before that stopped at once: `ParseError`. `php -l` names the line:
+
+```sh
+docker compose exec backend php -l tests/Feature/Plans/PlanFileTest.php
+```
+
+```
+PHP Parse error:  Unclosed '[' on line 183 does not match ')' in tests/Feature/Plans/PlanFileTest.php on line 189
+```
+
+One `]` short in a nested array of the dataset (`'reps upside down'`).
+
+**Broken on purpose,** the first rule switched off (`if (false)` in place of the `external_id` test): all 11 still passed. The file had been exported in English and imported in English, so the third rule, the public exercise by name, found the push-ups anyway. The test now exports in Italian and imports in English (`['Accept-Language' => 'it']`, then `'en'`): "Piegamenti" is no English name, and only the external id can find it. A test of its own covers the third rule. Broken again, one at a time:
+
+```
+  ⨯ it imports a file as a new plan, finding the public exercise by its…
+  Tests:    1 failed, 11 passed (87 assertions)
+
+  ⨯ it finds a public exercise by its name when the file has it as a pe…
+  Tests:    1 failed, 11 passed (92 assertions)
+```
+
+**A test name with an apostrophe.** `it('… as someone's own', …)` in single quotes ended the string at the apostrophe: `syntax error, unexpected identifier "s"`. PHP needs `\'` there, as the other tests write `someone else\'s`; the name was reworded.
+
+### H3.26.5 A round trip on the real plan
+
+Export, validate with the import's rules, import, count, and undo, in `tinker`:
+
+```php
+DB::beginTransaction();
+$res = app(App\Actions\Plans\ImportPlan::class)->import($p->user, $v->validated());
+// … count days, items and sets of the new plan and of the original
+DB::rollBack();
+```
+
+```
+valid: yes
+days 3, items 23, sets 59, created []
+original: days 3, items 23, sets 59
+plans after rollback: 4
+```
+
+The same plan, every exercise found, nothing left in the database. `ImportPlanRequest::create('/', 'POST', $file)` builds a request from an array, so its `rules()` (which reads the body for the references) can run outside HTTP.
+
+### H3.26.6 The frontend
+
+`downloadJson()` and the two buttons ([C1.15.6](../concepts/C1-frontend.md#c1156-a-plan-as-a-file-export-and-import)). `FormBanner` takes text only (`children: string`), so the banner's sentence is built first:
+
+```
+src/pages/PlanDetailPage.tsx(145,13): error TS2322: Type 'string | false' is not assignable to type 'string'.
+```
+
+came from `{cond && ' …'}` inside it; a single expression, `cond ? `${a} ${b}` : a`, fixed it.
+
+**Testing a file chosen.** `user.upload(input, file)` does what the picker does, and honours the input's `accept` like the picker: the first version of the test chose `plan.csv` to show a file that is not JSON, and nothing happened at all (`Unable to find role="alert"`). The not-JSON file is now `plan.json` with text that is not JSON. The input is hidden, so not found by role: `document.querySelector('input[type=file]')`.
+
+**Testing a download.** jsdom has no `URL.createObjectURL` and saves nothing: the test gives one that keeps the Blob, and spies on every link's `click()` with `vi.spyOn(HTMLAnchorElement.prototype, 'click')`; `click.mock.contexts[0]` is the link clicked, its `download` the file's name, and the Blob's text the file.
+
+Broken on purpose, a 422 shown as "try again":
+
+```
+     × says so when the file is not a plan: not JSON, or refused by the server 109ms
+      Tests  1 failed | 6 passed (7)
+```
+
+### H3.26.7 Looking at it
+
+As in [H3.24.7](#h3247-looking-at-it), the list and a plan's page with the import's `state` (an entry `{ pathname, state }` in `createMemoryRouter`'s `initialEntries`), at 360 and 1000 px. The list: **Nuova scheda** lime, **Importa scheda** outlined beside it, under it on a phone. The plan: the green banner "Scheda importata. 2 esercizi non c'erano e sono stati creati tra i tuoi: Frog stand, L-sit."; **Esporta** among the actions, before **Elimina**. Nothing to change.
+
+### H3.26.8 Checking in the browser
+
+With `make start`:
+
+- **Export:** a plan's page, **Esporta**: a file `<name>.atleoplan.json` in Downloads. Open it: the days, the sets, `exercises` with `external_id`.
+- **Import, same server:** **Importa scheda**, that file: a new plan with the same name, the banner "Scheda importata."; the original untouched.
+- **Import, another server:** in production, after `make exercises-import` there (the library and its extras): the same file; exercises missing there appear in the banner and in the library under **Miei**.
+- **A wrong file:** any other `.json`: "Questo file non è una scheda esportata da AtleoPlan."
+
+### H3.26.9 The checks
+
+```sh
+docker compose exec backend php artisan test
+npx vitest run
+```
+
+```
+  Tests:    269 passed (17477 assertions)
+ Test Files  29 passed (29)
+      Tests  251 passed (251)
 ```
 
 Then `make toc` and `make check`.

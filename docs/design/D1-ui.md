@@ -210,15 +210,17 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - One card per plan: name, number of days, last used, **Active** and **Shared** badges.
 - The active plan is always first.
 - **New plan**; a **Templates** section with public plans to duplicate.
+- **Import plan**, outlined beside New plan: a file saved by a plan's **Export** (D1.4.7), from this server or another, becomes a new plan, and its page opens saying "Plan imported", with the exercises that were not here and are now the user's own, by name. A file that is not a plan says so under the button.
 - Archived plans behind a filter of their own.
-- Built in FEAT-2, without what needs a later feature: Templates and the Shared badge for phase 2. "Last used" ("Used 3 days ago", from the plan's latest finished workout) came once workouts existed (`fix/loose-ends`) ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
+- Built in FEAT-2, without what needs a later feature: Templates and the Shared badge for phase 2. Import plan came with `feat/plan-import-export` ([C1.15.6](../concepts/C1-frontend.md#c1156-a-plan-as-a-file-export-and-import)). "Last used" ("Used 3 days ago", from the plan's latest finished workout) came once workouts existed (`fix/loose-ends`) ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
 
 ### D1.4.7 Plan details
 
 - Header: name, goal, notes, author (when duplicated from someone else).
 - **Days as tabs**; in each day the exercises with sets × reps and rest ("4 × 8–10 · 90 s"), warm-up sets counted apart ("+ 2 warm-up"). Supersets are joined by a coloured bar on the side.
-- Actions: **Start this day**, **Set as active** (replaces the current active plan), **Edit**, **Share**, **Duplicate**, **Archive**.
-- Built in FEAT-2 with Edit, Set as active, Archive (and Restore) and Delete; Start this day waits for workout mode (FEAT-3), Share and Duplicate for phase 2. The open day is in the address, `?day=2` ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
+- Actions: **Start this day**, **Set as active** (replaces the current active plan), **Edit**, **Share**, **Duplicate**, **Archive**, **Export**.
+- **Export** saves the plan as a file, `<name>.atleoplan.json`: its days, exercises, sets and notes, and a description of each exercise it uses (no photos), so that **Import plan** can rebuild it on another server, finding each exercise there or creating it ([D3.5.8](D3-data-model.md#d358-the-plan-file)). Meant first for moving a plan written on the development server to production.
+- Built in FEAT-2 with Edit, Set as active, Archive (and Restore) and Delete; Start this day waits for workout mode (FEAT-3), Share and Duplicate for phase 2. Export came with `feat/plan-import-export`. The open day is in the address, `?day=2` ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
 
 ### D1.4.8 Plan editor
 

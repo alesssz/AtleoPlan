@@ -9,8 +9,9 @@
  * filters do (docs/concepts/C1-frontend.md C1.14.3): Back from a plan returns
  * to the same view.
  *
- * New plan opens the plan editor (/plans/new). The Templates section and
- * Share are phase 2.
+ * New plan opens the plan editor (/plans/new); Import plan makes a plan of
+ * a file saved by a plan's Export (ImportPlanButton, C1.15.6). The
+ * Templates section and Share are phase 2.
  */
 import { Archive, ClipboardList, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -18,6 +19,7 @@ import { Link, useSearchParams } from 'react-router'
 import { usePlans } from '@/api/plans'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeader } from '@/components/PageHeader'
+import { ImportPlanButton } from '@/components/plans/ImportPlanButton'
 import { PlanCard } from '@/components/plans/PlanCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -50,14 +52,16 @@ export function PlansPage() {
     <>
       <PageHeader eyebrow={t('pages.plans.eyebrow')} title={t('pages.plans.title')} description={t('pages.plans.description')} />
 
-      {/* The main action: a real link styled as a button */}
-      <div className="mb-6">
+      {/* The main action, a real link styled as a button; beside it,
+          outlined, Import plan, with its error under it */}
+      <div className="mb-6 flex flex-wrap items-start gap-3">
         <Button asChild size="xl">
           <Link to="/plans/new">
             <Plus aria-hidden="true" />
             {t('plans.new')}
           </Link>
         </Button>
+        <ImportPlanButton />
       </div>
 
       {/* The two views: buttons side by side, one pressed, as the library's
