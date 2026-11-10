@@ -42,6 +42,7 @@ class UserResource extends JsonResource
             'weight_step' => $this->weight_step,
             'timer_sound' => $this->timer_sound,
             'timer_vibration' => $this->timer_vibration,
+            'show_rpe' => $this->show_rpe,
         ];
     }
 }

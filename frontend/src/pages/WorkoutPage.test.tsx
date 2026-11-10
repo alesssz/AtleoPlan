@@ -10,7 +10,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { SessionInput } from '@/api/sessions'
 import { loadActiveSession, loadFinished, loadPending, storeActiveSession } from '@/components/workout/session-storage'
-import { startFreeSession, startSession } from '@/components/workout/workout-session'
+import { exerciseFrom, startFreeSession, startSession } from '@/components/workout/workout-session'
 import { fakeApi, renderRoutes, sentBody, signedInAs } from '@/test/auth-helpers'
 import { exercisePage, testExercise } from '@/test/exercise-helpers'
 import { testPlan } from '@/test/plan-helpers'
@@ -51,7 +51,7 @@ describe('WorkoutPage', () => {
     expect(screen.getByRole('button', { name: 'Warm-up 2, kg: 40' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Set 1, kg: 80' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Set 1, Reps: 8' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Set 1, normal: tap to change the type' })).toHaveTextContent('1')
+    expect(screen.getByRole('combobox', { name: 'Set 1, normal: change the type' })).toHaveTextContent('1')
   })
 
   it('ticks a set, which starts the rest timer, and keeps it on the phone', async () => {
@@ -292,6 +292,35 @@ describe('WorkoutPage', () => {
     const menu = await openMenu('Dumbbell Bench Press')
     expect(within(menu).getByRole('button', { name: 'Swap exercise' })).toBeDisabled()
     expect(within(menu).getByText('Only before its first set is ticked.')).toBeInTheDocument()
+  })
+
+  it('times a hold with the stopwatch, which fills the set and ticks it', async () => {
+    // A free workout with a dead hang; last time 45 seconds, which fills the set
+    const lastHang = { exercise_id: 90, session_id: 'session-old', started_at: '2026-11-02T18:00:00Z', sets: [{ id: 'old-1', set_type: 'normal' as const, weight_kg: null, reps: null, duration_seconds: 45, distance_meters: null, completed_at: '2026-11-02T18:05:00Z' }] }
+    const session = startFreeSession(new Date())
+    session.exercises = [exerciseFrom(testExercise({ id: 90, name: 'Dead Hang', logging_type: 'time' }), [lastHang], { unit: 'kg', language: 'en', defaultRestSeconds: 90 })]
+    storeActiveSession(session)
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, `/session/${session.id}`)
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Start the stopwatch: Set 1' }))
+
+    // Full screen: the exercise, the time from 0, the target and last time
+    const panel = screen.getByRole('dialog', { name: 'Dead Hang' })
+    expect(within(panel).getByRole('timer')).toHaveTextContent('0:00')
+    expect(within(panel).getByText('Target 0:45')).toBeInTheDocument()
+    expect(within(panel).getByText('Last time 0:45')).toBeInTheDocument()
+    // Kept on the phone: closing the app does not lose it
+    expect(loadActiveSession()?.stopwatch?.target).toBe(45)
+
+    // Stop at once: one second, at least; the set is ticked, the rest starts
+    await user.click(within(panel).getByRole('button', { name: 'Stop' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Set 1, Sec: 1' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Rest' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Start the stopwatch: Set 1' })).not.toBeInTheDocument()
   })
 
   it('says so for a workout that is not on this phone', async () => {

@@ -42,6 +42,8 @@ export interface User {
   timer_sound: boolean
   /** Whether the rest timer ends with a vibration. */
   timer_vibration: boolean
+  /** Whether the plan editor shows the RPE field beside each set's reps. */
+  show_rpe: boolean
 }
 
 /** What signing in sends. */
@@ -94,6 +96,8 @@ export interface PreferencesData {
   timer_sound?: boolean
   /** Whether the rest timer ends with a vibration. */
   timer_vibration?: boolean
+  /** Whether the plan editor shows the RPE field. */
+  show_rpe?: boolean
 }
 
 /** The cache keys of this resource (what a key is: src/api/health.ts). */

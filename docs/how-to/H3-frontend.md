@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built).
 
 ## Contents
 
@@ -128,6 +128,16 @@
   - [H3.23.3 Looking at it](#h3233-looking-at-it)
   - [H3.23.4 Checking in the browser](#h3234-checking-in-the-browser)
   - [H3.23.5 The checks](#h3235-the-checks)
+- [H3.24 Set types, the RPE switch and the stopwatch, as built](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built)
+  - [H3.24.1 The order of building](#h3241-the-order-of-building)
+  - [H3.24.2 The column `show_rpe`](#h3242-the-column-show_rpe)
+  - [H3.24.3 The list of set types](#h3243-the-list-of-set-types)
+  - [H3.24.4 The RPE field](#h3244-the-rpe-field)
+  - [H3.24.5 The stopwatch](#h3245-the-stopwatch)
+  - [H3.24.6 Proving the tests can fail](#h3246-proving-the-tests-can-fail)
+  - [H3.24.7 Looking at it](#h3247-looking-at-it)
+  - [H3.24.8 Checking in the browser](#h3248-checking-in-the-browser)
+  - [H3.24.9 The checks](#h3249-the-checks)
 
 ---
 
@@ -1400,7 +1410,7 @@ All 17 passed at the first run, which proves little: [H3.14.6](#h3146-the-tests-
 `PlanEditor` holds the draft and hands `dispatch` down; each component sends actions with its indexes:
 
 ```tsx
-// In EditorSet: a tap on the set's number
+// In EditorSet: a tap on the set's number (since feat/set-types-rpe, a list: H3.24.3)
 <Button onClick={() => dispatch({ type: 'cycleSetType', ...at })}>{SET_TYPE_SIGNS[set.set_type] ?? number}</Button>
 ```
 
@@ -3308,6 +3318,216 @@ With `make start`, a plan's exercises step, **Add exercises**:
 ### H3.23.5 The checks
 
 `npx vitest run`: 229 tests, all passing; `npx tsc -b` and `npm run lint` clean. `make check` for the whole task: [H1.17](H1-database.md#h117-the-extra-exercises-as-built) and here.
+
+## H3.24 Set types, the RPE switch and the stopwatch, as built
+
+Three changes asked for while writing a real calisthenics plan into the app: the set types' letters (W, D, F) meant nothing to someone who did not know them; the RPE field took room in every row for a number never used; and an exercise done "as fast as possible", or held for 30 seconds, only had a box to type its seconds into. How they work: [C1.16.9](../concepts/C1-frontend.md#c1169-set-types-and-the-rpe-field) and [C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set); how they look: [D1.4.8](../design/D1-ui.md#d148-plan-editor), [D1.4.9](../design/D1-ui.md#d149-workout-mode).
+
+| File | Change |
+|---|---|
+| `backend/database/migrations/…_add_show_rpe_to_users_table.php` | New: `users.show_rpe`, boolean, false |
+| `backend/app/Models/User.php`, `database/factories/UserFactory.php` | `show_rpe` fillable, cast to boolean, false in the factory |
+| `backend/app/Http/Requests/UpdatePreferencesRequest.php`, `Http/Resources/UserResource.php` | The rule `['sometimes', 'boolean']`; the field in `GET /api/user` |
+| `backend/tests/Feature/Auth/CurrentUserTest.php` | `show_rpe` read, saved, refused when not a boolean |
+| `frontend/src/components/plans/SetTypeSelect.tsx` | New: the set's number and its list of types |
+| `frontend/src/components/plans/plan-draft.ts`, `components/workout/workout-session.ts` | `cycleSetType` replaced by `setSetType`; the stopwatch's type, actions, `stopwatchSeconds()`, `findSet()` |
+| `frontend/src/components/plans/editor/*` | `showRpe` passed down; `EditorSet` uses `SetTypeSelect` and hides RPE |
+| `frontend/src/components/workout/SetRow.tsx`, `WorkoutScreen.tsx` | `SetTypeSelect`; ▶ on a timed set; the panel drawn while the stopwatch runs |
+| `frontend/src/components/workout/StopwatchPanel.tsx` | New: the stopwatch, full screen |
+| `frontend/src/components/WorkoutPreferences.tsx`, `api/auth.ts`, `test/auth-helpers.tsx` | The row **RPE in plans**; `show_rpe` in the user's types and the tests' user |
+| `frontend/src/i18n/locales/*.json` | `plans.setTypeChoices`, `preferences.rpe`, `rpeHint`, `workout.stopwatch`; the type buttons' names shortened ("…: change the type") |
+| Tests | `plan-draft.test.ts`, `workout-session.test.ts` (5 new), `PlanEditorPage.test.tsx` (1 new), `WorkoutPage.test.tsx` (1 new), `ProfilePage.test.tsx` |
+
+### H3.24.1 The order of building
+
+1. **The list of set types**, the smallest: the component, the two reducers' action, the two rows, the tests that clicked the old button.
+2. **The RPE switch**: the column first (backend and its test), then the frontend's types, the Profile row, the editor.
+3. **The stopwatch**: the reducer's actions and their tests, then the panel, the ▶ button, the page's test.
+4. **A look** at a phone's and a laptop's width, then the docs.
+
+### H3.24.2 The column `show_rpe`
+
+A preference is a column of `users`, as the five of workout mode ([H3.21](#h321-the-workout-preferences-as-built)). The migration, from the repository's root:
+
+```sh
+docker compose exec backend php artisan make:migration add_show_rpe_to_users_table --table=users
+```
+
+```
+   INFO  Migration [database/migrations/2026_11_10_124025_add_show_rpe_to_users_table.php] created successfully.
+```
+
+`--table=users` writes `Schema::table('users', …)` in both `up()` and `down()`, ready for a change to an existing table. Filled in: `$table->boolean('show_rpe')->default(false)` and `$table->dropColumn('show_rpe')` ([D3.3](../design/D3-data-model.md#d33-users-and-preferences)).
+
+```sh
+docker compose exec backend php artisan migrate
+```
+
+```
+   INFO  Running migrations.
+
+  2026_11_10_124025_add_show_rpe_to_users_table ................. 52.53ms DONE
+```
+
+Then the four places a preference must be named, the same as for H3.21's five: `#[Fillable([...])]` and `casts()` on the model (without the first, `$user->update($request->validated())` would ignore it silently, the trap of H3.21.2), the factory's defaults, the request's rule, the resource's field. The test adds `['show_rpe' => true]` to the preferences saved one at a time, `'show_rpe' => 'maybe'` to those refused, and `assertJsonPath('data.show_rpe', false)` to the user read:
+
+```sh
+docker compose exec backend php artisan test --filter=CurrentUserTest
+```
+
+```
+  Tests:    8 passed (54 assertions)
+```
+
+On the Mac, or any other copy of the database: `make migrate`.
+
+### H3.24.3 The list of set types
+
+**The component first.** Profile's Select (`components/ui/select.tsx`) was the starting point: a list with keyboard and screen-reader support, already tested in jsdom (H3.21). Its trigger, though, is a bordered field with a chevron; for a 48 px square the trigger is taken from Radix directly, with `asChild` on our `Button` ([C1.16.9](../concepts/C1-frontend.md#c1169-set-types-and-the-rpe-field)):
+
+```tsx
+import { Select as SelectPrimitive } from 'radix-ui'
+…
+<SelectPrimitive.Trigger asChild>
+  <Button variant={variant} size="icon-xl" aria-label={label}>…</Button>
+</SelectPrimitive.Trigger>
+```
+
+**Then the action.** `cycleSetType` worked out the next type; `setSetType` receives it. Both reducers changed the same way, and TypeScript listed every place still sending the old one:
+
+```sh
+npx tsc -b
+```
+
+```
+src/components/plans/plan-draft.test.ts(139,41): error TS2322: Type '"cycleSetType"' is not assignable to type '"replace" | "addExercises" | … | "setSetType"'.
+src/components/workout/workout-session.test.ts(120,35): error TS2322: Type '"cycleSetType"' is not assignable to type …
+src/components/workout/workout-session.test.ts(215,35): error TS2322: Type '"cycleSetType"' is not assignable to type …
+```
+
+The actions being a discriminated union ([C1.16.2](../concepts/C1-frontend.md#c1162-the-draft-and-its-reducer)), a removed action is a compile error wherever it is still used, not a silent no-op.
+
+**The tests that clicked the button.** The button is now a combobox, and choosing is two taps:
+
+```tsx
+await user.click(screen.getByRole('combobox', { name: 'Set 1, normal: change the type' }))
+await user.click(await screen.findByRole('option', { name: /^Warm-up/ }))
+expect(screen.getByRole('combobox', { name: 'Set 1, warm-up: change the type' })).toHaveTextContent('W')
+```
+
+`findByRole` waits for the list, which Radix draws a moment after the tap; the option's name is its whole text, "Warm-up Light, before the working sets; not counted", hence the regular expression. The names lost "tap to": "Set 1, normal: change the type".
+
+### H3.24.4 The RPE field
+
+`PlanEditor` reads `user.show_rpe` and passes it down as `showRpe`, beside `unit`, through `EditorDays`, `EditorDay` and `EditorItem` to `EditorSet`, which adds the RPE field only when told. `EditorItem` also shows it when a set already has an RPE, read once with `useState(() => …)` ([C1.16.9](../concepts/C1-frontend.md#c1169-set-types-and-the-rpe-field)).
+
+The test edits a plan whose bench press has an RPE on its first set and whose squat has none, with the preference off (the tests' user, `testUser`, now has `show_rpe: false`, as a new account):
+
+```tsx
+expect(screen.getByLabelText('Set 1, RPE')).toHaveValue('8')
+await user.clear(screen.getByLabelText('Set 1, RPE'))
+expect(screen.getByLabelText('Set 1, RPE')).toHaveValue('')          // still there once emptied
+expect(screen.getAllByLabelText(/^Set 1, Reps/)).toHaveLength(2)     // both exercises open
+expect(screen.getAllByLabelText('Set 1, RPE')).toHaveLength(1)       // the squat has none
+```
+
+The first test of the file, which types an RPE, now signs in as `signedInAs({ ...testUser, show_rpe: true })`.
+
+### H3.24.5 The stopwatch
+
+**The reducer first, without React** ([C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set)): the `Stopwatch` type, `stopwatch?` on `ActiveSession` (optional: workouts already kept on a phone have none), `null` in `emptySession()`, the three actions and `finish` clearing it. The tests build a free workout with a timed exercise:
+
+```ts
+const hold = exerciseFrom(testExercise({ id: 90, name: 'Dead Hang', logging_type: 'time' }), [], { unit: 'kg', language: 'en', defaultRestSeconds: 60 })
+const session = run(startFreeSession(START), { type: 'addExercises', exercises: [hold] }, …)
+```
+
+and check the moments with `at(seconds)`, ISO text that many seconds after the start: started at `at(10)`, stopped at `at(42.7)`, the set reads `'32'`, is done, and the rest ends at `at(102.7)`.
+
+**Then the panel**, `StopwatchPanel.tsx`, and in `WorkoutScreen` the lookup of the set by its id and the panel drawn while `session.stopwatch` is set. `SetRow` got ▶ (lucide's `Play`, filled with `fill-current`) and `SetHeader` an empty title above it, so the columns stay aligned.
+
+**The page's test** stores a free workout with a dead hang done 45 seconds last time, taps ▶, and reads the panel:
+
+```tsx
+await user.click(await screen.findByRole('button', { name: 'Start the stopwatch: Set 1' }))
+const panel = screen.getByRole('dialog', { name: 'Dead Hang' })
+expect(within(panel).getByRole('timer')).toHaveTextContent('0:00')
+expect(within(panel).getByText('Target 0:45')).toBeInTheDocument()
+expect(loadActiveSession()?.stopwatch?.target).toBe(45)
+await user.click(within(panel).getByRole('button', { name: 'Stop' }))
+expect(screen.getByRole('button', { name: 'Set 1, Sec: 1' })).toBeInTheDocument()
+```
+
+Stop comes a few milliseconds after ▶, so the set gets the minimum, one second: no fake clock is needed to check that the time reaches the set.
+
+```sh
+npx vitest run src/components/workout src/pages/WorkoutPage.test.tsx
+```
+
+```
+ Test Files  3 passed (3)
+      Tests  49 passed (49)
+```
+
+### H3.24.6 Proving the tests can fail
+
+Everything passed at the first run, so each new rule was broken on purpose, the test run, the code put back.
+
+- **Stop without the tick** (the line calling `toggleSet` removed):
+
+```
+     × stops: the time goes into the set, which is ticked, and the rest starts 5ms
+     × times a hold with the stopwatch, which fills the set and ticks it 163ms
+      Tests  2 failed | 47 passed (49)
+```
+
+- **RPE always shown** (`const withRpe = true`):
+
+```
+     × hides the RPE field unless wanted, or already filled in 256ms
+TestingLibraryElementError: Found multiple elements with the text of: Set 1, RPE
+```
+
+- **An RPE already there hidden** (`const withRpe = showRpe`):
+
+```
+     × hides the RPE field unless wanted, or already filled in 272ms
+TestingLibraryElementError: Unable to find a label with the text of: Set 1, RPE
+```
+
+### H3.24.7 Looking at it
+
+Photographed as in [H3.22.5](#h3225-looking-at-it): a throw-away `frontend/preview-tmp/` with three pages (the editor with a plan put into the query cache, workout mode with a workout put into `localStorage`, Profile's card), a host page with two `<iframe>`s, 360 and 1000 px, and headless Chrome. The stopwatch was photographed running by storing the workout with `stopwatch.started_at` 21 seconds in the past and a target of 30. Two things met on the way:
+
+- **The first photos had no styles at all**: text one line after another, the buttons bare. The preview's `vite.config.ts` had `root: 'preview-tmp'`, and Tailwind 4 looks for the classes to generate in the files under Vite's root: none of `src/` was scanned, so the CSS held almost nothing. With `root` set to `frontend/` (the pages given as `preview-tmp/editor.html`…), every class was found. The earlier previews had their root at `frontend/` for this reason.
+- **Opening the list from a script.** Radix's Select opens on `pointerdown`, not on `click`, so `button.click()` did nothing; the page sent the events a finger does: `new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' })`, then `pointerup`.
+
+**What the photos showed.** The editor at 360 px: the list under set 2, "Normale" ticked, the four types with their letters and lines, the hint wrapping on two lines for Drop set; the bench press with its RPE (one set has it) and the failure set's lime F. Workout mode: ▶ before ✓ on the sets not done, the done one keeping the place empty, the columns aligned with their titles at both widths. The stopwatch: 0:27 in a ring three quarters full, "Obiettivo 0:30", "Ultima volta 0:30", Stop lime and Cancel outlined. Profile: **RPE nelle schede** last in the card. One fault: its hint, which also explained the rule of an RPE already there, ran to four lines on a phone; it now says only what the field is ("Uno sforzo da 1 a 10 accanto alle ripetizioni, nell'editor della scheda.").
+
+`rm -rf preview-tmp` at the end failed once more with `Device or resource busy`, the shell having been left inside its `dist/` by a `cd` ([H3.22.5](#h3225-looking-at-it)); out of it, the folder went.
+
+### H3.24.8 Checking in the browser
+
+With `make start` (and `make migrate` first on another computer):
+
+- **Set types**: a plan's exercises step, open an exercise, tap a set's number: the list; **Riscaldamento**: the number becomes W, grey. Same in workout mode, on the first column.
+- **RPE**: in a plan with no RPE, no RPE field. Profile → **RPE nelle schede** on: the field is there. Off again, a plan with an RPE saved: shown on that exercise only.
+- **The stopwatch**: an exercise logged by time ("Appeso alla sbarra", or your own "50 push up" logged by time), Start: ▶ on each set. Tap it: full screen, the time running; with the set at 30, the ring fills, beeps at 0:30 (sound on in Profile), "Obiettivo raggiunto". **Stop**: the set has the seconds, ticked, the rest bar running. Start another, turn the screen off for a while, back: the time has kept counting. **Annulla**: the set as before.
+
+### H3.24.9 The checks
+
+```sh
+docker compose exec backend php artisan test
+npx vitest run
+```
+
+```
+  Tests:    255 passed (17374 assertions)
+ Test Files  28 passed (28)
+      Tests  236 passed (236)
+```
+
+Then `make toc` for the new headings, and `make check`.
 
 ---
 

@@ -132,15 +132,11 @@ describe('draftReducer', () => {
     expect(added?.sets.map(set => [set.reps, set.weight])).toEqual([['8-10', ''], ['8-10', ''], ['8-10', '100'], ['8-10', '100']])
   })
 
-  it('cycles a set\'s type: normal, warm-up, drop, failure, normal', () => {
-    const types: string[] = []
-    let current = draft()
-    for (let tap = 0; tap < 4; tap++) {
-      current = draftReducer(current, { type: 'cycleSetType', day: 1, item: 0, set: 0 })
-      types.push(current.days[1]?.items[0]?.sets[0]?.set_type ?? '')
-    }
+  it('sets a set\'s type, leaving the other sets as they are', () => {
+    const before = draft().days[1]?.items[0]?.sets.map(set => set.set_type) ?? []
+    const next = draftReducer(draft(), { type: 'setSetType', day: 1, item: 0, set: 0, setType: 'failure' })
 
-    expect(types).toEqual(['warm_up', 'drop', 'failure', 'normal'])
+    expect(next.days[1]?.items[0]?.sets.map(set => set.set_type)).toEqual(['failure', ...before.slice(1)])
   })
 
   it('joins exercises into a superset, next to each other where the first was', () => {

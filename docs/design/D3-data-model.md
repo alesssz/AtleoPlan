@@ -312,8 +312,9 @@ Giving the constraint a name makes the error readable when it fires. A check pas
 | `weight_unit` | enum `kg`, `lb` | `kg` | Which unit to show and read ([D3.2.3](#d323-weights-are-always-in-kilograms)) |
 | `default_rest_seconds` | integer | 90 | Used when a plan item sets no rest |
 | `weight_step` | numeric(5,2) | 2.5 | The stepper's step in workout mode, in the user's unit |
-| `timer_sound` | boolean | true | Sound when the rest ends |
-| `timer_vibration` | boolean | true | Vibration when the rest ends |
+| `timer_sound` | boolean | true | Sound when the rest ends, and when a timed set's stopwatch reaches its target |
+| `timer_vibration` | boolean | true | Vibration at the same moments |
+| `show_rpe` | boolean | false | Whether the plan editor shows the RPE field beside each set's reps ([D1.4.8](D1-ui.md#d148-plan-editor)); most people never set one |
 | `active_plan_id` | uuid, nullable → `plans` | | The one active plan ([D2.8](D2-decisions.md#d28-workout-rules)) |
 
 ```php
@@ -332,6 +333,11 @@ Schema::table('users', function (Blueprint $table) {    // table(), not create()
 // In a later migration, once `plans` exists: …_add_active_plan_id_to_users_table.php (H1.13.4)
 Schema::table('users', function (Blueprint $table) {
     $table->foreignUuid('active_plan_id')->nullable()->index()->constrained('plans')->nullOnDelete();
+});
+
+// With feat/set-types-rpe: …_add_show_rpe_to_users_table.php (H3.24.2)
+Schema::table('users', function (Blueprint $table) {
+    $table->boolean('show_rpe')->default(false);
 });
 ```
 

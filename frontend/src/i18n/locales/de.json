@@ -59,7 +59,9 @@
     "sound": "Ton am Ende der Pause",
     "soundHint": "Zwei kurze Pieptöne.",
     "vibration": "Vibration am Ende der Pause",
-    "vibrationHint": "Auf Handys, die vibrieren können (nicht iPhones)."
+    "vibrationHint": "Auf Handys, die vibrieren können (nicht iPhones).",
+    "rpe": "RPE in Plänen",
+    "rpeHint": "Eine Anstrengung von 1 bis 10 neben den Wiederholungen, im Plan-Editor."
   },
   "theme": {
     "dark": "Dunkel",
@@ -200,7 +202,7 @@
       "dragHandle": "{{name}} verschieben",
       "supersetTag": "Supersatz {{number}}",
       "setLabel": "Satz {{number}}",
-      "setTypeButton": "Satz {{number}}, {{type}}: tippen, um den Typ zu ändern",
+      "setTypeButton": "Satz {{number}}, {{type}}: Typ ändern",
       "setTypes": {
         "normal": "normal",
         "warm_up": "Aufwärmen",
@@ -251,7 +253,25 @@
       }
     },
     "lastUsed": "Zuletzt {{when}} genutzt",
-    "neverUsed": "Noch nie genutzt"
+    "neverUsed": "Noch nie genutzt",
+    "setTypeChoices": {
+      "normal": {
+        "name": "Normal",
+        "hint": "Ein Arbeitssatz, zählt in den Summen"
+      },
+      "warm_up": {
+        "name": "Aufwärmen",
+        "hint": "Leicht, vor den Arbeitssätzen; zählt nicht"
+      },
+      "drop": {
+        "name": "Dropsatz",
+        "hint": "Direkt nach dem vorigen, mit weniger Gewicht"
+      },
+      "failure": {
+        "name": "Bis zum Versagen",
+        "hint": "Bis keine Wiederholung mehr geht"
+      }
+    }
   },
   "exercises": {
     "new": "Neue Übung",
@@ -425,7 +445,7 @@
     "addedWeight": "Zusatzgewicht, {{unit}}",
     "setName": "Satz {{number}}",
     "warmUpName": "Aufwärmsatz {{number}}",
-    "typeButton": "{{name}}, {{type}}: tippen, um den Typ zu ändern",
+    "typeButton": "{{name}}, {{type}}: Typ ändern",
     "tick": "Abhaken: {{name}}",
     "untick": "Haken entfernen: {{name}}",
     "restTitle": "Pause",
@@ -474,7 +494,16 @@
     "noteSave": "Notiz speichern",
     "noteBack": "Zurück",
     "yourNote": "Deine Notiz",
-    "video": "Video ansehen"
+    "video": "Video ansehen",
+    "stopwatch": {
+      "start": "Stoppuhr starten: {{name}}",
+      "target": "Ziel {{time}}",
+      "reached": "Ziel erreicht",
+      "last": "Letztes Mal {{time}}",
+      "stop": "Stopp",
+      "stopHint": "Die Zeit kommt in den Satz, und die Pause beginnt.",
+      "cancel": "Abbrechen, ohne die Zeit zu speichern"
+    }
   },
   "summary": {
     "eyebrow": "Training beendet",

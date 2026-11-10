@@ -12,9 +12,9 @@ import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { PlanInput } from '@/api/plans'
-import { fakeApi, renderRoutes, sentBody, signedInAs } from '@/test/auth-helpers'
+import { fakeApi, renderRoutes, sentBody, signedInAs, testUser } from '@/test/auth-helpers'
 import { exercisePage, fixedLists, testExercise } from '@/test/exercise-helpers'
-import { testPlan } from '@/test/plan-helpers'
+import { testPlan, testPlanItem, testPlanSet } from '@/test/plan-helpers'
 import { PlanDetailPage } from './PlanDetailPage'
 import { PlanEditorPage } from './PlanEditorPage'
 
@@ -38,7 +38,8 @@ const savedAgain = { status: 200, body: { data: testPlan(), meta: { changed_else
 describe('PlanEditorPage', () => {
   it('creates a plan from exercises chosen in the library, then opens it', async () => {
     const fake = fakeApi({
-      'GET /api/user': signedInAs(),
+      // A user who wants the RPE field (Profile)
+      'GET /api/user': signedInAs({ ...testUser, show_rpe: true }),
       'GET /api/exercises': library,
       'POST /api/plans': { status: 201, body: { data: testPlan({ id: 'plan-new' }) } },
     })
@@ -64,7 +65,10 @@ describe('PlanEditorPage', () => {
     // Open the bench press: its row's button starts with its name
     await user.click(screen.getByRole('button', { name: /^Barbell Bench Press/ }))
     // Set 1 becomes a warm-up at 40 kg; set 2 asks for 82,5 kg at RPE 8
-    await user.click(screen.getByRole('button', { name: 'Set 1, normal: tap to change the type' }))
+    // The set's number opens the list of types, each written in full
+    await user.click(screen.getByRole('combobox', { name: 'Set 1, normal: change the type' }))
+    await user.click(await screen.findByRole('option', { name: /^Warm-up/ }))
+    expect(screen.getByRole('combobox', { name: 'Set 1, warm-up: change the type' })).toHaveTextContent('W')
     await user.type(screen.getByLabelText('Set 1, Weight (kg)'), '40')
     await user.type(screen.getByLabelText('Set 2, Weight (kg)'), '82,5')
     await user.type(screen.getByLabelText('Set 2, RPE'), '8')
@@ -88,6 +92,33 @@ describe('PlanEditorPage', () => {
     // (the details, the exercises) are gone from the history
     await act(() => router.navigate(-1))
     expect(router.state.location.pathname).toBe('/plans')
+  })
+
+  it('hides the RPE field unless wanted, or already filled in', async () => {
+    // The bench press with an RPE on its first set, the squat with none
+    const plan = testPlan()
+    const [dayA] = plan.days
+    const withRpe = testPlan({
+      days: [{ ...dayA!, items: [
+        testPlanItem({ sets: [testPlanSet({ target_rpe: '8.0' }), testPlanSet()] }),
+        testPlanItem({ id: 'item-squat', exercise_id: 40, exercise: testExercise({ id: 40, name: 'Barbell Squat', photos: [] }) }),
+      ] }],
+    })
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': { status: 200, body: { data: withRpe } } })
+    renderRoutes(routes, '/plans/plan-ppl/edit')
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Next: the exercises' }))
+    await user.click(screen.getByRole('button', { name: /^Barbell Bench Press/ }))
+    await user.click(screen.getByRole('button', { name: /^Barbell Squat/ }))
+
+    // The bench press shows its RPE, and keeps the field once emptied;
+    // the squat, with none and the preference off, has no RPE field
+    expect(screen.getByLabelText('Set 1, RPE')).toHaveValue('8')
+    await user.clear(screen.getByLabelText('Set 1, RPE'))
+    expect(screen.getByLabelText('Set 1, RPE')).toHaveValue('')
+    expect(screen.getAllByLabelText(/^Set 1, Reps/)).toHaveLength(2)
+    expect(screen.getAllByLabelText('Set 1, RPE')).toHaveLength(1)
   })
 
   it('creates an exercise from the picker\'s search, and puts it in the day', async () => {

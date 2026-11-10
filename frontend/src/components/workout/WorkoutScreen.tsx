@@ -20,7 +20,9 @@
  *
  * Two panels from the bottom (UI-6): the big stepper, opened by a tap on a
  * set's value (SetStepper.tsx), and the exercise's menu, behind the "⋯"
- * beside its name (ExerciseMenu.tsx): swap, skip, a note, the video.
+ * beside its name (ExerciseMenu.tsx): swap, skip, a note, the video. And
+ * one full screen: the stopwatch of a timed set, opened by its ▶
+ * (StopwatchPanel.tsx).
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Dumbbell, Link2, ListPlus, Plus, X } from 'lucide-react'
@@ -46,8 +48,9 @@ import { storeActiveSession } from './session-storage'
 import { ExerciseMenu } from './ExerciseMenu'
 import { SetHeader, SetRow } from './SetRow'
 import { SetStepper } from './SetStepper'
+import { StopwatchPanel } from './StopwatchPanel'
 import { FALLBACK_REST_SECONDS } from './useStartWorkout'
-import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, workoutReducer, type ActiveSession, type SetField } from './workout-session'
+import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, findSet, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, workoutReducer, type ActiveSession, type SetField } from './workout-session'
 
 /**
  * The one touch the two "add" buttons, Add set and Add exercises, have
@@ -158,6 +161,15 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   // The name of the set in the stepper: "Set 1", "Warm-up 2"
   const stepNumber = numbers[stepping.set]
   const stepName = stepNumber?.warmUp ? t('workout.warmUpName', { number: stepNumber.number }) : t('workout.setName', { number: stepNumber?.number ?? stepping.set + 1 })
+  // The stopwatch running, and its set: where it is, the exercise, the
+  // set's on-screen name. Looked up by the set's id: it may be on another
+  // exercise than the one on screen. null when none runs
+  const stopwatch = session.stopwatch ?? null
+  const timed = stopwatch ? findSet(session, stopwatch.set_id) : null
+  const timedItem = timed ? session.exercises[timed.exercise] : undefined
+  const timedSet = timed ? timedItem?.sets[timed.set] : undefined
+  const timedNumber = timed && timedItem ? setNumbers(timedItem.sets)[timed.set] : undefined
+  const timedName = timedNumber?.warmUp ? t('workout.warmUpName', { number: timedNumber.number }) : t('workout.setName', { number: timedNumber?.number ?? 1 })
   // The settings an added exercise needs
   const addOptions = { unit, language: i18n.language, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS }
 
@@ -368,7 +380,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                       setStepping({ set: position, field })
                       setStepperOpen(true)
                     }}
-                    onCycleType={() => dispatch({ type: 'cycleSetType', exercise: index, set: position })}
+                    onTypeChange={setType => dispatch({ type: 'setSetType', exercise: index, set: position, setType })}
+                    onStartStopwatch={() => dispatch({ type: 'startStopwatch', exercise: index, set: position, now: new Date().toISOString() })}
                   />
                 ))}
               </ol>
@@ -403,6 +416,20 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
           <p aria-live="polite" className="sr-only">{announce}</p>
         </div>
       </main>
+
+      {/* The stopwatch of a timed set, full screen, while it runs. Last
+          time's time as the clock shows it, "1:31" */}
+      {stopwatch && timedItem && timedSet && (
+        <StopwatchPanel
+          stopwatch={stopwatch}
+          exerciseName={timedItem.exercise.name}
+          setName={timedName}
+          lastText={timedSet.last?.duration_seconds ? clock(timedSet.last.duration_seconds) : null}
+          alarm={{ sound: user?.timer_sound ?? true, vibration: user?.timer_vibration ?? true }}
+          onStop={() => dispatch({ type: 'stopStopwatch', now: new Date().toISOString() })}
+          onCancel={() => dispatch({ type: 'cancelStopwatch' })}
+        />
+      )}
 
       {/* The rest timer, while it runs */}
       {session.rest !== null && (

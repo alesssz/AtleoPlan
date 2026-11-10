@@ -79,6 +79,7 @@ class UserFactory extends Factory
             'weight_step' => 2.5,
             'timer_sound' => true,
             'timer_vibration' => true,
+            'show_rpe' => false,
         ];
     }
 

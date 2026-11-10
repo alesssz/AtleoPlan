@@ -85,6 +85,8 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
   const navigate = useNavigate()
   const unit = user?.weight_unit ?? 'kg'
   const defaultRestSeconds = user?.default_rest_seconds ?? FALLBACK_REST_SECONDS
+  // Whether the sets show the RPE field: a preference of Profile, off by default
+  const showRpe = user?.show_rpe ?? false
 
   // The draft kept from an earlier visit, read once, when the editor opens
   const [kept] = useState(() => loadDraft(storageKey))
@@ -268,6 +270,7 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
               errorOf={errorOf}
               hasErrors={hasErrors}
               unit={unit}
+              showRpe={showRpe}
               defaultRestSeconds={defaultRestSeconds}
               language={i18n.language}
               onOpenDay={goToDay}

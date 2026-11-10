@@ -140,6 +140,8 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Recommended.** A, with the records of Progress: the badge mid-workout is the motivating moment, and the comparison is a few lines once the bests are known; the summary then shows the same badges.
 
+**Timed exercises have two kinds of best.** A hold (a dead hang, a plank) is better longer; a race against the clock ("50 push-ups as fast as possible", kept as one's own exercise logged by time since the stopwatch of `feat/set-types-rpe`, [C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set)) is better shorter. The exercise does not say which: the records of a timed exercise need a choice first, such as a flag on the exercise ("lower is better") or no records for time at all.
+
 ### FEAT-6 Edit a past workout
 
 **Priority:** low · **Kind:** feature · **Found:** 2026-11-08

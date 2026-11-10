@@ -59,7 +59,9 @@
     "sound": "Sound at the end of the rest",
     "soundHint": "Two short beeps.",
     "vibration": "Vibration at the end of the rest",
-    "vibrationHint": "On phones that can vibrate (not iPhones)."
+    "vibrationHint": "On phones that can vibrate (not iPhones).",
+    "rpe": "RPE in plans",
+    "rpeHint": "A target effort from 1 to 10 beside the reps, in the plan editor."
   },
   "theme": {
     "dark": "Dark",
@@ -200,7 +202,7 @@
       "dragHandle": "Move {{name}}",
       "supersetTag": "Superset {{number}}",
       "setLabel": "Set {{number}}",
-      "setTypeButton": "Set {{number}}, {{type}}: tap to change the type",
+      "setTypeButton": "Set {{number}}, {{type}}: change the type",
       "setTypes": {
         "normal": "normal",
         "warm_up": "warm-up",
@@ -251,7 +253,25 @@
       }
     },
     "lastUsed": "Used {{when}}",
-    "neverUsed": "Never used yet"
+    "neverUsed": "Never used yet",
+    "setTypeChoices": {
+      "normal": {
+        "name": "Normal",
+        "hint": "A working set, counted in the totals"
+      },
+      "warm_up": {
+        "name": "Warm-up",
+        "hint": "Light, before the working sets; not counted"
+      },
+      "drop": {
+        "name": "Drop set",
+        "hint": "Straight after the set before, with less weight"
+      },
+      "failure": {
+        "name": "To failure",
+        "hint": "Until not one more rep is possible"
+      }
+    }
   },
   "exercises": {
     "new": "New exercise",
@@ -425,7 +445,7 @@
     "addedWeight": "added weight, {{unit}}",
     "setName": "Set {{number}}",
     "warmUpName": "Warm-up {{number}}",
-    "typeButton": "{{name}}, {{type}}: tap to change the type",
+    "typeButton": "{{name}}, {{type}}: change the type",
     "tick": "Tick: {{name}}",
     "untick": "Untick: {{name}}",
     "restTitle": "Rest",
@@ -474,7 +494,16 @@
     "noteSave": "Save note",
     "noteBack": "Back",
     "yourNote": "Your note",
-    "video": "Watch the video"
+    "video": "Watch the video",
+    "stopwatch": {
+      "start": "Start the stopwatch: {{name}}",
+      "target": "Target {{time}}",
+      "reached": "Target reached",
+      "last": "Last time {{time}}",
+      "stop": "Stop",
+      "stopHint": "The time goes into the set, and the rest starts.",
+      "cancel": "Cancel, without saving the time"
+    }
   },
   "summary": {
     "eyebrow": "Workout finished",

@@ -11,7 +11,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ChevronDown, Dumbbell, GripVertical, Plus, Trash2, Unlink } from 'lucide-react'
-import { useId, type Dispatch } from 'react'
+import { useId, useState, type Dispatch } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FormField } from '@/components/FormField'
 import { Button } from '@/components/ui/button'
@@ -39,6 +39,8 @@ interface EditorItemProps {
   errorOf: (path: string) => string | undefined
   /** The user's weight unit. */
   unit: WeightUnit
+  /** Whether the user wants the RPE field (Profile, `show_rpe`). */
+  showRpe: boolean
   /** The user's default rest, in seconds. */
   defaultRestSeconds: number
   /** The interface's language. */
@@ -57,7 +59,7 @@ interface EditorItemProps {
 
 /** A sortable exercise of a day, with its sets when open. */
 export function EditorItem(props: EditorItemProps) {
-  const { item, at, days, dispatch, errorOf, unit, defaultRestSeconds, language, open, onToggle, selecting, chosen, onChoose } = props
+  const { item, at, days, dispatch, errorOf, unit, showRpe, defaultRestSeconds, language, open, onToggle, selecting, chosen, onChoose } = props
   const { t } = useTranslation()
   // The panel's id, for aria-controls on the button that opens it
   const panelId = useId()
@@ -66,6 +68,13 @@ export function EditorItem(props: EditorItemProps) {
   // Whether any of its fields has an error: the row is outlined in red
   const hasError = ['rest', 'notes'].some(field => errorOf(`${path}.${field}`))
     || item.sets.some((_, set) => ['reps', 'weight', 'rpe', 'seconds', 'meters'].some(field => errorOf(`${path}.sets.${set}.${field}`)))
+  // Whether a set had an RPE when the exercise was first drawn (a plan
+  // saved before the preference, or written by someone who uses it). Read
+  // once, with useState(() => …): worked out at every draw, the field would
+  // vanish under the finger the moment its last RPE was erased
+  const [hadRpe] = useState(() => item.sets.some(set => set.rpe !== ''))
+  // The RPE field shows when the user wants it, or when there is one to see
+  const withRpe = showRpe || hadRpe
 
   // useSortable: what dnd-kit needs from this row. setNodeRef marks the
   // element that moves; attributes and listeners go on the handle;
@@ -162,6 +171,7 @@ export function EditorItem(props: EditorItemProps) {
                 dispatch={dispatch}
                 errorOf={errorOf}
                 unit={unit}
+                showRpe={withRpe}
               />
             ))}
           </ol>
