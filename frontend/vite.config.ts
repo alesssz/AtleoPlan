@@ -62,6 +62,14 @@ export default defineConfig({
     // Sanctum would not recognise.
     port: 5673,
     strictPort: true,
+    // Listen on 127.0.0.1, IPv4's own address for "this computer". Left to
+    // itself, Vite listens on whatever `localhost` resolves to first, which on
+    // Windows is ::1 (IPv6) only: a browser on the computer still finds it,
+    // since it tries both, but the port forwarding to a phone over USB
+    // (`make phone`, adb reverse) connects to 127.0.0.1 and found nothing
+    // there (docs/how-to/H3-frontend.md H3.8.2). Still only this computer:
+    // not the Wi-Fi.
+    host: '127.0.0.1',
 
     // Laravel's paths go to the backend; everything else is the React app.
     // The Host header is left as localhost:5673 (no changeOrigin), so Laravel

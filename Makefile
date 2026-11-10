@@ -182,6 +182,16 @@ plans-demo: ## Give every user with no plans two example plans (after exercises-
 dev: ## Start the React dev server (http://localhost:5673)
 	$(NPM) run dev
 
+# adb, Android's tool for talking to a phone over USB: the one on the PATH, or
+# the copy unzipped into the home folder (docs/how-to/H3-frontend.md H3.8.2).
+# $(shell …) runs a command when the Makefile is read; `a || b` runs b when a
+# fails. Git Bash finds adb.exe from the name without .exe
+ADB := $(shell command -v adb 2>/dev/null || echo "$(HOME)/platform-tools/adb")
+
+phone: ## Android phone on USB: its own localhost:5673 opens this computer's dev app (H3.8.2)
+	@"$(ADB)" devices -l
+	@"$(ADB)" reverse tcp:5673 tcp:5673 >/dev/null && echo "✔ On the phone, in Chrome: http://localhost:5673 (until the cable is unplugged)"
+
 fe-install: ## Install the frontend's npm packages
 	$(NPM) install
 
