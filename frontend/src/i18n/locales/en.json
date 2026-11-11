@@ -448,6 +448,16 @@
       "invalidTitle": "This link doesn't work",
       "invalidText": "Something is missing from it. Ask for a new one and open it from the email.",
       "askAgain": "Ask for a new link"
+    },
+    "google": {
+      "continue": "Continue with Google",
+      "or": "or",
+      "errors": {
+        "cancelled": "Signing in with Google was cancelled. Try again, or use your email.",
+        "failed": "Signing in with Google didn't work. Please try again in a moment.",
+        "unverified": "Google hasn't verified this email address, so it can't be used to sign in.",
+        "disabled": "This account has been disabled."
+      }
     }
   },
   "workout": {

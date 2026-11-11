@@ -30,6 +30,7 @@ Every PHP file starts with a comment saying what it is and points to the section
   - [C2.7.5 Forgot password](#c275-forgot-password)
   - [C2.7.6 Fortify or by hand](#c276-fortify-or-by-hand)
   - [C2.7.7 Messages in the user's language](#c277-messages-in-the-users-language)
+  - [C2.7.8 Signing in with Google](#c278-signing-in-with-google)
 - [C2.8 Admin panel: Filament](#c28-admin-panel-filament)
 - [C2.9 Queues and jobs](#c29-queues-and-jobs)
 - [C2.10 Configuration and .env](#c210-configuration-and-env)
@@ -685,7 +686,7 @@ How these were built step by step, with the real output: [H1.10](../how-to/H1-da
 
 ## C2.7 Signing in: Sanctum
 
-Signing in is built from two packages that do different jobs. **Fortify** handles the moments that change who is signed in: signing up, in and out, resetting a password. **Sanctum** recognises the signed-in user on every request after that.
+Signing in is built from two packages that do different jobs. **Fortify** handles the moments that change who is signed in: signing up, in and out, resetting a password. **Sanctum** recognises the signed-in user on every request after that. Signing in with Google is a third way in, with **Socialite** and two routes of our own ([C2.7.8](#c278-signing-in-with-google)); after it, Sanctum sees a session like any other.
 
 This section explains each step twice: **how this app does it with Fortify, and how the same step looks written by hand.** The app uses Fortify ([C2.7.6](#c276-fortify-or-by-hand) says why), so the by-hand code is not in the repository; it is here because it shows what Fortify does for us. It was run against the same scenarios as our tests, and it passes them. The React side is in [C1.13](C1-frontend.md#c113-signing-in-and-forms).
 
@@ -739,6 +740,8 @@ Browser (localhost:5673)                        Laravel, through Vite's proxy
 | `POST /api/auth/forgot-password` | Sends the email | 200; 422 if the email is unknown |
 | `POST /api/auth/reset-password` | Sets the new password | 200; 422 if the token is wrong |
 | `GET /api/user` (ours) | Who is signed in | 200; 401 for a visitor |
+| `GET /auth/google/redirect` (ours, a browser visit) | Off to Google ([C2.7.8](#c278-signing-in-with-google)) | 302 to Google |
+| `GET /auth/google/callback` (ours, a browser visit) | Back from Google: signs in, links or creates the user | 302 into the app, or to `/login?error=…` |
 | `PATCH /api/user/preferences` (ours) | Saves the language, the theme, one of the five workout preferences (unit, default rest 0–600 s, weight step 0.25–50 with two decimals at most, timer sound, vibration) or the plan editor's `show_rpe`; only the fields sent | 204; 422 if not valid |
 
 ### C2.7.2 Signing in and out
@@ -988,6 +991,61 @@ Laravel's messages are read with `__('auth.failed')`, from the files in `lang/`.
 **A new validation rule** in a Form Request adds its message to the three `validation.php` files; `tests/Feature/Auth/LanguageTest.php` lists the keys it checks. A rule without a translation shows its English message.
 
 **A field inside a list** is named with `*` in `attributes`: `'muscles.*.role' => 'ruolo del muscolo'`. Without it, the message would read "Il campo muscles.0.role è obbligatorio".
+
+### C2.7.8 Signing in with Google
+
+"Continue with Google" ([FEAT-9](../design/D1-ui.md#d141-sign-in-and-onboarding)) uses **OAuth**, the standard way for a site to ask another (Google) "who is this person?" without ever seeing their Google password. **Laravel Socialite**, Laravel's official package for it, knows Google's addresses and answers; what to do with the answer is ours, in `app/Actions/Auth/SignInWithSocialAccount.php`. How it was built: [H2.15](../how-to/H2-backend.md#h215-sign-in-with-google-as-built); the table: [D3.3.1](../design/D3-data-model.md#d331-social_accounts).
+
+**The journey.** It is made of browser visits, not `fetch()` calls: the browser itself goes to Google and back.
+
+```
+Browser                         Laravel (through Vite, /auth/…)         Google
+  │
+  ├─ GET /auth/google/redirect?locale=it&from=/plans ─▶
+  │                               keeps from and locale in the session;
+  │                               Socialite keeps a random `state` there too
+  │  ◀── 302 to accounts.google.com?client_id=…&redirect_uri=…&state=…&scope=openid profile email
+  │
+  ├─ the account chooser, the consent ─────────────────────────────────────▶
+  │  ◀── 302 to /auth/google/callback?code=…&state=… ─────────────────────
+  │
+  ├─ GET /auth/google/callback?code=…&state=… ─▶
+  │                               state = the session's? (else: refused)
+  │                               code + client secret ──────────────────▶
+  │                                                 ◀── who: sub, email, email_verified, name
+  │                               find, link or create the user;
+  │                               Auth::login(), session regenerated
+  │  ◀── 302 to /plans (or /login?error=…)
+  │
+  └─ the React app loads, GET /api/user finds the session, as after any reload
+```
+
+**What each piece guards against:**
+
+| Piece | Stops |
+|---|---|
+| **`state`**, random, kept in the session and checked on return | A callback started on another site, which would sign the victim into the attacker's account. Socialite does it; it needs the session, which is why the routes are in `web.php` |
+| **The client secret**, sent by Laravel only, never seen by the browser | Anyone else swapping a `code` for the person's details |
+| **Redirect URIs** listed in the Google client ([S1.11.4](../start/S1-setup.md#s1114-the-client-and-its-secret)) | Google sending the `code` to any other address |
+| **`email_verified`** required before using the address | Someone making a Google account with another person's address (possible with addresses that are not Gmail) and entering their AtleoPlan account |
+| **`from` accepted only as a path** (`/plans`, never `//site` or `https://…`) | An "open redirect": a link that signs in and then lands on a lookalike site |
+| **`session()->regenerate()`** after `Auth::login()` | Session fixation, as for a password ([C2.7.2](#c272-signing-in-and-out)) |
+
+**Who signs in: the three cases**, in this order:
+
+1. **The Google account is linked** (a row in `social_accounts` with its `sub`): that user. By the id, not the address, which a person can change on Google's side.
+2. **The address belongs to an account** made with a password: Google is linked to it, its plans kept. Decided with the owner: the other choice, refusing and asking to sign in with the password, was clumsier.
+3. **A new address:** a new account, no password, the language the app was showing.
+
+Cases 2 and 3 need `email_verified`. A disabled account is refused in all three, before anything is linked.
+
+**Errors go back to the React app as a code,** `/login?error=cancelled|failed|unverified|disabled` (`app/Enums/SocialSignInError.php`): a redirect cannot carry a JSON body. The action throws `SocialSignInRefused` with the reason, so its checks can stop it from anywhere without an `if` at every level; the controller catches it. Anything unexpected (Google unreachable, a wrong secret, a stale `state`) is `failed`, with the details in the log through `report()`.
+
+**An account without a password.** `users.password` is nullable: someone who signed up with Google has none. `Hash::check()` never matches an empty hash, so the password form refuses them like a wrong password; Forgot password sets one, and both ways then work.
+
+**Not with Fortify.** Fortify has no social sign-in; the two routes are ours, short, and use the same session and guard (`web`), so to Sanctum a user signed in with Google looks exactly like one signed in with a password.
+
+**By hand, without Socialite,** the callback would: compare `state` with the session's; POST the `code`, the client id and secret and the redirect URI to `https://oauth2.googleapis.com/token`; read `access_token` from the answer; GET `https://www.googleapis.com/oauth2/v3/userinfo` with it. Socialite is those steps, plus the same for a dozen other providers, which is what makes Apple later a driver rather than a rewrite.
 
 ---
 

@@ -41,7 +41,7 @@ export function ForgotPasswordPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('auth.forgotPassword.eyebrow')} title={t('auth.forgotPassword.title')} description={t('auth.forgotPassword.description')} />
+      <PageHeader eyebrow={t('auth.forgotPassword.eyebrow')} title={t('auth.forgotPassword.title')} description={t('auth.forgotPassword.description')} className="mb-6" />
 
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
         {forgotPassword.isSuccess && <FormBanner variant="success">{t('auth.forgotPassword.sent')}</FormBanner>}
@@ -52,7 +52,7 @@ export function ForgotPasswordPage() {
         <Button type="submit" size="xl" pending={forgotPassword.isPending}>{t('auth.forgotPassword.submit')}</Button>
       </form>
 
-      <nav aria-label={t('auth.otherOptions')} className="mt-4 flex flex-col items-center">
+      <nav aria-label={t('auth.otherOptions')} className="mt-2 flex flex-col items-center">
         <Link to="/login" className="flex min-h-12 items-center text-sm font-semibold text-primary">
           {t('auth.backToSignIn')}
         </Link>

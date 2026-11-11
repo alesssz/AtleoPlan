@@ -81,6 +81,13 @@ export default defineConfig({
       '/sanctum': backendUrl,
       // Uploaded photos and videos served by Laravel
       '/storage': backendUrl,
+      // Sign in with Google (FEAT-9): the browser's two stops on its way to
+      // Google and back, /auth/google/redirect and /auth/google/callback
+      // (backend routes/web.php). The callback's address, on Vite's port, is
+      // the one listed in the Google client (docs/start/S1-setup.md S1.11.4).
+      // With its final slash: Vite matches the start of the address, and
+      // '/auth' alone would also catch a React page such as /authors
+      '/auth/': backendUrl,
     },
   },
 

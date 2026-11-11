@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built), the loading signs [H3.27](#h327-loading-signs-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built), the loading signs [H3.27](#h327-loading-signs-as-built), Continue with Google [H3.28](#h328-continue-with-google-as-built).
 
 ## Contents
 
@@ -168,6 +168,16 @@
   - [H3.27.7 Looking at it](#h3277-looking-at-it)
   - [H3.27.8 Checking in the browser](#h3278-checking-in-the-browser)
   - [H3.27.9 The checks](#h3279-the-checks)
+- [H3.28 Continue with Google, as built](#h328-continue-with-google-as-built)
+  - [H3.28.1 The order of building](#h3281-the-order-of-building)
+  - [H3.28.2 The proxy](#h3282-the-proxy)
+  - [H3.28.3 The component](#h3283-the-component)
+  - [H3.28.4 The texts](#h3284-the-texts)
+  - [H3.28.5 The tests, and proving they can fail](#h3285-the-tests-and-proving-they-can-fail)
+  - [H3.28.6 A "G" as big as the page](#h3286-a-g-as-big-as-the-page)
+  - [H3.28.7 Second pass: sign-in on a laptop's screen](#h3287-second-pass-sign-in-on-a-laptops-screen)
+  - [H3.28.8 Checking in the browser](#h3288-checking-in-the-browser)
+  - [H3.28.9 The checks](#h3289-the-checks)
 
 ---
 
@@ -870,6 +880,7 @@ npx eslint src/components/ui/badge.tsx
 | `Failed to resolve import "@/…"` for a file of ours | The path or the file name is wrong (case counts) | Check the name; VS Code autocompletes the path |
 | `error TS2345 … Did you mean …` on a `t('…')` | A misspelt translation key | The suggested key ([H3.6](#h36-translations)) |
 | `has exactly the English keys` fails | A key missing in one language | The `-` line says which ([H3.6](#h36-translations)) |
+| A Tailwind class with `[…]` does nothing, although the element has it | A `\'` inside the brackets: Tailwind reads the file as text and makes a class with the backslash | Write the string with the other quotes, or no quotes where CSS allows ([H3.28.6](#h3286-a-g-as-big-as-the-page)) |
 | `ReferenceError: vi is not defined` | `vi` not imported in the test | `import { …, vi } from 'vitest'` |
 | A test cannot find a text that is on the page | The text appears later | `findBy…` (waits) instead of `getBy…` |
 | `Unable to find an accessible element with the role "button" and name "…"` | The name differs, or the button is not there | The error prints the page's HTML: search it for the button |
@@ -4024,7 +4035,7 @@ npm warn exec The following package was not found and will be installed: shadcn@
 shadcn's file is eight lines: Lucide's `Loader2Icon`, `size-4 animate-spin`, `role="status"` and `aria-label="Loading"`, in shadcn's own style (double quotes). It was rewritten whole, in the project's style and with the header and comments of [P1.2](../project/P1-conventions.md#p12-code), so `make fix` ([H3.9](#h39-a-shadcnui-component)) had nothing left to change; `npm run lint` passes on it. Two changes in what it does, explained in the file:
 
 - **The label.** "Loading", in English, inside every button would be read by screen readers whatever the language, and on top of the button's own name. The spinner is now hidden from them (`aria-hidden`) unless given a `label`, and then it is a `role="status"` with that text, translated: `<Spinner label={t('exercises.searching')} />`.
-- **The size, found by looking** (H3.27.7). With `size-4` the spinner stayed 16 px inside the 48 px buttons, whose icons are 20 px. The button sizes icons with `[&_svg:not([class*='size-'])]:size-5`: only those with no `size-` in their classes. Written `h-4 w-4`, the same 16 px alone, the spinner falls under that rule and takes each button size's icon size. Given `size-5` (the search box), `cn()` drops `h-4 w-4`; from `frontend/`:
+- **The size, found by looking** (H3.27.7). With `size-4` the spinner stayed 16 px inside the 48 px buttons, whose icons are 20 px. The button sizes icons with `[&_svg:not([class*='size-'])]:size-5`: only those with no `size-` in their classes. Written `h-4 w-4`, the same 16 px alone, the spinner falls under that rule and takes each button size's icon size. Given `size-5` (the search box), `cn()` drops `h-4 w-4`. (**Corrected later:** the rule did not apply then, to the spinner or to any icon, because of the quotes written `\'` inside it; the spinner and the icons were 16 and 24 px. Fixed in [H3.28.6](#h3286-a-g-as-big-as-the-page).) From `frontend/`:
 
 ```sh
 node -e "const {cn}=require('cn'); console.log(cn('h-4 w-4 animate-spin','size-5 absolute'))"
@@ -4142,6 +4153,175 @@ Contents up to date.
 ```
 
 Four frontend tests more than before (253): three in the new `button.test.tsx`, one in `ExercisesPage.test.tsx`.
+
+---
+
+## H3.28 Continue with Google, as built
+
+"Continue with Google" under the sign-in and sign-up forms ([FEAT-9](../design/D1-ui.md#d141-sign-in-and-onboarding)), and the message shown when Google sends the person back with an error. How it works: [C1.13.7](../concepts/C1-frontend.md#c1137-continue-with-google); the Laravel side: [H2.15](H2-backend.md#h215-sign-in-with-google-as-built).
+
+| File | Change |
+|---|---|
+| `frontend/vite.config.ts` | `/auth/` forwarded to Laravel |
+| `frontend/src/components/GoogleSignIn.tsx` | New: `GoogleSignInButton` and `GoogleSignInError` |
+| `frontend/src/pages/LoginPage.tsx` | The error at the top of the form, the button under it |
+| `frontend/src/pages/RegisterPage.tsx` | The button under the form |
+| `frontend/src/i18n/locales/*.json` | `auth.google`: the button, "or", four errors |
+| `frontend/src/pages/auth-pages.test.tsx` | Six tests |
+| `frontend/src/components/layout/AuthLayout.tsx`, `PageHeader.tsx`, the four sign-in pages | Tighter spacing, so sign-in fits a laptop's screen (H3.28.7) |
+| `frontend/src/components/ui/button.tsx`, `select.tsx`, `tabs.tsx`, `alert-dialog.tsx` | `[class*=size-]` without quotes: the icon sizes now apply (H3.28.6) |
+
+### H3.28.1 The order of building
+
+1. The backend first ([H2.15](H2-backend.md#h215-sign-in-with-google-as-built)): the codes of `?error=` are decided there.
+2. The proxy, the texts in four languages, the component, the two pages.
+3. The tests, proving they can fail, then the checks.
+
+### H3.28.2 The proxy
+
+In `server.proxy`, beside `/api`, `/sanctum` and `/storage`:
+
+```ts
+'/auth/': backendUrl,
+```
+
+**With its final slash.** Vite compares the start of the address: `'/auth'` would also send a React page such as `/authors` to Laravel. Vite reads its configuration when it starts: after the change, stop `npm run dev` (Ctrl+C) and start it again. Production's Caddy will need the same path ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
+
+### H3.28.3 The component
+
+- **A plain `<a href>`, drawn as a button** with `<Button asChild variant="outline" size="xl">`. Not React Router's `<Link>`, which would look for a React page at `/auth/…` and show Not found; and not a `fetch()`: the browser itself has to go to Google.
+- **The address** is built with `URLSearchParams`: `/auth/google/redirect?locale=it&from=%2Fplans`. `from` is the page RequireAuth remembered in the router's state (the same that RequireGuest reads); `locale` the app's language, as RegisterPage sends it.
+- **The wait.** Button's `pending` is not for `asChild` ([H3.27.3](#h3273-pending-on-button-and-the-slot-that-counts-a-false)), so the link does it by hand: `onClick` sets `leaving`, the "G" becomes `<Spinner />`, `aria-busy` is set. The button's own classes then hide its icons, but the spinner is marked `data-slot="spinner"` and stays.
+- **Back from Google's page,** the browser may show the page from its back-forward cache, spinner and all. A `pageshow` event with `persisted: true` sets `leaving` back to false.
+- **The "G"** is an inline SVG in Google's four colours: Google's sign-in guidelines ask for it, and Lucide has no brand logos.
+- **The error** is read with `useSearchParams()`: `?error=unverified` gives `auth.google.errors.unverified`, a code it does not know gives `failed`. The keys sit in an object with `as const`, so `t()` checks them; `` t(`auth.google.errors.${code}`) `` would be a string TypeScript cannot check.
+
+### H3.28.4 The texts
+
+`auth.google` in the four files, written with a short Python script that loads each JSON, adds the block and writes it back with `indent=2` and `ensure_ascii=False`: `git diff --stat` then showed 10 lines added in each file and none changed. `npx vitest run src/i18n` checks that the four files have the same keys.
+
+### H3.28.5 The tests, and proving they can fail
+
+Six tests in `auth-pages.test.tsx`, under "Continue with Google": the link's address with the language and `from` (a visitor opening `/plans`), the link on the sign-up page, the wait and Back, the error in German, an unknown code, and no message without an error.
+
+```sh
+npx vitest run src/pages/auth-pages.test.tsx src/i18n
+```
+
+```
+ Test Files  2 passed (2)
+      Tests  30 passed (30)
+```
+
+**Clicking a real link in jsdom.** jsdom cannot leave the page: the click would only print "Not implemented: navigation". The test adds `document.addEventListener('click', e => e.preventDefault())`, which stops the browser's part of the click; React's `onClick` still runs. `window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))` then plays the return from the cache.
+
+**Proving they can fail.** For a moment, in `GoogleSignIn.tsx`: `from` never added, every code read as `failed`, and `pageshow` ignored:
+
+```
+     × links to Laravel with the language and the page the user was going to
+     × shows that it is on its way, and is ready again after Back
+     × says why Google sign-in did not work, in the user's language
+     × confirms that the email was sent
+     × shows an unknown email under the field
+     × sends the token and the email of the link, then goes to sign in
+     × shows an expired link at the top, since the email is not a field here
+```
+
+The first three are the ones meant. **The other four were a fault of the test:** "ready again after Back" failed before its last line, `document.removeEventListener(…)`, so the listener stayed and cancelled the clicks of every test after it, Forgot password's and Reset password's included. Removing it with Vitest's `onTestFinished(() => document.removeEventListener('click', stayHere))`, which runs even when the test fails, fixed it; with only `pageshow` ignored:
+
+```
+     × shows that it is on its way, and is ready again after Back
+      Tests  1 failed | 19 passed (20)
+```
+
+Put back: 20 passed.
+
+**Node 22 instead of 24.** The first run, on the Mac, stopped before any test:
+
+```
+Error: require() of ES Module …/node_modules/@exodus/bytes/encoding-lite.js from …/node_modules/html-encoding-sniffer/lib/html-encoding-sniffer.js not supported.
+ Test Files  no tests
+```
+
+`node -v` said `v22.9.0`: the shell had not switched to the project's Node 24 (`.nvmrc`), and jsdom's packages need it. `nvm use` in `frontend/` (or a new terminal, if nvm switches by itself) fixes it; `node -v` then says `v24.…`.
+
+### H3.28.6 A "G" as big as the page
+
+**What was seen.** The first look at the sign-in page, in the browser: the "G" about 650 px wide, over the form, and "Continua con Google" pushed out of the button on the right. The tests had passed: jsdom draws no CSS, so sizes are never checked there.
+
+**Why.** The button sizes the icons inside it with a class such as `[&_svg:not([class*='size-'])]:size-5`. shadcn writes it in double-quoted strings; in this project's single-quoted ones it had become `[class*=\'size-\']`. JavaScript turns `\'` into `'`, so the page's element has the right class. But Tailwind does not run the JavaScript: it reads the file as text and makes a class out of what it finds, backslashes included. The compiled CSS showed it (`npx vite build`, then a search in `dist/assets/*.css`):
+
+```
+.\[\&_svg\:not\(\[class\*\=\\\'size-\\\'\]\)\]\:size-5 svg:not([class*="'size-'"]){width:calc(var(--spacing) * 5);…}
+```
+
+A class name with `\'` in it, which no element has, and a selector looking for the quote characters themselves. **The rule had never applied to any icon** of a button, tab, select or dialog. Nobody had noticed because Lucide's icons carry `width="24" height="24"` of their own; the "G" has only a `viewBox`, and an `<svg>` with no size grows to fill its container.
+
+**The fix.** No quotes at all: `[class*=size-]` is valid CSS, since `size-` is a plain identifier, and Tailwind and the browser now read the same string. From `frontend/`:
+
+```sh
+perl -pi -e "s/\[class\*=\\\\'size-\\\\'\]/[class*=size-]/g" src/components/ui/{alert-dialog,button,select,tabs}.tsx
+```
+
+The same build then gave `svg:not([class*=size-]){width:calc(var(--spacing) * 5);…}` under the class the element really has. The "G" also got `width="20" height="20"`, a floor the CSS overrides.
+
+**What changes elsewhere.** Every icon in a button without a `size-` class of its own goes from Lucide's 24 px to the size shadcn meant: 16 px, 20 px on the 48 px buttons, 12 and 14 px on the small ones. The spinner, written `h-4 w-4` so that this rule would size it (H3.27.2), now really does.
+
+**To remember:** an arbitrary value of Tailwind (`[…]`) must not contain a `\` written for JavaScript. When a quote is needed inside one, write the string with the other quotes, or leave the quotes out where CSS allows.
+
+### H3.28.7 Second pass: sign-in on a laptop's screen
+
+**What was seen.** With the "G" fixed, the sign-in page scrolled on the Mac's screen: the Google block had added about 110 px, and the column was some 790 px tall on a wide window.
+
+**What changed,** keeping every field, button and link at 48 px, the size a finger needs (D1.5):
+
+| Where | Before | After | Saved |
+|---|---|---|---|
+| The two links under the form (`LoginPage`) | One under the other | Side by side when they fit (`flex-wrap`, `gap-x-6`); on a narrow phone the second wraps | 48 px |
+| `AuthLayout`: space above, below, and between logo and card | 32 px | 24 px | 24 px |
+| Space under the title (`PageHeader`, new `className` prop, `mb-6` from the four pages) | 32 px | 24 px | 8 px |
+| The Google block: above it, and between "or" and the button | 24 px | 20 and 16 px | 12 px |
+| Space above the links | 16 px | 8 px | 8 px |
+
+`PageHeader` merges `className` with `cn()`, so `mb-6` replaces its `mb-8` there and nowhere else.
+
+**Looked at** with Chrome without a window, on the running `make start`, from any folder (the address is the dev server's):
+
+```sh
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars \
+  --window-size=1280,720 --virtual-time-budget=4000 --screenshot=/tmp/login-720.png "http://localhost:5673/login"
+```
+
+At 1280 × 720 the whole sign-in card is on screen, its bottom at 677 px; at 600 px wide the two links still share a line. Narrower than about 500 px headless Chrome does not draw (H3.26.10), so the wrap was not photographed. Sign-up, two fields longer, still scrolls a little at 720 px.
+
+### H3.28.8 Checking in the browser
+
+`make start`, then http://localhost:5673/login in a private window (no session):
+
+- **Under the form:** "or" between two lines, then **Continue with Google**, as wide as **Sign in**, outlined, with the coloured "G" at 20 px, the size of the icons on the other 48 px buttons. The same on **Create account**.
+- **Developer tools → Network,** then the button: `redirect?locale=…` answered **302** with `Location: https://accounts.google.com/…` (with the credentials), or `Location: http://localhost:5673/login?error=failed` (without them, the Mac until S1.11.5).
+- **The errors**, typed in the address: `/login?error=cancelled`, `?error=unverified`, `?error=disabled`, `?error=anything`; the message at the top of the form, in the app's language.
+- **Coming back** to the page asked for: signed out, open http://localhost:5673/plans; on the sign-in page, the button's address ends with `from=%2Fplans` (right click → Copy link); after Google, the plans.
+
+The whole journey to Google and back needs the credentials ([H2.15.7](H2-backend.md#h2157-checking-it-for-real)); it was not tried on the Mac where this was built.
+
+### H3.28.9 The checks
+
+From `frontend/`, with Node 24:
+
+```sh
+npm run lint
+npx tsc -b
+npx vitest run
+```
+
+```
+> eslint .
+ Test Files  31 passed (31)
+      Tests  263 passed (263)
+```
+
+`tsc -b` printed nothing, which is success. Six frontend tests more than before (257).
 
 ---
 

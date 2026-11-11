@@ -3,6 +3,10 @@
  * the model of a form (docs/concepts/C1-frontend.md C1.13). The new account starts in the
  * language of this browser, and Fortify signs the user in at once, so
  * RequireGuest, around this page, moves into the app.
+ *
+ * Under the form, "Continue with Google" (FEAT-9, src/components/GoogleSignIn.tsx):
+ * the same button as on the sign-in page, since Google makes the account
+ * when the address is new.
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -11,6 +15,7 @@ import { Link } from 'react-router'
 import { useSignUp } from '@/api/auth'
 import { FormBanner } from '@/components/FormBanner'
 import { FormField } from '@/components/FormField'
+import { GoogleSignInButton } from '@/components/GoogleSignIn'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { FALLBACK_LANGUAGE, isLanguage } from '@/i18n/languages'
@@ -44,7 +49,7 @@ export function RegisterPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('auth.signUp.eyebrow')} title={t('auth.signUp.title')} description={t('auth.signUp.description')} />
+      <PageHeader eyebrow={t('auth.signUp.eyebrow')} title={t('auth.signUp.title')} description={t('auth.signUp.description')} className="mb-6" />
 
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
         {errors.root?.message && <FormBanner variant="error">{errors.root.message}</FormBanner>}
@@ -58,7 +63,10 @@ export function RegisterPage() {
         <Button type="submit" size="xl" pending={signUp.isPending}>{t('auth.signUp.submit')}</Button>
       </form>
 
-      <nav aria-label={t('auth.otherOptions')} className="mt-4 flex flex-col items-center">
+      {/* The other way in: a link to Google, not part of the form */}
+      <GoogleSignInButton />
+
+      <nav aria-label={t('auth.otherOptions')} className="mt-2 flex flex-col items-center">
         <Link to="/login" className="flex min-h-12 items-center text-sm font-semibold text-primary">
           {t('auth.signUp.haveAccount')}
         </Link>

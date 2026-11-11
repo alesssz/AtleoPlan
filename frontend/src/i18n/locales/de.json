@@ -448,6 +448,16 @@
       "invalidTitle": "Dieser Link funktioniert nicht",
       "invalidText": "Etwas fehlt darin. Fordere einen neuen an und öffne ihn aus der E-Mail.",
       "askAgain": "Neuen Link anfordern"
+    },
+    "google": {
+      "continue": "Weiter mit Google",
+      "or": "oder",
+      "errors": {
+        "cancelled": "Die Anmeldung mit Google wurde abgebrochen. Versuche es erneut oder nutze deine E-Mail.",
+        "failed": "Die Anmeldung mit Google hat nicht geklappt. Versuche es gleich noch einmal.",
+        "unverified": "Google hat diese E-Mail-Adresse nicht bestätigt, daher kann sie nicht zur Anmeldung verwendet werden.",
+        "disabled": "Dieses Konto wurde deaktiviert."
+      }
     }
   },
   "workout": {

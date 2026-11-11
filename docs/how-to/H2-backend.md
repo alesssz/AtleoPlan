@@ -12,6 +12,7 @@
 - A real, complete API, with a list, filters, pages, a policy and an action: [H2.12](#h212-the-exercise-library-api-as-built).
 - A body shaped as a tree, saved in one request, with a validation rule of our own: [H2.13](#h213-the-plans-api-as-built).
 - Data sent by a phone that may be offline, late and twice; totals worked out by the database: [H2.14](#h214-the-workouts-api-as-built).
+- Routes the browser visits rather than fetches, a package for signing in with Google, an outside service faked in the tests: [H2.15](#h215-sign-in-with-google-as-built).
 - The same feature on the React side: [H3. Frontend: how to](H3-frontend.md).
 
 ## Contents
@@ -69,6 +70,15 @@
   - [H2.14.7 Look at Home](#h2147-look-at-home)
   - [H2.14.8 The tests, and proving they can fail](#h2148-the-tests-and-proving-they-can-fail)
   - [H2.14.9 Later: last time before a workout (FEAT-4)](#h2149-later-last-time-before-a-workout-feat-4)
+- [H2.15 Sign in with Google, as built](#h215-sign-in-with-google-as-built)
+  - [H2.15.1 The order of building](#h2151-the-order-of-building)
+  - [H2.15.2 The package](#h2152-the-package)
+  - [H2.15.3 The routes: web.php, not api.php](#h2153-the-routes-webphp-not-apiphp)
+  - [H2.15.4 The controller and the action](#h2154-the-controller-and-the-action)
+  - [H2.15.5 The test: Google faked](#h2155-the-test-google-faked)
+  - [H2.15.6 Proving the tests can fail](#h2156-proving-the-tests-can-fail)
+  - [H2.15.7 Checking it for real](#h2157-checking-it-for-real)
+  - [H2.15.8 The checks](#h2158-the-checks)
 
 ---
 
@@ -1619,6 +1629,202 @@ Failed asserting that two strings are identical.
 Without it, today's workout was compared with tomorrow's.
 
 **A first version, replaced.** This section first added `meta.previous`: the last workout of the same day of the plan, with its totals, to compare a workout's whole volume. The first look at the summary showed that a workout's volume says little, and nothing for exercises done with the body alone ([D2.8](../design/D2-decisions.md#d28-workout-rules)). Comparing exercise by exercise needs sets, not totals, and works for a free workout too, which has no day. `previousOfSameDay()` and its test were removed. Its test had met one error worth keeping: it expected 640 kg for a workout of one set of 5 × 80 kg, a number copied from another test; the code was right, 400 kg. A failing test is first a question: is the code wrong, or the test?
+
+---
+
+## H2.15 Sign in with Google, as built
+
+"Continue with Google" ([FEAT-9](../design/D1-ui.md#d141-sign-in-and-onboarding)) on the Laravel side: Socialite, the two routes the browser visits on its way to Google and back, and the action that finds, links or creates the user. How it works and why: [C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google). The table it writes: [H1.18](H1-database.md#h118-the-google-accounts-as-built). The button: [H3.28](H3-frontend.md#h328-continue-with-google-as-built). The Google credentials, which only the owner can create: [S1.11](../start/S1-setup.md#s111-sign-in-with-google-the-credentials).
+
+| File | What |
+|---|---|
+| `composer.json`, `composer.lock` | `laravel/socialite` |
+| `config/services.php` | `google`: id, secret, return address |
+| `app/Enums/SocialSignInError.php` | The reasons sent back to React: `cancelled`, `failed`, `unverified`, `disabled` |
+| `app/Exceptions/SocialSignInRefused.php` | Carries a reason from the action to the controller |
+| `app/Actions/Auth/SignInWithSocialAccount.php` | Linked, same address, or new |
+| `app/Http/Controllers/GoogleSignInController.php` | `redirect()` and `callback()` |
+| `routes/web.php` | `/auth/google/redirect`, `/auth/google/callback` |
+| `tests/Feature/Auth/GoogleSignInTest.php` | 21 tests, Google faked |
+
+### H2.15.1 The order of building
+
+1. **The package** (H2.15.2), then the database ([H1.18](H1-database.md#h118-the-google-accounts-as-built)).
+2. **The files,** generated:
+
+   ```sh
+   docker compose exec backend php artisan make:enum SocialSignInError --string
+   docker compose exec backend php artisan make:exception SocialSignInRefused
+   docker compose exec backend php artisan make:class Actions/Auth/SignInWithSocialAccount
+   docker compose exec backend php artisan make:controller GoogleSignInController
+   docker compose exec backend php artisan make:test Auth/GoogleSignInTest --pest
+   ```
+
+   ```
+      INFO  Enum [app/Enums/SocialSignInError.php] created successfully.
+      INFO  Exception [app/Exceptions/SocialSignInRefused.php] created successfully.
+      INFO  Class [app/Actions/Auth/SignInWithSocialAccount.php] created successfully.
+      INFO  Controller [app/Http/Controllers/GoogleSignInController.php] created successfully.
+      INFO  Test [tests/Feature/Auth/GoogleSignInTest.php] created successfully.
+   ```
+
+   `make:exception` made the folder `app/Exceptions/`, which did not exist yet: the app had no exception of its own before. Its stub extends `Exception`; ours extends `RuntimeException` and takes the reason in its constructor.
+3. **The action, the controller, the routes,** then the tests, then proving they can fail.
+
+### H2.15.2 The package
+
+```sh
+docker compose exec backend composer require laravel/socialite
+```
+
+```
+./composer.json has been updated
+Running composer update laravel/socialite
+Lock file operations: 4 installs, 0 updates, 0 removals
+  - Locking firebase/php-jwt (v7.2.1)
+  - Locking laravel/socialite (v5.32.0)
+  - Locking league/oauth1-client (v1.12.0)
+  - Locking phpseclib/phpseclib (4.0.3)
+…
+No security vulnerability advisories found.
+Using version ^5.32 for laravel/socialite
+```
+
+Nothing to publish or register: Laravel finds a package's service provider by itself when Composer installs it ("package discovery"; packages in general: [H2.8](#h28-adding-a-package)). Its settings live in `config/services.php`, under the name of each driver:
+
+```php
+'google' => [
+    'client_id' => env('GOOGLE_CLIENT_ID'),
+    'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+    'redirect' => env('FRONTEND_URL', 'http://localhost:5673').'/auth/google/callback',
+],
+```
+
+The two variables were already in `backend/.env.example`, empty ([C2.10](../concepts/C2-backend.md#c210-configuration-and-env)). The return address is built, not written in `.env`: `FRONTEND_URL` comes from `compose.yaml`, so it is the address of S1.11.4 on both computers.
+
+**On the other computer, after pulling:** `make setup`, which runs `composer install` (Socialite arrives) and the migrations. Without it, Socialite's code is not in `vendor/` and Laravel stops as H2.8 shows.
+
+### H2.15.3 The routes: web.php, not api.php
+
+```php
+Route::get('/auth/google/redirect', [GoogleSignInController::class, 'redirect'])->name('google.redirect');
+Route::get('/auth/google/callback', [GoogleSignInController::class, 'callback'])->name('google.callback');
+```
+
+```sh
+docker compose exec backend php artisan route:list --path=auth/google
+```
+
+```
+  GET|HEAD       auth/google/callback google.callback › GoogleSignInControlle…
+  GET|HEAD       auth/google/redirect google.redirect › GoogleSignInControlle…
+```
+
+Two reasons for `web.php`, both in [C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google): the browser visits them (it does not `fetch()` them), and Socialite keeps its `state` in the session, which the `web` group starts. Under `/api` they would also get Sanctum's checks for fetch calls, meant for something else. The prefix `/auth`, not `/api/auth`, keeps them apart from Fortify's JSON routes; Vite forwards it ([H3.28.2](H3-frontend.md#h3282-the-proxy)).
+
+### H2.15.4 The controller and the action
+
+- **`redirect()`** saves `from` (only if it is a path of this app) and `locale` (only one of ours) in the session, then `return Socialite::driver('google')->redirect();`. Without credentials in `.env` it stays in the app instead: back to `/login?error=failed`, and a line in the log (H2.15.7).
+- **`callback()`** takes them back with `session()->pull()`, turns `?error=access_denied` into `cancelled`, calls `Socialite::driver('google')->user()` inside a `try` (any exception: `report($e)` and `failed`), hands the person to the action, then `Auth::login($user, remember: true)` and `session()->regenerate()`, and sends the browser to `FRONTEND_URL` plus `from`.
+- **`SignInWithSocialAccount::handle()`** looks for the Google id in `social_accounts` first; then, if Google says `email_verified`, for the address in `users`; then creates the user. It throws `SocialSignInRefused` with `unverified` or `disabled`, and the controller turns the reason into `/login?error=…`.
+
+**Where `email_verified` is.** Not a method of Socialite's user: it is in the raw answer of Google's `userinfo`, `$outside->getRaw()['email_verified']`. Socialite's Google driver also copies it into a key `verified_email`, marked in its code as kept for old versions; the action reads Google's own name.
+
+**The return type of `redirect()`.** `Socialite::driver()->redirect()` is declared as Symfony's `RedirectResponse`, the class Laravel's extends; the method is typed with Symfony's (imported `as AnyRedirect`) so both its returns fit.
+
+### H2.15.5 The test: Google faked
+
+```php
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\User as SocialiteUser;
+
+Socialite::fake('google', SocialiteUser::fake([
+    'id' => '109876543210987654321',
+    'name' => 'Ann Example',
+    'email' => 'ann@example.com',
+    'email_verified' => true,
+]));
+
+$this->withSession(['google_sign_in' => ['from' => '/plans', 'locale' => 'it']])
+    ->get('/auth/google/callback')
+    ->assertRedirect(config('app.frontend_url').'/plans');
+```
+
+- **`Socialite::fake()`** replaces the driver (its code: `vendor/laravel/socialite/src/Testing/FakeProvider.php`): `redirect()` goes to `https://socialite.fake/google/authorize`, `user()` returns the person given, with no `state` check and no call to Google. A function instead of a person runs at `user()`: `fn () => throw new InvalidStateException` is how the test of a refused visit is written.
+- **`SocialiteUser::fake([...])`** puts every key in the raw data too, so `email_verified` is found where the action looks for it.
+- **`withSession([...])`** writes what the first stop would have kept, so the callback can be tested alone.
+- **The credentials** are set in `beforeEach()` with `config([...])`, so the tests pass on a computer with them in `.env` and on one without.
+- **`->with([...])`** runs one test for each value: the five `from` that must be thrown away (`https://evil.example/plans`, `//evil.example`, `/\evil.example`, a line break, `plans`).
+
+```sh
+docker compose exec backend php artisan test --filter=GoogleSignIn
+```
+
+```
+  ✓ the way to Google → it sends the browser to Google, keeping the pag…
+  ✓ the way to Google → it keeps only a path of this app, and only one… (×5)
+  ✓ the way to Google → it stays in the app when Google is not set up o…
+  ✓ back from Google → it creates an account for a new address and sign…
+  ✓ back from Google → it lands on Home when no page was asked for
+  ✓ back from Google → it signs the same Google account into the same u…
+  ✓ back from Google → it finds a linked account by its Google id, even…
+  ✓ back from Google → it links Google to an account that already has t…
+  ✓ back from Google → it refuses an address Google has not verified, a…
+  ✓ back from Google → it creates no account for an address Google has…
+  ✓ back from Google → it refuses a disabled account, linked or not (×2)
+  ✓ back from Google → it says the person cancelled on Google's page
+  ✓ back from Google → it says something went wrong for any other error…
+  ✓ back from Google → it says something went wrong when Socialite refu…
+  ✓ an account without a password → it cannot be signed into with an em…
+  ✓ an account without a password → it goes with its user
+
+  Tests:    21 passed (82 assertions)
+```
+
+### H2.15.6 Proving the tests can fail
+
+All 21 passed at the first run, which proves nothing by itself. For a moment, two checks removed: `if (! $this->isVerified($outside))` became `if (false)` in the action, and `'from' => $this->safePath(…)` kept the query as it came:
+
+```
+  ⨯ the way to Google → it keeps only a path of this app, and only one… (×5)
+  ⨯ back from Google → it refuses an address Google has not verified, a…
+  ⨯ back from Google → it creates no account for an address Google has…
+  Tests:    7 failed, 14 passed (78 assertions)
+```
+
+Both put back: 21 passed. (The copy kept to put the action back had gone to `/tmp/claude-501/` rather than the folder meant; `git diff` on the file, before and after, is the quicker way to be sure a change is undone.)
+
+### H2.15.7 Checking it for real
+
+With the credentials of [S1.11](../start/S1-setup.md#s111-sign-in-with-google-the-credentials) in `backend/.env` and `docker compose restart backend`:
+
+1. `make start`, http://localhost:5673/login in a private window, **Continue with Google**.
+2. Google's account chooser, "to continue to AtleoPlan"; pick a test user (S1.11.3).
+3. Back on Home, signed in. In TablePlus ([H4](H4-database-tools.md)): a row in `social_accounts` with the user's id, `google` and the long id.
+4. Profile → **Sign out**, then **Continue with Google** again: Google may not even ask, and the same user comes back (no second row).
+5. **Cancel** on Google's page: back on the sign-in page, "Signing in with Google was cancelled".
+
+**Without the credentials** (the Mac, until S1.11.5 is done there), the button comes straight back with "Signing in with Google didn't work", and `make logs` (or `storage/logs/laravel.log`) has the warning `redirect()` writes:
+
+```
+Sign in with Google is not set up: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are missing from backend/.env (docs/start/S1-setup.md S1.11).
+```
+
+The test "stays in the app when Google is not set up" covers the redirect; this whole list has not yet been tried in a browser (the credentials were not on the Mac where it was built), so the first try is the check of the feature.
+
+Any other `failed` leaves the exception in the same log, from `report($e)`: `invalid_client` (a wrong secret), `InvalidStateException` (a callback opened twice, or after the session expired). What Google itself shows on its own page, such as `redirect_uri_mismatch`, is in [S1.11.7](../start/S1-setup.md#s1117-when-it-does-not-work).
+
+### H2.15.8 The checks
+
+```sh
+docker compose exec backend vendor/bin/pint
+docker compose exec backend php artisan test
+```
+
+```
+  PASS   ......................................................... 182 files
+  Tests:    290 passed (17559 assertions)
+```
 
 ---
 

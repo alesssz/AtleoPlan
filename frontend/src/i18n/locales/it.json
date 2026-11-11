@@ -448,6 +448,16 @@
       "invalidTitle": "Questo link non funziona",
       "invalidText": "Manca qualcosa. Richiedine uno nuovo e aprilo dall'email.",
       "askAgain": "Richiedi un nuovo link"
+    },
+    "google": {
+      "continue": "Continua con Google",
+      "or": "oppure",
+      "errors": {
+        "cancelled": "Accesso con Google annullato. Riprova, oppure usa la tua email.",
+        "failed": "L'accesso con Google non è riuscito. Riprova tra un momento.",
+        "unverified": "Google non ha verificato questo indirizzo email, quindi non si può usare per accedere.",
+        "disabled": "Questo account è stato disattivato."
+      }
     }
   },
   "workout": {
