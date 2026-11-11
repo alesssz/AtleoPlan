@@ -448,6 +448,16 @@
       "invalidTitle": "Este enlace no funciona",
       "invalidText": "Le falta algo. Pide uno nuevo y ábrelo desde el correo.",
       "askAgain": "Pedir un nuevo enlace"
+    },
+    "google": {
+      "continue": "Continuar con Google",
+      "or": "o",
+      "errors": {
+        "cancelled": "Se ha cancelado el inicio de sesión con Google. Inténtalo de nuevo o usa tu correo.",
+        "failed": "No se ha podido iniciar sesión con Google. Inténtalo de nuevo en un momento.",
+        "unverified": "Google no ha verificado este correo, así que no se puede usar para iniciar sesión.",
+        "disabled": "Esta cuenta ha sido desactivada."
+      }
     }
   },
   "workout": {

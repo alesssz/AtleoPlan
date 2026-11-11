@@ -11,8 +11,10 @@ import { BrandMark, Wordmark } from '@/components/brand/Brand'
 export function AuthLayout() {
   return (
     // A column centred both ways over the full screen height (dvh follows the
-    // phone's browser bars). The padding keeps clear of the notch and home bar
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 px-5 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))]">
+    // phone's browser bars). The padding keeps clear of the notch and home
+    // bar. Spacing kept modest (24 px), so the sign-in form fits a laptop's
+    // screen without scrolling; the sign-up form, two fields longer, may scroll
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       {/* The logo, larger than in the app's frame: here it is the only branding */}
       <div className="flex items-center gap-3">
         <BrandMark className="size-10" />

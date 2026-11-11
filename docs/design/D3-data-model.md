@@ -31,6 +31,7 @@ Every table of the MVP ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)):
   - [D3.2.7 Order is a `position` column](#d327-order-is-a-position-column)
   - [D3.2.8 Check constraints](#d328-check-constraints)
 - [D3.3 Users and preferences](#d33-users-and-preferences)
+  - [D3.3.1 `social_accounts`](#d331-social_accounts)
 - [D3.4 Exercise library](#d34-exercise-library)
   - [D3.4.1 `muscles` and `equipment`](#d341-muscles-and-equipment)
   - [D3.4.2 `exercises`](#d342-exercises)
@@ -115,6 +116,7 @@ An arrow means "points to": the table on the left holds the id of a row in the t
 
 ```
 users
+├── social_accounts           the Google account a user signs in with
 ├── exercises                 personal ones; public ones have no owner
 │   ├── exercise_muscle ───→ muscles
 │   ├── ───────────────────→ equipment
@@ -153,6 +155,7 @@ So a session copies nothing from the future: it records what happened, and it su
 | `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, the public exercises by the import of DATA-1, `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
 | `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of FEAT-2, with their API ([H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built)) |
 | `workout_sessions`, `session_exercises`, `logged_sets` | Done, in the first part of [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home), with their API ([H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built)) |
+| `social_accounts`; `users.password` nullable | Done, with signing in with Google ([H1.18](../how-to/H1-database.md#h118-the-google-accounts-as-built)) |
 
 ### D3.1.5 How to read the column tables
 
@@ -302,7 +305,7 @@ Giving the constraint a name makes the error readable when it fires. A check pas
 
 ## D3.3 Users and preferences
 
-**What it stands for.** One row per account. `users` already has `id`, `name`, `email`, `email_verified_at`, `password`, `remember_token` and the timestamps ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)). The new columns are:
+**What it stands for.** One row per account. `users` already has `id`, `name`, `email`, `email_verified_at`, `password`, `remember_token` and the timestamps ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)). `password` became nullable with signing in with Google: someone who signed up with Google has none until they choose one with Forgot password ([D3.3.1](#d331-social_accounts)). The new columns are:
 
 | Column | Type | Default | What it is for |
 |---|---|---|---|
@@ -350,6 +353,40 @@ Schema::table('users', function (Blueprint $table) {
 - With one column on the user, a cell cannot hold two plans, so the rule holds by construction, and changing plan is one update.
 
 What the column cannot check by itself is that the plan belongs to this user and is not archived, so a policy checks that.
+
+### D3.3.1 `social_accounts`
+
+**What it stands for.** An outside account a user signs in with: today a Google account ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)). A user has none, or one per provider.
+
+| Column | Type | What it is for |
+|---|---|---|
+| `id` | bigint | A plain id: rows are made on the server only ([D3.2.1](#d321-which-kind-of-id)) |
+| `user_id` | bigint → `users`, cascade | Whose account it is; deleted with the user |
+| `provider` | enum `google` | Which service. Apple, in phase 2, is one more value ([D3.2.4](#d324-fixed-lists-of-values)) |
+| `provider_user_id` | string | The service's own id of the person: Google's `sub`, about 21 digits |
+| `created_at`, `updated_at` | timestamps | When it was linked |
+
+`(provider, provider_user_id)` is unique: one Google account belongs to one user, and the pair is also the index of the lookup made at every sign-in.
+
+```php
+Schema::create('social_accounts', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->index()->constrained()->cascadeOnDelete();
+    $table->enum('provider', ['google']);
+    $table->string('provider_user_id');
+    $table->timestamps();
+    $table->unique(['provider', 'provider_user_id']);
+});
+
+// And on users, in its own migration (H1.18.2)
+Schema::table('users', function (Blueprint $table) {
+    $table->string('password')->nullable()->change();
+});
+```
+
+**Why a table rather than a `google_id` column on `users`.** Apple later is rows, not a new column, and a user who never uses Google has nothing empty on their row.
+
+**Why the id and not the email.** A person can change the address of their Google account; the `sub` never changes. The email is used once, the first time, to find an account made with a password ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)), and only when Google says it has verified it.
 
 ---
 
@@ -1081,7 +1118,7 @@ The full list:
 
 | Foreign key | On delete |
 |---|---|
-| `plans.user_id`, `workout_sessions.user_id` | cascade |
+| `plans.user_id`, `workout_sessions.user_id`, `social_accounts.user_id` | cascade |
 | `plan_days.plan_id`, `plan_items.plan_day_id`, `plan_sets.plan_item_id` | cascade |
 | `session_exercises.workout_session_id`, `logged_sets.session_exercise_id` | cascade |
 | `exercise_muscle.exercise_id` | cascade |
@@ -1124,7 +1161,7 @@ DB::transaction(function () use ($user) {
     // 3. Personal exercises, one at a time through Eloquent, which removes their files
     Exercise::withTrashed()->where('owner_id', $user->id)->get()->each->forceDelete();
 
-    // 4. The user
+    // 4. The user; their social_accounts go with them, by cascade
     $user->delete();
 });
 ```
@@ -1181,7 +1218,7 @@ Each comes with a new migration when its phase arrives ([D1.8](D1-ui.md#d18-rele
 | Share link | 2 | `plans.share_token`, unique and nullable: empty means the link is off |
 | Duplicating a plan, and its author | 2 | `plans.source_plan_id`. A duplicate must also copy any personal exercises of the author, or deleting that account would be refused ([D3.7](#d37-what-happens-on-delete)) |
 | Template plans | Not decided | Open question ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)); probably plans without an owner |
-| Onboarding's goal, Google and Apple sign-in | 2 | Columns on `users`, a `social_accounts` table |
+| Onboarding's goal, Apple sign-in | 2 | Columns on `users`; Apple is one more value of `social_accounts.provider` ([D3.3.1](#d331-social_accounts)) |
 | Exercises proposed by users | 2 | A status on `exercises` |
 | Coach and athlete links, body measurements, multi-week programming | 3 | Tables of their own |
 

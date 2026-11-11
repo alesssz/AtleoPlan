@@ -13,6 +13,7 @@
 - Tables whose ids are UUIDs made on the device, four levels deep, and a column added to `users` afterwards: [H1.13](#h113-the-plan-tables-as-built).
 - Translating the imported library from files of the repository: [H1.14](#h114-the-translation-of-the-library-as-built).
 - The workout tables: soft deletes on rows made by the phone, links that survive a deleted plan: [H1.15](#h115-the-workout-tables-as-built).
+- A column of `users` changed rather than added (`->change()`), and the table of Google accounts: [H1.18](#h118-the-google-accounts-as-built).
 - Something broke: [H1.9](#h19-when-something-goes-wrong).
 - What migrations and models are, in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
 
@@ -96,6 +97,12 @@
   - [H1.17.2 The data](#h1172-the-data)
   - [H1.17.3 Run it](#h1173-run-it)
   - [H1.17.4 The tests](#h1174-the-tests)
+- [H1.18 The Google accounts, as built](#h118-the-google-accounts-as-built)
+  - [H1.18.1 Generate the files](#h1181-generate-the-files)
+  - [H1.18.2 The table, and changing a column that exists](#h1182-the-table-and-changing-a-column-that-exists)
+  - [H1.18.3 Run them](#h1183-run-them)
+  - [H1.18.4 The model, and a look at the result](#h1184-the-model-and-a-look-at-the-result)
+  - [H1.18.5 The tests](#h1185-the-tests)
 
 ---
 
@@ -2298,6 +2305,148 @@ They import the repository's file, not a sample, so a mistake in it fails here: 
 **Adding an exercise:** an entry in `extra-exercises.json` (an `AtleoPlan_…` id, muscles and equipment named as free-exercise-db names them), the same id in the three translation files with as many steps as the English, then `make exercises-extra` and the tests.
 
 **Found on the way, not fixed here:** a few of free-exercise-db's exercises held for a time are logged as reps, Plank among them, so "3 × 30 s plank" cannot be written; [DATA-3](../project/backlog.md#data-3-timed-exercises-of-free-exercise-db-logged-as-reps).
+
+---
+
+## H1.18 The Google accounts, as built
+
+Signing in with Google ([FEAT-9](../design/D1-ui.md#d141-sign-in-and-onboarding)) needs two changes in the database: a new table, `social_accounts`, which ties a Google account to a user, and `users.password` allowed to be empty, for someone who signs up with Google. What the table is: [D3.3.1](../design/D3-data-model.md#d331-social_accounts); how sign-in uses it: [C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google). The endpoint is in [H2.15](H2-backend.md#h215-sign-in-with-google-as-built), the button in [H3.28](H3-frontend.md#h328-continue-with-google-as-built).
+
+| File | What |
+|---|---|
+| `database/migrations/…_create_social_accounts_table.php` | The new table |
+| `database/migrations/…_make_password_nullable_on_users_table.php` | `password` may be empty |
+| `app/Enums/SocialProvider.php` | The list of providers: `google` |
+| `app/Models/SocialAccount.php` | The model, with `user()` |
+| `app/Models/User.php` | `socialAccounts()` |
+| `database/factories/SocialAccountFactory.php` | Fake links for the tests |
+
+### H1.18.1 Generate the files
+
+From the repository's root, one command each:
+
+```sh
+docker compose exec backend php artisan make:model SocialAccount --migration --factory
+docker compose exec backend php artisan make:migration make_password_nullable_on_users_table
+docker compose exec backend php artisan make:enum SocialProvider --string
+```
+
+```
+   INFO  Model [app/Models/SocialAccount.php] created successfully.
+   INFO  Factory [database/factories/SocialAccountFactory.php] created successfully.
+   INFO  Migration [database/migrations/2026_11_11_133328_create_social_accounts_table.php] created successfully.
+
+   INFO  Migration [database/migrations/2026_11_11_133329_make_password_nullable_on_users_table.php] created successfully.
+
+   INFO  Enum [app/Enums/SocialProvider.php] created successfully.
+```
+
+**`--string`** makes a backed enum, `enum SocialProvider: string`, whose cases carry the text stored in the column ([D3.2.4](../design/D3-data-model.md#d324-fixed-lists-of-values)).
+
+**The trap of `make:enum Enums/…`.** Written first as `make:enum Enums/SocialProvider`, it made `app/Enums/Enums/SocialProvider.php`: the command already puts enums in `app/Enums/`, and a path in the name is added below it. The file was deleted (`rm -r backend/app/Enums/Enums`) and made again with the bare name. `make:class Actions/Auth/…` is different: it starts from `app/`, so there the path is needed.
+
+**A loop that ran nothing.** The commands were first run from a shell loop over strings such as `"make:model SocialAccount --migration --factory"`, each passed as **one** argument: Artisan answered `Command "make:model SocialAccount --migration --factory" is not defined`, followed by the whole list of commands. The name and the options have to be separate words.
+
+### H1.18.2 The table, and changing a column that exists
+
+The table, in the migration's `up()` (the file explains each line):
+
+```php
+Schema::create('social_accounts', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->index()->constrained()->cascadeOnDelete();
+    $table->enum('provider', ['google']);
+    $table->string('provider_user_id');
+    $table->timestamps();
+    $table->unique(['provider', 'provider_user_id']);
+});
+```
+
+`users.password` already exists, so the second migration **changes** it. `->change()` at the end turns the line into an ALTER, and the whole new definition is written, not just the difference: a definition that left out `string()` would change the type too.
+
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->string('password')->nullable()->change();
+});
+```
+
+Its `down()` writes `->nullable(false)->change()`. It fails while any user has no password, which is right: going back would mean inventing passwords.
+
+**Look at the SQL first:**
+
+```sh
+docker compose exec backend php artisan migrate --pretend
+```
+
+```
+  2026_11_11_133328_create_social_accounts_table .............................
+  ⇂ create table "social_accounts" ("id" bigserial not null primary key, "user_id" bigint not null, "provider" varchar(255) check ("provider" in ('google')) not null, "provider_user_id" varchar(255) not null, "created_at" timestamp(0) without time zone null, "updated_at" timestamp(0) without time zone null)
+  ⇂ alter table "social_accounts" add constraint "social_accounts_user_id_foreign" foreign key ("user_id") references "users" ("id") on delete cascade
+  ⇂ alter table "social_accounts" add constraint "social_accounts_provider_provider_user_id_unique" unique ("provider", "provider_user_id")
+  ⇂ create index "social_accounts_user_id_index" on "social_accounts" ("user_id")
+  2026_11_11_133329_make_password_nullable_on_users_table ....................
+  ⇂ alter table "users" alter column "password" type varchar(255), alter column "password" drop not null, alter column "password" drop default, alter column "password" drop identity if exists
+  ⇂ comment on column "users"."password" is NULL
+```
+
+What to check in it: the `check (… in ('google'))` of the enum; `on delete cascade`; the unique pair; the index on `user_id` (D3.2.6). The ALTER rewrites the column whole, as said: same type, no default, no comment, which is what it had.
+
+### H1.18.3 Run them
+
+```sh
+docker compose exec backend php artisan migrate     # or: make migrate
+```
+
+```
+  2026_11_10_093058_add_search_text_to_exercises_table ......... 351.96ms DONE
+  2026_11_10_124025_add_show_rpe_to_users_table .................. 2.95ms DONE
+  2026_11_10_131111_add_for_time_to_plan_items_table ............. 2.28ms DONE
+  2026_11_11_133328_create_social_accounts_table ................ 23.97ms DONE
+  2026_11_11_133329_make_password_nullable_on_users_table ........ 4.55ms DONE
+```
+
+**Three migrations that were not ours.** This ran on the Mac, whose database had not seen the work done meanwhile on the Windows PC: `migrate` runs every migration not yet recorded in the `migrations` table, in the order of their names, so the three of 10 November went first. Nothing to fix; it is the reason to run `make migrate` after every `git pull` ([S1.8](../start/S1-setup.md#s18-everyday-commands)).
+
+### H1.18.4 The model, and a look at the result
+
+`SocialAccount` has `#[Fillable(['provider', 'provider_user_id'])]`, a cast of `provider` to `SocialProvider`, and `user(): BelongsTo`. `User` gets the other side, `socialAccounts(): HasMany`. `user_id` is left out of the fillable on purpose: rows are made through the relation, `$user->socialAccounts()->create([...])`, which fills it, and no array of data can move an account to another user.
+
+The factory gives each row a user and a 21-digit `provider_user_id`, the shape of Google's ids: `SocialAccount::factory()->for($user)->create(['provider_user_id' => '42'])`.
+
+What Postgres made:
+
+```sh
+docker compose exec backend php artisan db:table social_accounts
+```
+
+```
+  Column ................................................................ Type
+  id int8, autoincrement .. nextval('social_accounts_id_seq'::regclass) bigint
+  user_id int8 ........................................................ bigint
+  provider varchar .................................... character varying(255)
+  provider_user_id varchar ............................ character varying(255)
+  created_at timestamp, nullable .............. timestamp(0) without time zone
+  updated_at timestamp, nullable .............. timestamp(0) without time zone
+
+  Index ......................................................................
+  social_accounts_pkey id ..................................... btree, primary
+  social_accounts_provider_provider_user_id_unique provider, provider_user_id  btree, compound, unique
+  social_accounts_user_id_index user_id ................................ btree
+
+  Foreign Key .......................................... On Update / On Delete
+  social_accounts_user_id_foreign user_id references id on users  no action / cascade
+```
+
+And `docker compose exec backend php artisan db:table users`, among its 19 columns: `password varchar, nullable`.
+
+### H1.18.5 The tests
+
+The database side is tested in `tests/Feature/Auth/GoogleSignInTest.php`, with the rest of the feature (H2.15.6):
+
+- **"goes with its user"**: a user deleted, their link goes too (`cascadeOnDelete()`);
+- **"cannot be signed into with an email and a password"**: a user made with `'password' => null` is refused at `/api/auth/login`, with an empty password and with `password`. `Hash::check()` answers false when the stored hash is empty, so nothing in `FortifyServiceProvider` had to change.
+
+Deleting an account later ([D3.7.4](../design/D3-data-model.md#d374-deleting-an-account-an-action-in-the-code)) needs no new step: the cascade removes the links when the user goes.
 
 ---
 

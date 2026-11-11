@@ -173,6 +173,21 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
     }
 
     /**
+     * The outside accounts this user signs in with: a Google account, or none
+     * (docs/design/D3-data-model.md D3.3.1, FEAT-9). Linking one:
+     * `$user->socialAccounts()->create(['provider' => SocialProvider::Google,
+     * 'provider_user_id' => '1234…'])`; app/Actions/Auth/SignInWithSocialAccount.php
+     * does it. A user who signed up with Google has no password
+     * (`password` is null) until they choose one with Forgot password.
+     *
+     * @return HasMany<SocialAccount, $this>
+     */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
+    /**
      * The language of emails sent to this user, such as "reset your password".
      * Laravel asks for it before writing the email, because the request that
      * triggers it may come from a browser in another language.

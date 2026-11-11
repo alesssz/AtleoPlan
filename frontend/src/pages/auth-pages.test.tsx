@@ -9,7 +9,7 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Outlet } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, onTestFinished } from 'vitest'
 import i18n from '@/i18n'
 import { fakeApi, renderRoutes, sentBody, signedInAs, visitor, type FakeAnswer } from '@/test/auth-helpers'
 import { RequireAuth } from '@/routes/RequireAuth'
@@ -199,6 +199,72 @@ describe('RegisterPage', () => {
 
     expect(await screen.findByText('Already in use.')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
+  })
+})
+
+describe('Continue with Google', () => {
+  it('links to Laravel with the language and the page the user was going to', async () => {
+    await i18n.changeLanguage('it')
+    fakeApi({ 'GET /api/user': visitor })
+    // A visitor opening /plans is sent to /login, which remembers /plans
+    renderRoutes(routes, '/plans')
+
+    // A link, not a button: the browser itself goes to Google
+    const link = await screen.findByRole('link', { name: 'Continua con Google' })
+    expect(link).toHaveAttribute('href', '/auth/google/redirect?locale=it&from=%2Fplans')
+  })
+
+  it('is on the sign-up page too, without a page to come back to', async () => {
+    fakeApi({ 'GET /api/user': visitor })
+    renderRoutes(routes, '/register')
+
+    expect(await screen.findByRole('link', { name: 'Continue with Google' }))
+      .toHaveAttribute('href', '/auth/google/redirect?locale=en')
+  })
+
+  it('shows that it is on its way, and is ready again after Back', async () => {
+    fakeApi({ 'GET /api/user': visitor })
+    renderRoutes(routes, '/login')
+    // jsdom cannot leave the page: stop the link's navigation, which would
+    // only print "Not implemented: navigation". React's onClick still runs
+    /** Cancels the browser's default action of a click. */
+    const stayHere = (event: MouseEvent) => event.preventDefault()
+    document.addEventListener('click', stayHere)
+    // Removed when the test ends, even if it fails half-way: left behind, it
+    // would cancel the clicks of every later test
+    onTestFinished(() => document.removeEventListener('click', stayHere))
+
+    const link = await screen.findByRole('link', { name: 'Continue with Google' })
+    await userEvent.click(link)
+    expect(link).toHaveAttribute('aria-busy', 'true')
+
+    // The browser shows the page again from its back-forward cache
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+    await waitFor(() => expect(link).not.toHaveAttribute('aria-busy'))
+  })
+
+  it('says why Google sign-in did not work, in the user\'s language', async () => {
+    await i18n.changeLanguage('de')
+    fakeApi({ 'GET /api/user': visitor })
+    // Where Laravel sends the browser back to
+    renderRoutes(routes, '/login?error=unverified')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Google hat diese E-Mail-Adresse nicht bestätigt')
+  })
+
+  it('shows the general message for a code it does not know', async () => {
+    fakeApi({ 'GET /api/user': visitor })
+    renderRoutes(routes, '/login?error=something-new')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Signing in with Google didn\'t work')
+  })
+
+  it('shows nothing when there is no error', async () => {
+    fakeApi({ 'GET /api/user': visitor })
+    renderRoutes(routes, '/login')
+
+    await screen.findByRole('link', { name: 'Continue with Google' })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
 

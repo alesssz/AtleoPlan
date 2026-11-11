@@ -49,10 +49,15 @@ const buttonVariants = cva(
   // invalid (aria-invalid:), softer in dark mode (dark:). The `[&_svg]:…`
   // parts are arbitrary variants that style any <svg> icon inside: it never
   // catches clicks, never shrinks, and is 16 px unless it sets its own size-*.
+  // `[class*=size-]` is written without quotes, on purpose (here and in
+  // select, tabs, alert-dialog): shadcn writes 'size-' in quotes, and inside
+  // our single-quoted strings that became \'size-\'. Tailwind reads the file as
+  // text, backslashes included, so it made a class the browser never has, and
+  // no icon was ever sized (docs/how-to/H3-frontend.md H3.28.6)
   // group/button names this element so children can react to its state.
   // Ours: while it waits (aria-busy, set by `pending`), its own icons are
   // hidden, so the spinner stands where the icon was rather than beside it.
-  'group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4 aria-busy:[&>svg:not([data-slot=spinner])]:hidden',
+  'group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4 aria-busy:[&>svg:not([data-slot=spinner])]:hidden',
   {
     variants: {
       /** The colour scheme. aria-expanded: styles apply while a menu it opens is open. */
@@ -86,9 +91,9 @@ const buttonVariants = cva(
         'default':
           'h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',
         // 24 px tall, extra-small text and 12 px icons
-        'xs': 'h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*=\'size-\'])]:size-3',
+        'xs': 'h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*=size-])]:size-3',
         // 28 px tall, 14 px icons
-        'sm': 'h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*=\'size-\'])]:size-3.5',
+        'sm': 'h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*=size-])]:size-3.5',
         // 36 px tall
         'lg': 'h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',
         // Ours, not shadcn's: 48 px tall, the touch-friendly size of the main
@@ -96,18 +101,18 @@ const buttonVariants = cva(
         // bold text and 20 px icons. The default (lime) variant also glows a
         // little, through glow-primary (src/index.css), but only while it can
         // be clicked (`not-disabled:`): a disabled button must not look inviting.
-        'xl': 'h-12 gap-2 rounded-xl px-6 text-base font-bold data-[variant=default]:not-disabled:glow-primary [&_svg:not([class*=\'size-\'])]:size-5',
+        'xl': 'h-12 gap-2 rounded-xl px-6 text-base font-bold data-[variant=default]:not-disabled:glow-primary [&_svg:not([class*=size-])]:size-5',
         // Square, icon only (32 px); give it an aria-label, it has no text
         'icon': 'size-8',
         // Square icon buttons, 24, 28 and 36 px
         'icon-xs':
-          'size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*=\'size-\'])]:size-3',
+          'size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*=size-])]:size-3',
         'icon-sm':
           'size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg',
         'icon-lg': 'size-9',
         // Ours, the square partner of xl: 48 px, for icon-only buttons a
         // finger must hit, such as the plan editor's set and day buttons
-        'icon-xl': 'size-12 rounded-xl [&_svg:not([class*=\'size-\'])]:size-5',
+        'icon-xl': 'size-12 rounded-xl [&_svg:not([class*=size-])]:size-5',
       },
     },
     // Used when the prop is not given

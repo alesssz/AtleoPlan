@@ -27,6 +27,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.13.4 Preferences on the account](#c1134-preferences-on-the-account)
   - [C1.13.5 Details that are easy to miss](#c1135-details-that-are-easy-to-miss)
   - [C1.13.6 Testing a screen with the API](#c1136-testing-a-screen-with-the-api)
+  - [C1.13.7 Continue with Google](#c1137-continue-with-google)
 - [C1.14 The exercise library screens](#c114-the-exercise-library-screens)
   - [C1.14.1 The pages and their pieces](#c1141-the-pages-and-their-pieces)
   - [C1.14.2 A list one page at a time](#c1142-a-list-one-page-at-a-time)
@@ -751,6 +752,17 @@ Tests never call a real server. `src/test/auth-helpers.tsx` gives them:
 `src/pages/auth-pages.test.tsx` uses them with `userEvent`, typing and clicking as a person would. Prefer `findBy…`, which waits, when the element appears after an answer.
 
 **What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers. Before calling a feature done, try it in a browser against the real stack, as [C1.13.4](#c1134-preferences-on-the-account) shows.
+
+### C1.13.7 Continue with Google
+
+The React side of [C2.7.8](C2-backend.md#c278-signing-in-with-google) is small, because React takes no part in the conversation with Google: `src/components/GoogleSignIn.tsx` gives a link and reads an error. How it was built: [H3.28](../how-to/H3-frontend.md#h328-continue-with-google-as-built).
+
+- **A link, not a request.** Every other form here calls the API with `fetch()` and stays on the page. Signing in with Google means the browser leaves the app for Google's page and comes back, so the button is a plain `<a href="/auth/google/redirect?…">`, styled with `<Button asChild>`. Not React Router's `<Link>`, which changes the page inside React and would look for a React route at `/auth`.
+- **Vite forwards `/auth/`** to Laravel, beside `/api`, `/sanctum` and `/storage` (`vite.config.ts`), so the whole journey stays on `localhost:5673`, the address Google knows and the cookies belong to.
+- **What the link carries:** the app's language, for a new account, and `from`, the page RequireAuth remembered. The router's `state` does not survive a trip to another site, so `from` travels through Laravel's session instead, and Laravel sends the browser straight to it.
+- **Coming back signed in,** the app starts from scratch: `GET /api/user` finds the session ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)), and nothing else is needed. No token, no message between pages.
+- **Coming back with an error,** the address is `/login?error=unverified`: `GoogleSignInError` reads it with `useSearchParams()` and shows the sentence with `FormBanner`, at the top of the sign-in form. Unknown codes show the general one.
+- **The wait** ([C1.20](#c120-showing-that-something-is-loading)): from the click until the page goes, the "G" becomes a spinner and the link is `aria-busy`. Button's `pending` does not work with `asChild`, so this is done in the component; a `pageshow` listener resets it when Back shows the page again from the browser's cache.
 
 ---
 

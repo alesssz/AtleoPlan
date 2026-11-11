@@ -5,6 +5,7 @@
  * app, a good first read: props in, JSX out (docs/concepts/C1-frontend.md C1.4).
  * Its look follows the energetic style: docs/design/D1-ui.md D1.5 "Visual style".
  */
+import { cn } from '@/lib/utils'
 
 /**
  * Props of PageHeader: the inputs a parent passes, written like HTML
@@ -17,6 +18,12 @@ interface PageHeaderProps {
   title: string
   /** One sentence about the page, already translated; optional. */
   description?: string
+  /**
+   * Extra classes for the header, merged last so they win: the sign-in
+   * screens pass `mb-6`, a little less room under the title than the app's
+   * pages, so the form fits a laptop's screen without scrolling.
+   */
+  className?: string
 }
 
 /**
@@ -26,13 +33,14 @@ interface PageHeaderProps {
  * variables out of the object's fields, and `: PageHeaderProps` gives the
  * object its type.
  */
-export function PageHeader({ eyebrow, title, description }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, className }: PageHeaderProps) {
   return (
     // JSX looks like HTML but is JavaScript: `className` instead of
     // `class` (a reserved word in JavaScript), and `{title}` inserts the
     // value of a variable. The classes are Tailwind utilities, one small
-    // style each: mb-8 leaves 32 px below the header.
-    <header className="mb-8">
+    // style each: mb-8 leaves 32 px below the header. cn() joins it with
+    // the caller's classes, and of two margins keeps the caller's
+    <header className={cn('mb-8', className)}>
       {/* `&&`: draw the eyebrow only when there is one. Small (12 px), bold,
           in capitals (uppercase) with wide letter spacing, in lime */}
       {eyebrow && (

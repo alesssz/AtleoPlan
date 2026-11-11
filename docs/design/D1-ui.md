@@ -160,7 +160,8 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 
 ### D1.4.1 Sign-in and onboarding
 
-- **Sign in / Sign up:** email and password; signing up also asks for a name and to repeat the password. "Continue with Google" and "Continue with Apple" in phase 2 (Apple is required on the App Store once any social sign-in is offered).
+- **Sign in / Sign up:** email and password; signing up also asks for a name and to repeat the password.
+- **Continue with Google,** under both forms, brought forward from phase 2 at the owner's request ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)). A new address gets an account with no password (Forgot password can set one later), in the language the app was showing. An address already registered with a password is linked to Google, its plans kept, but only when Google has verified the address. A refusal or a Cancel on Google's page comes back to the sign-in page with a message: cancelled, not verified, account disabled, or something went wrong. **Continue with Apple** waits for phase 2: the App Store requires it once an app offers any social sign-in, and AtleoPlan is a web app for now.
 - **Staying signed in:** always on, with no checkbox: a phone at the gym must not ask for a password.
 - **Forgot password** by email, in the language of the account: its link opens `/reset-password`, works once, and expires after 60 minutes.
 - **Coming back:** after signing in, the user lands on the page they were trying to open.
@@ -477,7 +478,7 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 
 **Phase 1 — MVP (personal use)**
 
-- Sign-in with email and password
+- Sign-in with email and password, and with Google
 - Exercise library: public (imported, managed in the admin panel) and personal with photos
 - Plan list, details and editor, with supersets and set types
 - Workout mode with rest timer, last time's values and the suggested day
@@ -490,7 +491,7 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 - Progress charts and personal records
 - Video upload
 - Sharing by link and Duplicate
-- Google and Apple sign-in, onboarding
+- Apple sign-in, onboarding
 - Installable PWA, full settings, data export and account deletion
 - Exercises proposed by users for the public library
 

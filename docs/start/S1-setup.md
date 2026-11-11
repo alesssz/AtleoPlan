@@ -57,6 +57,7 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - **The stepper and the exercise menu** (UI-6): a tap on a set's value opens a big − / + panel; "⋯" beside an exercise swaps it for another of the same muscle, skips it, or adds a note ([C1.17.7](../concepts/C1-frontend.md#c1177-the-big-stepper-and-the-exercises-menu)).
 - **Workout preferences** (UI-7): Profile's Workout card, with the weight unit, the default rest, the stepper's weight step, the timer's sound and vibration ([C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)).
 - **Home** (third part of FEAT-3): the active plan with the suggested day and Start, a chip per day, Resume for a workout left open, a free workout with its exercises added on the way, this week's days and numbers ([C1.18](../concepts/C1-frontend.md#c118-home)).
+- **Sign in with Google** (FEAT-9): "Continue with Google" on the sign-in and sign-up pages, with Laravel Socialite; an address already registered is linked, a new one gets an account without a password ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google), [C1.13.7](../concepts/C1-frontend.md#c1137-continue-with-google)). It needs the Google credentials in `backend/.env` on each computer ([S1.11](#s111-sign-in-with-google-the-credentials)). After pulling it: `make setup` (a new Composer package, two migrations).
 - **Summary and history** (FEAT-4): after Finish, the workout's numbers, the comparison with last time, how it felt and notes; history by month under Progress, each workout with its sets, deletable ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)).
 - **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([S1.6](#s16-creating-the-laravel-backend)).
 - **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
@@ -285,6 +286,7 @@ export default defineConfig({
       '/api': 'http://localhost:8500',
       '/sanctum': 'http://localhost:8500',
       '/storage': 'http://localhost:8500',
+      '/auth/': 'http://localhost:8500',   // added later, for Google (FEAT-9)
     },
   },
 })
@@ -462,7 +464,7 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 
 ## S1.11 Sign in with Google: the credentials
 
-"Continue with Google" ([FEAT-9](../project/backlog.md#feat-9-sign-in-with-google)) needs an **OAuth client** created in the Google Cloud Console with the owner's Google account: the app sends people to Google with the client's id, and Google sends them back only to the addresses listed in it. Nobody else can do this part, and its two values are secrets. Done once for the project; then two lines in `backend/.env` on **each computer** (the Windows PC, the Mac).
+"Continue with Google" ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)) needs an **OAuth client** created in the Google Cloud Console with the owner's Google account: the app sends people to Google with the client's id, and Google sends them back only to the addresses listed in it. Nobody else can do this part, and its two values are secrets. Done once for the project; then two lines in `backend/.env` on **each computer** (the Windows PC, the Mac).
 
 A plain Gmail account is enough. No credit card: signing in with Google is free. The console may show its menus in Italian, and Google moves them now and then: the names below are the English ones, with where they sit.
 
@@ -551,6 +553,8 @@ Not now: with [OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server).
 | "Access blocked: AtleoPlan has not completed the Google verification process" | The account is not among the test users (S1.11.3) |
 | `Error 401: invalid_client` | A wrong or old id or secret in `backend/.env`, or the backend not restarted after writing them |
 | `Error 401: deleted_client` | The client was deleted in the console: a new one (S1.11.4), new lines in every `.env` |
+
+**When the app says it,** back on its own sign-in page: "Signing in with Google didn't work" (`/login?error=failed`) means Laravel stopped before going to Google or after coming back. `make logs` says why: the two lines missing from `backend/.env`, a wrong secret (`invalid_client`), a return opened twice (`InvalidStateException`). More in [H2.15.7](../how-to/H2-backend.md#h2157-checking-it-for-real).
 
 ---
 

@@ -58,7 +58,7 @@ export function ResetPasswordPage() {
   if (!token || !email) {
     return (
       <>
-        <PageHeader eyebrow={t('auth.resetPassword.eyebrow')} title={t('auth.resetPassword.invalidTitle')} description={t('auth.resetPassword.invalidText')} />
+        <PageHeader eyebrow={t('auth.resetPassword.eyebrow')} title={t('auth.resetPassword.invalidTitle')} description={t('auth.resetPassword.invalidText')} className="mb-6" />
         <Button asChild size="xl" className="w-full">
           <Link to="/forgot-password">{t('auth.resetPassword.askAgain')}</Link>
         </Button>
@@ -68,7 +68,7 @@ export function ResetPasswordPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('auth.resetPassword.eyebrow')} title={t('auth.resetPassword.title')} description={t('auth.resetPassword.description', { email })} />
+      <PageHeader eyebrow={t('auth.resetPassword.eyebrow')} title={t('auth.resetPassword.title')} description={t('auth.resetPassword.description', { email })} className="mb-6" />
 
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
         {errors.root?.message && <FormBanner variant="error">{errors.root.message}</FormBanner>}
@@ -79,7 +79,7 @@ export function ResetPasswordPage() {
         <Button type="submit" size="xl" pending={resetPassword.isPending}>{t('auth.resetPassword.submit')}</Button>
       </form>
 
-      <nav aria-label={t('auth.otherOptions')} className="mt-4 flex flex-col items-center">
+      <nav aria-label={t('auth.otherOptions')} className="mt-2 flex flex-col items-center">
         <Link to="/forgot-password" className="flex min-h-12 items-center text-sm text-muted-foreground hover:text-foreground">
           {t('auth.resetPassword.askAgain')}
         </Link>
