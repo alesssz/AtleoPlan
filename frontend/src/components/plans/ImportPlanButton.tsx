@@ -174,7 +174,7 @@ export function ImportPlanButton() {
           {chosen
             ? (
                 <>
-                  <Button size="xl" disabled={importPlan.isPending} onClick={() => void send()}>
+                  <Button size="xl" pending={importPlan.isPending} onClick={() => void send()}>
                     <Upload aria-hidden="true" />
                     {t('plans.import.confirm')}
                   </Button>

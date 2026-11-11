@@ -55,7 +55,7 @@ export function RegisterPage() {
         <FormField label={t('auth.fields.password')} type="password" autoComplete="new-password" error={errors.password?.message} {...form.register('password')} />
         <FormField label={t('auth.fields.passwordConfirmation')} type="password" autoComplete="new-password" error={errors.password_confirmation?.message} {...form.register('password_confirmation')} />
 
-        <Button type="submit" size="xl" disabled={signUp.isPending}>{t('auth.signUp.submit')}</Button>
+        <Button type="submit" size="xl" pending={signUp.isPending}>{t('auth.signUp.submit')}</Button>
       </form>
 
       <nav aria-label={t('auth.otherOptions')} className="mt-4 flex flex-col items-center">

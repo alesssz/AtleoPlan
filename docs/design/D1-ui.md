@@ -418,6 +418,8 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 **Loading**
 
 - Skeletons (grey shapes) in place of the content, never a full-page spinner.
+- Content being replaced (a search typed, a filter changed): the old content stays, dimmed, and a small spinner turns where the request started, on the right of the search box, from the first key.
+- A button whose request is running (Save, Sign in, Delete, Start, Show more…): a spinner in place of its icon, and it cannot be pressed again until the answer. Every wait has a sign: a screen that does not change looks frozen ([C1.20](../concepts/C1-frontend.md#c120-showing-that-something-is-loading)).
 - Optimistic updates: completing a set or reordering an exercise updates the screen at once; the server call follows.
 - Media: a blurred thumbnail until the full file has loaded.
 

@@ -14,8 +14,9 @@
  *
  * It reads the library with the same hook as the Exercises page,
  * useExercises() (src/api/exercises.ts), so a search typed here and one typed
- * there share the cache. The window is shadcn/ui's Dialog
- * (src/components/ui/dialog.tsx).
+ * there share the cache, and the same search box (ExerciseSearchBox), whose
+ * spinner turns while the list is not yet the one typed for (C1.20). The
+ * window is shadcn/ui's Dialog (src/components/ui/dialog.tsx).
  *
  * **Create «…»**: after a search, a button under the list opens the exercise
  * editor's form (ExerciseForm) inside the window, the search as the name.
@@ -23,18 +24,21 @@
  * with the ticked ones (or replaces the exercise, when swapping), without
  * leaving the plan (docs/concepts/C1-frontend.md C1.16.8).
  */
-import { ArrowLeft, Dumbbell, Plus, Search, X } from 'lucide-react'
+import { ArrowLeft, Dumbbell, Plus, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCreateExercise, useExercises, type Exercise } from '@/api/exercises'
 import { ExerciseForm } from '@/components/exercises/ExerciseForm'
+import { ExerciseSearchBox } from '@/components/exercises/ExerciseSearchBox'
 import { emptyFormValues } from '@/components/exercises/exercise-form'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
+// cn() joins classes and skips the false ones: the list's dimming is a
+// class only while searching (src/lib/utils.ts)
+import { cn } from '@/lib/utils'
 
 /** How long the search waits after the last key, as on the Exercises page. */
 const SEARCH_DELAY_MS = 300
@@ -142,6 +146,10 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
   const [sameMuscle, setSameMuscle] = useState(muscle !== undefined)
   const debounced = useDebouncedValue(search, SEARCH_DELAY_MS)
   const list = useExercises({ search: debounced, muscle: sameMuscle ? muscle?.slug : undefined }, i18n.language)
+  // The list on screen is not yet the one asked for: while typing, or while
+  // the new one loads behind the old (isPlaceholderData). The search box
+  // turns a spinner and the rows are dimmed, as on the Exercises page (C1.20)
+  const searching = search !== debounced || list.isPlaceholderData
   // Every exercise read so far, the pages one after the other; the one
   // being swapped left out
   const exercises = (list.data?.pages.flatMap(page => page.data) ?? []).filter(exercise => exercise.id !== replacing?.id)
@@ -186,18 +194,8 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
 
   return (
     <>
-      {/* The search box, as on the Exercises page */}
-      <div className="relative">
-        <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          aria-label={t('exercises.searchLabel')}
-          placeholder={t('exercises.searchPlaceholder')}
-          value={search}
-          onChange={event => setSearch(event.target.value)}
-          className="h-12 rounded-xl pl-12 md:text-base"
-        />
-      </div>
+      {/* The search box, the Exercises page's one, spinner included */}
+      <ExerciseSearchBox value={search} onChange={setSearch} searching={searching} />
 
       {/* Swapping: the muscle filter, as a chip. aria-pressed says whether
           it is on; pressed, its X says it can be taken off */}
@@ -219,7 +217,8 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
         {list.isError && <p role="alert">{t('exercises.loadError')}</p>}
         {list.isSuccess && exercises.length === 0 && <p className="text-muted-foreground">{t('exercises.noResultsText')}</p>}
 
-        <ul className="flex flex-col gap-1">
+        {/* Dimmed while the list of a new search loads, as on the Exercises page */}
+        <ul className={cn('flex flex-col gap-1 transition-opacity', searching && 'opacity-60')}>
           {exercises.map((exercise) => {
             const cover = exercise.photos[0]
             const ticked = chosen.some(other => other.id === exercise.id)
@@ -252,7 +251,7 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
         </ul>
 
         {list.hasNextPage && (
-          <Button variant="outline" className="mt-3 w-full" onClick={() => void list.fetchNextPage()} disabled={list.isFetchingNextPage}>
+          <Button variant="outline" className="mt-3 w-full" onClick={() => void list.fetchNextPage()} pending={list.isFetchingNextPage}>
             {t('exercises.showMore')}
           </Button>
         )}

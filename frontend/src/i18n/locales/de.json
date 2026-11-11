@@ -320,6 +320,7 @@
     "mine": "Meine",
     "showMore": "Mehr anzeigen",
     "loading": "Übungen werden geladen",
+    "searching": "Suche läuft…",
     "loadError": "Die Übungen konnten nicht geladen werden.",
     "noResultsTitle": "Keine Übung für „{{search}}“",
     "noResultsText": "Versuche ein anderes Wort, oder lege sie als eigene Übung an.",

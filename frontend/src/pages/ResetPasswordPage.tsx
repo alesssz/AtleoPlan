@@ -76,7 +76,7 @@ export function ResetPasswordPage() {
         <FormField label={t('auth.fields.newPassword')} type="password" autoComplete="new-password" error={errors.password?.message} {...form.register('password')} />
         <FormField label={t('auth.fields.passwordConfirmation')} type="password" autoComplete="new-password" error={errors.password_confirmation?.message} {...form.register('password_confirmation')} />
 
-        <Button type="submit" size="xl" disabled={resetPassword.isPending}>{t('auth.resetPassword.submit')}</Button>
+        <Button type="submit" size="xl" pending={resetPassword.isPending}>{t('auth.resetPassword.submit')}</Button>
       </form>
 
       <nav aria-label={t('auth.otherOptions')} className="mt-4 flex flex-col items-center">

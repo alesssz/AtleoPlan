@@ -83,7 +83,7 @@ export function LoginPage() {
           {...form.register('password')}
         />
 
-        <Button type="submit" size="xl" disabled={signIn.isPending}>{t('auth.signIn.submit')}</Button>
+        <Button type="submit" size="xl" pending={signIn.isPending}>{t('auth.signIn.submit')}</Button>
       </form>
 
       {/* The other screens, as links 48 px tall to tap comfortably */}

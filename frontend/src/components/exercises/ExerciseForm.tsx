@@ -236,7 +236,7 @@ export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancel
       {/* The actions: Save (or Create) and Cancel, side by side; Save first
           for the keyboard, since it is the main action */}
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" size="xl" disabled={isSubmitting}>{submitLabel}</Button>
+        <Button type="submit" size="xl" pending={isSubmitting}>{submitLabel}</Button>
         {/* Cancel: a function when given (inside a window), otherwise a link.
             type="button": inside a <form>, a plain button would submit it */}
         {onCancel

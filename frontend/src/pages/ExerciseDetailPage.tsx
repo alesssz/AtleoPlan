@@ -223,7 +223,7 @@ function DeleteExerciseButton({ exercise }: DeleteExerciseButtonProps) {
               Back does not return to the deleted exercise */}
           <AlertDialogAction
             variant="destructive"
-            disabled={remove.isPending}
+            pending={remove.isPending}
             onClick={(event) => {
               event.preventDefault()
               remove.mutate(undefined, { onSuccess: () => void navigate('/exercises', { replace: true }) })

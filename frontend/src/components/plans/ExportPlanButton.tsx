@@ -60,7 +60,7 @@ export function ExportPlanButton({ plan }: ExportPlanButtonProps) {
     <>
       {/* Export, outlined like Edit and Archive. `void`: the Promise of the
           async function is not awaited here, on purpose */}
-      <Button size="xl" variant="outline" disabled={busy} onClick={() => void exportPlan()}>
+      <Button size="xl" variant="outline" pending={busy} onClick={() => void exportPlan()}>
         <Download aria-hidden="true" />
         {t('plans.detail.export')}
       </Button>

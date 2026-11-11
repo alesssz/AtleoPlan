@@ -107,7 +107,7 @@ export function HistoryPage() {
           ))}
           {/* The next page, while there is one */}
           {list.hasNextPage && (
-            <Button variant="outline" size="xl" className="self-center" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+            <Button variant="outline" size="xl" className="self-center" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
               {t('exercises.showMore')}
             </Button>
           )}

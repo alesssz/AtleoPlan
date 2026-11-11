@@ -235,7 +235,7 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
   const saveVariant = openDay === null ? 'outline' : 'default'
   const actions = (
     <div className="sticky top-0 z-20 -my-2 flex flex-wrap items-center gap-3 bg-background/85 py-2 backdrop-blur">
-      <Button size="xl" variant={saveVariant} disabled={saving} onClick={() => void submit()}>
+      <Button size="xl" variant={saveVariant} pending={saving} onClick={() => void submit()}>
         <Save aria-hidden="true" />
         {submitLabel}
       </Button>

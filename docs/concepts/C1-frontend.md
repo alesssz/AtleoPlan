@@ -73,6 +73,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.19.3 Better than last time, exercise by exercise](#c1193-better-than-last-time-exercise-by-exercise)
   - [C1.19.4 History: pages from the server](#c1194-history-pages-from-the-server)
   - [C1.19.5 Testing it](#c1195-testing-it)
+- [C1.20 Showing that something is loading](#c120-showing-that-something-is-loading)
 
 ---
 
@@ -137,7 +138,7 @@ frontend/
     │   ├── history/          pieces of the summary and history: WorkoutStats, ComparisonSummary, FeelingPicker, SessionRow,
     │   │                     SessionExercises; totals.ts, a workout's numbers; compare.ts, better or not than last time;
     │   │                     feeling.ts, the five feelings (C1.19)
-    │   ├── exercises/        pieces of the library: ExerciseListItem, ExerciseFilters, ExercisePhotos, ExerciseForm and exercise-form.ts (C1.14)
+    │   ├── exercises/        pieces of the library: ExerciseListItem, ExerciseFilters, ExerciseSearchBox, ExercisePhotos, ExerciseForm and exercise-form.ts (C1.14)
     │   ├── plans/            pieces of the plan screens: PlanCard, PlanDayView, PlanItemRow, and plan-format.ts, the summary of an exercise (C1.15);
     │   │                     plan-draft.ts, the editor's draft and reducer, draft-storage.ts (C1.16);
     │   │                     SetTypeSelect (C1.16.9); ExportPlanButton, ImportPlanButton, plan-file.ts: a plan as a file (C1.15.6)
@@ -332,7 +333,7 @@ const health = useQuery({ queryKey: ['health'], queryFn: ({ signal }) => fetchHe
 
 `health.ts` is the model to copy.
 
-**Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success. `ServerStatus` shows all three ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)).
+**Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success. `ServerStatus` shows all three ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). A request that runs while content is already on screen (a save, a new search) shows a small spinner instead: [C1.20](#c120-showing-that-something-is-loading).
 
 **Seeing the cache:** in development, the TanStack Query Devtools button (top-right corner) opens a panel. It lists every query, its key, state and data.
 
@@ -417,6 +418,7 @@ New screens add their own group (`plans.editor.*`, …).
 - **Their default sizes are for mouse use** (a button is 32 px tall). On touch screens use our `size="xl"` (48 px) or set the height yourself: tap targets are at least 48 px, and 56 px in workout mode ([D1.5](../design/D1-ui.md#d15-design-system)).
 - **`cn()`** (`@/lib/utils`) joins class names, drops false ones, and resolves Tailwind conflicts: `cn('px-2', big && 'px-4')`.
 - **`asChild`** lends a component's look to its child: `<Button asChild><Link to="/">…</Link></Button>` is a real link that looks like a button.
+- **`pending`** is ours, not shadcn's: `<Button pending={save.isPending}>` while the button's request runs. The button is disabled, a spinner takes the place of its icon, and `aria-busy` tells screen readers it is working. Every button that sends a request uses it, so no tap goes unanswered ([C1.20](#c120-showing-that-something-is-loading)).
 
 **Our own style tools.** The energetic style of [D1.5](../design/D1-ui.md#d15-design-system) ("Visual style") is built from a few pieces, to reuse rather than reinvent:
 
@@ -458,7 +460,7 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 
 1. **Backend:** the route in `backend/routes/api.php`, and a Pest test.
 2. **Frontend:** `src/api/thing.ts`, copying `health.ts`, with the type, the keys, `fetchThing`, and `useThing`.
-3. In the component, `const thing = useThing()`, handling `isPending`, `isError` and `data`.
+3. In the component, `const thing = useThing()`, handling `isPending` (a `Skeleton`), `isError` (a message and Retry) and `data`.
 
 **A form that saves,** copying `src/pages/LoginPage.tsx` ([C1.13.3](#c1133-a-form-step-by-step)):
 
@@ -466,12 +468,13 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 2. `useForm` with `zodResolver`, and a `FormField` per field.
 3. `useMutation` in `src/api/`, calling `request(path, { method: 'POST', body })`, with `invalidateQueries` on success.
 4. `showRequestError` in `onError`, and a `FormBanner` for `errors.root`.
-5. A test with `fakeApi` and `userEvent`.
+5. The submit button `pending={mutation.isPending}`: a spinner while it sends, no second tap ([C1.20](#c120-showing-that-something-is-loading)).
+6. A test with `fakeApi` and `userEvent`.
 
 **A list with filters, pages and an editor,** copying the exercise library ([C1.14](#c114-the-exercise-library-screens)):
 
 1. `useInfiniteQuery` in `src/api/`, with the language in the key and `placeholderData: keepPreviousData`.
-2. The filters in the address with `useSearchParams` (`replace: true`), the search through `useDebouncedValue`.
+2. The filters in the address with `useSearchParams` (`replace: true`), the search through `useDebouncedValue`, the box `ExerciseSearchBox` with `searching = typed !== debounced || list.isPlaceholderData`, and the rows dimmed by the same value ([C1.20](#c120-showing-that-something-is-loading)).
 3. The form's own shape in a plain file (`exercise-form.ts`), with the conversions to and from the API, tested alone.
 
 **A new shared component:**
@@ -667,7 +670,7 @@ const form = useForm<SignInValues>({
 - `handleSubmit` calls `onSubmit` only when the fields are valid.
 - `noValidate` turns off the browser's own bubbles, which would appear in the browser's language.
 
-**3. The request: a mutation** (`src/api/auth.ts`), TanStack Query's tool for requests that change something. It runs when `mutate` is called, and reports `isPending`, which disables the button:
+**3. The request: a mutation** (`src/api/auth.ts`), TanStack Query's tool for requests that change something. It runs when `mutate` is called, and reports `isPending`, true until the answer, which the button shows through its `pending` prop: disabled, with a spinner in place of its icon ([C1.20](#c120-showing-that-something-is-loading)):
 
 ```tsx
 function onSubmit(values: SignInValues) {
@@ -675,6 +678,8 @@ function onSubmit(values: SignInValues) {
     onError: error => showRequestError(error, form.setError, ['email', 'password'], t),
   })
 }
+// …
+<Button type="submit" size="xl" pending={signIn.isPending}>{t('auth.signIn.submit')}</Button>
 ```
 
 **4. What the server refuses: `showRequestError`** (`src/lib/form.ts`). A message about a field on the screen goes under it. Any other goes at the top of the form (`errors.root`, shown with `FormBanner`): no connection, too many tries, or an error on a field that is not visible, such as the email in the reset link.
@@ -757,7 +762,7 @@ The first feature screens of the app (UI-1, [D1.4.3](../design/D1-ui.md#d143-exe
 
 | Route | Page | Made of |
 |---|---|---|
-| `/exercises` | `ExercisesPage` | `ExerciseFilters`, `ExerciseListItem`, `EmptyState`; `useExercises()` |
+| `/exercises` | `ExercisesPage` | `ExerciseFilters` (with `ExerciseSearchBox`, shared with the plan editor's picker), `ExerciseListItem`, `EmptyState`; `useExercises()` |
 | `/exercises/:id` | `ExerciseDetailPage` | `ExercisePhotos`, the facts as a description list, `AlertDialog` to confirm a delete; `useExercise()`, `useDeleteExercise()` |
 | `/exercises/new`, `/exercises/:id/edit` | `ExerciseEditorPage` | `ExerciseForm`, with the rules and conversions of `exercise-form.ts`; `useCreateExercise()`, `useUpdateExercise()` |
 
@@ -780,7 +785,7 @@ useInfiniteQuery({
 
 - **`data.pages`** holds every page read so far; the page joins their rows with `pages.flatMap(page => page.data)`.
 - **`fetchNextPage()`** reads the next one; `hasNextPage` says whether there is one. The page shows a **Show more** button rather than an endless scroll: the end of the page stays reachable, for the keyboard and the tab bar.
-- **`placeholderData: keepPreviousData`** keeps the old list on screen while the list of new filters loads, with `isPlaceholderData` true; the page dims it. Without it every letter typed would flash a skeleton.
+- **`placeholderData: keepPreviousData`** keeps the old list on screen while the list of new filters loads, with `isPlaceholderData` true; the page dims it and turns a spinner in the search box ([C1.20](#c120-showing-that-something-is-loading)). Without it every letter typed would flash a skeleton.
 - **The language is part of every key** (`['exercises', 'list', 'it', {…}]`), because the names arrive translated: switching language reads the library again instead of showing Italian names to an English reader. `useMuscles()` and `useEquipment()` do the same.
 - **After a change,** the mutations invalidate `['exercises']`: every list and every exercise, in every language, is marked old ([L2.13](../learn/L2-react.md#l213-changing-data-mutations)).
 
@@ -798,7 +803,7 @@ setSearchParams(next, { replace: true })               // next: a URLSearchParam
 - **`replace: true`** changes the current history entry instead of adding one: otherwise Back would undo the search one letter at a time.
 - **A filter back to its default is removed** from the address, so the plain list is plain `/exercises`.
 - **The search and the filters stay at the top** while the list scrolls: `sticky top-0` on the block that holds them all. From 640 px they fit in about 120 px (the search box, then one row of filters). On phones the filters are stacked and would take a quarter of the screen, so only the search box sticks there. The trick is `max-sm:contents` on the block: `display: contents` makes the browser draw the children as if the block were not there, so the block's own `sticky` does nothing, and the search box's `max-sm:sticky` takes over. The search box cannot simply be sticky *inside* the block, because a sticky element sticks only within its parent, and the block is short: the box would scroll away with it.
-- **The search waits for a pause.** The box shows every letter at once (its value is in the address), but the request uses **`useDebouncedValue(search, 300)`** (`src/lib/useDebouncedValue.ts`): a value that follows another one 300 ms after it stops changing. Typing "panca" sends one request, not five.
+- **The search waits for a pause.** The box shows every letter at once (its value is in the address), but the request uses **`useDebouncedValue(search, 300)`** (`src/lib/useDebouncedValue.ts`): a value that follows another one 300 ms after it stops changing. Typing "panca" sends one request, not five. While the two differ (`values.search !== search`) the request is still to come: the page counts that moment as searching, with the spinner in the box and the rows dimmed, so the pause does not look like a frozen screen ([C1.20](#c120-showing-that-something-is-loading)).
 
 ### C1.14.4 The editor's form
 
@@ -1641,6 +1646,32 @@ compareExercise(sets, previous, loggingType)
 - **The summary** (`SummaryPage.test.tsx`): a workout is finished in the test as Finish does it (`startSession()` with last time's bench press, `workoutReducer()` with the ticks, `toSessionInput()`, `storeFinished()`), then the page is drawn at its address. The tests read the numbers by their labels, check that the comparison needed no request, check the `PUT` sent with the feeling and the notes, that nothing is sent with nothing to add, the two ways of deleting, and the jump to history.
 - **History and Progress** (`HistoryPage.test.tsx`): the fake API answers each page by its exact query string (`GET /api/sessions?status=finished&page=2&per_page=20`), which `fakeApi` matches before the bare path.
 - **Workout mode's tests** now end on a stand-in for the summary, and read the finished workout back with `loadFinished()`.
+
+---
+
+## C1.20 Showing that something is loading
+
+A request takes from a few milliseconds to a few seconds. When nothing on screen changes meanwhile, the app looks frozen, and the answer then seems to jump in from nowhere. Every wait has a sign, of one of three kinds, by what is on screen while it lasts ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)):
+
+| While waiting, the screen has… | The sign | Example |
+|---|---|---|
+| nothing yet (the first read) | **`Skeleton`**: grey shapes where the content will be | The plan list, a plan, the library's first page |
+| old content that is being replaced | the old content **dimmed** (`opacity-60`), and a **`Spinner`** where the request was started | The library's search, the picker's search |
+| a button that started the request | the button's **`pending`**: disabled, a spinner in place of its icon | Save, Sign in, Delete, Export, Start, Show more, Retry |
+
+**The pieces:**
+
+- **`Spinner`** (`components/ui/spinner.tsx`): shadcn/ui's, added with `npx shadcn add spinner` ([H3.27](../how-to/H3-frontend.md#h327-loading-signs-as-built)). Lucide's `Loader2Icon` with Tailwind's `animate-spin`. Changed from shadcn's in two ways. It is hidden from screen readers unless given a `label`, which makes it a `role="status"` read in the user's language (shadcn's always said "Loading" in English). And its size is written `h-4 w-4`, not `size-4`: inside a button, the button's rule for icons without a `size-*` class sizes it like the icon it replaces, 20 px on an `xl` button.
+- **`Button`'s `pending`** (`components/ui/button.tsx`, ours): `disabled`, `aria-busy="true"`, and the spinner first among the children. One class in the button's base, `aria-busy:[&>svg:not([data-slot=spinner])]:hidden`, hides the button's own icons while it waits, so the spinner stands where the icon was. It does nothing with `asChild`: Radix's `Slot` takes exactly one child, so the button then draws its child alone, even skipping a `false` beside it (`Slot` would throw, since `React.Children.count` counts a `false`). **`AlertDialogAction`** has the same prop, and puts the spinner inside the Radix Action it draws through `asChild`.
+- **`ExerciseSearchBox`** (`components/exercises/`): the library's search box, shared by the Exercises page and the picker; `searching` turns the spinner on its right, labelled "Searching…".
+
+**When "searching" is true.** Two moments, both covered: `search !== debounced`, the 300 ms in which the box's text is ahead of the search sent ([C1.14](#c114-the-exercise-library-screens)); and `list.isPlaceholderData`, the old rows on screen while the new ones load. Before, only the second dimmed the list, and the picker did not even do that: typing "panca" in the picker showed the old list unchanged for the whole wait.
+
+**Two buttons, one request.** Activate and Archive on a plan's page share one mutation: both are disabled while it runs, but only the one pressed is `pending`, read from `action.variables`, the value given to `mutate()`. The summary's Save and Delete share a state the same way, `busy: 'save' | 'delete' | null`.
+
+**Not here:** a bar at the top of the page for reads in the background (TanStack Query reads a list again when the window gets focus): the data is already on screen, and changes in place. The workout's own actions (a tick, a set changed) need no sign: they are kept on the phone and never wait for the server ([C1.17](#c117-workout-mode)).
+
+**Testing it.** `button.test.tsx` checks `pending` (disabled, `aria-busy`, the spinner by its `data-slot`) and that `asChild` still draws its link; `ExercisesPage.test.tsx` finds the status "Searching…" right after typing and waits for it to go once the answer is in.
 
 ---
 

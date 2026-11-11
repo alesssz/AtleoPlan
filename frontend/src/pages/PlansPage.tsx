@@ -95,7 +95,7 @@ export function PlansPage() {
         {plans.isError && (
           <div role="alert" className="flex flex-col items-start gap-3">
             <p>{t('plans.loadError')}</p>
-            <Button variant="outline" onClick={() => void plans.refetch()} disabled={plans.isFetching}>{t('server.retry')}</Button>
+            <Button variant="outline" onClick={() => void plans.refetch()} pending={plans.isFetching}>{t('server.retry')}</Button>
           </div>
         )}
 

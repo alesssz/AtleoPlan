@@ -35,7 +35,7 @@ interface ActivePlanCardProps {
   home: HomeData
   /** True when a workout is already in progress on this phone. */
   busy: boolean
-  /** True from the tap on Start until workout mode opens. */
+  /** True from the tap on Start until workout mode opens: Start shows its spinner. */
   starting: boolean
   /** True when the plan could not be read to start (offline). */
   failed: boolean
@@ -107,9 +107,11 @@ export function ActivePlanCard({ plan, home, busy, starting, failed, onStart, cl
                 {lastName && <p className="mt-1 text-sm text-muted-foreground">{t('home.lastTime', { day: lastName })}</p>}
               </div>
 
-              {/* Start, lime and large: the one main action of Home */}
+              {/* Start, lime and large: the one main action of Home.
+                  disabled says why it cannot start; pending, with its
+                  spinner, that it is starting (the plan being read, C1.20) */}
               <div className="mt-6 flex flex-col items-start gap-2">
-                <Button size="xl" className="px-6" disabled={busy || starting || day.exercises === 0} onClick={() => onStart(day.id)}>
+                <Button size="xl" className="px-6" disabled={busy || day.exercises === 0} pending={starting} onClick={() => onStart(day.id)}>
                   <Play aria-hidden="true" />
                   {t('home.start')}
                 </Button>

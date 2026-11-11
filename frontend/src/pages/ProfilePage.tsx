@@ -73,7 +73,7 @@ export function ProfilePage() {
           </div>
           {/* mutate() takes the request's data; there is none, so it is called
               through a function: onClick would otherwise pass it the click event */}
-          <Button variant="outline" size="xl" className="relative" onClick={() => signOut.mutate()} disabled={signOut.isPending}>
+          <Button variant="outline" size="xl" className="relative" onClick={() => signOut.mutate()} pending={signOut.isPending}>
             <LogOut aria-hidden="true" />
             {t('profile.signOut')}
           </Button>

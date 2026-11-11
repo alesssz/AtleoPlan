@@ -320,6 +320,7 @@
     "mine": "Mine",
     "showMore": "Show more",
     "loading": "Loading the exercises",
+    "searching": "Searching…",
     "loadError": "The exercises could not be loaded.",
     "noResultsTitle": "No exercise for «{{search}}»",
     "noResultsText": "Try another word, or create it as an exercise of your own.",

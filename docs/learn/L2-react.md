@@ -863,7 +863,7 @@ export function useMuscles() {
 | `isPending` | No data yet: draw a skeleton |
 | `isError`, `error` | It failed: draw a message; `error` is an `ApiError` |
 | `data` | The data, once there (`Muscle[]`) |
-| `isFetching` | A request is running, even in the background with data already shown |
+| `isFetching` | A request is running, even in the background with data already shown: in AtleoPlan, a spinner on Retry (`<Button pending={muscles.isFetching}>`, [C1.20](../concepts/C1-frontend.md#c120-showing-that-something-is-loading)) |
 | `refetch()` | Ask again: a "Retry" button |
 
 **The three states,** in this order, in every component that reads server data ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)): loading, error, data. After the two early `return`s, TypeScript knows `data` is there.
@@ -932,7 +932,7 @@ function useCreateExercise() {
 ```tsx
 const create = useCreateExercise()
 create.mutate({ name: 'Panca mia' })            // sends the request
-create.isPending                                // true while it runs: disable the button
+create.isPending                                // true while it runs: the button waits
 create.isSuccess, create.data                   // done, with the server's answer
 create.isError, create.error                    // failed, with the ApiError
 ```
@@ -947,12 +947,14 @@ create.isError, create.error                    // failed, with the ApiError
 
 Start with invalidating: it is always right. The optimistic update is for actions that must feel instant, and has traps of its own, explained in [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account).
 
+**The button while it waits.** Plain React: `disabled={create.isPending}`, so it cannot be pressed twice, and perhaps another text (the exercise below). **AtleoPlan** gives its `Button` a prop for it, `pending={create.isPending}`: disabled, a spinner in place of its icon, and `aria-busy` for screen readers; every button that sends a request uses it, because a button that only turns grey looks frozen ([C1.20](../concepts/C1-frontend.md#c120-showing-that-something-is-loading)).
+
 **`mutate(data, { onSuccess, onError })`** also takes callbacks for this one call, used by the form for what concerns the screen (empty the field, show errors); the hook's own `onSuccess` is for the cache.
 
 **In AtleoPlan:** `src/api/auth.ts` has six mutations, from the plainest (`useForgotPassword`) to the optimistic one (`useUpdatePreferences`); `src/api/plans.ts` has `usePlanAction()`, one mutation for three actions, whose argument is the verb.
 
 **Recap**
-- `useMutation({ mutationFn })`, then `mutate(data)`; `isPending` to disable the button.
+- `useMutation({ mutationFn })`, then `mutate(data)`; `isPending` for the button's wait (`pending` on AtleoPlan's `Button`).
 - After a change, invalidate the affected keys; write to the cache only when needed.
 
 **Exercise.** Make the form's button read "Saving…" while the request runs.
@@ -966,7 +968,7 @@ Start with invalidating: it is always right. The optimistic update is for action
 </Button>
 ```
 
-With a `saving` key added to the four translation files.
+With a `saving` key added to the four translation files. In the app itself, `pending={create.isPending}` does the same job with a spinner and keeps the button's text, so its width barely changes.
 </details>
 
 ---
@@ -1010,7 +1012,8 @@ export function QuickExerciseForm() {
     <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
       {/* register('name') connects the input: its name, ref, onChange, onBlur */}
       <FormField label={t('learn.quick.name')} error={form.formState.errors.name?.message} {...form.register('name')} />
-      <Button type="submit" disabled={create.isPending}>{t('learn.quick.save')}</Button>
+      {/* AtleoPlan's pending: disabled, with a spinner, while it sends (L2.13) */}
+      <Button type="submit" pending={create.isPending}>{t('learn.quick.save')}</Button>
       {create.isSuccess && <p role="status">{t('learn.quick.saved', { name: create.data.data.name })}</p>}
     </form>
   )
@@ -1180,6 +1183,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 **`asChild`** lends a component's look to its child: `<Button asChild><Link to="/plans">Plans</Link></Button>` is a real link that looks like a button (`HomePage`).
 
+**`pending`** is **AtleoPlan's** addition to `Button`, like `xl`: `<Button pending={save.isPending}>` while its request runs, disabled, with shadcn's **`Spinner`** (`spinner.tsx`, a turning Lucide icon) in place of its icon. Not with `asChild`: Radix's `Slot` accepts one child only, and there would be no room for the spinner ([C1.20](../concepts/C1-frontend.md#c120-showing-that-something-is-loading)).
+
 **Adding one,** from `frontend/`:
 
 ```sh
@@ -1190,12 +1195,12 @@ then `make fix`, to bring the copied file to the project's code style ([H3.9](..
 
 **Icons** come from **lucide-react**, one component per icon: `<Dumbbell aria-hidden="true" className="size-5" />`. `aria-hidden` when a text next to it already says the same.
 
-**In AtleoPlan:** `src/components/ui/` (alert-dialog, badge, button, card, checkbox, input, label, native-select, select, separator, skeleton, tabs, textarea); `LanguageSelect` (a Radix select); `ExerciseDetailPage` (an alert dialog to confirm a delete); `PlanDetailPage` (tabs controlled from the address, [C1.15.3](../concepts/C1-frontend.md#c1153-tabs-whose-state-is-in-the-address)); `BottomTabBar` (lucide icons stored in data).
+**In AtleoPlan:** `src/components/ui/` (alert-dialog, badge, button, card, checkbox, input, label, native-select, select, separator, skeleton, spinner, tabs, textarea); `LanguageSelect` (a Radix select); `ExerciseDetailPage` (an alert dialog to confirm a delete); `PlanDetailPage` (tabs controlled from the address, [C1.15.3](../concepts/C1-frontend.md#c1153-tabs-whose-state-is-in-the-address)); `BottomTabBar` (lucide icons stored in data).
 
 **Recap**
 - shadcn/ui copies sources into `src/components/ui/`; they are ours.
 - Radix gives the behaviour, Tailwind the look, cva the variants.
-- `variant` and `size` props; `asChild` to style a link as a button.
+- `variant` and `size` props; `asChild` to style a link as a button; `pending` (ours) while a request runs.
 
 **Exercise.** Draw the `MineBadge` of [L2.4](#l24-components-and-jsx) with shadcn's `Badge`, once added.
 

@@ -28,12 +28,14 @@
  * choose. The data-open / data-closed attributes set by Radix drive the fade
  * and zoom animations (tw-animate-css).
  */
-// React's types; cn() joins classes; Radix's AlertDialog; our Button, for the two actions
+// React's types; cn() joins classes; Radix's AlertDialog; our Button, for
+// the two actions, and our Spinner, for an action whose request runs
 import * as React from 'react'
 import { cn } from 'cn'
 import { AlertDialog as AlertDialogPrimitive } from 'radix-ui'
 
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 
 /** The root: holds whether the dialog is open. Controlled with `open` and `onOpenChange`, or left to the trigger. */
 function AlertDialog({
@@ -186,21 +188,39 @@ function AlertDialogDescription({
   )
 }
 
-/** The button that confirms: a Button (variant and size of button.tsx) acting as Radix's Action, which also closes the dialog. */
+/**
+ * The button that confirms: a Button (variant and size of button.tsx) acting
+ * as Radix's Action, which also closes the dialog. Ours, not shadcn's:
+ * `pending`, as on Button, for an action that keeps the dialog open while
+ * its request runs (Delete, with preventDefault()). Button cannot add the
+ * spinner itself here (it draws its child through asChild), so it is put
+ * inside the Action, before the text.
+ */
 function AlertDialogAction({
   className,
   variant = 'default',
   size = 'default',
+  pending = false,
+  disabled,
+  children,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Action>
-  & Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>) {
+  // Pick<T, keys>: only these props of Button's, with their types
+  & Pick<React.ComponentProps<typeof Button>, 'variant' | 'size' | 'pending'>) {
   return (
+    // As in Button: disabled while pending, aria-busy for screen readers
+    // (and for Button's class that hides the icons), the spinner first
     <Button variant={variant} size={size} asChild>
       <AlertDialogPrimitive.Action
         data-slot="alert-dialog-action"
         className={cn(className)}
+        disabled={pending || disabled}
+        aria-busy={pending || undefined}
         {...props}
-      />
+      >
+        {pending && <Spinner />}
+        {children}
+      </AlertDialogPrimitive.Action>
     </Button>
   )
 }
