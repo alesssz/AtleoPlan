@@ -38,7 +38,7 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 
 | Document | What it covers |
 |---|---|
-| [S1. Setup](start/S1-setup.md) | Where the project stands, prerequisites, Git identity, the port rule, creating the Laravel and React apps, everyday commands, useful links, troubleshooting |
+| [S1. Setup](start/S1-setup.md) | Where the project stands, prerequisites, Git identity, the port rule, creating the Laravel and React apps, everyday commands, useful links, troubleshooting, the Google credentials for signing in with Google |
 
 ### D · Design
 

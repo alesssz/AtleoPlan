@@ -14,6 +14,14 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - [S1.8 Everyday commands](#s18-everyday-commands)
 - [S1.9 Useful links](#s19-useful-links)
 - [S1.10 Troubleshooting](#s110-troubleshooting)
+- [S1.11 Sign in with Google: the credentials](#s111-sign-in-with-google-the-credentials)
+  - [S1.11.1 The project](#s1111-the-project)
+  - [S1.11.2 The consent screen](#s1112-the-consent-screen)
+  - [S1.11.3 The test users](#s1113-the-test-users)
+  - [S1.11.4 The client, and its secret](#s1114-the-client-and-its-secret)
+  - [S1.11.5 The two lines, on each computer](#s1115-the-two-lines-on-each-computer)
+  - [S1.11.6 Later, when deploying](#s1116-later-when-deploying)
+  - [S1.11.7 When it does not work](#s1117-when-it-does-not-work)
 
 ---
 
@@ -449,6 +457,100 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | The app shows **"Can't reach the server"** | The Docker stack is not running, or the server has an error: `make up`, then `make logs`. |
 | **"Too many attempts"** when signing in | Five tries a minute for one email: wait a minute ([C2.7.4](../concepts/C2-backend.md#c274-slowing-down-password-guessing)). |
 | A reset email's **link opens the wrong address** | `FRONTEND_URL` in `compose.yaml`; after changing it, `docker compose up -d`. |
+
+---
+
+## S1.11 Sign in with Google: the credentials
+
+"Continue with Google" ([FEAT-9](../project/backlog.md#feat-9-sign-in-with-google)) needs an **OAuth client** created in the Google Cloud Console with the owner's Google account: the app sends people to Google with the client's id, and Google sends them back only to the addresses listed in it. Nobody else can do this part, and its two values are secrets. Done once for the project; then two lines in `backend/.env` on **each computer** (the Windows PC, the Mac).
+
+A plain Gmail account is enough. No credit card: signing in with Google is free. The console may show its menus in Italian, and Google moves them now and then: the names below are the English ones, with where they sit.
+
+### S1.11.1 The project
+
+1. https://console.cloud.google.com, signed in with the owner's account.
+2. Top left, next to the logo, the **project picker** → **New project**.
+3. Name `AtleoPlan`, the rest as it is → **Create**.
+4. Once made, choose it in the picker: every step below happens inside it.
+
+### S1.11.2 The consent screen
+
+What people see while choosing their account.
+
+1. Menu ☰ → **APIs & Services** → **OAuth consent screen**. It opens the **Google Auth Platform** → **Get started**.
+2. **App information:** App name `AtleoPlan`; User support email: the owner's Gmail.
+3. **Audience:** **External** (Internal is only for Google Workspace organisations).
+4. **Contact information:** the owner's Gmail.
+5. **Finish:** accept the policy → **Create**.
+
+**No logo.** With a logo Google asks for a brand verification first; not needed now.
+
+**Data access** stays empty: the app asks only for the basic scopes, `openid`, `email` and `profile` (name, address, photo), which need nothing added there.
+
+### S1.11.3 The test users
+
+1. Google Auth Platform → **Audience** → **Test users** → **Add users**.
+2. The owner's Gmail, and any other account used for trying it.
+
+The publishing status stays **Testing**: only the accounts in this list can sign in, anyone else gets "Access blocked". Enough for development; going public is S1.11.6.
+
+### S1.11.4 The client, and its secret
+
+1. Google Auth Platform → **Clients** → **Create client**.
+2. Application type **Web application**; name `AtleoPlan dev`.
+3. **Authorized JavaScript origins:** empty. The app goes to Google through the backend, not from JavaScript.
+4. **Authorized redirect URIs** → **Add URI**, exactly:
+
+   ```
+   http://localhost:5673/auth/google/callback
+   ```
+
+   `http`, not https; `localhost`, not `127.0.0.1`; port `5673`, Vite's ([S1.4](#s14-ports)); no `/` at the end. One character different and Google answers `redirect_uri_mismatch`. The same address works on both computers, and on a phone through `adb reverse` ([H3.8.2](../how-to/H3-frontend.md#h382-a-real-android-phone-over-usb)), which is `localhost:5673` for the phone too.
+5. **Create.**
+
+A window shows the **Client ID** (ending in `.apps.googleusercontent.com`) and the **Client secret** (starting with `GOCSPX-`). **Download JSON**, or copy the secret now: for new clients Google shows it this once. Lost, it is not recovered: the client's page adds a new secret, and the old one is deleted.
+
+Keep the JSON file outside the repository (a password manager is the right place): it holds the secret.
+
+### S1.11.5 The two lines, on each computer
+
+At the end of `backend/.env`:
+
+```
+GOOGLE_CLIENT_ID=…apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-…
+```
+
+- **Only these two.** The return address is not written here: the code builds it from `FRONTEND_URL` (`http://localhost:5673`, set in `compose.yaml`), so it cannot drift from the one given to Google.
+- **Never committed:** `backend/.gitignore` leaves `.env` out (`git check-ignore -v backend/.env` answers `backend/.gitignore:3:.env	backend/.env`). Not pasted in a chat either: the names go in `backend/.env.example` with empty values, the values only in `.env`.
+- **Then**, from the repository's root: `docker compose restart backend`.
+- **On the Mac** the same two lines in its own `backend/.env`: the same client serves both computers.
+
+To check that both lines are there without showing them:
+
+```sh
+docker compose exec backend grep -c '^GOOGLE_CLIENT_' .env
+```
+
+`2` means both are there; `0` or `1`, one is missing (the container's working folder is the backend's, so `.env` is `backend/.env`).
+
+### S1.11.6 Later, when deploying
+
+Not now: with [OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server).
+
+1. The client's **Authorized redirect URIs** get the production address too, `https://<domain>/auth/google/callback`; the development one stays.
+2. **Branding** → **Authorized domains**: the domain.
+3. **Audience** → **Publish app**, so that anyone can sign in. With the basic scopes alone, Google asks for no review.
+4. The production server's `.env` gets the same two lines.
+
+### S1.11.7 When it does not work
+
+| Google says | Why |
+|---|---|
+| `Error 400: redirect_uri_mismatch` | The address the app sent is not in the client's list, character for character: `localhost` against `127.0.0.1`, a `/` at the end, https, another port. The error's details show the address sent |
+| "Access blocked: AtleoPlan has not completed the Google verification process" | The account is not among the test users (S1.11.3) |
+| `Error 401: invalid_client` | A wrong or old id or secret in `backend/.env`, or the backend not restarted after writing them |
+| `Error 401: deleted_client` | The client was deleted in the console: a new one (S1.11.4), new lines in every `.env` |
 
 ---
 
