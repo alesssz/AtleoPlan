@@ -21,6 +21,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-6 Edit a past workout](#feat-6-edit-a-past-workout)
   - [FEAT-7 An exercise's own history](#feat-7-an-exercises-own-history)
   - [FEAT-8 Write a plan in a spreadsheet, and import it](#feat-8-write-a-plan-in-a-spreadsheet-and-import-it)
+  - [FEAT-9 Sign in with Google](#feat-9-sign-in-with-google)
 - [BE](#be)
   - [BE-1 Exercise library: API and admin](#be-1-exercise-library-api-and-admin)
   - [BE-2 Manage users in the admin panel](#be-2-manage-users-in-the-admin-panel)
@@ -60,6 +61,8 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 
 1. The exercise library: its API, import, translation and screens are done; left are its admin screen, where translations are reviewed, and its media ([BE-1](#be-1-exercise-library-api-and-admin))
 2. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
+
+**Next, brought forward from phase 2:** sign in with Google, [FEAT-9](#feat-9-sign-in-with-google). The plan and what was decided are in its entry; the owner's part, the Google credentials, is [S1.11](../start/S1-setup.md#s111-sign-in-with-google-the-credentials).
 
 The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [FEAT-5](#feat-5-new-records-during-a-workout) (live records); its preferences are on Profile (UI-7, [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
 
@@ -179,6 +182,28 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - C) Nothing: the editor, with the picker's search and Create «…», is quick enough.
 
 **Recommended.** Wait until a second plan has to be written from paper; then A, with the template in Excel, since that is what people use.
+
+### FEAT-9 Sign in with Google
+
+**Priority:** medium · **Kind:** missing feature, brought forward from phase 2 · **Found:** 2026-11-11
+
+**What is missing.** Signing in and up take an email and a password only. [D1.4.1](../design/D1-ui.md#d141-sign-in-and-onboarding) plans "Continue with Google" (and Apple) for phase 2; the owner asked for Google now.
+
+**State, 2026-11-11.** Talked through, nothing built yet. The owner creates the Google OAuth client and puts its two values in `backend/.env` on each computer, following [S1.11](../start/S1-setup.md#s111-sign-in-with-google-the-credentials). Before building, check it is done: `docker compose exec backend grep -c '^GOOGLE_CLIENT_' .env` answers `2` (it counts the lines without printing them; never read `.env` itself). If not, the code and its tests can still be written, with Google faked; the button works once the values are there.
+
+**Decided.**
+- **Google only.** Apple is required only for an App Store app offering a social sign-in ([D1.4.1](../design/D1-ui.md#d141-sign-in-and-onboarding)); AtleoPlan is a web app for now, so Apple waits for phase 2.
+- **An email already registered** (an account with a password, the same address as the Google account): Google is linked to that account, but only when Google says the address is verified (`email_verified`). Its plans are kept. The other option, refusing and asking to sign in with the password and link Google from Profile, was set aside as clumsier. Proposed as option A on 2026-11-11, without objection; confirm with the owner before building.
+- **A new address** makes a new account: the name and email from Google, the language from the app, `email_verified_at` set, no password. Such a user can set one later with Forgot password.
+
+**The plan.**
+- **Backend:** Laravel Socialite (`composer require laravel/socialite`, through Docker). Two routes in `routes/web.php`, not `api.php`, because Socialite keeps its `state` in the session: `GET /auth/google/redirect` (to Google) and `GET /auth/google/callback` (back from Google: find or create the user, `Auth::login()`, session regenerated, then a redirect to the React app). `config/services.php` gets `google` with `client_id` and `client_secret` from the environment and `redirect` built from `FRONTEND_URL` (`…/auth/google/callback`), the address given to Google in S1.11.4. The two variables are already in `backend/.env.example`, empty.
+- **Data** ([D3.9](../design/D3-data-model.md#d39-left-for-later) foresaw it): a `social_accounts` table (`user_id`, `provider`, `provider_user_id`, unique per provider, deleted with its user) rather than a `google_id` column, so Apple later is rows, not columns; `users.password` becomes nullable. D3 is updated in the same change.
+- **Frontend:** "Continue with Google" on the sign-in and sign-up pages, a plain link to `/auth/google/redirect` (a full page change, not a fetch: the browser must go to Google); Vite's proxy gets `/auth` beside `/api`, `/sanctum`, `/storage` ([S1.4](../start/S1-setup.md#s14-ports)), the same address as production. A refused or cancelled sign-in comes back to `/login?error=…`, shown with `FormBanner` in the four languages. No React route uses `/auth`.
+- **Tests:** Pest with Socialite faked (`Socialite::fake('google', …)`, or a mocked driver): a new user, a verified address linked, an unverified one refused, the same Google account signing in twice, a cancel. Vitest for the button and the error.
+- **Docs:** D1.4.1 and D1.8 (Google out of phase 2), D2.2 (Socialite in the auth row), D3, C2.7 (a new subsection), C1.13, how-to sections in H1, H2 and H3 with the commands and their output.
+
+**Not in it:** linking or unlinking Google from Profile for an existing account; Apple; a mobile app's sign-in.
 
 ## BE
 
