@@ -145,7 +145,7 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
                   return to a deleted workout */}
               <AlertDialogAction
                 variant="destructive"
-                disabled={remove.isPending}
+                pending={remove.isPending}
                 onClick={(event) => {
                   event.preventDefault()
                   remove.mutate(undefined, { onSuccess: () => void navigate('/progress/history', { replace: true }) })

@@ -49,7 +49,7 @@ export function ForgotPasswordPage() {
 
         <FormField label={t('auth.fields.email')} type="email" autoComplete="username" inputMode="email" error={errors.email?.message} {...form.register('email')} />
 
-        <Button type="submit" size="xl" disabled={forgotPassword.isPending}>{t('auth.forgotPassword.submit')}</Button>
+        <Button type="submit" size="xl" pending={forgotPassword.isPending}>{t('auth.forgotPassword.submit')}</Button>
       </form>
 
       <nav aria-label={t('auth.otherOptions')} className="mt-4 flex flex-col items-center">

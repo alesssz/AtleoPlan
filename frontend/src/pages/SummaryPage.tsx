@@ -137,8 +137,12 @@ function Summary({ finished }: SummaryProps) {
   // The two answers, held while the user writes
   const [feeling, setFeeling] = useState<number | null>(null)
   const [notes, setNotes] = useState('')
-  // True while Save or Delete runs; the error of a Delete that failed
-  const [busy, setBusy] = useState(false)
+  // Which button's request is running, Save or Delete, null when none
+  // (both wait, the spinner goes on the one pressed, C1.20). useState<…>
+  // names the type the state may hold, here a union of two exact texts and
+  // null: TypeScript then refuses setBusy('saving'). Then the error of a
+  // Delete that failed
+  const [busy, setBusy] = useState<'save' | 'delete' | null>(null)
   const [deleteFailed, setDeleteFailed] = useState(false)
 
   /**
@@ -165,7 +169,7 @@ function Summary({ finished }: SummaryProps) {
       leave(outcome)
       return
     }
-    setBusy(true)
+    setBusy('save')
     addPending(id, { ...input, feeling, notes: written })
     const report = await sendPendingSessions()
     leave(report.sent.includes(id) ? 'saved' : report.refused.some(entry => entry.id === id) ? 'refused' : 'queued')
@@ -178,7 +182,7 @@ function Summary({ finished }: SummaryProps) {
    * sent must be deleted on the server: without network, say so and stay.
    */
   async function remove() {
-    setBusy(true)
+    setBusy('delete')
     setDeleteFailed(false)
     // Whether it was still waiting to be sent, before taking it off
     const wasPending = id in loadPending()
@@ -190,7 +194,7 @@ function Summary({ finished }: SummaryProps) {
       // 404: not on the server (never arrived); 410: deleted already
       const gone = error instanceof ApiError && [404, 410].includes(error.status)
       if (!gone && !wasPending) {
-        setBusy(false)
+        setBusy(null)
         setDeleteFailed(true)
         return
       }
@@ -268,13 +272,13 @@ function Summary({ finished }: SummaryProps) {
         {/* Save, lime: the one main action. Delete, red and outlined,
             with a question first: it cannot be undone */}
         <div className="flex flex-wrap items-center gap-3">
-          <Button size="xl" className="px-6" disabled={busy} onClick={() => void save()}>
+          <Button size="xl" className="px-6" disabled={busy !== null} pending={busy === 'save'} onClick={() => void save()}>
             <Save aria-hidden="true" />
             {t('summary.save')}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="xl" disabled={busy} className="text-destructive">
+              <Button variant="outline" size="xl" disabled={busy !== null} pending={busy === 'delete'} className="text-destructive">
                 <Trash2 aria-hidden="true" />
                 {t('summary.delete')}
               </Button>

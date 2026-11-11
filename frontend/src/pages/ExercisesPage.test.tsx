@@ -65,6 +65,21 @@ describe('ExercisesPage', () => {
     expect(router.state.location.search).toBe('?q=panca')
   })
 
+  it('shows a spinner in the search box until the searched list is on screen', async () => {
+    fakeApi({ ...fixedLists, 'GET /api/exercises': exercisePage([testExercise()]) })
+    renderRoutes(routes, '/exercises')
+    await screen.findByRole('link', { name: /Barbell Bench Press/ })
+    // No search running: no spinner
+    expect(screen.queryByRole('status', { name: 'Searching…' })).not.toBeInTheDocument()
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search exercises' }), 'panca')
+
+    // Right after typing: the search waits for the pause, and says so
+    expect(screen.getByRole('status', { name: 'Searching…' })).toBeInTheDocument()
+    // Once the answer is in, the spinner goes
+    await waitFor(() => expect(screen.queryByRole('status', { name: 'Searching…' })).not.toBeInTheDocument())
+  })
+
   it('reads the filters from the address and sends them', async () => {
     const fake = fakeApi({ ...fixedLists, 'GET /api/exercises': exercisePage([testExercise()]) })
     renderRoutes(routes, '/exercises?muscle=chest&source=mine')

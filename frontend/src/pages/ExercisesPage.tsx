@@ -13,7 +13,8 @@
  * The five states of D1.6: loading (skeleton rows), error (a message and
  * Retry), empty (three kinds: a search with no result, filters with no
  * result, no personal exercise yet), the list, and the list being refreshed
- * (the old one dimmed while the new one loads).
+ * (the old one dimmed, and a spinner in the search box, while the new one
+ * loads).
  */
 import { Dumbbell, Plus, SearchX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -69,6 +70,11 @@ export function ExercisesPage() {
   // The other filters apply at once
   const search = useDebouncedValue(values.search, SEARCH_DELAY_MS)
   const list = useExercises({ ...values, search }, i18n.language)
+  // Whether the list on screen is not yet the one asked for: while typing
+  // (the box's text is ahead of the debounced search) or while the new
+  // list loads behind the old one (isPlaceholderData). A spinner in the
+  // search box and the dimmed list say so (C1.20)
+  const searching = values.search !== search || list.isPlaceholderData
 
   /**
    * Writes changed filters into the address. A filter set back to its
@@ -112,7 +118,7 @@ export function ExercisesPage() {
         </Button>
       </div>
 
-      <ExerciseFilters values={values} onChange={changeFilters} />
+      <ExerciseFilters values={values} onChange={changeFilters} searching={searching} />
 
       {/* The results, 24 px under the filters */}
       <section aria-label={t('pages.exercises.title')} className="mt-6">
@@ -129,7 +135,7 @@ export function ExercisesPage() {
           // An error: the message, and a button to ask again
           <div role="alert" className="flex flex-col items-start gap-3">
             <p>{t('exercises.loadError')}</p>
-            <Button variant="outline" onClick={() => void list.refetch()} disabled={list.isFetching}>{t('server.retry')}</Button>
+            <Button variant="outline" onClick={() => void list.refetch()} pending={list.isFetching}>{t('server.retry')}</Button>
           </div>
         )}
 
@@ -183,9 +189,10 @@ export function ExercisesPage() {
 
         {list.isSuccess && total > 0 && (
           // The list. Dimmed while the list of new filters loads
-          // (isPlaceholderData: the old one is still shown, docs/learn/L2-react.md
-          // L2.12), so the screen does not jump at each letter typed
-          <div className={cn('transition-opacity', list.isPlaceholderData && 'opacity-60')}>
+          // (`searching`: typing, or isPlaceholderData, the old one still
+          // shown, docs/learn/L2-react.md L2.12), so the screen does not jump
+          // at each letter typed and still shows it is working
+          <div className={cn('transition-opacity', searching && 'opacity-60')}>
             {/* How many match: "876 exercises". aria-live: screen readers
                 announce the new count when the filters change */}
             <p aria-live="polite" className="mb-3 text-sm text-muted-foreground">{t('exercises.count', { count: total })}</p>
@@ -204,7 +211,7 @@ export function ExercisesPage() {
                 reachable, for the tab bar and the keyboard */}
             {list.hasNextPage && (
               <div className="mt-6 flex justify-center">
-                <Button size="xl" variant="outline" onClick={() => void list.fetchNextPage()} disabled={list.isFetchingNextPage}>
+                <Button size="xl" variant="outline" onClick={() => void list.fetchNextPage()} pending={list.isFetchingNextPage}>
                   {t('exercises.showMore')}
                 </Button>
               </div>

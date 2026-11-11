@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built), the loading signs [H3.27](#h327-loading-signs-as-built).
 
 ## Contents
 
@@ -158,6 +158,16 @@
   - [H3.26.8 Checking in the browser](#h3268-checking-in-the-browser)
   - [H3.26.9 The checks](#h3269-the-checks)
   - [H3.26.10 Later: a window before importing](#h32610-later-a-window-before-importing)
+- [H3.27 Loading signs, as built](#h327-loading-signs-as-built)
+  - [H3.27.1 The order of building](#h3271-the-order-of-building)
+  - [H3.27.2 The spinner, from shadcn's CLI](#h3272-the-spinner-from-shadcns-cli)
+  - [H3.27.3 `pending` on Button, and the Slot that counts a `false`](#h3273-pending-on-button-and-the-slot-that-counts-a-false)
+  - [H3.27.4 The search box: two moments](#h3274-the-search-box-two-moments)
+  - [H3.27.5 Applying it](#h3275-applying-it)
+  - [H3.27.6 The tests, and proving they can fail](#h3276-the-tests-and-proving-they-can-fail)
+  - [H3.27.7 Looking at it](#h3277-looking-at-it)
+  - [H3.27.8 Checking in the browser](#h3278-checking-in-the-browser)
+  - [H3.27.9 The checks](#h3279-the-checks)
 
 ---
 
@@ -460,7 +470,8 @@ export function RenameMuscleForm({ muscle }: RenameMuscleFormProps) {
       {errors.root?.message && <FormBanner variant="error">{errors.root.message}</FormBanner>}
       {/* register() connects the input to the form: value, changes, name */}
       <FormField label={t('muscles.newName')} error={errors.name?.message} {...form.register('name')} />
-      <Button type="submit" disabled={rename.isPending}>{t('muscles.save')}</Button>
+      {/* pending: disabled, with a spinner, while the request runs (C1.20) */}
+      <Button type="submit" pending={rename.isPending}>{t('muscles.save')}</Button>
     </form>
   )
 }
@@ -3971,6 +3982,166 @@ npx vitest run
  Test Files  30 passed (30)
       Tests  253 passed (253)
 ```
+
+---
+
+## H3.27 Loading signs, as built
+
+Searching in the plan editor's picker took a couple of seconds with nothing moving: the old list stayed as it was, then the new one appeared all at once. Many buttons had the same fault: disabled while their request ran, but with nothing saying so. Now every wait has a sign: a spinner in the search box with the list dimmed, and a spinner in place of a button's icon. The rules: [D1.6](../design/D1-ui.md#d16-states-and-edge-cases); how it works: [C1.20](../concepts/C1-frontend.md#c120-showing-that-something-is-loading).
+
+| File | Change |
+|---|---|
+| `frontend/src/components/ui/spinner.tsx` | New, from shadcn's CLI, then adapted: silent unless given a `label`; sized `h-4 w-4` |
+| `frontend/src/components/ui/button.tsx` (+ new test) | `pending`: disabled, `aria-busy`, the spinner in place of the icon |
+| `frontend/src/components/ui/alert-dialog.tsx` | `pending` on `AlertDialogAction` |
+| `frontend/src/components/exercises/ExerciseSearchBox.tsx` | New: the search box of both screens, with `searching` |
+| `frontend/src/components/exercises/ExerciseFilters.tsx`, `pages/ExercisesPage.tsx` (+ test) | The box, `searching` from the typing and from `isPlaceholderData` |
+| `frontend/src/components/plans/editor/ExercisePicker.tsx` | The box, the list dimmed, Show more `pending` |
+| 17 other pages and components | `disabled={x.isPending}` became `pending={x.isPending}` |
+| `frontend/src/i18n/locales/*.json` | `exercises.searching` |
+
+### H3.27.1 The order of building
+
+1. **Where waits are silent.** `grep` for `isPending`, `isFetching`, `isFetchingNextPage`, `mutate(` and `busy` in `src/`, leaving out `src/api/` and the tests: every button that only became disabled, and the two searches.
+2. **The pieces:** the spinner, then `pending` on `Button`, then the search box.
+3. **Applying them,** page by page, then the tests, then a look.
+
+### H3.27.2 The spinner, from shadcn's CLI
+
+From `frontend/`:
+
+```sh
+npx shadcn@latest add spinner --yes
+```
+
+```
+npm warn exec The following package was not found and will be installed: shadcn@4.23.0
+✔ Checking registry.
+✔ Created 1 file:
+  - src\components\ui\spinner.tsx
+```
+
+shadcn's file is eight lines: Lucide's `Loader2Icon`, `size-4 animate-spin`, `role="status"` and `aria-label="Loading"`, in shadcn's own style (double quotes). It was rewritten whole, in the project's style and with the header and comments of [P1.2](../project/P1-conventions.md#p12-code), so `make fix` ([H3.9](#h39-a-shadcnui-component)) had nothing left to change; `npm run lint` passes on it. Two changes in what it does, explained in the file:
+
+- **The label.** "Loading", in English, inside every button would be read by screen readers whatever the language, and on top of the button's own name. The spinner is now hidden from them (`aria-hidden`) unless given a `label`, and then it is a `role="status"` with that text, translated: `<Spinner label={t('exercises.searching')} />`.
+- **The size, found by looking** (H3.27.7). With `size-4` the spinner stayed 16 px inside the 48 px buttons, whose icons are 20 px. The button sizes icons with `[&_svg:not([class*='size-'])]:size-5`: only those with no `size-` in their classes. Written `h-4 w-4`, the same 16 px alone, the spinner falls under that rule and takes each button size's icon size. Given `size-5` (the search box), `cn()` drops `h-4 w-4`; from `frontend/`:
+
+```sh
+node -e "const {cn}=require('cn'); console.log(cn('h-4 w-4 animate-spin','size-5 absolute'))"
+```
+
+```
+animate-spin size-5 absolute
+```
+
+### H3.27.3 `pending` on Button, and the Slot that counts a `false`
+
+`Button` takes `pending`, sets `disabled={pending || disabled}` and `aria-busy={pending || undefined}`, and draws `{pending && <Spinner />}` before its children. One class added to its base, `aria-busy:[&>svg:not([data-slot=spinner])]:hidden`, hides the button's own icon while it waits (Tailwind's `aria-busy:` variant applies when `aria-busy="true"`).
+
+**The trap:** with `asChild` (`<Button asChild><Link …/></Button>`), Radix's `Slot` takes exactly one child. Written as `{pending && !asChild && <Spinner />}{children}`, the children would be `[false, <Link>]`: `Slot` checks its child with `React.isValidElement`, an array is not one, and since `React.Children.count` counts the `false` as a node, it throws. So with `asChild` the children are passed alone, and only otherwise as `<>{pending && <Spinner />}{children}</>`. The third test of `button.test.tsx` draws a link through `asChild` to keep it so.
+
+`AlertDialogAction` is a `Button asChild` around Radix's `Action`, so `Button` cannot add the spinner there: the Action gets `pending` itself, and puts the spinner inside.
+
+### H3.27.4 The search box: two moments
+
+The library and the picker had the same box, written twice; it became `ExerciseSearchBox`, with `searching`. Each screen computes it:
+
+```ts
+const searching = search !== debounced || list.isPlaceholderData
+```
+
+- `search !== debounced`: the 300 ms after a key, before any request (`useDebouncedValue`, [C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens));
+- `list.isPlaceholderData`: the request running, the old rows still on screen (`keepPreviousData`).
+
+The same value dims the rows (`opacity-60`). The Exercises page already dimmed on `isPlaceholderData` alone, so the first 300 ms were silent there too; the picker showed nothing at all.
+
+### H3.27.5 Applying it
+
+Most changes were one attribute, from `disabled={x}` to `pending={x}`, made with `sed` from `frontend/src/`, for example:
+
+```sh
+sed -i 's|disabled={list.isFetchingNextPage} onClick=|pending={list.isFetchingNextPage} onClick=|' pages/HistoryPage.tsx
+sed -i 's|^\(\s*\)disabled={remove.isPending}$|\1pending={remove.isPending}|' pages/PlanDetailPage.tsx pages/ExerciseDetailPage.tsx pages/HistoryDetailPage.tsx
+```
+
+`git diff --stat` afterwards showed one line in, one out, on each of those files: nothing else had moved. The list: Sign in, Create account, the two password forms, the exercise form's Save, the plan editor's Save, Start (Home and the plan's page: `disabled={busy || day… === 0} pending={starting}`, so the reason a start is impossible stays apart from the wait), Export, Import, Sign out, the three Deletes in their dialogs, Show more (library, picker, history), and Retry (library, plans, the guard of the signed-in pages).
+
+**Two buttons, one request**, done by hand:
+
+- A plan's **Set as active** and **Archive** share one mutation: both `disabled={action.isPending}`, but `pending={action.isPending && action.variables === 'activate'}` on the first and `!== 'activate'` on the second. `variables` is what `mutate()` was given.
+- The summary's **Save** and **Delete** shared `busy: boolean`; it became `useState<'save' | 'delete' | null>(null)`, with `disabled={busy !== null}` and `pending={busy === 'save'}`.
+
+### H3.27.6 The tests, and proving they can fail
+
+```sh
+npx vitest run src/components/ui/button.test.tsx src/pages/ExercisesPage.test.tsx
+```
+
+```
+ Test Files  2 passed (2)
+      Tests  13 passed (13)
+```
+
+Then, for a moment, the box always given `searching={false}`, and the button's `disabled={disabled}` without `pending`:
+
+```
+     × is disabled, busy and shows a spinner while pending 50ms
+     × shows a spinner in the search box until the searched list is on screen 147ms
+      Tests  2 failed | 11 passed (13)
+```
+
+Both put back. The search test types "panca", finds the status "Searching…" at once, then waits for it to go: `fakeApi` answers at once, so the spinner lives for the 300 ms of the pause.
+
+### H3.27.7 Looking at it
+
+A throw-away `frontend/preview-tmp/` with one page: the search box with `searching`, three dimmed rows, and the buttons `pending` and not, in Italian, light and dark (`?dark` in the address adds the `dark` class to `<html>`); its `vite.config.ts` has its `root` at `frontend/` (H3.24.7). Built and photographed as in H3.22.5:
+
+```sh
+npx vite build --config preview-tmp/vite.config.ts
+"/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --allow-file-access-from-files \
+  --hide-scrollbars --window-size=600,500 --virtual-time-budget=3000 \
+  --screenshot="D:/…/preview-tmp/dist/shot-dark.png" "file:///D:/…/preview-tmp/dist/preview-tmp/page.html?dark"
+```
+
+Three things met:
+
+- **The host page with two `<iframe>`s** gave `2816 bytes written`: an empty picture, as in H3.26.10. The page itself was photographed instead, once per theme.
+- **At `--window-size=380,520` the right edge was cut**, the search box's spinner with it: headless Chrome does not draw a window that narrow (H3.26.10). At 600, with the content at most 420 px wide, it was whole.
+- **The spinner was smaller than the icons** of the 48 px buttons: the `h-4 w-4` of H3.27.2.
+
+**What the photos showed:** the circle on the right of "panca", the rows grey; **Salva** lime with its disk, beside a faded **Salva** with the circle in its place; **Esporta**, **Elimina** and **Mostra altri** the same, readable in both themes. `rm -rf preview-tmp` at the end, from `frontend/`.
+
+### H3.27.8 Checking in the browser
+
+A local server answers in milliseconds: to see the signs, slow it down. Developer tools (F12) → **Network** → the throttling list (**No throttling**) → **Slow 4G** ([H3.8](#h38-checking-in-the-browser)). Then, with `make start`:
+
+- **The picker:** a plan, Edit, a day, **Aggiungi esercizi**, type "panca": the circle on the right of the box from the first letter, the rows grey, until the new list.
+- **The library:** the same in its search box; a muscle chosen: the rows grey and the circle while the list loads.
+- **A button:** a plan's **Esporta**, **Salva** in the editor, **Accedi** on the sign-in page: the circle in place of the icon, the button faded, a second tap does nothing.
+- **Set as active** on a plan: the circle on it only, **Archivia** faded without one.
+
+Back to **No throttling** at the end: the setting stays while the developer tools are open.
+
+### H3.27.9 The checks
+
+From the repository's root:
+
+```sh
+make check
+```
+
+The end of each part:
+
+```
+  Tests:    269 passed (17477 assertions)
+> eslint .
+> tsc -b
+ Test Files  31 passed (31)
+      Tests  257 passed (257)
+Contents up to date.
+```
+
+Four frontend tests more than before (253): three in the new `button.test.tsx`, one in `ExercisesPage.test.tsx`.
 
 ---
 

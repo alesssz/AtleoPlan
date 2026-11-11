@@ -5,7 +5,10 @@
  * of what it stands for through className:
  *   <Skeleton className="h-4 w-40" />              a line of text
  *   <Skeleton className="size-3 rounded-full" />   a dot
- * Used by src/components/ServerStatus.tsx. shadcn/ui copies each
+ * Used by src/components/ServerStatus.tsx and by every page's first load.
+ * When content is already on screen and a request runs (a save, a new
+ * search), the sign is the small Spinner instead (src/components/ui/
+ * spinner.tsx, docs/concepts/C1-frontend.md C1.20). shadcn/ui copies each
  * component's source into src/components/ui/, so this file is ours to read.
  * Styles: docs/concepts/C1-frontend.md C1.8.
  */

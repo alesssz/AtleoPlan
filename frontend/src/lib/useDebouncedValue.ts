@@ -4,6 +4,11 @@
  * "panca" sends one request, not five (src/pages/ExercisesPage.tsx).
  * docs/concepts/C1-frontend.md C1.14.
  *
+ * While the value given and the one returned differ, the change has not
+ * gone through yet: the library and the plan editor's picker compare the
+ * two (`search !== debounced`) to turn the search box's spinner from the
+ * first key, not only once the request starts (C1.20).
+ *
  * A hook of our own (what a hook is: src/theme/useTheme.ts): it keeps its own
  * state and an effect, like a small component without anything to draw.
  */

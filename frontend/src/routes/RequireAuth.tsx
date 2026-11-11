@@ -58,7 +58,7 @@ export function RequireAuth() {
         <p className="text-muted-foreground">{t('auth.unreachableText')}</p>
         {/* refetch() returns a Promise; `void`: we do not wait for it on
             purpose, since TanStack Query updates the state by itself */}
-        <Button size="xl" className="self-start" onClick={() => void currentUser.refetch()} disabled={currentUser.isFetching}>
+        <Button size="xl" className="self-start" onClick={() => void currentUser.refetch()} pending={currentUser.isFetching}>
           {t('server.retry')}
         </Button>
       </main>

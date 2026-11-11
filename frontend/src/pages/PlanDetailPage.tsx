@@ -165,7 +165,10 @@ function PlanDetail({ plan }: PlanDetailProps) {
             an archived plan cannot be made active (PlanPolicy::activate) */}
         <div className="flex flex-wrap items-center gap-3">
           {!plan.is_active && !archived && (
-            <Button size="xl" disabled={action.isPending} onClick={() => action.mutate('activate')}>
+            // The two buttons share one mutation: both wait while it runs,
+            // and the spinner goes on the one pressed (`variables`: what
+            // mutate() was given, C1.20)
+            <Button size="xl" disabled={action.isPending} pending={action.isPending && action.variables === 'activate'} onClick={() => action.mutate('activate')}>
               <Star aria-hidden="true" />
               {t('plans.detail.setActive')}
             </Button>
@@ -176,7 +179,7 @@ function PlanDetail({ plan }: PlanDetailProps) {
               {t('plans.detail.edit')}
             </Link>
           </Button>
-          <Button size="xl" variant="outline" disabled={action.isPending} onClick={() => action.mutate(archived ? 'unarchive' : 'archive')}>
+          <Button size="xl" variant="outline" disabled={action.isPending} pending={action.isPending && action.variables !== 'activate'} onClick={() => action.mutate(archived ? 'unarchive' : 'archive')}>
             {archived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}
             {archived ? t('plans.detail.unarchive') : t('plans.detail.archive')}
           </Button>
@@ -254,7 +257,9 @@ function StartDayButton({ plan, day, busy }: StartDayButtonProps) {
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3">
-      <Button size="xl" disabled={busy || starting || day.items.length === 0} onClick={() => void startDay(plan, day)}>
+      {/* disabled: why it cannot start (another workout, an empty day);
+          pending: it is starting, last time's sets being read (C1.20) */}
+      <Button size="xl" disabled={busy || day.items.length === 0} pending={starting} onClick={() => void startDay(plan, day)}>
         <Play aria-hidden="true" />
         {t('workout.start')}
       </Button>
@@ -299,7 +304,7 @@ function DeletePlanButton({ plan }: DeletePlanButtonProps) {
               does not return to the deleted plan */}
           <AlertDialogAction
             variant="destructive"
-            disabled={remove.isPending}
+            pending={remove.isPending}
             onClick={(event) => {
               event.preventDefault()
               remove.mutate(undefined, { onSuccess: () => void navigate('/plans', { replace: true }) })

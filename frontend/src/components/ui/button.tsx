@@ -18,6 +18,12 @@
  *            icon-sm, icon-lg).
  *   <Button variant="outline" size="sm" onClick={…}>Retry</Button>
  * The variants are defined with cva (class-variance-authority) below.
+ *
+ * Ours, not shadcn's: `pending`, for a button whose request is running.
+ * The button is disabled, a Spinner (src/components/ui/spinner.tsx) takes
+ * the place of its icon, and aria-busy tells screen readers it is working:
+ *   <Button pending={save.isPending} onClick={…}><Save />Save</Button>
+ * docs/concepts/C1-frontend.md C1.20.
  */
 // `import * as React`: all of React's exports gathered in one object,
 // used here for its types (React.ComponentProps)
@@ -26,6 +32,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 // cn() joins classes and resolves Tailwind conflicts (see src/lib/utils.ts)
 import { cn } from 'cn'
 import { Slot } from 'radix-ui'
+import { Spinner } from '@/components/ui/spinner'
 
 /**
  * The button's classes, by variant. cva(base, { variants, defaultVariants })
@@ -43,7 +50,9 @@ const buttonVariants = cva(
   // parts are arbitrary variants that style any <svg> icon inside: it never
   // catches clicks, never shrinks, and is 16 px unless it sets its own size-*.
   // group/button names this element so children can react to its state.
-  'group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4',
+  // Ours: while it waits (aria-busy, set by `pending`), its own icons are
+  // hidden, so the spinner stands where the icon was rather than beside it.
+  'group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4 aria-busy:[&>svg:not([data-slot=spinner])]:hidden',
   {
     variants: {
       /** The colour scheme. aria-expanded: styles apply while a menu it opens is open. */
@@ -116,24 +125,37 @@ const buttonVariants = cva(
  * - asChild: draw the child element instead of a <button>, giving it the
  *   button's classes and props. <Button asChild><Link to="/">…</Link></Button>
  *   gives a real link that looks like a button (src/pages/NotFoundPage.tsx).
- * - className: extra classes, merged last so they win over the variant's.
+ * - className: extra classes, merged last so they win over the variant's;
+ * - pending: true while its request runs (ours, see the file's header).
  *
  * The props type is an intersection (`A & B & C`: all fields of all three):
  * React.ComponentProps<'button'> is every prop of a <button>,
  * VariantProps<typeof buttonVariants> is { variant?, size? } read from the
- * cva definition, and the last part adds asChild.
+ * cva definition, and the last part adds asChild and pending.
  * `...props` (the rest) gathers every other prop, passed on below.
+ * `disabled` and `children` are taken out of it by name because the button
+ * changes them: disabled also while pending, the spinner put before the
+ * children. Left in `...props`, they would reach the element unchanged.
  */
 function Button({
   className,
   variant = 'default',
   size = 'default',
   asChild = false,
+  pending = false,
+  disabled,
+  children,
   ...props
 }: React.ComponentProps<'button'>
   & VariantProps<typeof buttonVariants> & {
     /** Draw the child element with the button's look instead of a <button>. */
     asChild?: boolean
+    /**
+     * True while the action it started is running: disabled, with a
+     * spinner in place of its icon. Not for `asChild`: Radix's Slot takes
+     * exactly one child, so there is no room for the spinner.
+     */
+    pending?: boolean
   }) {
   // The element to draw: Radix's Slot, which merges its props into its one
   // child, or a plain <button>. A capitalised variable, so JSX treats it as
@@ -144,14 +166,32 @@ function Button({
     // data-slot names the part ("button") so parents and CSS can target it
     // (e.g. in-data-[slot=button-group]); data-variant and data-size expose
     // the chosen look the same way. {...props} spreads the remaining props
-    // (onClick, disabled, children…) onto the element.
+    // (onClick, type…) onto the element. A pending button cannot be
+    // pressed again (`pending || disabled`: true, or the caller's value), and
+    // says it is busy: aria-busy is read by screen readers, and by the
+    // classes above, which hide its icon. `|| undefined` leaves the
+    // attribute out when not busy
     <Comp
       data-slot="button"
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
+      disabled={pending || disabled}
+      aria-busy={pending || undefined}
       {...props}
-    />
+    >
+      {/* With asChild, the one child as it is: Slot refuses a second one,
+          even a `false`. Otherwise the spinner first, where the icon goes,
+          and the content (a fragment, <>…</>, groups the two) */}
+      {asChild
+        ? children
+        : (
+            <>
+              {pending && <Spinner />}
+              {children}
+            </>
+          )}
+    </Comp>
   )
 }
 
