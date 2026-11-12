@@ -2,7 +2,7 @@
 
 [C2. Backend](../concepts/C2-backend.md) explains how the Laravel app works. This page says **how to do things in it**: which commands to type, which files they create, what to write in each, and how to check the result. It is written for someone who has never written a Laravel endpoint.
 
-**The commands here have been run.** The example was built for real on this project, then removed; the outputs shown are what the commands printed. It is a small version of what [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin) will build: the list of muscles, with an endpoint to read it, one to rename a muscle, an admin screen and a background job. It starts from the `muscles` table, model, factory and seeder of [H1.2](H1-database.md#h12-a-new-table-from-start-to-finish). Those now exist for real ([H1.10](H1-database.md#h110-the-exercise-library-as-built)), and so does `GET /api/muscles` of H2.2, built by BE-1 with sorting by name added ([H2.12](#h212-the-exercise-library-api-as-built)). Renaming a muscle, the admin screen and the job on this page are still the example, removed after the run.
+**The commands here have been run.** The example was built for real on this project, then removed; the outputs shown are what the commands printed. It is a small version of what BE-1 then built: the list of muscles, with an endpoint to read it, one to rename a muscle, an admin screen and a background job. It starts from the `muscles` table, model, factory and seeder of [H1.2](H1-database.md#h12-a-new-table-from-start-to-finish). Those now exist for real ([H1.10](H1-database.md#h110-the-exercise-library-as-built)), and so does `GET /api/muscles` of H2.2, built by BE-1 with sorting by name added ([H2.12](#h212-the-exercise-library-api-as-built)). Renaming a muscle, the admin screen and the job on this page are still the example, removed after the run.
 
 **How to read this page:**
 
@@ -14,6 +14,7 @@
 - Data sent by a phone that may be offline, late and twice; totals worked out by the database: [H2.14](#h214-the-workouts-api-as-built).
 - Routes the browser visits rather than fetches, a package for signing in with Google, an outside service faked in the tests: [H2.15](#h215-sign-in-with-google-as-built).
 - Real admin screens: a form in four languages, permissions of the screen's own, row actions, the panel in the admin's language, a middleware placed in Laravel's priority list, Livewire tests: [H2.16](#h216-the-admin-panel-as-built).
+- Files: uploads, image copies made by a queue, a package added with Composer: [H2.17](#h217-the-photos-of-an-exercise-as-built).
 - The same feature on the React side: [H3. Frontend: how to](H3-frontend.md).
 
 ## Contents
@@ -89,6 +90,13 @@
   - [H2.16.6 The tests](#h2166-the-tests)
   - [H2.16.7 Check it in the browser](#h2167-check-it-in-the-browser)
   - [H2.16.8 The way in: the link and Google on the panel's login](#h2168-the-way-in-the-link-and-google-on-the-panels-login)
+- [H2.17 The photos of an exercise, as built](#h217-the-photos-of-an-exercise-as-built)
+  - [H2.17.1 Generate the files](#h2171-generate-the-files)
+  - [H2.17.2 The package for the panel](#h2172-the-package-for-the-panel)
+  - [H2.17.3 The conversions, and the photo's JSON](#h2173-the-conversions-and-the-photos-json)
+  - [H2.17.4 The copies of the photos already there](#h2174-the-copies-of-the-photos-already-there)
+  - [H2.17.5 The tests](#h2175-the-tests)
+  - [H2.17.6 Check it](#h2176-check-it)
 
 ---
 
@@ -747,6 +755,7 @@ Database errors: [H1.9](H1-database.md#h19-when-something-goes-wrong). Setup pro
 | Test | `make artisan c="make:test MuscleApiTest --pest"` |
 | Admin screen | `make artisan c="make:filament-resource Muscle --generate"`; with soft deletes, `--soft-deletes` ([H2.16](#h216-the-admin-panel-as-built)) |
 | Middleware | `make artisan c="make:middleware SetPanelLocale"` |
+| The small and large copies of the photos that lack them | `make exercises-thumbnails` ([H2.17.4](#h2174-the-copies-of-the-photos-already-there)) |
 | The middleware a route really gets, in order | in tinker, `app('router')->gatherRouteMiddleware(app('router')->getRoutes()->match(Request::create('/api/user')))` |
 | Job | `make artisan c="make:job LogMuscleCount"` |
 | API routes | `make artisan c="route:list --path=api"` |
@@ -766,7 +775,7 @@ Database errors: [H1.9](H1-database.md#h19-when-something-goes-wrong). Setup pro
 
 ## H2.12 The exercise library API, as built
 
-The second part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin) built the library's API on the tables of [H1.10](H1-database.md#h110-the-exercise-library-as-built). This section follows what was done, with the real output. It shows what [H2.2](#h22-an-endpoint-that-reads-from-start-to-finish) and [H2.3](#h23-an-endpoint-that-changes-data) do not: a list with filters and pages, a policy on a user's own rows, an action, translated columns written in one language, and sorting by name. The endpoints themselves are described in [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints).
+The second part of BE-1 built the library's API on the tables of [H1.10](H1-database.md#h110-the-exercise-library-as-built). This section follows what was done, with the real output. It shows what [H2.2](#h22-an-endpoint-that-reads-from-start-to-finish) and [H2.3](#h23-an-endpoint-that-changes-data) do not: a list with filters and pages, a policy on a user's own rows, an action, translated columns written in one language, and sorting by name. The endpoints themselves are described in [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints).
 
 | File | What it is |
 |---|---|
@@ -2152,6 +2161,167 @@ and in `ProfilePage.test.tsx`, `links an admin to the admin panel, in a new tab`
 **A flaky test fixed on the way.** `make check` failed twice in this work, and once before it on another branch, on `ProfilePage.test.tsx › goes to the sign-in form even if the session had already ended`; alone it always passed. Its fake server kept saying the user was signed in after signing out, so the sign-in page sent them back to Profile, sometimes before the test looked ([C1.13.6](../concepts/C1-frontend.md#c1136-testing-a-screen-with-the-api)). With a fake that remembers signing out, four full runs in a row passed: `for i in 1 2 3 4; do npx vitest run | grep "Tests "; done` in `frontend/`.
 
 **In the browser:** signed in to the app as an admin, Profile → Administration → **Open**: the panel in a new tab, already signed in. Signed out, http://localhost:8500/admin/login → **Continua con Google** → Google → the panel.
+
+---
+
+## H2.17 The photos of an exercise, as built
+
+`feat/exercise-media`, the last part of BE-1: the photos of personal exercises through the API, their two WebP copies, Duplicate as mine, and the photos of public exercises in the admin panel. How it works: [C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise); the React side: [H3.30](H3-frontend.md#h330-the-photos-of-an-exercise-as-built).
+
+| File | What it is |
+|---|---|
+| `app/Models/Exercise.php` | `registerMediaConversions()`: `thumb` 400 px, `large` 1600 px, WebP; `photos` without HEIC |
+| `app/Http/Resources/ExercisePhotoResource.php` | A photo: `id`, `url`, `thumb_url`; `pathOf()` moved here from ExerciseResource |
+| `app/Http/Resources/ExerciseResource.php` | `photos` as ExercisePhotoResource |
+| `app/Actions/Exercises/ExercisePhotos.php` | Add, remove, reorder; `MAX = 5` |
+| `app/Actions/Exercises/DuplicateExercise.php` | Duplicate as mine |
+| `app/Http/Requests/StoreExercisePhotoRequest.php`, `ReorderExercisePhotosRequest.php` | The rules |
+| `app/Http/Controllers/ExercisePhotoController.php`, `ExerciseController.php` (`duplicate`) | The endpoints |
+| `app/Policies/ExercisePolicy.php` | `duplicate()`: public exercises only |
+| `routes/api.php` | Four routes |
+| `lang/{en,it,es,de}/validation.php` | `too_many_photos`, `photo_order`; in it/es/de also Laravel's `image`, `mimes`, `max.file`, `uploaded` |
+| `app/Filament/Resources/Exercises/Schemas/ExerciseForm.php`, `Tables/ExercisesTable.php`, `lang/*/admin.php` | The panel's photo field; the list's small copy |
+| `composer.json`, `composer.lock` | filament/spatie-laravel-media-library-plugin |
+| `Makefile` | `ARTISAN_NOW`; `exercises-thumbnails`; `exercises-import` converts at once |
+| `tests/Feature/ExerciseLibrary/ExercisePhotosTest.php` | 17 tests; `ExerciseApiTest` and `ExerciseAdminTest` adjusted |
+
+**After pulling this branch on another computer:** `make setup` (it installs the new package), then `make exercises-thumbnails` (about 5 minutes for the imported library). No migration: `media` already had every column.
+
+### H2.17.1 Generate the files
+
+```sh
+docker compose exec -T backend php artisan make:resource ExercisePhotoResource
+docker compose exec -T backend php artisan make:controller ExercisePhotoController
+docker compose exec -T backend php artisan make:request StoreExercisePhotoRequest
+docker compose exec -T backend php artisan make:request ReorderExercisePhotosRequest
+docker compose exec -T backend php artisan make:class Actions/Exercises/ExercisePhotos
+docker compose exec -T backend php artisan make:class Actions/Exercises/DuplicateExercise
+```
+
+```
+   INFO  Resource [app/Http/Resources/ExercisePhotoResource.php] created successfully.
+```
+
+and the same line for each. **Error met:** written as a shell `for` loop over the six commands, piped to `grep INFO`, they created nothing and ended with `Exit code 1` (the cause was not found). Chained with `&&` and piped to `tail -1` they worked, but showed only the blank line that ends their output, so they looked silent; running one again said `ERROR  Controller already exists.` Run generators one by one, unpiped, and check with `ls`.
+
+**The trap of the generated Form Request** ([H2.3.6](#h236-the-trap-of-the-generated-authorize)): both had `authorize()` returning `false`, which answers 403 to everyone. Removed: the controller asks the policy.
+
+### H2.17.2 The package for the panel
+
+```sh
+docker compose exec -T backend composer require filament/spatie-laravel-media-library-plugin:"^5.11" -W
+```
+
+```
+  ⇂ public/js/filament/filament/app.js
+  …
+   INFO  Successfully published assets!
+   INFO  Successfully upgraded!
+No security vulnerability advisories found.
+```
+
+- **`^5.11`**, the version of Filament itself: the plugin is part of the same release.
+- **`-W`** ("with all dependencies") lets Composer update the packages the new one shares with others. It took the plugin at v5.11.1, as Filament, and also updated a few packages within their allowed versions, among them laravel/framework to 13.42.0 and spatie/laravel-medialibrary to 11.23.12: the whole suite ran green after. Without `-W`, a shared dependency locked at an older version can make the install fail.
+- **`git diff composer.json`** shows the one line added; `composer.lock` the exact versions.
+
+### H2.17.3 The conversions, and the photo's JSON
+
+In `Exercise`:
+
+```php
+public function registerMediaConversions(?Media $media = null): void
+{
+    $this->addMediaConversion('thumb')->fit(Fit::Max, 400, 400)->format('webp')->performOnCollections('photos');
+    $this->addMediaConversion('large')->fit(Fit::Max, 1600, 1600)->format('webp')->performOnCollections('photos');
+}
+```
+
+`ExercisePhotoResource` sends `getUrl('thumb')` once `hasGeneratedConversion('thumb')` is true, `getUrl()` (the original) before, and keeps only the path. On the development database, for Plank:
+
+```sh
+docker compose exec -T backend php artisan tinker --execute '
+auth()->guard("web")->setUser(App\Models\User::first());
+$r = app()->handle(Illuminate\Http\Request::create("/api/exercises/545", "GET", [], [], [], ["HTTP_ACCEPT" => "application/json"]));
+echo json_encode(json_decode($r->getContent(), true)["data"]["photos"], JSON_UNESCAPED_SLASHES), PHP_EOL;'
+```
+
+```
+[{"id":1077,"url":"/storage/1077/conversions/0-large.webp","thumb_url":"/storage/1077/conversions/0-thumb.webp"},{"id":1078,…}]
+```
+
+### H2.17.4 The copies of the photos already there
+
+```sh
+make exercises-thumbnails
+```
+
+```
+docker compose exec -e QUEUE_CONVERSIONS_BY_DEFAULT=false backend php artisan media-library:regenerate --only-missing
+ 1746/1746 [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
+
+All done!
+```
+
+5 minutes 15 seconds on the Mac. `-e QUEUE_CONVERSIONS_BY_DEFAULT=false` (the Makefile's `ARTISAN_NOW`) makes the copies inside the command: queued, they would be 3,492 jobs for `queue:listen`, which starts Laravel again for each. The result, measured in the container:
+
+```sh
+docker compose exec -T backend sh -c 'find storage/app/public -name "*-thumb.webp" -exec du -cb {} + | tail -1'
+```
+
+| Files | Total |
+|---|---|
+| The 1,746 originals (JPEG) | 98.7 MB |
+| Their `large` copies (WebP) | 66.3 MB |
+| Their `thumb` copies (WebP) | 20.7 MB, about 12 KB each |
+
+### H2.17.5 The tests
+
+```sh
+docker compose exec backend php artisan test --filter=ExercisePhotosTest
+```
+
+```
+  ✓ adding → it adds a photo, answering with the original, then sends i…
+  ✓ adding → it makes the thumbnail at most 400 px, keeping the proport…
+  ✓ adding → it sends the photos with the exercise, first one first
+  ✓ adding → it refuses what is not a photo it can read with dataset "a HEIC photo"
+  ✓ adding → it refuses what is not a photo it can read with dataset "a PDF"
+  ✓ adding → it refuses what is not a photo it can read with dataset "a photo over 10 MB"
+  ✓ adding → it refuses a sixth photo, with a message
+  ✓ ordering and removing → it puts the photos in a new order, the cove…
+  ✓ ordering and removing → it refuses an order that leaves a photo out…
+  ✓ ordering and removing → it removes a photo with its files
+  ✓ ordering and removing → it answers 404 for a photo of another exerc…
+  ✓ who may → it refuses someone else's exercise and a public one with ('public')
+  ✓ who may → it refuses someone else's exercise and a public one with ('someone else's')
+  ✓ who may → it answers 401 to a visitor
+  ✓ Duplicate as mine → it copies a public exercise as mine, in my lang…
+  ✓ Duplicate as mine → it falls back to English when my language is mi…
+  ✓ Duplicate as mine → it refuses my own exercise
+  Tests:    17 passed
+```
+
+- **`Storage::fake('public')`** puts the disk in a temporary folder; **`UploadedFile::fake()->image('IMG_4032.JPG', 1200, 900)`** makes a real JPEG of that size; `getimagesize()` then reads the thumbnail's: `[400, 300]`.
+- **A file is sent with `post()`, not `postJson()`**, which cannot carry one; the `Accept: application/json` header asks for JSON errors.
+- **The queue runs at once in the tests** (`QUEUE_CONNECTION=sync`), so the copies exist when the request ends.
+
+**Errors met:**
+
+| Message | Cause | Fix |
+|---|---|---|
+| `Failed asserting that two strings are identical.` `'/storage/1/conversions/photo-large.webp'` for `'/storage/1/photo.jpg'` | The upload's answer is built from the Media object `addMedia()` returned; the job filled `generated_conversions` on another copy of the row. In real use the job has not even run yet | The test expects the original in the answer, and the copies when the exercise is read again: the behaviour C2.5.9 describes |
+| A public exercise's reorder answered 422, not 403 | `'ids' => ['required', …]` refused the empty list before the controller asked the policy | `present` instead of `required`: `[]` is a valid order for an exercise with no photos, and the request reaches the policy |
+| `ExerciseApiTest`: `'/storage/1/conversions/0-large.webp' matches PCRE pattern "#^/storage/\d+/0\.jpg$#"` failed | That test still expected the original | The pattern now expects the `large` copy, and `thumb_url` too |
+
+**The panel's field**, in `ExerciseAdminTest`: `fillForm(['photos' => [UploadedFile::fake()->image('plank.jpg', 800, 600)]])` then `call('save')`, and the photo has its `thumb`.
+
+### H2.17.6 Check it
+
+1. `make exercises-thumbnails` if the library was imported before this branch.
+2. The app: the library's covers are now WebP files of a few KB (the browser's developer tools, Network tab, filter `thumb`).
+3. One of your exercises → Edit → **Add photos**: the bar, then the photo as the cover; a moment later its address ends in `-thumb.webp` (the `queue` container made it: `make logs s=queue`).
+4. A public exercise → **Duplicate as mine**: the editor of the copy, its photos with it.
+5. The admin panel → an exercise → **Photos**: upload, drag, remove.
 
 ---
 

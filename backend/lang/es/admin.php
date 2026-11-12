@@ -68,8 +68,8 @@ return [
         'source_details' => 'Origen',
         'external_id' => 'Importado como :id',
         'created_in_panel' => 'Creado en el panel de administración.',
-        'photos' => '{0} Sin fotos.|{1} 1 foto.|[2,*] :count fotos.',
-        'photos_help' => 'Las fotos y los vídeos se gestionarán en una próxima versión de esta pantalla.',
+        'photos' => 'Fotos',
+        'photos_help' => 'Hasta 5, JPEG, PNG o WebP, 10 MB cada una. Arrástralas para cambiar el orden: la primera es la portada.',
     ],
 
     'users' => [

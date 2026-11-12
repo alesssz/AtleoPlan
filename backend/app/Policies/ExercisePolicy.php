@@ -13,7 +13,8 @@ use App\Models\User;
  *   API: admins edit public ones in the admin panel, whose screen has rules
  *   of its own (app/Filament/Resources/Exercises/ExerciseResource.php,
  *   docs/concepts/C2-backend.md C2.8.2);
- * - a personal exercise is seen, changed and deleted only by its owner.
+ * - a personal exercise is seen, changed and deleted only by its owner;
+ * - a public exercise can be duplicated as one's own (D1.4.4).
  *
  * A policy is a class of yes/no answers about one model, one method per
  * action (docs/concepts/C2-backend.md C2.5.1). Laravel finds it by its name:
@@ -68,6 +69,19 @@ class ExercisePolicy
     public function update(User $user, Exercise $exercise): bool
     {
         return $exercise->isOwnedBy($user);
+    }
+
+    /**
+     * Duplicate as mine: copying a public exercise as my own, to change it
+     * (docs/design/D1-ui.md D1.4.4). Only a public one: my own I can edit
+     * already, and someone else's I cannot see.
+     *
+     * @param  User  $user  the signed-in user
+     * @param  Exercise  $exercise  the exercise to copy
+     */
+    public function duplicate(User $user, Exercise $exercise): bool
+    {
+        return $exercise->isPublic();
     }
 
     /**

@@ -129,7 +129,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   // The seconds of rest left, for the bar
   const left = restLeft(session, now)
 
-  // The exercise on screen
+  // The exercise on screen: its position, the exercise, how many there are,
+  // and its first photo (drawn from the small copy, thumb_url)
   const index = session.current
   const item = session.exercises[index]
   const total = session.exercises.length
@@ -322,7 +323,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   notes, the user's own note, and its menu (⋯) on the right */}
               <div className="mb-6 flex gap-4">
                 {cover
-                  ? <img src={cover.url} alt="" className="size-20 shrink-0 rounded-2xl bg-muted object-cover" />
+                  ? <img src={cover.thumb_url} alt="" className="size-20 shrink-0 rounded-2xl bg-muted object-cover" />
                   : <div aria-hidden="true" className="grid size-20 shrink-0 place-items-center rounded-2xl bg-muted"><Dumbbell className="size-7 text-muted-foreground" /></div>}
                 <div className="min-w-0 flex-1">
                   <h2 id="exercise-name" className="font-heading text-xl font-extrabold">{item.exercise.name}</h2>

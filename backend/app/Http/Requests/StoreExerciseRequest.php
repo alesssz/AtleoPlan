@@ -30,8 +30,8 @@ use Illuminate\Validation\Rule;
  *       "muscles": [{"id": 6, "role": "primary"}, {"id": 17, "role": "secondary"}]
  *     }
  *
- * Only `name` is required. Photos and videos are not here: they have their
- * own upload endpoint (BE-1, feat/exercise-media).
+ * Only `name` is required. Photos are not here: they have endpoints of
+ * their own (ExercisePhotoController, docs/concepts/C2-backend.md C2.5.9).
  *
  * The generated authorize() method, which returned false, was removed:
  * permissions are ExercisePolicy's job (docs/how-to/H2-backend.md H2.3.6).

@@ -19,7 +19,8 @@ interface ExerciseListItemProps {
 /** A row of the library, linking to the exercise. */
 export function ExerciseListItem({ exercise }: ExerciseListItemProps) {
   const { t } = useTranslation()
-  // The first photo is the cover; undefined when there is none
+  // The first photo is the cover; undefined when there is none. The row
+  // draws its 400 px copy, thumb_url, not the full photo (C1.14.5)
   const cover = exercise.photos[0]
   // The first primary muscle, the one the row names; the API sends them first
   const mainMuscle = exercise.muscles.find(muscle => muscle.role === 'primary')
@@ -36,7 +37,7 @@ export function ExerciseListItem({ exercise }: ExerciseListItemProps) {
           loading="lazy": the browser loads it only when the row comes near
           the screen, so a long list does not download every photo at once */}
       {cover
-        ? <img src={cover.url} alt="" loading="lazy" className="size-14 shrink-0 rounded-xl bg-muted object-cover" />
+        ? <img src={cover.thumb_url} alt="" loading="lazy" className="size-14 shrink-0 rounded-xl bg-muted object-cover" />
         : (
             // No photo: a muted tile with a dumbbell, the same size
             <div aria-hidden="true" className="grid size-14 shrink-0 place-items-center rounded-xl bg-muted">

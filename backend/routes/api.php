@@ -22,6 +22,7 @@
 use App\Http\Controllers\CurrentUserController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\ExercisePhotoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MuscleController;
 use App\Http\Controllers\PlanController;
@@ -60,6 +61,17 @@ Route::middleware('auth:sanctum')->group(function () {
     // PUT|PATCH /exercises/{exercise} (update), DELETE /exercises/{exercise}
     // (destroy). Their names are exercises.index, exercises.store…
     Route::apiResource('exercises', ExerciseController::class);
+
+    // A public exercise copied as the user's own, photos included (D1.4.4);
+    // 201 with the copy (docs/concepts/C2-backend.md C2.5.9)
+    Route::post('/exercises/{exercise}/duplicate', [ExerciseController::class, 'duplicate']);
+
+    // The photos of a personal exercise: add one, order them, remove one
+    // (docs/concepts/C2-backend.md C2.5.9). whereNumber(): the {photo} part
+    // must be digits, or the route does not match at all
+    Route::post('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'store']);
+    Route::put('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'reorder']);
+    Route::delete('/exercises/{exercise}/photos/{photo}', [ExercisePhotoController::class, 'destroy'])->whereNumber('photo');
 
     // The workout plans (docs/concepts/C2-backend.md C2.5.5): the five
     // routes of a resource, as for the exercises…

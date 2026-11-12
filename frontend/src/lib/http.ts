@@ -201,3 +201,78 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
   return data as T
 }
+
+/**
+ * Sends a file to the API with a multipart form, telling how much has been
+ * sent as it goes, and returns the JSON answer typed as T. For the photos of
+ * an exercise (docs/concepts/C1-frontend.md C1.14.7): a 10 MB photo on a
+ * phone's connection takes seconds, and a bar that moves says it is working.
+ *
+ * Why not request(): fetch() can tell how much of an *answer* has arrived,
+ * not how much of the *request* has left. The browser's older
+ * XMLHttpRequest can: its `upload.onprogress` fires as the bytes go. The
+ * rest is what send() and request() do, by hand: the same headers but
+ * Content-Type, which the browser writes itself for FormData (with the
+ * boundary between the form's parts), the CSRF token, one retry after a 419,
+ * and ApiError for any failure.
+ *
+ * new Promise((resolve, reject) => …) turns XMLHttpRequest's callbacks into
+ * a promise: resolve() with the answer when it arrives, reject() on failure.
+ *
+ * @param path the API path, e.g. '/api/exercises/12/photos'
+ * @param form the form's fields, e.g. one `photo` holding a File
+ * @param onProgress called with the share sent, from 0 to 1; optional
+ * @returns a Promise of the decoded JSON answer
+ * @example await upload<{ data: ExercisePhoto }>('/api/exercises/12/photos', form, share => setShare(share))
+ */
+export async function upload<T>(path: string, form: FormData, onProgress?: (share: number) => void): Promise<T> {
+  // Sanctum's cookie first, as for any request that changes data
+  if (!readCookie('XSRF-TOKEN')) await ensureCsrfCookie()
+
+  /**
+   * One attempt: the request, and its status and decoded body.
+   * @returns the HTTP status and the JSON body, null when there is none
+   */
+  const attempt = () => new Promise<{ status: number, data: unknown }>((resolve, reject) => {
+    // The request, opened but not sent: method and address first
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', path)
+    xhr.setRequestHeader('Accept', 'application/json')
+    xhr.setRequestHeader('Accept-Language', i18n.resolvedLanguage ?? FALLBACK_LANGUAGE)
+    xhr.setRequestHeader('X-XSRF-TOKEN', readCookie('XSRF-TOKEN') ?? '')
+    // The share sent so far; lengthComputable is false when the browser
+    // cannot know the total
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(event.loaded / event.total)
+    }
+    // The answer arrived, whatever its status: the body read as JSON, or
+    // null when it is not JSON
+    xhr.onload = () => {
+      let data: unknown
+      try {
+        data = xhr.responseText ? JSON.parse(xhr.responseText) : null
+      }
+      catch {
+        data = null
+      }
+      resolve({ status: xhr.status, data })
+    }
+    // No answer at all: no connection, or the server unreachable
+    xhr.onerror = () => reject(new ApiError(0, 'Network error'))
+    xhr.send(form)
+  })
+
+  // The answer, tried once more with a fresh token when it had expired (419)
+  let answer = await attempt()
+  if (answer.status === CSRF_EXPIRED_STATUS) {
+    await ensureCsrfCookie()
+    answer = await attempt()
+  }
+
+  // Not 2xx: the same ApiError as request() throws, with the field errors
+  if (answer.status < 200 || answer.status >= 300) {
+    const body = (answer.data ?? {}) as { message?: string, errors?: Record<string, string[]> }
+    throw new ApiError(answer.status, body.message ?? 'Upload failed', body.errors)
+  }
+  return answer.data as T
+}

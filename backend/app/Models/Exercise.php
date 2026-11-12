@@ -17,8 +17,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Translatable\HasTranslations;
 
 /**
@@ -372,17 +374,55 @@ class Exercise extends Model implements HasMedia
     /**
      * The media collections: named groups of files, each with the file types
      * it accepts (docs/design/D2-decisions.md D2.5). medialibrary calls this
-     * method itself. The limits on number and size, and the conversion to
-     * WebP and 720p, come with the upload endpoint (BE-1).
+     * method itself. The limits on number and size are checked by the upload
+     * endpoint (StoreExercisePhotoRequest); the videos' conversion comes in
+     * phase 2.
      */
     public function registerMediaCollections(): void
     {
-        // The photos, in the order chosen in the editor; the first is the cover
+        // The photos, in the order chosen in the editor; the first is the
+        // cover. No HEIC: GD, the image library of our Docker image, cannot
+        // read it, and an iPhone's browser sends a JPEG anyway (D2.5)
         $this->addMediaCollection('photos')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
 
         // The videos: mp4, mov (as iPhones record them) and webm
         $this->addMediaCollection('videos')
             ->acceptsMimeTypes(['video/mp4', 'video/quicktime', 'video/webm']);
+    }
+
+    /**
+     * The conversions: smaller copies medialibrary makes of each photo
+     * (docs/design/D2-decisions.md D2.5, docs/concepts/C2-backend.md C2.5.9).
+     * medialibrary calls this method itself, for every file added.
+     *
+     * - `thumb`: at most 400 × 400 px, for the lists' 56 px squares and
+     *   workout mode's 80 px one, sharp on a phone's dense screen;
+     * - `large`: at most 1600 × 1600 px, for the exercise's page.
+     *
+     * Both WebP, about a third of a JPEG of the same quality. Fit::Max keeps
+     * the photo's proportions and never enlarges it: a 850 px photo of
+     * free-exercise-db gets a `large` of 850 px. The original stays on the
+     * disk, so the conversions can be made again if their sizes change
+     * (`php artisan media-library:regenerate`).
+     *
+     * The conversions are **queued**: a job of the `queue` container makes
+     * them a moment after the upload (config media-library
+     * `queue_conversions_by_default`). Until then ExerciseResource sends the
+     * original in their place.
+     *
+     * @param  Media|null  $media  the file being added; medialibrary may pass null
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->fit(Fit::Max, 400, 400)
+            ->format('webp')
+            ->performOnCollections('photos');
+
+        $this->addMediaConversion('large')
+            ->fit(Fit::Max, 1600, 1600)
+            ->format('webp')
+            ->performOnCollections('photos');
     }
 }

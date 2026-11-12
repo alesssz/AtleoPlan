@@ -68,8 +68,8 @@ return [
         'source_details' => 'Origine',
         'external_id' => 'Importato come :id',
         'created_in_panel' => 'Creato nel pannello admin.',
-        'photos' => '{0} Nessuna foto.|{1} 1 foto.|[2,*] :count foto.',
-        'photos_help' => 'Foto e video si gestiranno in una prossima versione di questa schermata.',
+        'photos' => 'Foto',
+        'photos_help' => 'Fino a 5, JPEG, PNG o WebP, 10 MB ciascuna. Trascinale per cambiare l\'ordine: la prima è la copertina.',
     ],
 
     'users' => [

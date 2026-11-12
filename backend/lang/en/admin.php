@@ -76,8 +76,8 @@ return [
         'source_details' => 'Source',
         'external_id' => 'Imported as :id',
         'created_in_panel' => 'Created in the admin panel.',
-        'photos' => '{0} No photos.|{1} 1 photo.|[2,*] :count photos.',
-        'photos_help' => 'Photos and videos are managed in a later version of this screen.',
+        'photos' => 'Photos',
+        'photos_help' => 'Up to 5, JPEG, PNG or WebP, 10 MB each. Drag to change the order: the first is the cover.',
     ],
 
     'users' => [

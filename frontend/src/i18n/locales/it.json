@@ -353,7 +353,9 @@
       "deleteText": "Sparisce dalla tua libreria. Le schede e gli allenamenti che lo usano lo conservano.",
       "deleteError": "Impossibile eliminare l'esercizio. Riprova.",
       "cancel": "Annulla",
-      "notFound": "Questo esercizio non esiste, oppure non è tuo."
+      "notFound": "Questo esercizio non esiste, oppure non è tuo.",
+      "duplicate": "Duplica come mio",
+      "duplicateError": "Non è stato possibile fare la copia. Riprova."
     },
     "editor": {
       "newTitle": "Nuovo esercizio",
@@ -379,7 +381,31 @@
         "required": "Scrivi un nome.",
         "tooLong": "Al massimo {{max}} caratteri.",
         "youtube": "Incolla un link di YouTube (youtube.com o youtu.be)."
-      }
+      },
+      "photosLater": "Potrai aggiungere le foto dopo aver creato l'esercizio, da Modifica."
+    },
+    "photos": {
+      "title": "Foto",
+      "hint": "Fino a {{max}}: JPEG, PNG o WebP, 10 MB ciascuna. La prima è la copertina. Ogni modifica si salva subito.",
+      "cover": "Copertina",
+      "number": "Foto {{number}}",
+      "earlier": "Sposta la foto {{number}} prima",
+      "later": "Sposta la foto {{number}} dopo",
+      "remove": "Elimina la foto {{number}}",
+      "removeTitle": "Eliminare la foto {{number}}?",
+      "removeText": "Viene cancellata per sempre.",
+      "removeConfirm": "Elimina",
+      "add": "Aggiungi foto",
+      "drop": "oppure trascinale qui",
+      "uploading": "Caricamento di {{name}}",
+      "retry": "Riprova {{name}}",
+      "dismiss": "Lascia perdere {{name}}",
+      "wrongType": "«{{name}}» non è una foto JPEG, PNG o WebP.",
+      "tooBig": "«{{name}}» supera i 10 MB.",
+      "tooMany": "Un esercizio può avere al massimo {{max}} foto.",
+      "failed": "Il caricamento non è riuscito. Riprova.",
+      "offline": "Nessuna connessione: riprova quando sei di nuovo online.",
+      "changeFailed": "Non è stato possibile modificare le foto. Riprova."
     }
   },
   "progress": {

@@ -25,7 +25,8 @@ interface PlanItemRowProps {
 /** A row of a plan's day. */
 export function PlanItemRow({ item, weightUnit, defaultRestSeconds }: PlanItemRowProps) {
   const { t, i18n } = useTranslation()
-  // The cover: the exercise's first photo, if any
+  // The cover: the exercise's first photo, if any, drawn from its 400 px
+  // copy (thumb_url), light enough for a list
   const cover = item.exercise.photos[0]
   // How many warm-up sets; 0 shows nothing
   const warmUps = warmUpCount(item.sets)
@@ -34,7 +35,7 @@ export function PlanItemRow({ item, weightUnit, defaultRestSeconds }: PlanItemRo
     <div className="flex gap-4 py-3">
       {/* The cover, 48 px; alt="" since the name next to it says the same */}
       {cover
-        ? <img src={cover.url} alt="" loading="lazy" className="size-12 shrink-0 rounded-xl bg-muted object-cover" />
+        ? <img src={cover.thumb_url} alt="" loading="lazy" className="size-12 shrink-0 rounded-xl bg-muted object-cover" />
         : (
             <div aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-xl bg-muted">
               <Dumbbell className="size-5 text-muted-foreground" />

@@ -353,7 +353,9 @@
       "deleteText": "Desaparece de tu biblioteca. Los planes y entrenamientos que lo usan lo conservan.",
       "deleteError": "No se pudo eliminar el ejercicio. Inténtalo de nuevo.",
       "cancel": "Cancelar",
-      "notFound": "Este ejercicio no existe, o no es tuyo."
+      "notFound": "Este ejercicio no existe, o no es tuyo.",
+      "duplicate": "Duplicar como mío",
+      "duplicateError": "No se ha podido hacer la copia. Inténtalo de nuevo."
     },
     "editor": {
       "newTitle": "Nuevo ejercicio",
@@ -379,7 +381,31 @@
         "required": "Escribe un nombre.",
         "tooLong": "Como máximo {{max}} caracteres.",
         "youtube": "Pega un enlace de YouTube (youtube.com o youtu.be)."
-      }
+      },
+      "photosLater": "Podrás añadir fotos cuando el ejercicio esté creado, desde Editar."
+    },
+    "photos": {
+      "title": "Fotos",
+      "hint": "Hasta {{max}}: JPEG, PNG o WebP, 10 MB cada una. La primera es la portada. Cada cambio se guarda al momento.",
+      "cover": "Portada",
+      "number": "Foto {{number}}",
+      "earlier": "Mover la foto {{number}} antes",
+      "later": "Mover la foto {{number}} después",
+      "remove": "Eliminar la foto {{number}}",
+      "removeTitle": "¿Eliminar la foto {{number}}?",
+      "removeText": "Se borra para siempre.",
+      "removeConfirm": "Eliminar",
+      "add": "Añadir fotos",
+      "drop": "o suéltalas aquí",
+      "uploading": "Subiendo {{name}}",
+      "retry": "Reintentar {{name}}",
+      "dismiss": "Descartar {{name}}",
+      "wrongType": "«{{name}}» no es una foto JPEG, PNG o WebP.",
+      "tooBig": "«{{name}}» supera los 10 MB.",
+      "tooMany": "Un ejercicio puede tener como máximo {{max}} fotos.",
+      "failed": "No se ha podido subir. Inténtalo de nuevo.",
+      "offline": "Sin conexión: inténtalo de nuevo cuando vuelvas a estar en línea.",
+      "changeFailed": "No se han podido cambiar las fotos. Inténtalo de nuevo."
     }
   },
   "progress": {

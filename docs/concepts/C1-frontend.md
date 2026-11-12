@@ -36,6 +36,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.14.4 The editor's form](#c1144-the-editors-form)
   - [C1.14.5 Photos](#c1145-photos)
   - [C1.14.6 Testing it](#c1146-testing-it)
+  - [C1.14.7 Uploading photos, and Duplicate as mine](#c1147-uploading-photos-and-duplicate-as-mine)
 - [C1.15 The plan screens](#c115-the-plan-screens)
   - [C1.15.1 The pages and their pieces](#c1151-the-pages-and-their-pieces)
   - [C1.15.2 One line per exercise](#c1152-one-line-per-exercise)
@@ -790,7 +791,7 @@ The first feature screens of the app (UI-1, [D1.4.3](../design/D1-ui.md#d143-exe
 | `/exercises/:id` | `ExerciseDetailPage` | `ExercisePhotos`, the facts as a description list, `AlertDialog` to confirm a delete; `useExercise()`, `useDeleteExercise()` |
 | `/exercises/new`, `/exercises/:id/edit` | `ExerciseEditorPage` | `ExerciseForm`, with the rules and conversions of `exercise-form.ts`; `useCreateExercise()`, `useUpdateExercise()` |
 
-**What is not here yet,** with the feature that brings it: "Add to plan" ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)), the "My history" tab ([FEAT-7](../project/backlog.md#feat-7-an-exercises-own-history)), photo uploads, videos and "Duplicate as mine" (BE-1, `feat/exercise-media`), the buttons disabled offline (FEAT-3).
+**What is not here yet,** with the feature that brings it: "Add to plan" ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)), the "My history" tab ([FEAT-7](../project/backlog.md#feat-7-an-exercises-own-history)), videos (phase 2), the buttons disabled offline (FEAT-3). Photo uploads and "Duplicate as mine" came with `feat/exercise-media` ([C1.14.7](#c1147-uploading-photos-and-duplicate-as-mine)).
 
 ### C1.14.2 A list one page at a time
 
@@ -850,10 +851,11 @@ The form's fields are shaped for the screen, not for the API:
 
 ### C1.14.5 Photos
 
-The API sends each photo as a path on the app's own address, `/storage/12/0.jpg`. In development Vite forwards `/storage` to Laravel (`vite.config.ts`), in production Caddy; Laravel's `public/storage` is a link to `storage/app/public`, created by `make setup` (`storage:link`). Why a path and not a full URL: [C2.5.4](C2-backend.md#c254-the-exercise-librarys-endpoints).
+The API sends each photo as two paths on the app's own address: `url`, a copy of at most 1600 px for the exercise's page, and `thumb_url`, one of at most 400 px, for every small square (the library, the plans, the editor's picker, workout mode, history) ([C2.5.9](C2-backend.md#c259-the-photos-of-an-exercise)). In development Vite forwards `/storage` to Laravel (`vite.config.ts`), in production Caddy; Laravel's `public/storage` is a link to `storage/app/public`, created by `make setup` (`storage:link`). Why a path and not a full URL: [C2.5.4](C2-backend.md#c254-the-exercise-librarys-endpoints).
 
 - **In the list,** the first photo is the row's cover: `alt=""`, since the name next to it says the same, and `loading="lazy"`, so the browser downloads it only when the row comes near the screen.
 - **On the page,** both photos side by side, each with an `alt` such as "Barbell Bench Press, photo 1".
+- **The small copy where the photo is small:** a 56 px square drawn from a 1200 px JPEG downloads twenty times what it shows. The imported photos' small copies are about 12 KB, against 56 KB.
 
 ### C1.14.6 Testing it
 
@@ -863,6 +865,29 @@ The library's tests use the helpers of [C1.13.6](#c1136-testing-a-screen-with-th
 - **`sentBody(fake, path)`** gives the first call to `path` **that sent a body**: the editor first reads an exercise (GET), then saves it (PATCH).
 - **`ResizeObserver`** does not exist in jsdom, and Radix's Checkbox needs it: `src/test/setup.ts` gives the tests one that does nothing.
 - **`src/test/exercise-helpers.ts`** builds exercises and pages shaped as the API sends them.
+
+### C1.14.7 Uploading photos, and Duplicate as mine
+
+**The photos of my exercise** (`components/exercises/ExercisePhotoManager.tsx`), under the form of the edit page ([D1.4.5](../design/D1-ui.md#d145-exercise-editor)). Each change is a request of its own, sent at once, apart from the form's Save: a photo is a file on the server, not a field. After each answer the exercise is read again (`invalidateQueries`), and the list shows what the server has. A new exercise has no id until Create, so its photos are added from Edit afterwards; the create page says so.
+
+| Row | What it holds |
+|---|---|
+| A photo saved | Its small copy, **Cover** on the first or "Photo n", **Move earlier**, **Move later**, **Remove** (after a question) |
+| An upload under way | A preview of the file (`URL.createObjectURL`), its name, a bar (`<progress>`) |
+| An upload that failed | The reason, the server's own when it gave one (a 422), **Retry**, **Dismiss** |
+| The drop zone | **Add photos**, or files dropped on it; gone at 5 photos |
+
+- **The limits are checked before sending** (type, 10 MB, room left) so a wrong file gets its message at once; the server checks them again. The input's `accept` lists JPEG, PNG and WebP, which also makes an iPhone send a JPEG rather than a HEIC.
+- **Files go one after the other,** in order, not all at once on a phone's connection.
+- **The drop zone is a `<label>`** for a hidden `<input type="file">`: a click opens the file picker, a drop calls the same function with `event.dataTransfer.files`. `preventDefault()` in `onDragOver` and `onDrop` stops the browser from opening the dropped photo in place of the app.
+- **Icon-only buttons** have an `aria-label`, and the same text as `title`, the tooltip ([P1.2](../project/P1-conventions.md#p12-code)).
+- **Previews hold the file in memory** until `URL.revokeObjectURL()`: done when an upload ends or is dismissed, and for those left when the page is left.
+
+**A progress bar needs XMLHttpRequest.** `fetch()` can report how much of an *answer* has arrived, not how much of a *request* has left. `upload()` in `src/lib/http.ts` uses the browser's older `XMLHttpRequest`, whose `upload.onprogress` fires as the bytes go, and does by hand what `request()` does: the `Accept`, `Accept-Language` and `X-XSRF-TOKEN` headers (not `Content-Type`: for `FormData` the browser writes it, with the boundary between the parts), one retry after a 419, and an `ApiError` for any failure. `useUploadExercisePhoto()` builds the `FormData` with one field, `photo`.
+
+**Duplicate as mine** on a public exercise's page: `useDuplicateExercise()` asks for the copy, then the page opens `/exercises/<copy>/edit`, where it can be changed at once.
+
+**Testing them** (`src/pages/ExercisePhotos.test.tsx`): `fakeUploads()` (`src/test/exercise-helpers.ts`) replaces `XMLHttpRequest` as `fakeApi()` replaces `fetch`, reporting progress then answering; a fake server that remembers the photos makes the exercise read again show them. `userEvent.upload(input, file)` picks a file; `userEvent.setup({ applyAccept: false })` lets a test pick a HEIC that the input's `accept` would hide, to check the message.
 
 
 ## C1.15 The plan screens

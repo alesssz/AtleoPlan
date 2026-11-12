@@ -80,10 +80,13 @@ it('sends the photos as paths on the app\'s own address, in their order', functi
         ->assertOk()
         ->json('data.photos');
 
-    // "/storage/<media id>/0.jpg": a path, without APP_URL's scheme and host
+    // "/storage/<media id>/conversions/0-large.webp": a path, without
+    // APP_URL's scheme and host, to the conversions the queue made (at once
+    // in the tests: QUEUE_CONNECTION=sync); before the job, the original's
     expect($photos)->toHaveCount(2)
-        ->and($photos[0]['url'])->toMatch('#^/storage/\d+/0\.jpg$#')
-        ->and($photos[1]['url'])->toMatch('#^/storage/\d+/1\.jpg$#');
+        ->and($photos[0]['url'])->toMatch('#^/storage/\d+/conversions/0-large\.webp$#')
+        ->and($photos[0]['thumb_url'])->toMatch('#^/storage/\d+/conversions/0-thumb\.webp$#')
+        ->and($photos[1]['url'])->toMatch('#^/storage/\d+/conversions/1-large\.webp$#');
 });
 
 it('shows my own exercise', function () {
