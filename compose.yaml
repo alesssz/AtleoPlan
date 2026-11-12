@@ -38,6 +38,10 @@ x-backend: &backend
     APP_NAME: AtleoPlan
     # Where the React app is, for the links in emails (Vite, docs/start/S1-setup.md S1.4).
     FRONTEND_URL: http://localhost:5673
+    # Where the admin panel is, for the React app's link and the way back
+    # from Google: Laravel's own port, since Vite does not forward /admin
+    # (docs/concepts/C2-backend.md C2.8.4).
+    ADMIN_URL: http://localhost:${APP_PORT:-8500}/admin
     DB_CONNECTION: pgsql
     DB_HOST: postgres
     DB_PORT: 5432

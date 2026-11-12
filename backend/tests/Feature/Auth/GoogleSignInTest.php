@@ -70,7 +70,7 @@ describe('the way to Google', function () {
 
         $this->get('/auth/google/redirect?from=/plans&locale=it')
             ->assertRedirect('https://socialite.fake/google/authorize')
-            ->assertSessionHas('google_sign_in', ['from' => '/plans', 'locale' => 'it']);
+            ->assertSessionHas('google_sign_in', ['from' => '/plans', 'locale' => 'it', 'admin' => false]);
     });
 
     it('keeps only a path of this app, and only one of our languages', function (string $from) {
@@ -78,7 +78,7 @@ describe('the way to Google', function () {
 
         $this->get('/auth/google/redirect?from='.urlencode($from).'&locale=fr')
             ->assertRedirect('https://socialite.fake/google/authorize')
-            ->assertSessionHas('google_sign_in', ['from' => null, 'locale' => null]);
+            ->assertSessionHas('google_sign_in', ['from' => null, 'locale' => null, 'admin' => false]);
     })->with([
         // `with` runs the test once for each value: each one would lead
         // the browser to another site after signing in
@@ -231,6 +231,70 @@ describe('back from Google', function () {
     });
 });
 
+// The admin panel's login page has its own "Continue with Google", for an
+// admin with no password (docs/concepts/C2-backend.md C2.8.4): the same two
+// stops, with to=admin
+describe('from the admin panel', function () {
+    it('remembers that the visit started on the panel, from the exact word only', function (string $to, bool $admin) {
+        Socialite::fake('google');
+
+        $this->get('/auth/google/redirect?to='.urlencode($to))
+            ->assertSessionHas('google_sign_in.admin', $admin);
+    })->with([
+        'admin' => ['admin', true],
+        // An address is never followed: only the word is read
+        'an address' => ['https://evil.example/admin', false],
+        'another word' => ['plans', false],
+    ]);
+
+    it('takes an admin back to the panel', function () {
+        User::factory()->admin()->create(['email' => 'ann@example.com']);
+        Socialite::fake('google', googlePerson());
+
+        $this->withSession(['google_sign_in' => ['admin' => true]])
+            ->get('/auth/google/callback')
+            ->assertRedirect(config('app.admin_url'));
+
+        $this->assertAuthenticated();
+    });
+
+    it('takes someone who is not an admin into the app, signed in', function () {
+        User::factory()->create(['email' => 'ann@example.com']);
+        Socialite::fake('google', googlePerson());
+
+        $this->withSession(['google_sign_in' => ['admin' => true]])
+            ->get('/auth/google/callback')
+            ->assertRedirect(frontend('/'));
+
+        $this->assertAuthenticated();
+    });
+
+    it('brings an error back to the panel\'s login page', function () {
+        User::factory()->admin()->disabled()->create(['email' => 'ann@example.com']);
+        Socialite::fake('google', googlePerson());
+
+        $this->withSession(['google_sign_in' => ['admin' => true]])
+            ->get('/auth/google/callback')
+            ->assertRedirect(config('app.admin_url').'/login?google_error=disabled');
+
+        $this->assertGuest();
+    });
+
+    it('shows the button, and the error, on the panel\'s login page', function () {
+        $this->get('/admin/login?google_error=cancelled')
+            ->assertOk()
+            ->assertSee('Continue with Google')
+            ->assertSee('/auth/google/redirect?to=admin&amp;locale=en', escape: false)
+            ->assertSee('Signing in with Google was cancelled.', escape: false);
+    });
+
+    it('hides the button when Google is not set up on this computer', function () {
+        config(['services.google.client_id' => null]);
+
+        $this->get('/admin/login')->assertOk()->assertDontSee('Continue with Google');
+    });
+});
+
 describe('an account without a password', function () {
     it('cannot be signed into with an email and a password', function () {
         User::factory()->create(['email' => 'ann@example.com', 'password' => null]);
@@ -245,6 +309,7 @@ describe('an account without a password', function () {
     });
 
     it('goes with its user', function () {
+        // A Google account linked to a user the factory makes
         $account = SocialAccount::factory()->create();
 
         $account->user->delete();

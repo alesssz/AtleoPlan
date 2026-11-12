@@ -28,6 +28,13 @@ export interface User {
   email: string
   /** Whether the account opens the admin panel at /admin. */
   is_admin: boolean
+  /**
+   * The admin panel's address, for Profile's link; null for anyone who is not
+   * an admin. Sent by the backend, which knows where the panel is: Laravel's
+   * own port in development, the app's address in production
+   * (docs/concepts/C2-backend.md C2.8.4).
+   */
+  admin_url: string | null
   /** The interface's language, saved on the account. */
   locale: Language
   /** The theme, saved on the account. */

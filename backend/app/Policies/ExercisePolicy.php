@@ -10,7 +10,9 @@ use App\Models\User;
  * Who may do what with an exercise of the library
  * (docs/design/D2-decisions.md D2.3):
  * - a public exercise is seen by everyone and changed by nobody through the
- *   API: admins edit public ones in the admin panel (BE-1, feat/exercise-admin);
+ *   API: admins edit public ones in the admin panel, whose screen has rules
+ *   of its own (app/Filament/Resources/Exercises/ExerciseResource.php,
+ *   docs/concepts/C2-backend.md C2.8.2);
  * - a personal exercise is seen, changed and deleted only by its owner.
  *
  * A policy is a class of yes/no answers about one model, one method per

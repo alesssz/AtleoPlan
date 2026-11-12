@@ -31,7 +31,12 @@ Every PHP file starts with a comment saying what it is and points to the section
   - [C2.7.6 Fortify or by hand](#c276-fortify-or-by-hand)
   - [C2.7.7 Messages in the user's language](#c277-messages-in-the-users-language)
   - [C2.7.8 Signing in with Google](#c278-signing-in-with-google)
+  - [C2.7.9 A disabled account is signed out at once](#c279-a-disabled-account-is-signed-out-at-once)
 - [C2.8 Admin panel: Filament](#c28-admin-panel-filament)
+  - [C2.8.1 The panel's language](#c281-the-panels-language)
+  - [C2.8.2 The exercise library screen](#c282-the-exercise-library-screen)
+  - [C2.8.3 The users screen](#c283-the-users-screen)
+  - [C2.8.4 The way in: a link, and Google on the panel's login](#c284-the-way-in-a-link-and-google-on-the-panels-login)
 - [C2.9 Queues and jobs](#c29-queues-and-jobs)
 - [C2.10 Configuration and .env](#c210-configuration-and-env)
 - [C2.11 Tests with Pest](#c211-tests-with-pest)
@@ -117,15 +122,16 @@ backend/
 │   ├── Enums/                fixed lists of values: Locale, Theme, WeightUnit, LoggingType, MuscleRole, SetType (D3.2.4), ImportOutcome
 │   ├── Http/
 │   │   ├── Controllers/        receive a request, return an answer (C2.5)
-│   │   ├── Middleware/         steps every request crosses: SetLocaleFromRequest (C2.7.7)
+│   │   ├── Middleware/         steps every request crosses: SetLocaleFromRequest (C2.7.7), SignOutDisabledAccount (C2.7.9), SetPanelLocale (C2.8.1)
 │   │   ├── Requests/           Form Requests: the validation of an endpoint (C2.5)
 │   │   └── Resources/          API Resources: the JSON shape of a model (C2.5)
 │   ├── Models/               Eloquent models, one class per table: User, Muscle, Equipment, Exercise, ExerciseMuscle, Plan, PlanDay, PlanItem, PlanSet, WorkoutSession, SessionExercise, LoggedSet (C2.6)
 │   ├── Policies/             who may do what to a row: ExercisePolicy, PlanPolicy, WorkoutSessionPolicy (C2.5.1)
 │   ├── Rules/                validation rules of our own: SupersetsAreNeighbours (C2.5.6)
+│   ├── Filament/Resources/   the admin panel's screens: Exercises, Users (C2.8)
 │   └── Providers/            service providers: set things up when the app starts
 │       └── Filament/           the admin panel's configuration (C2.8)
-│   (to come: Jobs background work, Filament/Resources admin screens)
+│   (to come: Jobs background work)
 ├── bootstrap/
 │   ├── app.php               builds the application: routes, middleware, error handling (C2.4)
 │   └── providers.php         the list of service providers to load
@@ -231,7 +237,7 @@ The controller asks with `Gate::authorize('update', $exercise)`. A `false` stops
 |---|---|
 | `view` | The exercise is public, or mine |
 | `create` | Always: a new exercise is always personal |
-| `update`, `delete` | It is mine. A public one is refused, to admins too: they edit public exercises in the admin panel (BE-1, `feat/exercise-admin`) |
+| `update`, `delete` | It is mine. A public one is refused, to admins too: they edit public exercises in the admin panel, whose screen has rules of its own ([C2.8.2](#c282-the-exercise-library-screen)) |
 
 **A list does not ask row by row.** Calling the policy for each of 800 exercises would mean loading them all first. The list uses a **query scope** that holds the same rule as `view`, written as SQL: `Exercise::visibleTo($user)` ([C2.6](#c26-database-migrations-models-factories-seeders)). The two must agree, and the tests check both.
 
@@ -1040,6 +1046,8 @@ Browser                         Laravel (through Vite, /auth/…)         Google
 
 Cases 2 and 3 need `email_verified`. A disabled account is refused in all three, before anything is linked.
 
+**Started from the admin panel** (`?to=admin`), the same journey ends on the panel, or back on its login page with the error ([C2.8.4](#c284-the-way-in-a-link-and-google-on-the-panels-login)).
+
 **Errors go back to the React app as a code,** `/login?error=cancelled|failed|unverified|disabled` (`app/Enums/SocialSignInError.php`): a redirect cannot carry a JSON body. The action throws `SocialSignInRefused` with the reason, so its checks can stop it from anywhere without an `if` at every level; the controller catches it. Anything unexpected (Google unreachable, a wrong secret, a stale `state`) is `failed`, with the details in the log through `report()`.
 
 **An account without a password.** `users.password` is nullable: someone who signed up with Google has none. `Hash::check()` never matches an empty hash, so the password form refuses them like a wrong password; Forgot password sets one, and both ways then work.
@@ -1048,6 +1056,30 @@ Cases 2 and 3 need `email_verified`. A disabled account is refused in all three,
 
 **By hand, without Socialite,** the callback would: compare `state` with the session's; POST the `code`, the client id and secret and the redirect URI to `https://oauth2.googleapis.com/token`; read `access_token` from the answer; GET `https://www.googleapis.com/oauth2/v3/userinfo` with it. Socialite is those steps, plus the same for a dozen other providers, which is what makes Apple later a driver rather than a rewrite.
 
+### C2.7.9 A disabled account is signed out at once
+
+An admin disables an account in the panel ([C2.8.3](#c283-the-users-screen)), which fills `users.disabled_at`. Signing in was already refused to such an account, with a password (`FortifyServiceProvider`) and with Google (C2.7.8). What was missing: someone **already signed in** keeps a valid session cookie, and with "remember me" would stay in for weeks.
+
+**The middleware `SignOutDisabledAccount`** (`app/Http/Middleware/`) runs on every request of the `web` and `api` groups. When the session's user has `disabled_at` set, it signs them out, with the same three steps as signing out (C2.7.2), and lets the request go on as a visitor's:
+
+| The request | What happens next |
+|---|---|
+| A route behind `auth:sanctum` (almost all of `/api`) | 401. The React app reads a 401 as "the session has ended" and opens the sign-in page (`frontend/src/lib/query-client.ts`); signing in again says "This account has been disabled." Nothing changed in the frontend |
+| A public route (`/api/health`, the sign-in routes) | Answered as for any visitor |
+| The admin panel | Not concerned: `canAccessPanel()` already refuses a disabled admin at every request |
+
+**It must run before authentication.** Laravel sorts a route's middleware by a **priority list**, whatever order the groups add them in: the session first, then authentication (`auth:sanctum`, whose class implements the `AuthenticatesRequests` interface), then the others. A middleware not in the list stays after all those in it, so this one, merely appended to the groups, ran after `auth:sanctum` had let the user in, and the request was answered as theirs. `bootstrap/app.php` puts it in the list, right before authentication:
+
+```php
+$middleware->web(append: [SignOutDisabledAccount::class]);
+$middleware->api(append: [SignOutDisabledAccount::class]);
+$middleware->prependToPriorityList(AuthenticatesRequests::class, SignOutDisabledAccount::class);
+```
+
+The order a route really gets is shown by `$router->gatherRouteMiddleware($route)`, in tinker ([H2.16.5](../how-to/H2-backend.md#h2165-the-middleware-and-the-priority-list)).
+
+**Why a middleware and not deleting the sessions.** Sessions live in the `sessions` table, and their rows have a `user_id`: deleting the user's rows at Disable would sign them out too. But the middleware also covers a session that is not in that table (a test's, or another driver's), needs nothing to happen at Disable, and holds whatever sets the column, tinker or TablePlus included.
+
 ---
 
 ## C2.8 Admin panel: Filament
@@ -1055,10 +1087,119 @@ Cases 2 and 3 need `email_verified`. A disabled account is refused in all three,
 Filament builds the admin panel from PHP classes. You describe a table's columns and a form's fields in PHP, and Filament draws the pages, the search, the filters and the validation.
 
 - **The panel** is configured in `app/Providers/Filament/AdminPanelProvider.php`: path `/admin`, login page, colours, and where to look for resources. Open http://localhost:8500/admin. It is served directly by Laravel, not through the React app.
-- **A resource** is the admin screen for one model: its list, its form and its pages. `make artisan c="make:filament-resource Exercise --generate"` creates one from the table's columns. The public exercise library is the first (BE-1, [D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)).
+- **A resource** is the admin screen for one model: its list, its form and its pages, in `app/Filament/Resources/<Name>/`. `make artisan c="make:filament-resource Exercise"` creates one; `--generate` also writes fields and columns from the table's. Two exist: the public exercise library (BE-1, [C2.8.2](#c282-the-exercise-library-screen)) and the users (BE-2, [C2.8.3](#c283-the-users-screen)); how they were built: [H2.16](../how-to/H2-backend.md#h216-the-admin-panel-as-built).
 - **Only admins enter,** in every environment. The `User` model implements `FilamentUser`, and its `canAccessPanel()` checks `is_admin` and that the account is not disabled. Anyone else gets a 403 ([D3.3](../design/D3-data-model.md#d33-users-and-preferences)).
+- **Getting there:** http://localhost:8500/admin in development, or **Profile → Administration → Open** in the app, for an admin; an admin with no password signs in with Google ([C2.8.4](#c284-the-way-in-a-link-and-google-on-the-panels-login)).
 - **Getting an admin in development.** `make artisan c="db:seed"` creates `test@example.com`, password `password`, an admin. To make an existing account an admin: `make tinker`, then `User::where('email', 'you@example.com')->update(['is_admin' => true]);`. `make artisan c="make:filament-user"` creates a user, but not an admin, so it needs the same step.
 - **The session is shared with the React app:** both use the `web` guard, and cookies are per host, whatever the port. Signing in on one signs in on the other.
+
+### C2.8.1 The panel's language
+
+The panel speaks the admin's language, the one they chose in the app (`users.locale`); on its login page, before anyone is known, the browser's. Filament's own texts (Save, Search, the filters' menus) come translated with the package. Ours, the labels of fields, columns, filters and actions, are in **`lang/<language>/admin.php`**, one file per language with the same keys, read with `__('admin.exercises.name')`; `trans_choice()` picks a sentence by number ("1 photo", "3 photos").
+
+The middleware `SetPanelLocale` sets the language, listed in the panel's own middleware as **persistent**:
+
+```php
+->middleware([SetPanelLocale::class], isPersistent: true)
+```
+
+A Filament page is a **Livewire** component: after the first load, each click that changes something (a filter, a sort, Save) is a small request to `/livewire/update`, which re-renders only that component. Those requests do not pass through the panel's middleware list, only through the middleware marked persistent; without `isPersistent`, the page would load in Italian and come back in English at the first filter.
+
+**Labels as methods.** A resource's names are read from methods, `getModelLabel()`, `getNavigationLabel()`, not from properties: a property's value is fixed when the class is loaded, before the middleware has set the language.
+
+### C2.8.2 The exercise library screen
+
+`/admin/exercises`, `app/Filament/Resources/Exercises/`: the public library, to correct, translate and review it ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)).
+
+| File | What it holds |
+|---|---|
+| `ExerciseResource.php` | The model, the menu, the pages, the queries and the permissions |
+| `Tables/ExercisesTable.php` | The list: first photo, name, equipment, primary muscles, logging type, languages to review; search; filters |
+| `Schemas/ExerciseForm.php` | The form: one tab per language, then the exercise's data, then its source |
+| `Pages/ListExercises.php`, `CreateExercise.php`, `EditExercise.php` | The pages; the last two hand the form to the action |
+| `app/Actions/Exercises/SavePublicExercise.php` | The rules of saving, tested without Filament |
+
+**Public exercises only.** `getEloquentQuery()` adds `whereNull('owner_id')` to every list, and `getRecordRouteBindingEloquentQuery()` to the edit page's URL: `/admin/exercises/<a personal one>/edit` is a 404. A user's personal exercises are theirs; the panel never shows them.
+
+**Its own permissions.** Filament asks the model's policy before each action, when the policy has the method. `ExercisePolicy::update()` and `delete()` refuse public exercises to everyone, admins included, because the API must: through the React app's editor, an admin would rewrite a public exercise in one language. The panel is already for admins only, so the resource answers for itself, overriding `getAuthorizationResponse()`: everything on a public exercise, nothing on a personal one, and never `forceDelete` (plans and workouts point to exercises: [D3.7.2](../design/D3-data-model.md#d372-deleting-an-exercise-a-soft-delete)). Decided with the owner; the other way was a second set of abilities in the policy (`adminUpdate`…), one file for every rule but a bigger policy.
+
+**The list reuses the model's scopes.** The search box calls `Exercise::search()`, so "panca" finds "Panca piana" with the panel in English, aliases included ([D3.4.6](../design/D3-data-model.md#d346-searching)); the default order is `orderByName()`; the muscle filter is `withPrimaryMuscle()`. The filters:
+
+| Filter | Shows |
+|---|---|
+| Equipment, Primary muscles, Logged as | As in the app's library |
+| To review in | The exercises whose Italian, Spanish or German is still machine translated: `whereJsonContains('machine_translated', 'it')` |
+| Source | free-exercise-db, our extras (`AtleoPlan_…`), or created in the panel (no `external_id`) |
+| Deleted | Without, with, or only the deleted ones; a deleted exercise opens and has Restore |
+
+**The form, one tab per language.** Filament's `TextInput::make('name')` on a translated column would edit only the current language. Each tab's fields sit in a `Group` with `statePath('translations.it')`, so the form's state holds every language apart:
+
+```php
+Tab::make('Italiano')->schema([
+    Group::make([
+        TextInput::make('name'),                    // → translations.it.name
+        TagsInput::make('aliases'),                 // a list of words
+        Textarea::make('description'),
+        Repeater::make('instructions')->simple(Textarea::make('step')),   // a list of steps, reorderable
+        Toggle::make('reviewed'),                   // not on English
+    ])->statePath('translations.it'),
+    Section::make('English original')->collapsed(), // to compare, on the edit page
+]),
+```
+
+The edit page fills the form with `SavePublicExercise::formState()` and saves through `SavePublicExercise::update()`, in place of Filament's own `fill()` and `save()` of the model's columns (`mutateFormDataBeforeFill()`, `handleRecordUpdate()`; `handleRecordCreation()` on the create page).
+
+**The rules of saving** (`SavePublicExercise`):
+
+| Rule | Why |
+|---|---|
+| Each language written as the tab shows it; a language left empty loses its text | The form is the whole truth. `replaceTranslations()`, not `setTranslation()`, which would keep the emptied language |
+| A language whose **Reviewed by a person** is off joins `machine_translated`; on, it leaves it | The flag of the import ([C2.14.4](#c2144-the-translation-of-the-library)) is cleared by a person, language by language |
+| English never in `machine_translated`, nor a language with no text | English is the original; an empty language has nothing to review |
+| A new exercise has its switches on | The admin wrote it |
+| A muscle in both lists stays primary | As in the import |
+| Only public exercises | `update()` of a personal one throws |
+
+`search_text` follows by itself: the model's `saving` event rewrites it at every save ([C2.6](#c26-database-migrations-models-factories-seeders)).
+
+**Not here yet:** the photos and videos of public exercises (`feat/exercise-media`). The list shows the first photo, and the edit page how many there are.
+
+### C2.8.3 The users screen
+
+`/admin/users`, `app/Filament/Resources/Users/`: the users, with their role, a Google account if linked, their status and when they signed up; search by name and email, filters by role and status.
+
+**Only the list.** An admin does not create accounts (people sign up), edit names, emails or passwords (each user does on Profile), nor delete accounts (phase 2, [D3.7.4](../design/D3-data-model.md#d374-deleting-an-account-an-action-in-the-code)). The generated create and edit pages were removed, and `getAuthorizationResponse()` allows only `viewAny` and `view`: there is no `UserPolicy`, and without one Filament allows everything.
+
+**Four actions on a row,** in a ⋮ menu, each with a window to confirm that says what will happen: **Make admin**, **Remove admin**, **Disable**, **Enable**, each shown only when it makes sense. They are **custom actions**: `Action::make('disable')` with a label, an icon, `requiresConfirmation()`, and a closure that calls the action `ChangeUserAccess`.
+
+**Never on yourself.** An admin cannot remove their own role nor disable their own account: one wrong click would lock them out, and, if they are the only admin, everyone. The buttons are hidden on the admin's own row (marked "You"), and `ChangeUserAccess` throws if asked anyway. Another admin can do it.
+
+**Disabling acts at once:** the user's next request signs them out ([C2.7.9](#c279-a-disabled-account-is-signed-out-at-once)).
+
+### C2.8.4 The way in: a link, and Google on the panel's login
+
+**Where the panel is.** Not inside the React app: Laravel serves it, at `/admin` of its own address. In development that is **http://localhost:8500/admin**; Vite (port 5673) forwards `/api`, `/sanctum`, `/storage` and `/auth/` to Laravel, not `/admin`, because a Filament page also loads its own scripts, styles and Livewire requests from other paths. In production Caddy forwards `/admin` too, and the panel is on the app's address.
+
+**Already signed in.** The panel uses the same session as the app (the `web` guard), and a browser sends a cookie to the same **host name** whatever the port: signed in on `localhost:5673`, `localhost:8500/admin` opens at once. Not on `127.0.0.1:8500`: another host name to the browser, so no cookie, and the panel's login page.
+
+**The link in the app.** `GET /api/user` sends `admin_url`, the panel's address, to an admin, and `null` to anyone else; Profile shows an **Administration** card with **Open** only when it is there ([C1.13.8](C1-frontend.md#c1138-the-link-to-the-admin-panel)). The address is a setting, `config('app.admin_url')`, from `ADMIN_URL`: `http://localhost:8500/admin` in `compose.yaml` (with `APP_PORT` if changed), the app's address + `/admin` in production. The backend gives it because it knows where the panel is; the React app would need a setting of its own for the same fact.
+
+**Google on the panel's login page.** Filament's login asks for an email and a password, and an admin who signed up with Google has no password. Under its form, a **render hook** adds "Continue with Google": a named place in Filament's pages where an app inserts HTML, here a Blade view:
+
+```php
+// app/Providers/Filament/AdminPanelProvider.php
+->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn () => view('filament.google-sign-in'))
+```
+
+The view (`resources/views/filament/google-sign-in.blade.php`) is a link to the same first stop as the React app's button, `/auth/google/redirect?to=admin&locale=it`, drawn with Filament's `<x-filament::button>`, and only when Google is set up on this computer. `GoogleSignInController` keeps `admin: true` in the session for the second stop, then:
+
+| Back from Google | Lands on |
+|---|---|
+| An admin, signed in | The panel, `ADMIN_URL` |
+| Someone who is not an admin, signed in all the same | The React app's Home, rather than the panel's 403 |
+| An error (cancelled, unverified, disabled…) | The panel's login page, `?google_error=disabled`, which the view shows above the button in the page's language |
+
+Only the word `admin` is read from `to`, never an address: a link that sends the browser to any address given would be an open redirect (C2.7.8). The view shows only the four known reasons; anything else typed in `google_error` is ignored.
 
 ---
 
@@ -1111,7 +1252,7 @@ it('answers ok without signing in', function () {        // the scenario, in wor
 - **Datasets** run one test with several inputs: `it(…)->with([…])`, as in `tests/Feature/Auth/RegistrationTest.php`.
 - **Emails:** `Notification::fake()` records them instead of sending, and `Notification::assertSentTo()` checks them. To see the real text, `tests/Feature/Auth/LanguageTest.php` reads what the `array` mailer received.
 
-`tests/Feature/Auth/` is the model of an area's tests: signing in, signing up, resetting a password, the current user, languages and who may open the admin panel. `tests/Feature/ExerciseLibrary/` is the model for an API with permissions: one file for the list and its filters, one for the other endpoints with each refusal, one for the action called without HTTP.
+`tests/Feature/Auth/` is the model of an area's tests: signing in, signing up, resetting a password, the current user, languages, who may open the admin panel and the disabled accounts. `tests/Feature/Admin/` tests the panel's screens as Livewire components ([H2.16.6](../how-to/H2-backend.md#h2166-the-tests)). `tests/Feature/ExerciseLibrary/` is the model for an API with permissions: one file for the list and its filters, one for the other endpoints with each refusal, one for the action called without HTTP.
 
 **Datasets** with `'a name' => [values]` keys show that name in the output, which reads better than the values themselves: `it refuses invalid data with data set "a link that is not YouTube"`.
 
@@ -1155,7 +1296,7 @@ The short versions. [H2. Backend: how to](../how-to/H2-backend.md) builds a real
 2. Dispatch it: `ConvertVideo::dispatch(...)`.
 3. After changing a job's code, run `make restart` (in development `queue:listen` reloads the code by itself, but restarting is harmless).
 
-**An admin screen:** `make artisan c="make:filament-resource Exercise --generate"`, then adjust its columns and fields ([C2.8](#c28-admin-panel-filament)).
+**An admin screen:** `make artisan c="make:filament-resource Exercise --generate"`, then adjust its columns and fields ([C2.8](#c28-admin-panel-filament), as built: [H2.16](../how-to/H2-backend.md#h216-the-admin-panel-as-built)).
 
 **A command of our own:** `make artisan c="make:command ImportSomething"`, then its `#[Signature]` and `handle()`; the rules in an action, and a test with `$this->artisan()` ([C2.14](#c214-artisan-commands-of-our-own)).
 
@@ -1306,7 +1447,7 @@ free-exercise-db is in English only. Its 876 names and 3,738 steps were translat
 | Only the language being written changes: `setTranslation('name', 'it', …)` | English, the original, and the other languages stay. `replaceTranslations()`, used for personal exercises ([C2.5.4](#c254-the-exercise-librarys-endpoints)), would drop them |
 | A language the exercise already has is kept, unless `--force` | It may have been corrected by a person since, in the admin panel |
 | The steps must match the English one for one | A translation with a different number of steps was made from another version of the text, such as English refreshed by `exercises:import --update`: refused, and listed at the end |
-| The language joins `machine_translated` | Every language is marked as not reviewed, Italian included, until a person reviews it in the admin panel (BE-1, `feat/exercise-admin`; [D2.3](../design/D2-decisions.md#d23-exercise-library)) |
+| The language joins `machine_translated` | Every language is marked as not reviewed, Italian included, until a person reviews it in the admin panel ([C2.8.2](#c282-the-exercise-library-screen); [D2.3](../design/D2-decisions.md#d23-exercise-library)) |
 | An exercise deleted by an admin is translated too | It stays deleted, and is ready if brought back |
 
 **Running it again** writes nothing new: every language is already there. `--locale=it` limits it to one language; `--force` rewrites, which undoes corrections made by hand, so it is for after a fix to the files themselves.

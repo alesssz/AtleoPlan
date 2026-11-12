@@ -19,6 +19,7 @@ export const testUser: User = {
   name: 'Ann',
   email: 'ann@example.com',
   is_admin: false,
+  admin_url: null,
   locale: 'en',
   theme: 'dark',
   weight_unit: 'kg',

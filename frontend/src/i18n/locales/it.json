@@ -393,7 +393,11 @@
   },
   "profile": {
     "signOut": "Esci",
-    "about": "Informazioni"
+    "about": "Informazioni",
+    "adminTitle": "Amministrazione",
+    "adminPanel": "Pannello admin",
+    "adminHint": "La libreria pubblica degli esercizi e gli utenti. Si apre in una nuova scheda.",
+    "adminOpen": "Apri"
   },
   "auth": {
     "checking": "Controllo il tuo account…",

@@ -28,6 +28,7 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.13.5 Details that are easy to miss](#c1135-details-that-are-easy-to-miss)
   - [C1.13.6 Testing a screen with the API](#c1136-testing-a-screen-with-the-api)
   - [C1.13.7 Continue with Google](#c1137-continue-with-google)
+  - [C1.13.8 The link to the admin panel](#c1138-the-link-to-the-admin-panel)
 - [C1.14 The exercise library screens](#c114-the-exercise-library-screens)
   - [C1.14.1 The pages and their pieces](#c1141-the-pages-and-their-pieces)
   - [C1.14.2 A list one page at a time](#c1142-a-list-one-page-at-a-time)
@@ -751,6 +752,8 @@ Tests never call a real server. `src/test/auth-helpers.tsx` gives them:
 
 `src/pages/auth-pages.test.tsx` uses them with `userEvent`, typing and clicking as a person would. Prefer `findBy…`, which waits, when the element appears after an answer.
 
+**A fake that remembers.** When a test changes the server's state, the fake must change its answers too, or the app sees a server that contradicts itself. Signing out was tested with `GET /api/user` always answering the user: the sign-in page, reading the user again as it mounts, found them still signed in and went back to Profile, sometimes before `findByText` had seen the form. The test failed now and then in a full run (three times over two branches), never alone. A variable the answers read fixes it: `'GET /api/user': () => (signedOut ? visitor : signedInAs())`, with `signedOut = true` set by the logout's answer (`src/pages/ProfilePage.test.tsx`).
+
 **What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers. Before calling a feature done, try it in a browser against the real stack, as [C1.13.4](#c1134-preferences-on-the-account) shows.
 
 ### C1.13.7 Continue with Google
@@ -763,6 +766,15 @@ The React side of [C2.7.8](C2-backend.md#c278-signing-in-with-google) is small, 
 - **Coming back signed in,** the app starts from scratch: `GET /api/user` finds the session ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)), and nothing else is needed. No token, no message between pages.
 - **Coming back with an error,** the address is `/login?error=unverified`: `GoogleSignInError` reads it with `useSearchParams()` and shows the sentence with `FormBanner`, at the top of the sign-in form. Unknown codes show the general one.
 - **The wait** ([C1.20](#c120-showing-that-something-is-loading)): from the click until the page goes, the "G" becomes a spinner and the link is `aria-busy`. Button's `pending` does not work with `asChild`, so this is done in the component; a `pageshow` listener resets it when Back shows the page again from the browser's cache.
+
+### C1.13.8 The link to the admin panel
+
+An admin sees on Profile one more card, **Administration**, with **Open**: the admin panel, a Filament site served by Laravel ([C2.8.4](C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). The address comes with the user, `admin_url` of `GET /api/user`, `null` for anyone else, and the card is drawn only when it is there: `{user?.admin_url && (<section>…</section>)}`.
+
+- **A plain `<a>`, not React Router's `<Link>`:** `<Link>` changes page inside the React app; the panel is another site, which the browser must load.
+- **In a new tab,** `target="_blank"`, so the app stays where it was; `rel="noopener"` stops the new tab from reaching back into this one through `window.opener`.
+- **Hiding is not protecting.** The card only saves admins a typed address; the panel itself refuses anyone who is not an admin (`canAccessPanel()`), whatever the app shows.
+- **The test** (`ProfilePage.test.tsx`) gives the fake user `is_admin: true` and an `admin_url`, and finds the link by role inside the card named by its heading: `within(card).getByRole('link', { name: 'Open' })`.
 
 ---
 

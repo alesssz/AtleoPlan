@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 // The namespace above maps to the app/Providers/Filament folder (docs/concepts/C2-backend.md C2.2).
 
 // Imports: the Filament and Laravel classes used below, each by its short name
+use App\Http\Middleware\SetPanelLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -13,6 +14,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -24,8 +26,9 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
  * Sets up the Filament admin panel at /admin: the back office where admins
- * manage the users and the public exercise library (docs/design/D2-decisions.md D2.2,
- * its resource comes with BE-1; docs/concepts/C2-backend.md C2.8).
+ * manage the public exercise library and the users (docs/design/D2-decisions.md D2.2,
+ * docs/concepts/C2-backend.md C2.8). Its screens are the resources in
+ * app/Filament/Resources: Exercises (BE-1) and Users (BE-2).
  *
  * Filament builds the panel's pages (login, dashboard, lists, forms) from PHP
  * classes, with no frontend code to write. A panel is declared by a service
@@ -58,6 +61,11 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             // Adds the panel's own login page at /admin/login (session cookie)
             ->login()
+            // "Continue with Google" under the login form, for an admin with
+            // no password (docs/concepts/C2-backend.md C2.8.4). A render hook
+            // is a named place in Filament's pages where an app adds HTML;
+            // fn () => view(…) draws resources/views/filament/google-sign-in.blade.php
+            ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn () => view('filament.google-sign-in'))
             // Main colour of buttons and links; Color::Amber is a constant of
             // the Color class (`::` reads something that belongs to the class
             // itself rather than to an object)
@@ -101,6 +109,13 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            // The admin's language (users.locale), or the browser's on the
+            // login page. Persistent: also run on the Livewire requests a
+            // page makes after loading (a filter, a save), which skip the
+            // list above (docs/concepts/C2-backend.md C2.8.1)
+            ->middleware([
+                SetPanelLocale::class,
+            ], isPersistent: true)
             // Runs on every page except login: a visitor who is not signed in
             // is sent to /admin/login
             ->authMiddleware([

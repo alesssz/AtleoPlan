@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built), the loading signs [H3.27](#h327-loading-signs-as-built), Continue with Google [H3.28](#h328-continue-with-google-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built), the loading signs [H3.27](#h327-loading-signs-as-built), Continue with Google [H3.28](#h328-continue-with-google-as-built), the link to the admin panel [H3.29](#h329-the-link-to-the-admin-panel-as-built).
 
 ## Contents
 
@@ -178,6 +178,11 @@
   - [H3.28.7 Second pass: sign-in on a laptop's screen](#h3287-second-pass-sign-in-on-a-laptops-screen)
   - [H3.28.8 Checking in the browser](#h3288-checking-in-the-browser)
   - [H3.28.9 The checks](#h3289-the-checks)
+- [H3.29 The link to the admin panel, as built](#h329-the-link-to-the-admin-panel-as-built)
+  - [H3.29.1 The order of building](#h3291-the-order-of-building)
+  - [H3.29.2 The card](#h3292-the-card)
+  - [H3.29.3 The tests](#h3293-the-tests)
+  - [H3.29.4 Check it in the browser](#h3294-check-it-in-the-browser)
 
 ---
 
@@ -4322,6 +4327,126 @@ npx vitest run
 ```
 
 `tsc -b` printed nothing, which is success. Six frontend tests more than before (257).
+
+---
+
+## H3.29 The link to the admin panel, as built
+
+An **Administration** card on Profile, for admins only, with **Open**: the admin panel in a new tab. Why it was needed, and the Laravel side (`admin_url` in `GET /api/user`, "Continue with Google" on the panel's login): [H2.16.8](H2-backend.md#h2168-the-way-in-the-link-and-google-on-the-panels-login). How it works: [C1.13.8](../concepts/C1-frontend.md#c1138-the-link-to-the-admin-panel).
+
+| File | Change |
+|---|---|
+| `frontend/src/api/auth.ts` | `admin_url: string \| null` in the `User` type |
+| `frontend/src/test/auth-helpers.tsx` | `admin_url: null` in `testUser` |
+| `frontend/src/pages/ProfilePage.tsx` | The card, drawn only when `admin_url` is there |
+| `frontend/src/i18n/locales/*.json` | `profile.adminTitle`, `adminPanel`, `adminHint`, `adminOpen` |
+| `frontend/src/pages/ProfilePage.test.tsx` | Two tests; the sign-out tests' fake server now remembers signing out |
+
+### H3.29.1 The order of building
+
+1. The backend first: the field `admin_url` and its value come from Laravel ([H2.16.8](H2-backend.md#h2168-the-way-in-the-link-and-google-on-the-panels-login)).
+2. The type, then the test helper: `testUser` is typed `User`, so once the interface has `admin_url`, TypeScript (`npm run typecheck`, part of `make check`) asks for it there too.
+3. The texts in four languages, the card, the tests.
+
+### H3.29.2 The card
+
+In `ProfilePage.tsx`, between the workout's card and About:
+
+```tsx
+{user?.admin_url && (
+  <section aria-labelledby="admin-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
+    <h2 id="admin-title" className="font-heading text-lg font-extrabold tracking-tight">{t('profile.adminTitle')}</h2>
+    <SettingRow icon={ShieldCheck} label={t('profile.adminPanel')} description={t('profile.adminHint')}>
+      <Button asChild variant="outline">
+        <a href={user.admin_url} target="_blank" rel="noopener">
+          {t('profile.adminOpen')}
+          <ExternalLink aria-hidden="true" />
+        </a>
+      </Button>
+    </SettingRow>
+  </section>
+)}
+```
+
+- **`cond && (…)`**: React draws nothing for `null`, so the card is absent for anyone who is not an admin.
+- **The same look as the other cards:** the classes of Preferences and About, and a `SettingRow`, so nothing new had to be designed.
+- **`<a>`, not `<Link>`,** `target="_blank"` and `rel="noopener"`: why, in C1.13.8. `ExternalLink` is lucide's arrow out of a box, the usual sign of a link that leaves the page.
+
+The texts, under `profile` in each language file, e.g. Italian:
+
+```json
+"adminTitle": "Amministrazione",
+"adminPanel": "Pannello admin",
+"adminHint": "La libreria pubblica degli esercizi e gli utenti. Si apre in una nuova scheda.",
+"adminOpen": "Apri"
+```
+
+`src/i18n/locales.test.ts` fails if a key is missing in one language.
+
+### H3.29.3 The tests
+
+```ts
+it('links an admin to the admin panel, in a new tab', async () => {
+  fakeApi({ 'GET /api/user': signedInAs({ ...testUser, is_admin: true, admin_url: 'http://localhost:8500/admin' }), 'GET /api/health': health })
+  renderRoutes(routes, '/profile')
+
+  const card = await screen.findByRole('region', { name: 'Administration' })
+  const link = within(card).getByRole('link', { name: 'Open' })
+  expect(link).toHaveAttribute('href', 'http://localhost:8500/admin')
+  expect(link).toHaveAttribute('target', '_blank')
+})
+```
+
+A `<section>` with `aria-labelledby` is a **region** named by its heading, so the test finds the card as a person using a screen reader would; `within(card)` then looks only inside it. The second test, `shows no admin panel to anyone else`, waits for the name first (`findByText('Ann')`), so the page is drawn, then checks with `queryByRole`, which answers `null` instead of failing when nothing is found.
+
+```sh
+npx vitest run src/pages/ProfilePage.test.tsx
+```
+
+```
+      Tests  8 passed (8)
+```
+
+**Error met: a flaky test, not new.** `goes to the sign-in form even if the session had already ended` failed in some full `make check` runs and never alone:
+
+```
+ FAIL  src/pages/ProfilePage.test.tsx > ProfilePage > goes to the sign-in form even if the session had already ended
+Error: expect(element).toBeInTheDocument()
+
+element could not be found in the document
+```
+
+Its fake server answered `GET /api/user` with Ann even after signing out. The sign-in page reads the user again when it mounts, found Ann, and sent the browser back to Profile, sometimes before `findByText` had looked. The fix is a fake that remembers, as a real server does ([C1.13.6](../concepts/C1-frontend.md#c1136-testing-a-screen-with-the-api)):
+
+```ts
+let signedOut = false
+fakeApi({
+  'GET /api/user': () => (signedOut ? visitor : signedInAs()),
+  'POST /api/auth/logout': () => {
+    signedOut = true
+    return visitor
+  },
+})
+```
+
+A flaky test is checked by running the whole suite several times, from `frontend/`:
+
+```sh
+for i in 1 2 3 4; do npx vitest run 2>&1 | grep -E "Tests  |FAIL"; done
+```
+
+```
+      Tests  265 passed (265)
+      Tests  265 passed (265)
+      Tests  265 passed (265)
+      Tests  265 passed (265)
+```
+
+### H3.29.4 Check it in the browser
+
+1. Make your account an admin, if it is not: `is_admin` to `true` in TablePlus ([H4](H4-database-tools.md)), or in tinker ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament)). Reload the app: `GET /api/user` is read again.
+2. Profile: the **Administration** card, under Workout. **Open**: the panel in a new tab, already signed in, in the app's language.
+3. With an account that is not an admin, the card is not there.
 
 ---
 

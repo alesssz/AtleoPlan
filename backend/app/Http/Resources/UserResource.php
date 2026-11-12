@@ -35,6 +35,10 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'is_admin' => $this->is_admin,
+            // The admin panel's address, for Profile's link to it; null for
+            // everyone else, so the app shows the link only when it is non-null
+            // (docs/concepts/C2-backend.md C2.8.4)
+            'admin_url' => $this->is_admin ? config('app.admin_url') : null,
             'locale' => $this->locale,
             'theme' => $this->theme,
             'weight_unit' => $this->weight_unit,

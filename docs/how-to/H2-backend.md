@@ -13,6 +13,7 @@
 - A body shaped as a tree, saved in one request, with a validation rule of our own: [H2.13](#h213-the-plans-api-as-built).
 - Data sent by a phone that may be offline, late and twice; totals worked out by the database: [H2.14](#h214-the-workouts-api-as-built).
 - Routes the browser visits rather than fetches, a package for signing in with Google, an outside service faked in the tests: [H2.15](#h215-sign-in-with-google-as-built).
+- Real admin screens: a form in four languages, permissions of the screen's own, row actions, the panel in the admin's language, a middleware placed in Laravel's priority list, Livewire tests: [H2.16](#h216-the-admin-panel-as-built).
 - The same feature on the React side: [H3. Frontend: how to](H3-frontend.md).
 
 ## Contents
@@ -79,6 +80,15 @@
   - [H2.15.6 Proving the tests can fail](#h2156-proving-the-tests-can-fail)
   - [H2.15.7 Checking it for real](#h2157-checking-it-for-real)
   - [H2.15.8 The checks](#h2158-the-checks)
+- [H2.16 The admin panel, as built](#h216-the-admin-panel-as-built)
+  - [H2.16.1 Generate the files](#h2161-generate-the-files)
+  - [H2.16.2 The exercise screen: adjusting what was generated](#h2162-the-exercise-screen-adjusting-what-was-generated)
+  - [H2.16.3 The users screen](#h2163-the-users-screen)
+  - [H2.16.4 The panel's language](#h2164-the-panels-language)
+  - [H2.16.5 The middleware and the priority list](#h2165-the-middleware-and-the-priority-list)
+  - [H2.16.6 The tests](#h2166-the-tests)
+  - [H2.16.7 Check it in the browser](#h2167-check-it-in-the-browser)
+  - [H2.16.8 The way in: the link and Google on the panel's login](#h2168-the-way-in-the-link-and-google-on-the-panels-login)
 
 ---
 
@@ -488,7 +498,7 @@ TextInput::make('slug')->required(),
 TextInput::make('name')->required(),
 ```
 
-A single `name` field edits only one language. Editing every language of a translated column, which BE-1 needs for the exercises, takes one field per language ([D3.4.5](../design/D3-data-model.md#d345-translations)).
+A single `name` field edits only one language. Editing every language of a translated column takes one field per language ([D3.4.5](../design/D3-data-model.md#d345-translations)): the exercises' screen does it with a tab per language ([H2.16.2](#h2162-the-exercise-screen-adjusting-what-was-generated)).
 
 ### H2.4.3 Open it and test it
 
@@ -735,7 +745,9 @@ Database errors: [H1.9](H1-database.md#h19-when-something-goes-wrong). Setup pro
 | An action, or any plain class | `make artisan c="make:class Actions/Exercises/SavePersonalExercise"` |
 | The SQL of a query | in tinker, `Exercise::visibleTo(User::first())->search('panca')->toRawSql()` |
 | Test | `make artisan c="make:test MuscleApiTest --pest"` |
-| Admin screen | `make artisan c="make:filament-resource Muscle --generate"` |
+| Admin screen | `make artisan c="make:filament-resource Muscle --generate"`; with soft deletes, `--soft-deletes` ([H2.16](#h216-the-admin-panel-as-built)) |
+| Middleware | `make artisan c="make:middleware SetPanelLocale"` |
+| The middleware a route really gets, in order | in tinker, `app('router')->gatherRouteMiddleware(app('router')->getRoutes()->match(Request::create('/api/user')))` |
 | Job | `make artisan c="make:job LogMuscleCount"` |
 | API routes | `make artisan c="route:list --path=api"` |
 | Tests, one file | `make test`, `make test f=MuscleApi` |
@@ -1825,6 +1837,321 @@ docker compose exec backend php artisan test
   PASS   ......................................................... 182 files
   Tests:    290 passed (17559 assertions)
 ```
+
+---
+
+## H2.16 The admin panel, as built
+
+The admin panel's first two real screens: the public exercise library (BE-1, `feat/exercise-admin`) and the users (BE-2), built on one branch. How they work and why: [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament) and [C2.7.9](../concepts/C2-backend.md#c279-a-disabled-account-is-signed-out-at-once). The small example of [H2.4](#h24-an-admin-screen) is the starting point; this section adds what a real screen needed.
+
+| File | What it is |
+|---|---|
+| `app/Filament/Resources/Exercises/ExerciseResource.php` | The screen: public exercises only, its own permissions, labels in the admin's language |
+| `app/Filament/Resources/Exercises/Schemas/ExerciseForm.php` | The form: a tab per language, the exercise's data, its source |
+| `app/Filament/Resources/Exercises/Tables/ExercisesTable.php` | The list: photo, name, equipment, muscles, logging type, languages to review; search and filters |
+| `app/Filament/Resources/Exercises/Pages/*.php` | List, create, edit; the last two through the action |
+| `app/Actions/Exercises/SavePublicExercise.php` | Saving: every language, the review flags, the muscles |
+| `app/Filament/Resources/Users/UserResource.php`, `Pages/ListUsers.php`, `Tables/UsersTable.php` | The users: a list with four row actions |
+| `app/Actions/Users/ChangeUserAccess.php` | Admin or not, enabled or not; never on yourself |
+| `app/Http/Middleware/SetPanelLocale.php` | The panel in the admin's language |
+| `app/Http/Middleware/SignOutDisabledAccount.php` | A disabled user signed out at their next request |
+| `app/Providers/Filament/AdminPanelProvider.php` | `SetPanelLocale`, persistent |
+| `bootstrap/app.php` | `SignOutDisabledAccount` on `web` and `api`, and in the priority list |
+| `lang/{en,it,es,de}/admin.php` | The panel's labels |
+| `tests/Feature/Admin/*.php`, `tests/Feature/Auth/DisabledAccountTest.php` | 32 tests |
+| `config/app.php`, `compose.yaml` | `admin_url`, from `ADMIN_URL`: where the panel is |
+| `app/Http/Resources/UserResource.php` | `admin_url` in `GET /api/user`, for admins |
+| `app/Http/Controllers/GoogleSignInController.php` | `to=admin`: back to the panel |
+| `resources/views/filament/google-sign-in.blade.php` | "Continue with Google" under the panel's login form |
+| `frontend/src/pages/ProfilePage.tsx`, `src/api/auth.ts`, `src/i18n/locales/*.json` | The Administration card on Profile |
+
+**After pulling this branch on another computer:** `docker compose up -d`, which recreates the backend container with `ADMIN_URL` (the default is the same address, so nothing breaks without it). No migration. To open the panel, an admin account: [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament).
+
+### H2.16.1 Generate the files
+
+```sh
+docker compose exec backend php artisan make:filament-resource Exercise --soft-deletes --record-title-attribute=name
+docker compose exec backend php artisan make:filament-resource User --record-title-attribute=email
+docker compose exec backend php artisan make:class Actions/Exercises/SavePublicExercise
+docker compose exec backend php artisan make:class Actions/Users/ChangeUserAccess
+docker compose exec backend php artisan make:middleware SetPanelLocale
+docker compose exec backend php artisan make:middleware SignOutDisabledAccount
+```
+
+```
+   INFO  Filament resource [App\Filament\Resources\Exercises\ExerciseResource] created successfully.
+   INFO  Filament resource [App\Filament\Resources\Users\UserResource] created successfully.
+   INFO  Class [app/Actions/Exercises/SavePublicExercise.php] created successfully.
+   INFO  Class [app/Actions/Users/ChangeUserAccess.php] created successfully.
+   INFO  Middleware [app/Http/Middleware/SetPanelLocale.php] created successfully.
+   INFO  Middleware [app/Http/Middleware/SignOutDisabledAccount.php] created successfully.
+```
+
+- **Without `--generate`:** the form and the table come out empty (`->components([ // ])`). The exercises' columns are JSON in four languages and a pivot table, which `--generate` would have turned into one text field each; it was quicker to write them.
+- **`--soft-deletes`** adds the Deleted filter, Restore and Force delete actions, and lets the edit page open a deleted row (`getRecordRouteBindingEloquentQuery()` without `SoftDeletingScope`).
+- **`make:filament-resource` and `ExerciseResource`:** the API already had `App\Http\Resources\ExerciseResource`. Two classes with one short name in two namespaces is allowed; each file imports the one it means.
+
+### H2.16.2 The exercise screen: adjusting what was generated
+
+**1. Public only.** Two methods of the resource, one for the list, one for the edit page's URL:
+
+```php
+public static function getEloquentQuery(): Builder
+{
+    return parent::getEloquentQuery()->whereNull('owner_id');
+}
+```
+
+**2. Its own permissions.** As generated, every Edit and Delete was refused: Filament found `ExercisePolicy::update()`, which says no to public exercises. One method replaces the policy for this screen:
+
+```php
+public static function getAuthorizationResponse(string|UnitEnum $action, ?Model $record = null): Response
+{
+    if (in_array($name, ['forceDelete', 'forceDeleteAny', 'replicate', 'reorder'], true)) {
+        return Response::deny();
+    }
+    return $record === null || $record->isPublic() ? Response::allow() : Response::deny();
+}
+```
+
+Filament calls it with the action's name (`viewAny`, `create`, `update`, `delete`, `restore`…). The generated Force delete actions were removed from the edit page and the bulk menu too.
+
+**3. The form by language.** Each tab's fields in a `Group` with `statePath("translations.{$locale}")` ([C2.8.2](../concepts/C2-backend.md#c282-the-exercise-library-screen)). The edit page swaps Filament's fill and save for the action's:
+
+```php
+protected function mutateFormDataBeforeFill(array $data): array
+{
+    return SavePublicExercise::formState($this->record);   // the texts by language, the muscles by role
+}
+
+protected function handleRecordUpdate(Model $record, array $data): Model
+{
+    return app(SavePublicExercise::class)->update($record, $data);
+}
+```
+
+and the create page `handleRecordCreation()`. The state the action receives:
+
+```php
+['translations' => ['en' => ['name' => 'Plank', 'aliases' => [], 'description' => null,
+                             'instructions' => ['…', '…']],
+                    'it' => [..., 'reviewed' => true], 'es' => [...], 'de' => [...]],
+ 'logging_type' => 'time', 'equipment_id' => 2, 'youtube_url' => null,
+ 'primary_muscles' => [1], 'secondary_muscles' => [6]]
+```
+
+**4. The list.** `searchable(query: fn ($query, $search) => $query->search($search))` makes the search box use the library's search; `defaultSort(fn ($query) => $query->orderByName())` its order; `modifyQueryUsing(fn ($query) => $query->with(['equipment', 'muscles', 'media']))` loads the relations once for the page. The photo's address is built from the request's (`url($path)`), not from `APP_URL`, which inside the container says port 8000 while the browser is on 8500.
+
+### H2.16.3 The users screen
+
+Only the list was kept: `Pages/CreateUser.php`, `Pages/EditUser.php` and `Schemas/UserForm.php` were deleted, `getPages()` lists only `index`, and `getAuthorizationResponse()` allows only `viewAny` and `view`. The four actions are written once by a helper of `UsersTable` and differ by a closure:
+
+```php
+Action::make('disable')
+    ->requiresConfirmation()
+    ->modalDescription(fn (User $record) => __('admin.users.disable_confirm', ['name' => $record->name]))
+    ->visible(fn (User $record) => $record->disabled_at === null && ChangeUserAccess::canChange(auth()->user(), $record))
+    ->action(fn (User $record) => app(ChangeUserAccess::class)->setDisabled(auth()->user(), $record, true));
+```
+
+**Error met: every Artisan command broken.** The three files were deleted before `UserResource::getPages()` stopped naming them, and the next command failed at once:
+
+```
+   Error
+
+  Class "App\Filament\Resources\Users\Pages\CreateUser" not found
+
+  at app/Filament/Resources/Users/UserResource.php:46
+  ➜  46▕             'create' => CreateUser::route('/create'),
+```
+
+Filament registers the panel's routes when the app starts, Artisan included, so a resource that names a missing class stops everything. Change the resource first, delete the files after.
+
+### H2.16.4 The panel's language
+
+The labels are in `lang/en/admin.php` and, with the same keys, `it`, `es` and `de`. A quick check that no key is missing in a language, from `backend/`:
+
+```sh
+for l in it es de; do diff <(grep -o "'[a-z_]*' =>" lang/en/admin.php) <(grep -o "'[a-z_]*' =>" lang/$l/admin.php) && echo "$l ok"; done
+```
+
+`SetPanelLocale` sets the language from `users.locale`, and is listed in the panel provider with `isPersistent: true`, so the Livewire requests a page makes after loading (a filter, a save) are answered in the same language ([C2.8.1](../concepts/C2-backend.md#c281-the-panels-language)).
+
+### H2.16.5 The middleware and the priority list
+
+`SignOutDisabledAccount` was first only appended to the `web` and `api` groups, like `SetLocaleFromRequest`. Its test failed: a disabled user still got a 200.
+
+```
+  ⨯ it signs them out of every route, not only /api/user
+  Expected response status code [401] but received 200.
+```
+
+The order the route really gets, in tinker:
+
+```sh
+docker compose exec -T backend php artisan tinker --execute '
+$r = app("router"); $route = $r->getRoutes()->match(Illuminate\Http\Request::create("/api/user"));
+print_r($r->gatherRouteMiddleware($route));'
+```
+
+```
+    [0] => Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful
+    [1] => Illuminate\Auth\Middleware\Authenticate:sanctum
+    [2] => Illuminate\Routing\Middleware\SubstituteBindings
+    [3] => App\Http\Middleware\SetLocaleFromRequest
+    [4] => App\Http\Middleware\SignOutDisabledAccount
+```
+
+Authentication ran first, so the user was let in before being signed out. `route:list -v` shows only `api` and `Authenticate:sanctum`: it does not open the groups, nor sort them. The fix in `bootstrap/app.php`:
+
+```php
+$middleware->prependToPriorityList(AuthenticatesRequests::class, SignOutDisabledAccount::class);
+```
+
+and the same tinker line then gives:
+
+```
+    [0] => Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful
+    [1] => App\Http\Middleware\SignOutDisabledAccount
+    [2] => Illuminate\Auth\Middleware\Authenticate:sanctum
+    [3] => Illuminate\Routing\Middleware\SubstituteBindings
+    [4] => App\Http\Middleware\SetLocaleFromRequest
+```
+
+### H2.16.6 The tests
+
+```sh
+docker compose exec backend php artisan test tests/Feature/Admin tests/Feature/Auth/DisabledAccountTest.php
+```
+
+```
+   PASS  Tests\Feature\Admin\ExerciseAdminTest
+  ✓ it lists the public exercises and never the personal ones
+  ✓ it searches as the library does, in every language
+  ✓ it filters the exercises still machine translated in a language
+  ✓ it creates a public exercise from the form
+  ✓ it requires an English name
+  ✓ it opens an exercise by language and saves a reviewed translation
+  ✓ it does not open a personal exercise
+  ✓ it deletes an exercise softly, and restores it
+  ✓ it offers no delete for good
+  ✓ it speaks the admin's language
+  ✓ it keeps the screen closed to a user who is not an admin
+   PASS  Tests\Feature\Admin\SavePublicExerciseTest
+  ✓ … 8 tests of the action
+   PASS  Tests\Feature\Admin\UserAdminTest
+  ✓ it lists every user
+  ✓ it makes a user an admin, and back
+  ✓ it disables an account, and enables it
+  ✓ it shows only the actions that make sense for a row
+  ✓ it offers no action on the admin's own row
+  ✓ it refuses an admin's change to their own account with ('admin')
+  ✓ it refuses an admin's change to their own account with ('disabled')
+  ✓ it offers no way to create, edit or delete a user
+  ✓ it keeps the screen closed to a user who is not an admin
+   PASS  Tests\Feature\Auth\DisabledAccountTest
+  ✓ it signs out a user disabled since signing in
+  ✓ it signs them out of every route, not only /api/user
+  ✓ it leaves an enabled user signed in
+  ✓ it lets a disabled user still reach the public routes, as a visitor
+  Tests:    32 passed (113 assertions)
+```
+
+**Testing a Filament page.** A page is a Livewire component: `Livewire::test(ListExercises::class)` renders it in memory as the user of `actingAs()`, and Filament adds the methods to drive it:
+
+```php
+Livewire::test(ListExercises::class)->searchTable('panca')->assertCanSeeTableRecords([$bench]);
+Livewire::test(ListExercises::class)->filterTable('to_review_in', 'it');
+Livewire::test(CreateExercise::class)->fillForm(['translations.en.name' => 'Hollow Rock'])->call('create')->assertHasNoFormErrors();
+Livewire::test(EditExercise::class, ['record' => $plank->getRouteKey()])->assertSchemaStateSet(['translations.it.reviewed' => false]);
+Livewire::test(EditExercise::class, ['record' => $plank->getRouteKey()])->callAction(DeleteAction::class);
+Livewire::test(ListUsers::class)->callAction(TestAction::make('disable')->table($user));   // a row's action
+```
+
+**Errors met in the tests**, each a fact worth knowing:
+
+| Message | Cause | Fix |
+|---|---|---|
+| `"data.translations.en.instructions.0.step" => ["The step field is required."]` | Inside the form, a simple repeater keeps each item as `['step' => '…']`, its field's name; only the saved state is a plain list | `fillForm(['translations.en.instructions' => [['step' => 'Lie on your back.'], ['step' => 'Rock.']]])` |
+| `Failed asserting that two arrays are identical`: `en, es, it` for `en, it, es` | Postgres stores `jsonb` with its keys sorted its own way (shorter first, then alphabetically) | `toEqualCanonicalizing()`, which ignores the order |
+| A list of steps kept the base's first step | `array_replace_recursive()` merges lists item by item: `[]` over `['a']` leaves `['a']` | A helper of the test that merges named keys and replaces lists (`overForm()`) |
+| `Expected response status code [401] but received 200`, after signing in through the route | A test keeps one app for all its requests; its guards keep the user read at sign-in, still enabled. A real request reads it again | `$this->app['auth']->forgetGuards()` before the next request |
+
+**Proving a test can fail.** `offers no delete for good` first only checked that the edit page has no Force delete button, and passed with the permission removed: the button was absent for another reason. It now also asks the resource, `ExerciseResource::canForceDelete($plank)`, and with `'forceDelete'` taken out of the refused list it fails:
+
+```
+  ⨯ it offers no delete for good
+  Failed asserting that true is false.
+```
+
+### H2.16.7 Check it in the browser
+
+1. http://localhost:8500/admin, signed in as an admin. The panel is in the account's language (on Profile in the app).
+2. **Libreria esercizi:** search "panca"; filter **Da rivedere in → Italiano**; open an exercise: the tabs, the switch **Rivisto da una persona** off, **Originale inglese** folded under each translation. Turn the switch on, Save: the exercise leaves the filter.
+3. **Utenti:** the ⋮ menu of another user; your own row has none, and says "Tu".
+4. Disable a test account signed in in another browser: its next click in the app opens the sign-in page, and signing in says the account is disabled.
+
+Without a browser, the pages can be rendered in tinker as an admin, on the development data:
+
+```sh
+docker compose exec -T backend php artisan tinker --execute '
+auth()->guard("web")->setUser(App\Models\User::where("is_admin", true)->first());
+$r = app()->handle(Illuminate\Http\Request::create("/admin/exercises/545/edit"));
+echo $r->getStatusCode(), " ", substr_count($r->getContent(), "Rivisto da una persona"), PHP_EOL;'
+```
+
+```
+200 3
+```
+
+(three tabs with the switch: Italian, Spanish, German; 545 is Plank's id on that database).
+
+### H2.16.8 The way in: the link and Google on the panel's login
+
+Found by trying it: the owner, signed up with Google and made admin in the database, saw nothing. The panel was at `localhost:8500/admin`, no link led there, `localhost:5673/admin` is not forwarded by Vite, and the panel's login wants a password the account does not have. Three changes ([C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)):
+
+**1. Where the panel is, as a setting.** In `config/app.php`, next to `frontend_url`:
+
+```php
+'admin_url' => env('ADMIN_URL', 'http://localhost:8500/admin'),
+```
+
+and in `compose.yaml`, with the other development settings, `ADMIN_URL: http://localhost:${APP_PORT:-8500}/admin`. `UserResource` adds `'admin_url' => $this->is_admin ? config('app.admin_url') : null`.
+
+**2. The link on Profile.** `admin_url: string | null` in the `User` type of `src/api/auth.ts` (and `admin_url: null` in the tests' `testUser`), then in `ProfilePage.tsx` a card drawn only when it is there, with an `<a target="_blank" rel="noopener">` inside `<Button asChild>`; four keys in each `src/i18n/locales/*.json` under `profile` ([C1.13.8](../concepts/C1-frontend.md#c1138-the-link-to-the-admin-panel)).
+
+**3. Google on the panel's login.** A Blade view, `resources/views/filament/google-sign-in.blade.php`, inserted by a render hook in `AdminPanelProvider`; the list of Filament's hooks is in `vendor/filament/filament/src/View/PanelsRenderHook.php` (`AUTH_LOGIN_FORM_AFTER` is the place under the login form). Its texts are `admin.google.*` in the four `lang/*/admin.php`, the same sentences as the React app's. Filament's stylesheet is built in advance, so a Tailwind class it does not use does nothing in our view: the few styles are inline, with Filament's colour variables (`var(--danger-600)`). In `GoogleSignInController`, `to=admin` is kept in the session as `admin: true`, and the callback ends on `config('app.admin_url')` for an admin, or on `…/admin/login?google_error=<reason>` for an error.
+
+**Checking the login page without a browser,** as a visitor whose browser asks for Italian:
+
+```sh
+docker compose exec -T backend php artisan tinker --execute '
+$req = Illuminate\Http\Request::create("/admin/login?google_error=cancelled"); $req->headers->set("Accept-Language", "it");
+$r = app()->handle($req); $h = $r->getContent();
+echo $r->getStatusCode(), " | button:", substr_count($h, "Continua con Google"), " | error:", substr_count($h, "Accesso con Google annullato"), PHP_EOL;'
+```
+
+```
+200 | button:1 | error:1
+```
+
+**The tests.** Two in `GoogleSignInTest` already checked the session's exact content (`['from' => '/plans', 'locale' => 'it']`) and failed once it gained `admin`; they now include `'admin' => false`. New:
+
+```
+  ✓ it gives an admin the address of the admin panel
+  ✓ from the admin panel → it remembers that the visit started on the p… (×3: admin, an address, another word)
+  ✓ from the admin panel → it takes an admin back to the panel
+  ✓ from the admin panel → it takes someone who is not an admin into th…
+  ✓ from the admin panel → it brings an error back to the panel's login…
+  ✓ from the admin panel → it shows the button, and the error, on the p…
+  ✓ from the admin panel → it hides the button when Google is not set u…
+```
+
+and in `ProfilePage.test.tsx`, `links an admin to the admin panel, in a new tab` and `shows no admin panel to anyone else`.
+
+**A flaky test fixed on the way.** `make check` failed twice in this work, and once before it on another branch, on `ProfilePage.test.tsx › goes to the sign-in form even if the session had already ended`; alone it always passed. Its fake server kept saying the user was signed in after signing out, so the sign-in page sent them back to Profile, sometimes before the test looked ([C1.13.6](../concepts/C1-frontend.md#c1136-testing-a-screen-with-the-api)). With a fake that remembers signing out, four full runs in a row passed: `for i in 1 2 3 4; do npx vitest run | grep "Tests "; done` in `frontend/`.
+
+**In the browser:** signed in to the app as an admin, Profile → Administration → **Open**: the panel in a new tab, already signed in. Signed out, http://localhost:8500/admin/login → **Continua con Google** → Google → the panel.
 
 ---
 

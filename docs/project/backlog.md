@@ -24,7 +24,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-10 Google on Profile](#feat-10-google-on-profile)
 - [BE](#be)
   - [BE-1 Exercise library: API and admin](#be-1-exercise-library-api-and-admin)
-  - [BE-2 Manage users in the admin panel](#be-2-manage-users-in-the-admin-panel)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
@@ -59,10 +58,12 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [D3. Data model](../design/D3-data-model.md).
 
-1. The exercise library: its API, import, translation and screens are done; left are its admin screen, where translations are reviewed, and its media ([BE-1](#be-1-exercise-library-api-and-admin))
+1. The exercise library: its API, import, translation, screens and admin screen are done; left is its media ([BE-1](#be-1-exercise-library-api-and-admin))
 2. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
 
 **Sign in with Google**, brought forward from phase 2, is built and was tried for real by the owner ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)). Google on Profile waits in [FEAT-10](#feat-10-google-on-profile).
+
+**The admin panel** has its two screens, the public library and the users (BE-1's `feat/exercise-admin` and BE-2; [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament)).
 
 The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [FEAT-5](#feat-5-new-records-during-a-workout) (live records); its preferences are on Profile (UI-7, [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
 
@@ -204,25 +205,13 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Done:**
 - the tables, models, relations and seeders of the library, with their tests (`feat/exercise-tables`, [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built));
-- the API without media: the policy, the list with search, filters and pages, reading, creating, changing and deleting personal exercises, the lists of muscles and equipment (`feat/exercise-api`, [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints), [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built)).
+- the API without media: the policy, the list with search, filters and pages, reading, creating, changing and deleting personal exercises, the lists of muscles and equipment (`feat/exercise-api`, [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints), [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built));
+- the admin screen of the public library, one tab per language with the review switch, in the admin's language (`feat/exercise-admin`, with BE-2's users screen; [C2.8.2](../concepts/C2-backend.md#c282-the-exercise-library-screen), [H2.16](../how-to/H2-backend.md#h216-the-admin-panel-as-built)).
 
-**What is missing.** Two parts, each on its own branch:
+**What is missing.** One part, on its own branch:
 - `feat/exercise-media`: the photo and video uploads of personal exercises, with their limits, the conversion job and the order of the photos ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)); the resized photos (a 400 px thumbnail for the library's rows) and the videos in `ExerciseResource`, which already sends the photos as stored; in the editor, the media field of [D1.4.5](../design/D1-ui.md#d145-exercise-editor); **Duplicate as mine** for a public exercise ([D1.4.4](../design/D1-ui.md#d144-exercise-details)), which copies its photos too.
-- `feat/exercise-admin`: the Filament resource for the public library, one field per language ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)). Filament asks the model's policy, and `ExercisePolicy` refuses changes to public exercises, admins included, because the API must: the resource overrides `canEdit()`, `canDelete()` and `canCreate()` for admins, or the policy gains a separate ability for the panel.
 
-Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). The admin screen also takes a language out of an exercise's `machine_translated` when a person has reviewed it: every imported exercise has `it`, `es` and `de` there ([C2.14.4](../concepts/C2-backend.md#c2144-the-translation-of-the-library)).
-
-### BE-2 Manage users in the admin panel
-
-**Priority:** medium · **Kind:** missing screen · **Found:** 2026-11-05
-
-**What is missing.** The Users screen of [D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament), to list users, change their role and disable them. The column exists and signing in already refuses a disabled account, but nothing sets it yet, and a user who is already signed in stays signed in until the session ends.
-
-**Options.**
-- A) A Filament resource, and a middleware on the `auth:sanctum` routes that signs out a disabled account.
-- B) Only the resource, with disabling taking effect at the next sign-in.
-
-**Recommended.** A: disabling an account is usually urgent, so it must act at once.
+It also brings the media of public exercises to the admin panel: an upload field on the edit page, and their processing status ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)). Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library).
 
 ### BE-3 Harden the public sign-in routes
 

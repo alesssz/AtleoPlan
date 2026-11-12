@@ -393,7 +393,11 @@
   },
   "profile": {
     "signOut": "Abmelden",
-    "about": "Info"
+    "about": "Info",
+    "adminTitle": "Verwaltung",
+    "adminPanel": "Admin-Bereich",
+    "adminHint": "Die öffentliche Übungsbibliothek und die Benutzer. Öffnet sich in einem neuen Tab.",
+    "adminOpen": "Öffnen"
   },
   "auth": {
     "checking": "Dein Konto wird geprüft…",

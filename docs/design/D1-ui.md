@@ -322,16 +322,21 @@ The estimated one-rep max uses the Epley formula, weight × (1 + reps / 30), on 
 - Account details, **Sign out**. Profile picture and change password in phase 2.
 - **Language:** Italian, English, Spanish, German, saved on the account with the theme, so both follow the user to other devices. Numbers and dates follow it: `82,5 kg` in Italian, Spanish and German, `82.5 kg` in English.
 - Preferences: units kg/lb, default rest, stepper weight step, timer sound and vibration, the RPE field of the plan editor, theme (dark / light / system). All built: language and theme in **Preferences**; the five read by workout mode in a card of their own, **Workout** (UI-7, `feat/workout-preferences`, [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)), with **RPE in plans** as its last row (`feat/set-types-rpe`). The sound and the vibration also mark the stopwatch's target. The unit cannot change while a workout is in progress, and changing it sets the step that suits the new unit (2.5 kg, 5 lb).
+- **Administration**, for admins only: a card with **Open**, the admin panel in a new tab ([D1.4.15](#d1415-admin-panel-filament)).
 - **Export my data** (JSON or CSV) and **Delete account**: required by the GDPR once the app is public.
 
 ### D1.4.15 Admin panel (Filament)
 
 The admin area at `/admin`, served by Laravel with Filament, for admins only. It is not part of the React app and follows Filament's own look.
 
-- **Exercises:** list, search and filters like the library; create, edit and delete public exercises, the ones imported from free-exercise-db included ([D2.3](D2-decisions.md#d23-exercise-library)).
-- **Translations:** each public exercise shows its name, description and instructions per language, side by side; a **Machine translated** flag marks the texts not yet reviewed by a person.
-- **Media:** photos and videos of public exercises, with their processing status.
-- **Users:** list, role (user / admin), disable an account.
+- **The way in:** Profile's **Administration** card, for admins; or the address itself. Its login page takes an email and a password, or **Continue with Google**, for an admin who has no password.
+- **In the admin's language,** the one chosen in the app; Filament's own texts come translated.
+- **Exercises:** list, search and filters like the library, plus a filter of the languages still to review and one of the source; create, edit, delete and restore public exercises, the ones imported from free-exercise-db included ([D2.3](D2-decisions.md#d23-exercise-library)). Never deleted for good, and personal exercises never shown.
+- **Translations:** one tab per language with name, other names, description and steps; under each translation, the English original, folded, to compare with; a **Reviewed by a person** switch per language clears its **Machine translated** flag.
+- **Media:** photos and videos of public exercises, with their processing status (to come with `feat/exercise-media`; the list shows the first photo).
+- **Users:** list, role (user / admin), disable an account, which signs it out at once; never on the admin's own account.
+
+Built: [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament).
 - Phase 2: exercises proposed by users for the public library, to approve or reject.
 
 ---

@@ -393,7 +393,11 @@
   },
   "profile": {
     "signOut": "Sign out",
-    "about": "About"
+    "about": "About",
+    "adminTitle": "Administration",
+    "adminPanel": "Admin panel",
+    "adminHint": "The public exercise library and the users. Opens in a new tab.",
+    "adminOpen": "Open"
   },
   "auth": {
     "checking": "Checking your account…",
