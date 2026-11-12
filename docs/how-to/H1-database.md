@@ -14,6 +14,7 @@
 - Translating the imported library from files of the repository: [H1.14](#h114-the-translation-of-the-library-as-built).
 - The workout tables: soft deletes on rows made by the phone, links that survive a deleted plan: [H1.15](#h115-the-workout-tables-as-built).
 - A column of `users` changed rather than added (`->change()`), and the table of Google accounts: [H1.18](#h118-the-google-accounts-as-built).
+- Correcting values of the imported data from a list in the repository, without undoing an admin's work: [H1.19](#h119-the-corrected-logging-types-as-built).
 - Something broke: [H1.9](#h19-when-something-goes-wrong).
 - What migrations and models are, in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
 
@@ -103,6 +104,11 @@
   - [H1.18.3 Run them](#h1183-run-them)
   - [H1.18.4 The model, and a look at the result](#h1184-the-model-and-a-look-at-the-result)
   - [H1.18.5 The tests](#h1185-the-tests)
+- [H1.19 The corrected logging types, as built](#h119-the-corrected-logging-types-as-built)
+  - [H1.19.1 Finding the wrong guesses](#h1191-finding-the-wrong-guesses)
+  - [H1.19.2 The files](#h1192-the-files)
+  - [H1.19.3 Run it](#h1193-run-it)
+  - [H1.19.4 The tests](#h1194-the-tests)
 
 ---
 
@@ -1170,6 +1176,8 @@ Tests:    16 passed (97 assertions)
 | Format, then every check | `make fix`, `make check` |
 | Fill the public exercise library, then translate it | `make exercises-import`; try with `o="--limit=5"`, refresh with `o="--update"` ([H1.12](#h112-the-free-exercise-db-import-as-built)) |
 | Translate it again, or one language | `make exercises-translate`, `o="--locale=it --force"` ([H1.14](#h114-the-translation-of-the-library-as-built)) |
+| Add the extra exercises (calisthenics) to a library imported before them | `make exercises-extra` ([H1.17](#h117-the-extra-exercises-as-built)) |
+| Correct the logging types the import guessed wrong (Plank as time) | `make exercises-correct` ([H1.19](#h119-the-corrected-logging-types-as-built)) |
 | Two example plans for every user who has none, after the import | `make plans-demo` ([H3.13.1](H3-frontend.md#h3131-plans-to-look-at)) |
 | A command of our own | `make artisan c="make:command ImportSomething"` |
 | The SQL of undoing the last migration, without running it | `make artisan c="migrate:rollback --step=1 --pretend"` |
@@ -2304,7 +2312,7 @@ They import the repository's file, not a sample, so a mistake in it fails here: 
 
 **Adding an exercise:** an entry in `extra-exercises.json` (an `AtleoPlan_…` id, muscles and equipment named as free-exercise-db names them), the same id in the three translation files with as many steps as the English, then `make exercises-extra` and the tests.
 
-**Found on the way, not fixed here:** a few of free-exercise-db's exercises held for a time are logged as reps, Plank among them, so "3 × 30 s plank" cannot be written; [DATA-3](../project/backlog.md#data-3-timed-exercises-of-free-exercise-db-logged-as-reps).
+**Found on the way, not fixed here:** a few of free-exercise-db's exercises held for a time were logged as reps, Plank among them, so "3 × 30 s plank" could not be written; corrected later by DATA-3, [H1.19](#h119-the-corrected-logging-types-as-built).
 
 ---
 
@@ -2447,6 +2455,161 @@ The database side is tested in `tests/Feature/Auth/GoogleSignInTest.php`, with t
 - **"cannot be signed into with an email and a password"**: a user made with `'password' => null` is refused at `/api/auth/login`, with an empty password and with `password`. `Hash::check()` answers false when the stored hash is empty, so nothing in `FortifyServiceProvider` had to change.
 
 Deleting an account later ([D3.7.4](../design/D3-data-model.md#d374-deleting-an-account-an-action-in-the-code)) needs no new step: the cascade removes the links when the user goes.
+
+---
+
+## H1.19 The corrected logging types, as built
+
+The import guesses each exercise's logging type, and guesses Plank and eight others as reps or weight and reps, while they are held for a time (DATA-3). The fix is a list in the repository and a command that applies it; why this way, and its rules: [C2.14.6](../concepts/C2-backend.md#c2146-the-logging-types-corrected-after-the-import).
+
+| File | What it is |
+|---|---|
+| `database/data/logging-type-corrections.json` | The nine corrections: `id`, `from`, `to`, `why` |
+| `app/Enums/CorrectionOutcome.php` | What happened to one exercise: corrected, already right, not found, kept |
+| `app/Actions/Exercises/CorrectLoggingType.php` | The rules for one exercise |
+| `app/Console/Commands/CorrectLoggingTypes.php` | `exercises:correct-logging-types`: the file, the loop, the summary |
+| `Makefile` | `exercises-correct`; `exercises-import` runs the command right after the dataset |
+| `tests/Feature/ExerciseLibrary/CorrectLoggingTypesTest.php` | 10 tests |
+
+**After pulling this branch on another computer:** `make exercises-correct`. No migration: only values of an existing column change.
+
+### H1.19.1 Finding the wrong guesses
+
+The dataset is on the computer after the first import, in `backend/storage/app/free-exercise-db`. A short Python script, run from the repository's root, listed the exercises outside stretching and cardio (those are already guessed as time) whose name or instructions speak of holding:
+
+```sh
+python3 -I -c "
+import json
+d = json.load(open('backend/storage/app/free-exercise-db/dist/exercises.json'))
+kw = ['plank', 'bridge', 'hold', 'hang', 'isometric', 'static', 'balance', 'stand']
+for e in d:
+    text = ' '.join(e['instructions']).lower()
+    if e['category'] in ('stretching', 'cardio'):
+        continue
+    if any(k in e['name'].lower() for k in kw) or 'seconds' in text or 'hold this position' in text:
+        print(e['id'], '|', e['category'], '|', e['equipment'])
+"
+```
+
+It gave about 120 lines, most of them false hits ("Hang Clean", "Standing Military Press", "Bench Press" for "bench"). Each plausible one was then read in full, instructions included:
+
+```
+== Plank strength body only
+   … Keep your body straight at all times, and hold this position as long as possible.
+== Mountain_Climbers plyometrics None
+   … Repeat in an alternating fashion for 20-30 seconds.
+== Push_Up_to_Side_Plank strength body only
+   … Repeat the series, alternating each side, for 10 or more reps.
+== Plate_Pinch strength other
+   … Hold this position for as long as you can.
+```
+
+Nine became the list. Push Up to Side Plank stayed reps, as its own text says. Plate Pinch, Crucifix and the carries were left out, since a `time` set has no weight (C2.14.6); they wait in DATA-4. Before writing anything, a check that none of the nine was in a plan or a workout on the development database:
+
+```sh
+docker compose exec -T postgres psql -U atleoplan atleoplan -c "select e.external_id, e.logging_type, (select count(*) from plan_items pi where pi.exercise_id = e.id) as plan_items, (select count(*) from session_exercises se where se.exercise_id = e.id) as sessions from exercises e where external_id in ('Plank', 'Side_Bridge', 'Balance_Board');"
+```
+
+```
+  external_id  | logging_type | plan_items | sessions
+---------------+--------------+------------+----------
+ Balance_Board | weight_reps  |          0 |        0
+ Plank         | reps         |          0 |        0
+ Side_Bridge   | reps         |          0 |        0
+```
+
+### H1.19.2 The files
+
+```sh
+docker compose exec backend php artisan make:command CorrectLoggingTypes
+docker compose exec backend php artisan make:class Actions/Exercises/CorrectLoggingType
+```
+
+```
+   INFO  Console command [app/Console/Commands/CorrectLoggingTypes.php] created successfully.
+
+   INFO  Class [app/Actions/Exercises/CorrectLoggingType.php] created successfully.
+```
+
+`make:class` writes an empty class with an empty constructor, in the folder given: the action needs no constructor, so it was replaced by one method, `correct($externalId, $from, $to)`, returning a `CorrectionOutcome`. The enum was written by hand like `ImportOutcome`; `make:enum CorrectionOutcome --string` would generate it.
+
+**The action** checks, in order: the exercise exists (`Exercise::where('external_id', …)->first()`, which skips one deleted by an admin), is not already right, is still on the guess, and is used by no plan item and no workout exercise:
+
+```php
+$inUse = PlanItem::where('exercise_id', $exercise->id)->exists()
+    || SessionExercise::where('exercise_id', $exercise->id)->exists();
+```
+
+`exists()` asks the database for one row at most, which is cheaper than `count() > 0`. Comparing types is `$exercise->logging_type === $to`: the model casts the column to the `LoggingType` enum, and each case of an enum is a single object, so `===` works.
+
+**The command** is ImportExtraExercises' shape: read the JSON, call the action per entry inside `try`, count the outcomes, print the totals. `LoggingType::from($row['to'])` throws on a misspelt type: that entry is listed under "Failed" and the others go on.
+
+**The Makefile** got `exercises-correct`, and in `exercises-import` the command runs right after `exercises:import`, before the extra exercises (which state their own type and need no correction).
+
+### H1.19.3 Run it
+
+```sh
+make exercises-correct
+```
+
+```
+docker compose exec backend php artisan exercises:correct-logging-types
+Checking 9 logging types from /app/database/data/logging-type-corrections.json
+Corrected: 9
+Already right: 0
+Not in the library: 0
+Kept, changed by an admin: 0
+Kept, already in a plan or a workout: 0
+```
+
+A second run changes nothing (`Corrected: 0`, `Already right: 9`). The public library by logging type, before and after:
+
+```sh
+docker compose exec -T postgres psql -U atleoplan atleoplan -c "select logging_type, count(*) from exercises where owner_id is null group by 1 order by 1;"
+```
+
+| `logging_type` | Before | After |
+|---|---|---|
+| `reps` | 102 | 96 |
+| `time` | 137 | 146 |
+| `weight_reps` | 637 | 634 |
+
+(free-exercise-db's 876 only; the extra exercises, imported with their own types, add 21 more where they are imported.) In the app, the plan editor now offers a time for Plank, and workout mode asks for seconds.
+
+### H1.19.4 The tests
+
+```sh
+docker compose exec backend php artisan test --filter=CorrectLoggingTypesTest
+```
+
+```
+  ✓ it corrects an exercise still on the guess
+  ✓ it changes nothing on a second run
+  ✓ it keeps a type an admin chose
+  ✓ it leaves alone an exercise already in a plan or a workout with ('plan')
+  ✓ it leaves alone an exercise already in a plan or a workout with ('workout')
+  ✓ it does not bring back an exercise deleted by an admin
+  ✓ it corrects every exercise of the file from the command
+  ✓ it names the exercises it kept because they are in use
+  ✓ it has a file whose "from" is what the import guesses
+  ✓ it fails, naming the file, when the file is missing
+
+  Tests:    10 passed (40 assertions)
+```
+
+The exercises are made by the factory with an `external_id`, as the import leaves them: the dataset is not in the repository, so a test cannot import it. For the same reason the test `has a file whose "from" is what the import guesses` keeps each exercise's category and equipment as free-exercise-db has them, and checks that `ImportFreeExercise::loggingTypeFor()` gives the file's `from`: a wrong `from` would make the correction never apply, silently.
+
+**Error met.** The first run stopped before any test:
+
+```
+PHP Fatal error:  Cannot redeclare function importedExercise() (previously declared in /app/tests/Feature/ExerciseLibrary/CorrectLoggingTypesTest.php:42) in /app/tests/Feature/ExerciseLibrary/TranslateExercisesTest.php on line 22
+```
+
+A function written at the top of a Pest file is a global PHP function, and Pest loads every test file into the same PHP process: two files cannot have a helper with the same name. `TranslateExercisesTest.php` already had `importedExercise()`; the new helper became `guessedExercise()`. Before naming a helper, `grep -rn "function name(" backend/tests` finds a clash.
+
+**A second error, in `make check`, not in this code:** the frontend's tests stopped at once with `ERR_REQUIRE_ESM` and "31 errors". The terminal ran Node 22 (`node -v`), the project wants 24 (`.nvmrc`); `nvm use`, then `make check` again, passed. The row is in [S1.10](../start/S1-setup.md#s110-troubleshooting).
+
+**Adding a correction:** an entry in `logging-type-corrections.json` (with `from` the import's guess and a `why`), the same id with its category and equipment in the test's `$source`, then `make exercises-correct` and the tests.
 
 ---
 

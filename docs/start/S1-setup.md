@@ -132,7 +132,7 @@ A new service follows the same rule. To use another port once: `APP_PORT=8600 do
 
 It can be run again safely: what is already in place stays as it is.
 
-**After a pull, on either computer,** run `make setup` again: it brings the image, the packages and the database up to date with what was pulled, so new packages and new migrations are never forgotten. `make doctor` is not enough for this: it checks that the packages are installed, not that they are the latest. Then, if the exercise library is empty (on a new database, or the first time after the library was added), run `make exercises-import`; if it is there but older than the extra exercises (no "Frog stand" in it), `make exercises-extra` adds them in seconds.
+**After a pull, on either computer,** run `make setup` again: it brings the image, the packages and the database up to date with what was pulled, so new packages and new migrations are never forgotten. `make doctor` is not enough for this: it checks that the packages are installed, not that they are the latest. Then, if the exercise library is empty (on a new database, or the first time after the library was added), run `make exercises-import`; if it is there but older than the extra exercises (no "Frog stand" in it), `make exercises-extra` adds them in seconds; if Plank is still logged as reps, `make exercises-correct` puts it right.
 
 What the last step of `make setup` prints. The seeders write with `updateOrCreate()`, so a second run changes nothing:
 
@@ -342,6 +342,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Empty the database and rebuild it, with test data | `docker compose exec backend php artisan migrate:fresh --seed` |
 | Fill the public exercise library (after a fresh database too) | `make exercises-import`: the first time it also clones free-exercise-db into `backend/storage/app/` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
 | Add the extra exercises (calisthenics) to a library imported before them | `make exercises-extra` ([H1.17](../how-to/H1-database.md#h117-the-extra-exercises-as-built)) |
+| Correct the logging types the import guessed wrong (Plank as time) in a library imported before the list | `make exercises-correct` ([H1.19](../how-to/H1-database.md#h119-the-corrected-logging-types-as-built)) |
 | Example plans to look at (after the import) | `make plans-demo`: two plans for every user who has none ([H3.13.1](../how-to/H3-frontend.md#h3131-plans-to-look-at)) |
 | Add a package | `docker compose exec backend composer require <package>` |
 | Interactive console | `docker compose exec backend php artisan tinker` |
@@ -449,6 +450,7 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | `create-project` says the **directory is not empty** | `./backend` must be empty: remove what is in it, hidden files included. |
 | `composer require` fails with **"… is locked to version … and an update of this package was not requested"** | The new package needs other versions of packages already in `composer.lock`. Add `-W` (`--with-all-dependencies`) so Composer may update them too; try first with `--dry-run` to see what would change. |
 | `queue` shows **unhealthy** | Fixed in `compose.yaml` (the image's healthcheck asks Caddy, which the worker does not run); recreate it with `docker compose up -d queue`. Whether the worker works is in `docker compose logs queue`. |
+| `make check` or `npm test` fails at once with **`ERR_REQUIRE_ESM`** ("require() of ES Module … encoding-lite.js … not supported"), 31 errors and no test run | The terminal's Node is older than the project's: Node 22 cannot `require()` an ES module, Node 24 can, and a test library depends on it. `node -v` shows it; `nvm use` in the repository's root switches to the version of `.nvmrc` (24), for that terminal; `nvm alias default 24` makes it the default for new ones. `make doctor` checks it too. Met during DATA-3 ([H1.19.4](../how-to/H1-database.md#h1194-the-tests)). |
 | `npm install` fails with **EACCES** and "Your cache folder contains root-owned files" (macOS, Linux) | An npm command once run with `sudo` left files in `~/.npm` owned by root. Give them back to the user: `sudo chown -R $(id -u):$(id -g) ~/.npm`. Never run npm with `sudo`. |
 | Tests fail with **database "atleoplan_test" does not exist** | The Postgres volume predates the init script: `make test-db` creates it ([S1.6](#s16-creating-the-laravel-backend)). |
 | Something odd, cause unknown | `make doctor` checks the usual suspects above and prints the fix for each. |
