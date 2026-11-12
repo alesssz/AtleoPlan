@@ -1,0 +1,56 @@
+[
+  {
+    "id": "Plank",
+    "from": "reps",
+    "to": "time",
+    "why": "Held as long as possible, on the forearms"
+  },
+  {
+    "id": "Side_Bridge",
+    "from": "reps",
+    "to": "time",
+    "why": "The side plank, held"
+  },
+  {
+    "id": "Isometric_Chest_Squeezes",
+    "from": "reps",
+    "to": "time",
+    "why": "\"Hold for the recommended number of seconds\""
+  },
+  {
+    "id": "Isometric_Neck_Exercise_-_Front_And_Back",
+    "from": "reps",
+    "to": "time",
+    "why": "\"Hold for the recommended number of seconds\""
+  },
+  {
+    "id": "Isometric_Neck_Exercise_-_Sides",
+    "from": "reps",
+    "to": "time",
+    "why": "\"Hold for the recommended number of seconds\""
+  },
+  {
+    "id": "Mountain_Climbers",
+    "from": "reps",
+    "to": "time",
+    "why": "\"Repeat in an alternating fashion for 20-30 seconds\""
+  },
+  {
+    "id": "Balance_Board",
+    "from": "weight_reps",
+    "to": "time",
+    "why": "\"Hold the balance for as long as desired\"; no weight"
+  },
+  {
+    "id": "Downward_Facing_Balance",
+    "from": "weight_reps",
+    "to": "time",
+    "why": "A position held face down on an exercise ball; no weight"
+  },
+  {
+    "id": "Battling_Ropes",
+    "from": "weight_reps",
+    "to": "time",
+    "why": "Waves of the rope for a time; the rope is not a weight that changes"
+  }
+]

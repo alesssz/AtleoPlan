@@ -11,7 +11,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-translate plans-demo \
+        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-translate plans-demo \
         dev fe-install fe-build \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit toc toc-check \
         branch sync push merge
@@ -165,6 +165,7 @@ exercises-import: ## Fill the public exercise library from free-exercise-db (dow
 	@test -d $(FREE_EXERCISE_DB) || git clone --depth 1 https://github.com/yuhonas/free-exercise-db.git $(FREE_EXERCISE_DB)
 	$(MAKE) --no-print-directory reference-data
 	$(ARTISAN) exercises:import $(o)
+	$(ARTISAN) exercises:correct-logging-types
 	$(ARTISAN) exercises:import-extra
 	$(ARTISAN) exercises:translate
 
@@ -176,6 +177,14 @@ exercises-extra: ## Add the extra exercises (calisthenics) to the library, then 
 	$(MAKE) --no-print-directory reference-data
 	$(ARTISAN) exercises:import-extra
 	$(ARTISAN) exercises:translate
+
+# The logging types the import guesses wrong (Plank, held for a time, guessed
+# as reps), corrected from backend/database/data/logging-type-corrections.json
+# (DATA-3, docs/how-to/H1-database.md H1.19). exercises-import does this too;
+# alone, it puts right a library imported before the list existed. Only
+# exercises still on the guess and not yet in a plan or a workout change.
+exercises-correct: ## Correct the logging types the import guessed wrong (Plank as time); safe to run again
+	$(ARTISAN) exercises:correct-logging-types
 
 exercises-translate: ## Translate the imported exercises into it, es, de; options in o="…": make exercises-translate o="--locale=it --force"
 	$(ARTISAN) exercises:translate $(o)

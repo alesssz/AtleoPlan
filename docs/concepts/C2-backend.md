@@ -43,6 +43,7 @@ Every PHP file starts with a comment saying what it is and points to the section
   - [C2.14.3 The free-exercise-db import](#c2143-the-free-exercise-db-import)
   - [C2.14.4 The translation of the library](#c2144-the-translation-of-the-library)
   - [C2.14.5 The extra exercises](#c2145-the-extra-exercises)
+  - [C2.14.6 The logging types corrected after the import](#c2146-the-logging-types-corrected-after-the-import)
 
 ---
 
@@ -1182,6 +1183,7 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 | A command of our own, generated | `make artisan c="make:command Name"` ([C2.14](#c214-artisan-commands-of-our-own)) |
 | Fill the public exercise library, then translate it | `make exercises-import`, `make exercises-import o="--limit=5"` |
 | Translate the imported exercises again | `make exercises-translate`, `make exercises-translate o="--locale=it --force"` |
+| Correct the logging types the import guessed wrong | `make exercises-correct` ([C2.14.6](#c2146-the-logging-types-corrected-after-the-import)) |
 
 **Official documentation**, worth reading next to this page:
 - Laravel: https://laravel.com/docs. The pages *Routing*, *Eloquent*, *Migrations*, *Validation*, *Authorization*, *Queues*, *Sanctum* and *Fortify* match the sections above; *Authentication* and *Resetting Passwords* cover the by-hand way of [C2.7](#c27-signing-in-sanctum).
@@ -1193,7 +1195,7 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 
 ## C2.14 Artisan commands of our own
 
-Artisan's commands are not only Laravel's: an app can add its own, for work that is not a web request, such as an import, a clean-up, or a task run every night. The first one in this project is `exercises:import`, which fills the public exercise library from free-exercise-db; the second, `exercises:translate`, writes its Italian, Spanish and German texts ([C2.14.4](#c2144-the-translation-of-the-library)). How they were built and run: [H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built) and [H1.14](../how-to/H1-database.md#h114-the-translation-of-the-library-as-built).
+Artisan's commands are not only Laravel's: an app can add its own, for work that is not a web request, such as an import, a clean-up, or a task run every night. The first one in this project is `exercises:import`, which fills the public exercise library from free-exercise-db; the second, `exercises:translate`, writes its Italian, Spanish and German texts ([C2.14.4](#c2144-the-translation-of-the-library)); then `exercises:import-extra` adds exercises of our own ([C2.14.5](#c2145-the-extra-exercises)) and `exercises:correct-logging-types` puts right the import's wrong guesses ([C2.14.6](#c2146-the-logging-types-corrected-after-the-import)). How they were built and run: [H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built) and [H1.14](../how-to/H1-database.md#h114-the-translation-of-the-library-as-built).
 
 ### C2.14.1 A command class
 
@@ -1260,7 +1262,7 @@ Files the command reads are written by the test into the system's temporary fold
 | `equipment` (`e-z curl bar`, or null) | `equipment_id` | Matched by slug: `Str::slug('e-z curl bar')` is `e-z-curl-bar`, the slug of `EquipmentSeeder` |
 | `primaryMuscles`, `secondaryMuscles` | `exercise_muscle`, with the role | Matched by slug the same way; a muscle in both lists stays primary |
 | `images` | the `photos` collection, in order | Copied to the `public` disk; the first is the cover |
-| (nothing) | `logging_type` | Guessed: stretching and cardio → time; body only or no equipment → reps; the rest → weight and reps. It gave 637 weight and reps, 137 time, 102 reps |
+| (nothing) | `logging_type` | Guessed: stretching and cardio → time; body only or no equipment → reps; the rest → weight and reps. It gave 637 weight and reps, 137 time, 102 reps; nine wrong guesses, Plank among them, are then corrected ([C2.14.6](#c2146-the-logging-types-corrected-after-the-import)) |
 | `force`, `mechanic` | (not kept) | No column for them ([D3.4.7](../design/D3-data-model.md#d347-what-is-not-in-the-table)) |
 
 **Running it again** never duplicates, and never undoes the work of an admin:
@@ -1340,6 +1342,37 @@ free-exercise-db covers weights and machines well and calisthenics barely: no fr
 **Their translations** are entries of the same `exercise-translations/{it,es,de}.json` files, so `exercises:translate` writes them like the dataset's, marked machine translated (C2.14.4). 21 exercises: the 12 of a calisthenics plan that were missing (chest-to-bar and L-sit pull-ups, frog stand, ice cream maker, dead hang, chest-to-wall handstand, burpees, front lever, full bridge, shoulder dislocates, shoulder opener, two-arm kettlebell swing) and 9 of the same family (L-sit, toes-to-bar, back lever, tuck planche, hollow body hold, pike push-up, archer pull-up, skin the cat, dragon flag).
 
 **Adding one** is a new entry in the four files, then `make exercises-extra`; the tests of `ImportExtraExercisesTest.php` import the real file, so a muscle we do not have, a misspelt logging type or a missing translation fails there ([H1.17](../how-to/H1-database.md#h117-the-extra-exercises-as-built)).
+
+### C2.14.6 The logging types corrected after the import
+
+The import guesses how an exercise's sets are logged (C2.14.3), and the guess is wrong for a few of free-exercise-db's exercises: a plank is body weight, so it is guessed as reps, while it is held for a time. With reps, a plan cannot ask for "3 × 30 s plank" and workout mode asks how many. The right types are a list in the repository, **`backend/database/data/logging-type-corrections.json`**, applied by `php artisan exercises:correct-logging-types` (`make exercises-correct`, and `make exercises-import` right after the dataset).
+
+```json
+{ "id": "Plank", "from": "reps", "to": "time", "why": "Held as long as possible, on the forearms" }
+```
+
+| Key | What it is |
+|---|---|
+| `id` | The exercise's `external_id`, free-exercise-db's id |
+| `from` | The type the import guesses for it: the correction applies only to an exercise still on it |
+| `to` | The right type |
+| `why` | The reason, for whoever reads the file: JSON has no comments |
+
+**The rules** (`app/Actions/Exercises/CorrectLoggingType.php`), in this order:
+
+| The exercise is… | What happens | Why |
+|---|---|---|
+| Not in the library, or deleted by an admin | Nothing | An import with `--limit`, or an admin's choice |
+| Already on `to` | Nothing | A second run changes nothing |
+| On a third type, neither `from` nor `to` | Kept | An admin chose it in the admin panel |
+| In a plan or a workout already, of anyone | Kept, and named in the summary | Its sets were written for the old type: a workout with reps on a `time` exercise would be refused if sent again ([D3.6.3](../design/D3-data-model.md#d363-logged_sets), `SaveSessionRequest`) |
+| Otherwise | Changed to `to` | |
+
+**Which exercises.** Nine, all `time`: Plank, Side Bridge (the side plank), the two isometric neck exercises and Isometric Chest Squeezes ("hold for the recommended number of seconds"), Mountain Climbers ("for 20-30 seconds"), Balance Board, Downward Facing Balance and Battling Ropes. They were found by reading the dataset's instructions for "hold", "seconds" and "as long as", then one by one. Two kinds were left out on purpose:
+- **Push Up to Side Plank** stays reps: despite its name, its instructions say "for 10 or more reps".
+- **Holds and carries with a weight** (Plate Pinch, Crucifix, Farmer's Walk, Yoke Walk, the sleds) are wrong as weight and reps too, but `time` and `distance` record no weight ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)): correcting them would lose the kilograms. They wait in the backlog, DATA-4.
+
+**Why a command after the import, not a change to the guess.** The guess reads only the category and the equipment, and a plank and a crunch have the same ones: telling them apart needs a list of names anyway. A separate command also reaches a library imported before the list existed, which the import, leaving existing exercises alone, never would. How it was built and run: [H1.19](../how-to/H1-database.md#h119-the-corrected-logging-types-as-built).
 
 ---
 

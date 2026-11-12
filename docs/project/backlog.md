@@ -27,7 +27,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-2 Manage users in the admin panel](#be-2-manage-users-in-the-admin-panel)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
-  - [DATA-3 Timed exercises of free-exercise-db logged as reps](#data-3-timed-exercises-of-free-exercise-db-logged-as-reps)
+  - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
 
 ## How this page works
 
@@ -62,7 +62,7 @@ The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-
 1. The exercise library: its API, import, translation and screens are done; left are its admin screen, where translations are reviewed, and its media ([BE-1](#be-1-exercise-library-api-and-admin))
 2. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
 
-**Sign in with Google**, brought forward from phase 2, is built ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)). Its first try for real is the owner's: the Google credentials in `backend/.env` ([S1.11](../start/S1-setup.md#s111-sign-in-with-google-the-credentials)), then the steps of [H2.15.7](../how-to/H2-backend.md#h2157-checking-it-for-real). Google on Profile waits in [FEAT-10](#feat-10-google-on-profile).
+**Sign in with Google**, brought forward from phase 2, is built and was tried for real by the owner ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)). Google on Profile waits in [FEAT-10](#feat-10-google-on-profile).
 
 The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [FEAT-5](#feat-5-new-records-during-a-workout) (live records); its preferences are on Profile (UI-7, [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
 
@@ -238,14 +238,15 @@ Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library). The admin scree
 
 ## DATA
 
-### DATA-3 Timed exercises of free-exercise-db logged as reps
+### DATA-4 Weighted holds and carries have no fitting logging type
 
-**Priority:** medium · **Kind:** wrong data · **Found:** 2026-11-10
+**Priority:** low · **Kind:** data model · **Found:** 2026-11-12
 
-**What is missing.** The import guesses the logging type ([D2.3](../design/D2-decisions.md#d23-exercise-library)), and body-weight exercises held for a time are guessed as reps: Plank, Side Bridge (the side plank), Push Up to Side Plank and a few others. A plan cannot ask for "3 × 30 s plank", and workout mode asks for reps. The extra exercises state their type and are right ([C2.14.5](../concepts/C2-backend.md#c2145-the-extra-exercises)); these are free-exercise-db's.
+**What is missing.** Some of free-exercise-db's exercises are a weight held for a time or carried for a distance: Plate Pinch and Crucifix (held), Farmer's Walk, Yoke Walk, Rickshaw Carry and the sleds (carried). The import guesses them as weight and reps, which is wrong; but `time` and `distance` record no weight ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)), so DATA-3 left them alone ([C2.14.6](../concepts/C2-backend.md#c2146-the-logging-types-corrected-after-the-import)). "Farmer's walk, 2 × 32 kg, 40 m" cannot be written.
 
 **Options.**
-- A) A list of corrections in the repository, external id → logging type, applied by a command that `make exercises-import` runs after the import, only to exercises still on the guessed type, so an admin's choice is kept.
-- B) Correct them by hand in the admin panel, once it exists (BE-1).
+- A) `time` and `distance` accept an optional `weight_kg`, as `reps` does for an added weight: a change to the rules of `SaveSessionRequest`, of the plan's sets and of workout mode's rows, no new column. Then the list of DATA-3 gains these exercises.
+- B) Two new types, `weight_time` and `weight_distance`: clearer, but one more value in the enum, the migration's check, and every `switch` on the type in the frontend.
+- C) Nothing: a weighted carry is rare in the plans written so far.
 
-**Recommended.** A: it is a dozen rows, it reaches every database, and it stays right after `make fresh`.
+**Recommended.** C until a plan needs one; then A, which keeps four types and reuses the optional weight that `reps` already has.
