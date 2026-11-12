@@ -16,7 +16,8 @@
  */
 
 // Imports: the resource and the pages tested, the enums, the models, the trait that empties
-// the database, the seeders of the fixed lists, and Livewire's test entry
+// the database, the seeders of the fixed lists, a fake upload, the Storage
+// facade, and Livewire's test entry
 use App\Enums\LoggingType;
 use App\Filament\Resources\Exercises\ExerciseResource;
 use App\Filament\Resources\Exercises\Pages\CreateExercise;
@@ -30,6 +31,8 @@ use Database\Seeders\MuscleSeeder;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -149,6 +152,25 @@ it('opens an exercise by language and saves a reviewed translation', function ()
 
     expect($plank->fresh()->getTranslation('name', 'it'))->toBe('Plank')
         ->and($plank->fresh()->machine_translated)->toBe(['es', 'de']);
+});
+
+// Scenario: the admin adds a photo to a public exercise with the plugin's field
+it('adds photos to a public exercise', function () {
+    // An empty fake disk, and a public exercise with no photos
+    Storage::fake('public');
+    $plank = libraryExercise('Plank', 'Plank');
+
+    Livewire::test(EditExercise::class, ['record' => $plank->getRouteKey()])
+        // A file field's state is a list of files; Livewire takes the fake
+        // upload as if the browser had sent it
+        ->fillForm(['photos' => [UploadedFile::fake()->image('plank.jpg', 800, 600)]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    // One photo, with the conversions the queue made (sync in the tests)
+    $photo = $plank->fresh()->getFirstMedia('photos');
+    expect($photo)->not->toBeNull()
+        ->and($photo->hasGeneratedConversion('thumb'))->toBeTrue();
 });
 
 it('does not open a personal exercise', function () {

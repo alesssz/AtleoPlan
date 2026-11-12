@@ -44,7 +44,7 @@ export function SessionExercises({ exercises, comparisons, unit }: SessionExerci
   return (
     <ol className="flex flex-col gap-3">
       {exercises.map((item, index) => {
-        // The photo, if the exercise has one
+        // The photo, if the exercise has one: its small copy, thumb_url
         const cover = item.exercise.photos[0]
         // W1 W2 1 2 3: warm-ups counted apart, as in workout mode
         const numbers = setNumbers(item.sets)
@@ -57,7 +57,7 @@ export function SessionExercises({ exercises, comparisons, unit }: SessionExerci
         return (
           <li key={item.id} className="flex gap-4 rounded-2xl border bg-card/60 p-4">
             {cover
-              ? <img src={cover.url} alt="" className="size-14 shrink-0 rounded-xl bg-muted object-cover" />
+              ? <img src={cover.thumb_url} alt="" className="size-14 shrink-0 rounded-xl bg-muted object-cover" />
               : <div aria-hidden="true" className="grid size-14 shrink-0 place-items-center rounded-xl bg-muted"><Dumbbell className="size-6 text-muted-foreground" /></div>}
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold">{item.exercise.name}</h3>

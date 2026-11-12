@@ -15,6 +15,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
+  - [UI-8 Photos while creating an exercise](#ui-8-photos-while-creating-an-exercise)
 - [FEAT](#feat)
   - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
   - [FEAT-5 New records during a workout](#feat-5-new-records-during-a-workout)
@@ -22,8 +23,8 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-7 An exercise's own history](#feat-7-an-exercises-own-history)
   - [FEAT-8 Write a plan in a spreadsheet, and import it](#feat-8-write-a-plan-in-a-spreadsheet-and-import-it)
   - [FEAT-10 Google on Profile](#feat-10-google-on-profile)
+  - [FEAT-11 Videos of an exercise](#feat-11-videos-of-an-exercise)
 - [BE](#be)
-  - [BE-1 Exercise library: API and admin](#be-1-exercise-library-api-and-admin)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
@@ -58,12 +59,13 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [D3. Data model](../design/D3-data-model.md).
 
-1. The exercise library: its API, import, translation, screens and admin screen are done; left is its media ([BE-1](#be-1-exercise-library-api-and-admin))
-2. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
+1. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
+
+**The exercise library** is done (BE-1): tables, API, import, translation, screens, admin screen, photos with their small copies and Duplicate as mine ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)). Its videos wait for phase 2 in [FEAT-11](#feat-11-videos-of-an-exercise); adding photos while creating an exercise in [UI-8](#ui-8-photos-while-creating-an-exercise).
 
 **Sign in with Google**, brought forward from phase 2, is built and was tried for real by the owner ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)). Google on Profile waits in [FEAT-10](#feat-10-google-on-profile).
 
-**The admin panel** has its two screens, the public library and the users (BE-1's `feat/exercise-admin` and BE-2; [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament)).
+**The admin panel** has its two screens, the public library with its photos and the users (BE-1 and BE-2; [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament)).
 
 The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [FEAT-5](#feat-5-new-records-during-a-workout) (live records); its preferences are on Profile (UI-7, [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
 
@@ -119,6 +121,19 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - B) Open the plan's editor with the exercise already added: `/plans/:id/edit?add=12&day=2`.
 
 **Recommended.** B: it reuses the editor, its draft and its rules, and the user sees the result before saving.
+
+### UI-8 Photos while creating an exercise
+
+**Priority:** low · **Kind:** missing action · **Found:** 2026-11-12
+
+**What is missing.** Photos are added on an exercise's edit page ([C1.14.7](../concepts/C1-frontend.md#c1147-uploading-photos-and-duplicate-as-mine)): the upload needs the exercise's id, which the server gives at Create. On the new exercise's page a line says so, and the user creates, then opens Edit to add them.
+
+**Options.**
+- A) The create page keeps the files chosen (previews from `URL.createObjectURL`), creates the exercise, then sends them one by one with their bars, and opens the exercise.
+- B) After Create, open the edit page instead of the exercise's, with the photos' section in view.
+- C) As it is.
+
+**Recommended.** B first, a one-line change in `useGoToExercise()`; A if B feels like a detour.
 
 ## FEAT
 
@@ -197,21 +212,19 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Recommended.** B when someone other than the owner uses Google sign-in; A if Apple comes (phase 2), when choosing between two providers makes Link and Unlink worth it.
 
+### FEAT-11 Videos of an exercise
+
+**Priority:** low, phase 2 · **Kind:** feature · **Found:** 2026-11-12
+
+**What is missing.** The videos of [D2.5](../design/D2-decisions.md#d25-photos-and-videos) and [D1.4.5](../design/D1-ui.md#d145-exercise-editor): up to 2 per exercise, 30 s and 100 MB each, converted by a queued job with ffmpeg (already in the Docker image) to 720p H.264 without audio, with a poster image, the original deleted; "Processing…" until the job ends; on the exercise's page, muted and looping, full screen on a tap. Left out of `feat/exercise-media`, which did the photos: D1.8 puts video upload in phase 2.
+
+**Options.**
+- A) The same shape as the photos: `POST /api/exercises/{id}/videos`, a job of our own that runs ffmpeg (medialibrary's conversions make images, not videos), a `processing` state in the JSON, the panel's field for public exercises.
+- B) Only the YouTube link, which already exists ([D1.4.5](../design/D1-ui.md#d145-exercise-editor)).
+
+**Recommended.** A in phase 2; B until then.
+
 ## BE
-
-### BE-1 Exercise library: API and admin
-
-**Priority:** high · **Kind:** backend · **Found:** 2026-11-05
-
-**Done:**
-- the tables, models, relations and seeders of the library, with their tests (`feat/exercise-tables`, [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built));
-- the API without media: the policy, the list with search, filters and pages, reading, creating, changing and deleting personal exercises, the lists of muscles and equipment (`feat/exercise-api`, [C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints), [H2.12](../how-to/H2-backend.md#h212-the-exercise-library-api-as-built));
-- the admin screen of the public library, one tab per language with the review switch, in the admin's language (`feat/exercise-admin`, with BE-2's users screen; [C2.8.2](../concepts/C2-backend.md#c282-the-exercise-library-screen), [H2.16](../how-to/H2-backend.md#h216-the-admin-panel-as-built)).
-
-**What is missing.** One part, on its own branch:
-- `feat/exercise-media`: the photo and video uploads of personal exercises, with their limits, the conversion job and the order of the photos ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)); the resized photos (a 400 px thumbnail for the library's rows) and the videos in `ExerciseResource`, which already sends the photos as stored; in the editor, the media field of [D1.4.5](../design/D1-ui.md#d145-exercise-editor); **Duplicate as mine** for a public exercise ([D1.4.4](../design/D1-ui.md#d144-exercise-details)), which copies its photos too.
-
-It also brings the media of public exercises to the admin panel: an upload field on the edit page, and their processing status ([D1.4.15](../design/D1-ui.md#d1415-admin-panel-filament)). Tables: [D3.4](../design/D3-data-model.md#d34-exercise-library).
 
 ### BE-3 Harden the public sign-in routes
 

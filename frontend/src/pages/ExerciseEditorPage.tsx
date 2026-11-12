@@ -8,6 +8,8 @@
  * - **Edit:** the exercise is loaded first, then the form starts from its
  *   values. Only the user's own exercises: the backend refuses the others
  *   with a 403 anyway (ExercisePolicy), the page says so before trying.
+ *   Under the form, its photos (ExercisePhotoManager), saved one change at
+ *   a time; on a new exercise, a line says they come after Create.
  *
  * After saving, the exercise's page; `replace: true` so that Back from there
  * does not reopen the form.
@@ -16,6 +18,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useCreateExercise, useExercise, useUpdateExercise, type Exercise } from '@/api/exercises'
 import { ExerciseForm } from '@/components/exercises/ExerciseForm'
+import { ExercisePhotoManager } from '@/components/exercises/ExercisePhotoManager'
 import { emptyFormValues, formValuesFrom } from '@/components/exercises/exercise-form'
 import { PageHeader } from '@/components/PageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -52,6 +55,9 @@ function NewExercise() {
         submitLabel={t('exercises.editor.create')}
         cancelTo="/exercises"
       />
+      {/* Photos need the exercise's id, which the server gives at Create:
+          they are added from Edit afterwards (C1.14.7) */}
+      <p className="mt-6 text-sm text-muted-foreground">{t('exercises.editor.photosLater')}</p>
     </>
   )
 }
@@ -103,6 +109,11 @@ function EditExercise({ id }: EditExerciseProps) {
         submitLabel={t('exercises.editor.save')}
         cancelTo={`/exercises/${id}`}
       />
+      {/* The photos, under the form and apart from it: each change is sent
+          at once, not with Save (C1.14.7) */}
+      <div className="mt-8">
+        <ExercisePhotoManager exercise={exercise.data} />
+      </div>
     </>
   )
 }

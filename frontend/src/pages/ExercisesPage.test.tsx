@@ -45,7 +45,8 @@ describe('ExercisesPage', () => {
     const publicRow = await screen.findByRole('link', { name: /Barbell Bench Press/ })
     expect(publicRow).toHaveAttribute('href', '/exercises/12')
     expect(within(publicRow).getByText('Chest')).toBeInTheDocument()
-    expect(publicRow.querySelector('img')).toHaveAttribute('src', '/storage/1/0.jpg')
+    // The cover, from its small copy (thumb_url)
+    expect(publicRow.querySelector('img')).toHaveAttribute('src', '/storage/1/conversions/0-thumb.webp')
     expect(within(publicRow).queryByText('Mine')).not.toBeInTheDocument()
 
     const mineRow = screen.getByRole('link', { name: /Panca mia/ })

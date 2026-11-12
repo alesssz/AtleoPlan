@@ -11,7 +11,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-translate plans-demo \
+        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
         dev fe-install fe-build \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit toc toc-check \
         branch sync push merge
@@ -19,6 +19,12 @@ SHELL := bash
 # docker compose, and the two ways into the backend container
 DC      := docker compose
 ARTISAN := $(DC) exec backend php artisan
+# The same, with the photos' conversions made at once instead of queued
+# (QUEUE_CONVERSIONS_BY_DEFAULT, config of spatie/laravel-medialibrary):
+# for commands that add or convert many photos, which `queue:listen`, starting
+# Laravel again for each job, would take long to work through
+# (docs/concepts/C2-backend.md C2.5.9).
+ARTISAN_NOW := $(DC) exec -e QUEUE_CONVERSIONS_BY_DEFAULT=false backend php artisan
 # npm, always run inside frontend/
 NPM     := npm --prefix frontend
 # The branch checked out, for push
@@ -164,7 +170,7 @@ reference-data: ## Muscles and equipment, the lists the library points to; safe 
 exercises-import: ## Fill the public exercise library from free-exercise-db (downloads it the first time) and the extra exercises, then translate it: make exercises-import o="--limit=5"
 	@test -d $(FREE_EXERCISE_DB) || git clone --depth 1 https://github.com/yuhonas/free-exercise-db.git $(FREE_EXERCISE_DB)
 	$(MAKE) --no-print-directory reference-data
-	$(ARTISAN) exercises:import $(o)
+	$(ARTISAN_NOW) exercises:import $(o)
 	$(ARTISAN) exercises:correct-logging-types
 	$(ARTISAN) exercises:import-extra
 	$(ARTISAN) exercises:translate
@@ -185,6 +191,14 @@ exercises-extra: ## Add the extra exercises (calisthenics) to the library, then 
 # exercises still on the guess and not yet in a plan or a workout change.
 exercises-correct: ## Correct the logging types the import guessed wrong (Plank as time); safe to run again
 	$(ARTISAN) exercises:correct-logging-types
+
+# The small (400 px) and large (1600 px) WebP copies of every photo
+# (feat/exercise-media, docs/how-to/H2-backend.md H2.17). New photos get them
+# by themselves; this makes them for photos added before they existed, such
+# as a library imported earlier. --only-missing: those already made are kept,
+# so running it again only does what is left.
+exercises-thumbnails: ## Make the missing small and large copies of the exercises' photos (a library imported before them)
+	$(ARTISAN_NOW) media-library:regenerate --only-missing
 
 exercises-translate: ## Translate the imported exercises into it, es, de; options in o="…": make exercises-translate o="--locale=it --force"
 	$(ARTISAN) exercises:translate $(o)

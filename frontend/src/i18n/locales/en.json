@@ -353,7 +353,9 @@
       "deleteText": "It disappears from your library. Plans and workouts that use it keep it.",
       "deleteError": "The exercise could not be deleted. Try again.",
       "cancel": "Cancel",
-      "notFound": "This exercise does not exist, or it is not yours."
+      "notFound": "This exercise does not exist, or it is not yours.",
+      "duplicate": "Duplicate as mine",
+      "duplicateError": "The copy could not be made. Try again."
     },
     "editor": {
       "newTitle": "New exercise",
@@ -379,7 +381,31 @@
         "required": "Write a name.",
         "tooLong": "At most {{max}} characters.",
         "youtube": "Paste a YouTube link (youtube.com or youtu.be)."
-      }
+      },
+      "photosLater": "You can add photos once the exercise is created, from Edit."
+    },
+    "photos": {
+      "title": "Photos",
+      "hint": "Up to {{max}}: JPEG, PNG or WebP, 10 MB each. The first is the cover. Each change is saved at once.",
+      "cover": "Cover",
+      "number": "Photo {{number}}",
+      "earlier": "Move photo {{number}} earlier",
+      "later": "Move photo {{number}} later",
+      "remove": "Remove photo {{number}}",
+      "removeTitle": "Remove photo {{number}}?",
+      "removeText": "It is deleted for good.",
+      "removeConfirm": "Remove",
+      "add": "Add photos",
+      "drop": "or drop them here",
+      "uploading": "Uploading {{name}}",
+      "retry": "Try {{name}} again",
+      "dismiss": "Dismiss {{name}}",
+      "wrongType": "«{{name}}» is not a JPEG, PNG or WebP photo.",
+      "tooBig": "«{{name}}» is over 10 MB.",
+      "tooMany": "An exercise can have at most {{max}} photos.",
+      "failed": "The upload did not work. Try again.",
+      "offline": "No connection: try again when you are back online.",
+      "changeFailed": "The photos could not be changed. Try again."
     }
   },
   "progress": {

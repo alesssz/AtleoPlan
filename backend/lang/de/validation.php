@@ -22,12 +22,15 @@ return [
     'gte' => [
         'numeric' => 'Das Feld :attribute muss mindestens :value sein.',
     ],
+    'image' => 'Das Feld :attribute muss ein Bild sein.',
     'integer' => 'Das Feld :attribute muss eine ganze Zahl sein.',
     'logged_value_mismatch' => 'Das Feld :attribute passt nicht dazu, wie diese Übung erfasst wird.',
     'max' => [
         'array' => 'Das Feld :attribute darf höchstens :max Einträge haben.',
+        'file' => 'Das Feld :attribute darf höchstens :max Kilobyte groß sein.',
         'string' => 'Das Feld :attribute darf höchstens :max Zeichen haben.',
     ],
+    'mimes' => 'Das Feld :attribute muss eine Datei vom Typ :values sein.',
     'min' => [
         'numeric' => 'Das Feld :attribute muss mindestens :min sein.',
         'string' => 'Das Feld :attribute muss mindestens :min Zeichen haben.',
@@ -40,12 +43,18 @@ return [
     'string' => 'Das Feld :attribute muss ein Text sein.',
     'superset_neighbours' => 'Die Übungen eines Supersatzes müssen direkt aufeinander folgen.',
     'superset_size' => 'Ein Supersatz muss mindestens zwei Übungen haben.',
+    'photo_order' => 'Die Reihenfolge muss jedes Foto der Übung genau einmal enthalten.',
+    'too_many_photos' => 'Eine Übung kann höchstens :max Fotos haben.',
     'unique' => 'Dieser Wert von :attribute wird bereits verwendet.',
+    'uploaded' => ':attribute konnte nicht hochgeladen werden.',
     'url' => 'Das Feld :attribute muss eine gültige Webadresse sein.',
     'uuid' => 'Das Feld :attribute muss eine gültige UUID sein.',
 
     // How each field is called inside a message
     'attributes' => [
+        // The exercise's photos (StoreExercisePhotoRequest, ReorderExercisePhotosRequest)
+        'photo' => 'Foto',
+        'ids' => 'Reihenfolge der Fotos',
         'name' => 'Name',
         'email' => 'E-Mail',
         'password' => 'Passwort',

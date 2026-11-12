@@ -152,7 +152,7 @@ So a session copies nothing from the future: it records what happened, and it su
 | Tables | Created by |
 |---|---|
 | New columns on `users` | Done; `active_plan_id` in its own migration after `plans`, with FEAT-2 |
-| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin); muscles and equipment are filled by their seeders, the public exercises by the import of DATA-1, `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
+| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of BE-1; muscles and equipment are filled by their seeders, the public exercises by the import of DATA-1, `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
 | `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of FEAT-2, with their API ([H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built)) |
 | `workout_sessions`, `session_exercises`, `logged_sets` | Done, in the first part of [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home), with their API ([H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built)) |
 | `social_accounts`; `users.password` nullable | Done, with signing in with Google ([H1.18](../how-to/H1-database.md#h118-the-google-accounts-as-built)) |
@@ -529,7 +529,7 @@ $exercise->muscles()->wherePivot('role', 'primary')->pluck('slug'); // ["chest"]
 
 ### D3.4.4 Photos and videos
 
-They go in the existing `media` table of spatie/laravel-medialibrary, not in columns of `exercises`, in the collections `photos` and `videos`. Its `order_column` holds the order chosen in the editor, and the first photo is the cover.
+They go in the existing `media` table of spatie/laravel-medialibrary, not in columns of `exercises`, in the collections `photos` and `videos`. Its `order_column` holds the order chosen in the editor, and the first photo is the cover. Each photo's file is on the `public` disk in `storage/app/public/<media id>/`, and its two WebP copies, `thumb` (400 px) and `large` (1600 px), in `<media id>/conversions/`; the row's `generated_conversions` says which copies exist ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)).
 
 - The limits of [D2.5](D2-decisions.md#d25-photos-and-videos) (2 videos, 5 photos, sizes) are checked when uploading, not by the database.
 - A soft-deleted exercise **keeps its files**: the library removes them only on a `forceDelete()`.

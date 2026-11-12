@@ -21,6 +21,7 @@ Every PHP file starts with a comment saying what it is and points to the section
   - [C2.5.6 Validating nested data](#c256-validating-nested-data)
   - [C2.5.8 A plan as a file](#c258-a-plan-as-a-file)
   - [C2.5.7 The workouts' endpoints](#c257-the-workouts-endpoints)
+  - [C2.5.9 The photos of an exercise](#c259-the-photos-of-an-exercise)
 - [C2.6 Database: migrations, models, factories, seeders](#c26-database-migrations-models-factories-seeders)
 - [C2.7 Signing in: Sanctum](#c27-signing-in-sanctum)
   - [C2.7.1 How a session works](#c271-how-a-session-works)
@@ -323,19 +324,19 @@ The library's API, all under `auth:sanctum` ([D1.4.3](../design/D1-ui.md#d143-ex
     { "id": 17, "slug": "triceps", "name": "Tricipiti", "role": "secondary" }
   ],
   "photos": [
-    { "id": 1, "url": "/storage/1/0.jpg" },
-    { "id": 2, "url": "/storage/2/1.jpg" }
+    { "id": 1, "url": "/storage/1/conversions/0-large.webp", "thumb_url": "/storage/1/conversions/0-thumb.webp" },
+    { "id": 2, "url": "/storage/2/conversions/1-large.webp", "thumb_url": "/storage/2/conversions/1-thumb.webp" }
   ]
 }
 ```
 
-**Photos are paths, not full URLs.** medialibrary builds a photo's URL from `APP_URL`, which inside the container is `http://localhost:8000`, while the browser reaches Laravel at `localhost:8500`, through Vite at 5673: a full URL would point to the wrong place. `ExerciseResource` keeps only the path, `/storage/1/0.jpg`, which works wherever the React app is, since its server forwards `/storage` to Laravel (Vite in development, Caddy in production), and keeps the photos on the app's own address for the offline cache to come. `public/storage` must be a link to `storage/app/public`: `make setup` creates it with `storage:link`, and `make artisan c="storage:link"` does on a clone made before. The controller loads `media` with the other relations, so the photos add one query per page, not one per exercise.
+**Photos are paths, not full URLs.** medialibrary builds a photo's URL from `APP_URL`, which inside the container is `http://localhost:8000`, while the browser reaches Laravel at `localhost:8500`, through Vite at 5673: a full URL would point to the wrong place. `ExercisePhotoResource` keeps only the path, `/storage/1/conversions/0-large.webp`, which works wherever the React app is, since its server forwards `/storage` to Laravel (Vite in development, Caddy in production), and keeps the photos on the app's own address for the offline cache to come. `public/storage` must be a link to `storage/app/public`: `make setup` creates it with `storage:link`, and `make artisan c="storage:link"` does on a clone made before. The controller loads `media` with the other relations, so the photos add one query per page, not one per exercise.
 
 **What is sent to create or change one** (`StoreExerciseRequest`): `name` (required, up to 100 characters), `aliases` and `instructions` (lists of texts), `description`, `logging_type`, `equipment_id`, `youtube_url` (a YouTube address), and `muscles`, a list of `{ "id": 6, "role": "primary" }`. A change sends only the fields that change. `muscles`, when sent, is the complete list: muscles left out are removed.
 
 **One language per personal exercise** ([D2.4](../design/D2-decisions.md#d24-languages)). The texts are stored under the request's language and replace any other: an exercise written in Italian, then edited with the app in English, becomes English. Otherwise the old Italian name would come back on switching the app to Italian again.
 
-The photos are read as stored (the imported ones, so far). Uploading them, their resized versions and the videos come with `feat/exercise-media` ([BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin)).
+Each photo has two addresses, a large and a small copy; uploading, ordering and removing them, and Duplicate as mine: [C2.5.9](#c259-the-photos-of-an-exercise).
 
 ### C2.5.5 The plans' endpoints
 
@@ -562,6 +563,52 @@ PUT /api/sessions/0192…f30  { started_at, finished_at, exercises: [ { sets: [ 
 - **The suggested day** is `Plan::suggestedDay()`: the day after the last one done in a finished, not deleted workout of the plan, back to the first after the last; the first day when nothing was done yet, or when the last day done was deleted ([D2.8](../design/D2-decisions.md#d28-workout-rules)).
 - **The estimate** counts, for each planned set, 40 seconds of work plus its exercise's rest (the user's default when none). An estimate, never stored.
 - **The week** is the app's to work out: the recent workouts cover the last 8 days, enough for this week in any time zone, and the phone groups them by its own Monday ([D3.2.5](../design/D3-data-model.md#d325-times)).
+
+### C2.5.9 The photos of an exercise
+
+`feat/exercise-media` ([D2.5](../design/D2-decisions.md#d25-photos-and-videos), [D1.4.5](../design/D1-ui.md#d145-exercise-editor)): the photos of personal exercises, uploaded from the app; their smaller copies; Duplicate as mine. The public exercises' photos are managed in the admin panel ([C2.8.2](#c282-the-exercise-library-screen)). How it was built, with the real output: [H2.17](../how-to/H2-backend.md#h217-the-photos-of-an-exercise-as-built).
+
+**medialibrary in four ideas.** spatie/laravel-medialibrary keeps files for models:
+1. A file is a **row of `media`**, linked to its model (`model_type`, `model_id`) and to a **collection**, here `photos`; `order_column` is the order, the first is the cover.
+2. The file itself is on a **disk**, `public` (`storage/app/public/<media id>/photo.jpg`), served at `/storage/...` through the `public/storage` link.
+3. **Conversions** are copies the package makes of each file, declared in the model's `registerMediaConversions()`; they go in `<media id>/conversions/`, and the row's `generated_conversions` records which exist.
+4. Conversions are **queued** by default: a job of the `queue` container makes them a moment later, so the upload answers at once.
+
+**The two copies** (`Exercise::registerMediaConversions()`):
+
+| Conversion | Size | For |
+|---|---|---|
+| `thumb` | At most 400 × 400 px, WebP | The lists' 40–56 px squares and workout mode's 80 px one, sharp on a dense screen |
+| `large` | At most 1600 × 1600 px, WebP | The exercise's page |
+
+`Fit::Max` keeps the proportions and never enlarges: a 1200 × 900 photo gets a 400 × 300 thumb, an 850 px one a `large` of 850 px. The original stays on the disk ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)).
+
+**The JSON of a photo** (`ExercisePhotoResource`): `id`, `url` (the `large` copy) and `thumb_url`. Until the job has made a copy, its address is the original's: the photo shows at once, heavier for a few seconds. The answer of an upload is always that case, since the job runs after it.
+
+**The endpoints**, only on the user's own exercises (`ExercisePolicy::update()`; a public one is a 403):
+
+| Route | Body | Answer |
+|---|---|---|
+| `POST /api/exercises/{id}/photos` | A multipart form, field `photo` | 201, the photo |
+| `PUT /api/exercises/{id}/photos` | `{ "ids": [14, 12, 13] }`, every photo once, the cover first | 200, the photos in order |
+| `DELETE /api/exercises/{id}/photos/{photo}` | | 204; 404 for a photo of another exercise |
+| `POST /api/exercises/{id}/duplicate` | | 201, the copy (`ExercisePolicy::duplicate()`: public exercises only) |
+
+**The rules** (`StoreExercisePhotoRequest`, `ReorderExercisePhotosRequest`, the action `ExercisePhotos`):
+
+| Rule | Message (422 on the field) |
+|---|---|
+| `File::image()->types(['jpg', 'jpeg', 'png', 'webp'])->max(10 * 1024)`: an image by its content, of these types, at most 10 MB (`max` is in kilobytes) | Laravel's `image`, `mimes`, `max.file` |
+| At most 5 photos, checked in `after()` | `validation.too_many_photos` |
+| The order lists exactly the exercise's photos (`present`, not `required`: an empty list is the right order for an exercise with none) | `validation.photo_order` |
+
+The file's name becomes `photo.<extension>` (`usingFileName()`): the phone's `IMG_4032.JPG` says nothing, and the extension is guessed from the content. `Media::setNewOrder($ids)` writes the order; `$media->delete()` removes the row and its files.
+
+**Duplicate as mine** (`DuplicateExercise`): a new exercise owned by the user, with the texts in the request's language only (falling back to English), as every personal exercise ([D2.4](../design/D2-decisions.md#d24-languages)); the logging type, the equipment, the video link, the muscles with their roles; and the photos, each copied as a new file with `$media->copy($copy, 'photos')`, so the copy keeps them whatever happens to the public exercise. Not the import's columns.
+
+**Many photos at once.** The `queue` container runs `queue:listen`, which starts Laravel again for every job: fine for a photo, slow for the 1,746 of the import. `QUEUE_CONVERSIONS_BY_DEFAULT=false` makes the conversions run inside the command instead; the Makefile's `ARTISAN_NOW` sets it, and `make exercises-import` and `make exercises-thumbnails` use it. `make exercises-thumbnails` runs `media-library:regenerate --only-missing`: the copies of photos added before they existed; 5 minutes for the 1,746 imported photos.
+
+**The library's image tool is GD**, built into the Docker image (`install-php-extensions gd`): it reads JPEG, PNG and WebP and writes WebP, not HEIC (D2.5).
 
 ---
 
@@ -1115,7 +1162,7 @@ A Filament page is a **Livewire** component: after the first load, each click th
 |---|---|
 | `ExerciseResource.php` | The model, the menu, the pages, the queries and the permissions |
 | `Tables/ExercisesTable.php` | The list: first photo, name, equipment, primary muscles, logging type, languages to review; search; filters |
-| `Schemas/ExerciseForm.php` | The form: one tab per language, then the exercise's data, then its source |
+| `Schemas/ExerciseForm.php` | The form: one tab per language, then the exercise's data, its photos and its source |
 | `Pages/ListExercises.php`, `CreateExercise.php`, `EditExercise.php` | The pages; the last two hand the form to the action |
 | `app/Actions/Exercises/SavePublicExercise.php` | The rules of saving, tested without Filament |
 
@@ -1162,7 +1209,17 @@ The edit page fills the form with `SavePublicExercise::formState()` and saves th
 
 `search_text` follows by itself: the model's `saving` event rewrites it at every save ([C2.6](#c26-database-migrations-models-factories-seeders)).
 
-**Not here yet:** the photos and videos of public exercises (`feat/exercise-media`). The list shows the first photo, and the edit page how many there are.
+**The photos** (`feat/exercise-media`) are a section of the form with the field of the official plugin **filament/spatie-laravel-media-library-plugin**, `SpatieMediaLibraryFileUpload`: upload, preview, drag into order, remove, with the app's limits (5, 10 MB, JPEG, PNG, WebP). It reads and writes the exercise's `photos` collection itself, so the files never pass through `SavePublicExercise`: Filament saves the field after the exercise, with `saveRelationships()`, on the create page too. Its previews and the list's column show the small copy, `thumb` ([C2.5.9](#c259-the-photos-of-an-exercise)).
+
+```php
+SpatieMediaLibraryFileUpload::make('photos')
+    ->collection('photos')
+    ->multiple()->reorderable()->maxFiles(ExercisePhotos::MAX)
+    ->image()->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])->maxSize(10 * 1024)
+    ->conversion('thumb')
+```
+
+Videos come in phase 2.
 
 ### C2.8.3 The users screen
 
@@ -1325,6 +1382,7 @@ Every command runs inside the container. The `make` shortcuts avoid typing `dock
 | Fill the public exercise library, then translate it | `make exercises-import`, `make exercises-import o="--limit=5"` |
 | Translate the imported exercises again | `make exercises-translate`, `make exercises-translate o="--locale=it --force"` |
 | Correct the logging types the import guessed wrong | `make exercises-correct` ([C2.14.6](#c2146-the-logging-types-corrected-after-the-import)) |
+| The small and large copies of the photos that lack them | `make exercises-thumbnails` ([C2.5.9](#c259-the-photos-of-an-exercise)) |
 
 **Official documentation**, worth reading next to this page:
 - Laravel: https://laravel.com/docs. The pages *Routing*, *Eloquent*, *Migrations*, *Validation*, *Authorization*, *Queues*, *Sanctum* and *Fortify* match the sections above; *Authentication* and *Resetting Passwords* cover the by-hand way of [C2.7](#c27-signing-in-sanctum).
@@ -1417,7 +1475,7 @@ Files the command reads are written by the test into the system's temporary fold
 
 **One exercise that fails** (a muscle or kind of equipment not in our lists) is rolled back alone: the command lists it at the end, imports the others, and ends with a failure code.
 
-**Photos are stored as they come**, as the source's JPEGs. The conversions of [D2.5](../design/D2-decisions.md#d25-photos-and-videos) (WebP at 1600 px and a 400 px thumbnail) come with BE-1's `feat/exercise-media`, which can generate them for the photos already imported with medialibrary's `media-library:regenerate`.
+**Photos are stored as they come**, as the source's JPEGs, and get their two WebP copies (1600 and 400 px) as any photo does ([C2.5.9](#c259-the-photos-of-an-exercise)); `make exercises-import` makes them inside the command. A library imported before the copies existed gets them with `make exercises-thumbnails`.
 
 
 ### C2.14.4 The translation of the library

@@ -353,7 +353,9 @@
       "deleteText": "Sie verschwindet aus deiner Bibliothek. Pläne und Trainings, die sie nutzen, behalten sie.",
       "deleteError": "Die Übung konnte nicht gelöscht werden. Versuche es noch einmal.",
       "cancel": "Abbrechen",
-      "notFound": "Diese Übung gibt es nicht, oder sie gehört nicht dir."
+      "notFound": "Diese Übung gibt es nicht, oder sie gehört nicht dir.",
+      "duplicate": "Als eigene kopieren",
+      "duplicateError": "Die Kopie konnte nicht erstellt werden. Versuche es erneut."
     },
     "editor": {
       "newTitle": "Neue Übung",
@@ -379,7 +381,31 @@
         "required": "Gib einen Namen ein.",
         "tooLong": "Höchstens {{max}} Zeichen.",
         "youtube": "Füge einen YouTube-Link ein (youtube.com oder youtu.be)."
-      }
+      },
+      "photosLater": "Fotos kannst du hinzufügen, sobald die Übung erstellt ist, über Bearbeiten."
+    },
+    "photos": {
+      "title": "Fotos",
+      "hint": "Bis zu {{max}}: JPEG, PNG oder WebP, je 10 MB. Das erste ist das Titelbild. Jede Änderung wird sofort gespeichert.",
+      "cover": "Titelbild",
+      "number": "Foto {{number}}",
+      "earlier": "Foto {{number}} nach vorne",
+      "later": "Foto {{number}} nach hinten",
+      "remove": "Foto {{number}} entfernen",
+      "removeTitle": "Foto {{number}} entfernen?",
+      "removeText": "Es wird endgültig gelöscht.",
+      "removeConfirm": "Entfernen",
+      "add": "Fotos hinzufügen",
+      "drop": "oder hier ablegen",
+      "uploading": "{{name}} wird hochgeladen",
+      "retry": "{{name}} erneut versuchen",
+      "dismiss": "{{name}} verwerfen",
+      "wrongType": "„{{name}}“ ist kein JPEG-, PNG- oder WebP-Foto.",
+      "tooBig": "„{{name}}“ ist größer als 10 MB.",
+      "tooMany": "Eine Übung kann höchstens {{max}} Fotos haben.",
+      "failed": "Das Hochladen hat nicht geklappt. Versuche es erneut.",
+      "offline": "Keine Verbindung: versuche es erneut, wenn du wieder online bist.",
+      "changeFailed": "Die Fotos konnten nicht geändert werden. Versuche es erneut."
     }
   },
   "progress": {

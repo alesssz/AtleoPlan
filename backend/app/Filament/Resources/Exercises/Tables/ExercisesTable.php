@@ -165,7 +165,8 @@ class ExercisesTable
     }
 
     /**
-     * The address of the exercise's first photo, or null.
+     * The address of the exercise's first photo, or null: its 400 px
+     * thumbnail once the queue has made it, the original until then.
      *
      * medialibrary builds a full URL from APP_URL, which inside the container
      * is localhost:8000, while the browser opens the panel at localhost:8500.
@@ -180,7 +181,14 @@ class ExercisesTable
         // The first photo of the collection, or null when there is none
         $photo = $exercise->getFirstMedia('photos');
 
-        return $photo === null ? null : url((string) parse_url($photo->getUrl(), PHP_URL_PATH));
+        if ($photo === null) {
+            return null;
+        }
+
+        // The thumbnail's URL when it exists (Exercise::registerMediaConversions())
+        $full = $photo->hasGeneratedConversion('thumb') ? $photo->getUrl('thumb') : $photo->getUrl();
+
+        return url((string) parse_url($full, PHP_URL_PATH));
     }
 
     /**

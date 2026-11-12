@@ -16,9 +16,16 @@ return [
     'superset_size' => 'A superset needs at least two exercises.',
     // The message of a value SaveSessionRequest refuses for this kind of exercise
     'logged_value_mismatch' => 'The :attribute field does not fit how this exercise is logged.',
+    // The messages of the exercise's photos (StoreExercisePhotoRequest,
+    // ReorderExercisePhotosRequest), checks of our own
+    'too_many_photos' => 'An exercise can have at most :max photos.',
+    'photo_order' => 'The order must list every photo of the exercise once.',
 
     // How each field is called inside a message
     'attributes' => [
+        // The exercise's photos
+        'photo' => 'photo',
+        'ids' => 'photo order',
         'aliases.*' => 'alias',
         'instructions.*' => 'step',
         'logging_type' => 'logging type',

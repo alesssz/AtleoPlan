@@ -87,11 +87,19 @@ Before buying a domain or opening store accounts, the name is checked against do
 
 | | Accepted upload | Stored after processing |
 |---|---|---|
-| **Video** | Up to **30 s** and **100 MB**; mp4, mov (iPhone), webm | 720p, H.264, no audio, about 2 Mbit/s (about **8 MB for 30 s**), plus a poster image. The original is deleted. |
-| **Photo** | Up to **10 MB**; jpg, png, heic, webp | WebP at 1600 px plus a 400 px thumbnail |
+| **Video** (phase 2) | Up to **30 s** and **100 MB**; mp4, mov (iPhone), webm | 720p, H.264, no audio, about 2 Mbit/s (about **8 MB for 30 s**), plus a poster image. The original is deleted. |
+| **Photo** | Up to **10 MB**; jpg, png, webp | The original, plus two WebP copies: at most 1600 px for the exercise's page, at most 400 px for lists and workout mode |
 | **Per exercise** | At most **2 videos and 5 photos** | |
 
 Why these numbers: two or three reps are enough to show how an exercise is done (10–15 s), so 30 s leaves room. 100 MB covers 30 s of 4K from an iPhone. The server converts every video (a queue job running ffmpeg), also because the HEVC videos of iPhones do not play in every browser. Media are handled with spatie/laravel-medialibrary.
+
+**Photos, as built** (`feat/exercise-media`, [C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)), with two changes to the first plan, decided with the owner:
+- **The original is kept.** medialibrary always keeps the file uploaded, and its copies are files beside it. Keeping it lets the copies be made again if their sizes change (`make exercises-thumbnails`, `media-library:regenerate`); the app never shows it once the copies exist. At most 50 MB per exercise, on a 200 GB disk.
+- **No HEIC.** GD, the image library of the Docker image, writes WebP but cannot read HEIC, and Imagick with libheif would make the image heavier. An iPhone's browser sends a JPEG anyway when the form does not ask for HEIC, so nobody uploading from a phone notices.
+
+The imported photos weighed 98.7 MB; their small copies weigh 20.7 MB (about 12 KB each instead of 56), and the lists load those.
+
+**Videos come in phase 2** ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)): the `videos` collection exists, with nothing that fills it yet.
 
 **Storage: the server's disk first, R2 later.**
 

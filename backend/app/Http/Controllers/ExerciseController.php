@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
-// Imports: the action that saves, the three Form Requests, the resource, the
-// model, Gate (asks the policy), the answer types, and the two classes of
-// spatie/laravel-query-builder
+// Imports: the two actions (save, duplicate), the three Form Requests, the
+// resource, the model, the request, Gate (asks the policy), the answer types,
+// and the two classes of spatie/laravel-query-builder
+use App\Actions\Exercises\DuplicateExercise;
 use App\Actions\Exercises\SavePersonalExercise;
 use App\Http\Requests\ListExercisesRequest;
 use App\Http\Requests\StoreExerciseRequest;
 use App\Http\Requests\UpdateExerciseRequest;
 use App\Http\Resources\ExerciseResource;
 use App\Models\Exercise;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -165,5 +168,30 @@ class ExerciseController extends Controller
         $exercise->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * POST /api/exercises/{exercise}/duplicate: copies a public exercise as
+     * the user's own, photos included, in the request's language
+     * (docs/design/D1-ui.md D1.4.4, docs/concepts/C2-backend.md C2.5.9).
+     * Answers 201 with the copy; the React app then opens its editor.
+     *
+     * The 201 is set by hand (`->response()->setStatusCode(201)`): store()
+     * gets it from Laravel because its resource wraps a model just created,
+     * and stating it here does not depend on how the action saves the copy.
+     *
+     * @param  Request  $request  the current request: its user and language
+     * @param  Exercise  $exercise  the exercise in the URL
+     * @param  DuplicateExercise  $duplicate  the action, given by the service container
+     * @return JsonResponse the copy, as an ExerciseResource
+     */
+    public function duplicate(Request $request, Exercise $exercise, DuplicateExercise $duplicate): JsonResponse
+    {
+        Gate::authorize('duplicate', $exercise);
+
+        // The copy, in the language set by SetLocaleFromRequest
+        $copy = $duplicate->handle($exercise, $request->user(), app()->getLocale());
+
+        return (new ExerciseResource($copy->load(self::RELATIONS)))->response()->setStatusCode(201);
     }
 }

@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built), the loading signs [H3.27](#h327-loading-signs-as-built), Continue with Google [H3.28](#h328-continue-with-google-as-built), the link to the admin panel [H3.29](#h329-the-link-to-the-admin-panel-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built), the loading signs [H3.27](#h327-loading-signs-as-built), Continue with Google [H3.28](#h328-continue-with-google-as-built), the link to the admin panel [H3.29](#h329-the-link-to-the-admin-panel-as-built), the photos of an exercise [H3.30](#h330-the-photos-of-an-exercise-as-built).
 
 ## Contents
 
@@ -183,6 +183,12 @@
   - [H3.29.2 The card](#h3292-the-card)
   - [H3.29.3 The tests](#h3293-the-tests)
   - [H3.29.4 Check it in the browser](#h3294-check-it-in-the-browser)
+- [H3.30 The photos of an exercise, as built](#h330-the-photos-of-an-exercise-as-built)
+  - [H3.30.1 The order of building](#h3301-the-order-of-building)
+  - [H3.30.2 upload()](#h3302-upload)
+  - [H3.30.3 The section of the editor](#h3303-the-section-of-the-editor)
+  - [H3.30.4 The tests](#h3304-the-tests)
+  - [H3.30.5 Check it in the browser](#h3305-check-it-in-the-browser)
 
 ---
 
@@ -4447,6 +4453,90 @@ for i in 1 2 3 4; do npx vitest run 2>&1 | grep -E "Tests  |FAIL"; done
 1. Make your account an admin, if it is not: `is_admin` to `true` in TablePlus ([H4](H4-database-tools.md)), or in tinker ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament)). Reload the app: `GET /api/user` is read again.
 2. Profile: the **Administration** card, under Workout. **Open**: the panel in a new tab, already signed in, in the app's language.
 3. With an account that is not an admin, the card is not there.
+
+---
+
+## H3.30 The photos of an exercise, as built
+
+The React side of `feat/exercise-media`: the small copies in every list, the photo section of the exercise editor, and Duplicate as mine. How it works: [C1.14.7](../concepts/C1-frontend.md#c1147-uploading-photos-and-duplicate-as-mine); the Laravel side: [H2.17](H2-backend.md#h217-the-photos-of-an-exercise-as-built).
+
+| File | Change |
+|---|---|
+| `src/lib/http.ts` | `upload()`: a multipart request with its progress, through XMLHttpRequest |
+| `src/api/exercises.ts` | `thumb_url`; `MAX_PHOTOS`, `MAX_PHOTO_BYTES`, `PHOTO_TYPES`; four hooks: upload, delete, reorder, duplicate |
+| `src/components/exercises/ExercisePhotoManager.tsx` | New: the photos' section of the editor |
+| `src/pages/ExerciseEditorPage.tsx` | The section under the form; on a new exercise, a line saying photos come after Create |
+| `src/pages/ExerciseDetailPage.tsx` | **Duplicate as mine** on a public exercise |
+| `ExerciseListItem`, `PlanItemRow`, `EditorItem`, `ExercisePicker`, `SessionExercises`, `WorkoutScreen` | The cover from `thumb_url` |
+| `src/i18n/locales/*.json` | `exercises.photos.*`, `exercises.editor.photosLater`, `exercises.detail.duplicate*` |
+| `src/test/exercise-helpers.ts` | `fakeUploads()`; the test exercise's photos with both addresses |
+| `src/pages/ExercisePhotos.test.tsx` | New: 8 tests; two older tests now expect the copies' paths |
+
+### H3.30.1 The order of building
+
+1. The backend first ([H2.17](H2-backend.md#h217-the-photos-of-an-exercise-as-built)): the JSON of a photo and the endpoints decide the types and the hooks.
+2. `thumb_url` in the type, then every `cover.url` that draws a small square becomes `cover.thumb_url` (`grep -rn "cover.url" src` found the six), and the test exercise gets both addresses. `npm run typecheck` then passes.
+3. `upload()`, the hooks, the component, the two pages, the texts in four languages.
+4. The tests, the checks.
+
+### H3.30.2 upload()
+
+```ts
+const xhr = new XMLHttpRequest()
+xhr.open('POST', path)
+xhr.setRequestHeader('X-XSRF-TOKEN', readCookie('XSRF-TOKEN') ?? '')
+xhr.upload.onprogress = event => onProgress?.(event.loaded / event.total)
+xhr.onload = () => resolve({ status: xhr.status, data: JSON.parse(xhr.responseText) })
+xhr.send(form)
+```
+
+wrapped in a `Promise`, plus the `Accept` and `Accept-Language` headers, a retry after a 419 and an `ApiError` for the rest (the whole function: `src/lib/http.ts`). No `Content-Type`: for a `FormData` the browser writes `multipart/form-data` with the boundary itself, and one set by hand would lack it.
+
+### H3.30.3 The section of the editor
+
+`ExercisePhotoManager` takes the exercise and keeps three pieces of state: the uploads under way (`pending`), a message about files refused before sending (`notice`), and whether files are dragged over the zone. Its parts are listed in C1.14.7; three details from building it:
+
+- **Sending one after the other:** `for (const upload of uploads) await send(upload)`, where `send()` awaits `mutateAsync()`, moves the bar through `onProgress`, and on failure keeps the server's message for the field (`error.fieldErrors.photo[0]`).
+- **Moving a photo:** the ids in a new order, then `reorder.mutate(ids)`. The first version swapped two items, `[ids[i], ids[j]] = [ids[j], ids[i]]`, which TypeScript refused (below); `splice()` out and in does the same.
+- **Removing** opens an AlertDialog, as deleting an exercise does; the dialog stays open, with Remove pending, until the answer.
+
+### H3.30.4 The tests
+
+```sh
+npx vitest run src/pages/ExercisePhotos.test.tsx
+```
+
+```
+ ✓ the photos of my exercise > uploads a photo with its bar, then shows it as the cover
+ ✓ the photos of my exercise > refuses a HEIC photo and one over 10 MB before sending them
+ ✓ the photos of my exercise > shows the server's reason when an upload fails, and tries again
+ ✓ the photos of my exercise > moves a photo earlier, sending the new order
+ ✓ the photos of my exercise > removes a photo after asking
+ ✓ the photos of my exercise > hides Add photos once there are five
+ ✓ Duplicate as mine > copies a public exercise and opens the copy's editor
+ ✓ Duplicate as mine > is not offered on my own exercise
+      Tests  8 passed (8)
+```
+
+- **`fakeUploads(answer)`** replaces `XMLHttpRequest` with a class that has only what `upload()` uses; each `send()` reports 50% then 100%, then answers on the next turn of the event loop, and records the address, headers and form.
+- **A fake server that remembers:** `'GET /api/exercises/7'` is a function reading a `state.photos` that the upload's answer and the test change, so the exercise read again shows the new photo ([C1.13.6](../concepts/C1-frontend.md#c1136-testing-a-screen-with-the-api)).
+- **`user.upload(input, file)`** picks a file. A file of 11 MB without 11 MB of content: `Object.defineProperty(file, 'size', { value: 11 * 1024 * 1024 })`. A HEIC file is hidden by the input's `accept`, so that test uses `userEvent.setup({ applyAccept: false })`.
+
+**Errors met:**
+
+| Message | Cause | Fix |
+|---|---|---|
+| `TS2322: Type 'number \| undefined' is not assignable to type 'number'` on the swap | The project's TypeScript has `noUncheckedIndexedAccess`: `ids[i]` may be `undefined` to it | `const [moved] = ids.splice(index, 1)`, a check that `moved` is there, then `ids.splice(index + step, 0, moved)` |
+| ESLint `no-useless-assignment` in `http.ts` | `let data: unknown = null` was overwritten in both the `try` and the `catch` | `let data: unknown`, with no first value |
+| `ExerciseDetailPage.test.tsx` and `ExercisesPage.test.tsx`: `expected src="/storage/1/0.jpg"` | The tests checked the old address | The large copy on the page, the small one in the list |
+
+### H3.30.5 Check it in the browser
+
+1. One of your exercises → **Edit** → under the form, **Photos**: **Add photos**, or drop files on the zone. Each shows its bar, then appears in the list; the first is **Cover**.
+2. Move a photo up: the library's row shows the new cover. Remove one: the dialog shows which.
+3. Pick a `.heic` or a large file from a computer: the message appears at once, nothing is sent (developer tools, Network tab).
+4. A public exercise → **Duplicate as mine**: the editor of the copy, with its photos.
+5. On a phone ([H3.8.2](#h382-a-real-android-phone-over-usb)): Add photos opens the camera roll or the camera; the photo arrives as JPEG.
 
 ---
 

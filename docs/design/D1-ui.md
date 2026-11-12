@@ -196,14 +196,14 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - **Media at the top:** carousel of photos and videos; videos play muted and looping, a tap opens them full screen.
 - Step-by-step instructions, muscles worked (main and secondary), equipment. Tips and common mistakes come later, when there is content for them ([D3.4](D3-data-model.md#d34-exercise-library)).
 - **My history** tab: last sessions, best set, estimated one-rep max.
-- Actions: **Add to plan**, **Edit** (only for my own exercises), **Duplicate as mine** (for public ones, to customise them).
+- Actions: **Add to plan**, **Edit** (only for my own exercises), **Duplicate as mine** (for public ones, to customise them: a copy with the photos, in my language, opened in the editor).
 
 ### D1.4.5 Exercise editor
 
 - Fields: name, description, instructions, main muscle, secondary muscles, equipment, logging type (weight × reps, reps only, time, distance).
 - A personal exercise is written in the user's language only; public exercises get every language in the admin panel ([D1.4.15](#d1415-admin-panel-filament)).
-- **Media upload:** drag and drop or pick files, progress bar, reorder, choose the cover. The limits are stated next to the field ([D2.5](D2-decisions.md#d25-photos-and-videos)): videos up to 30 s and 100 MB, photos up to 10 MB, at most 2 videos and 5 photos per exercise.
-- After upload a video shows "Processing…" until the server has converted it; the exercise can be saved and used meanwhile.
+- **Photos:** drag and drop or pick files, a progress bar for each, move earlier or later (the first is the cover), remove after a question; a failed upload stays with its reason, **Retry** and **Dismiss**. The limits are stated next to the field ([D2.5](D2-decisions.md#d25-photos-and-videos)): JPEG, PNG or WebP, up to 10 MB, at most 5. On the edit page, each change saved at once; a new exercise gets its photos after Create.
+- **Videos** (phase 2): up to 30 s and 100 MB, at most 2; after upload a video shows "Processing…" until the server has converted it, and the exercise can be saved and used meanwhile.
 - Alternative **YouTube link** field, with a preview.
 
 ### D1.4.6 Plan list
@@ -333,7 +333,7 @@ The admin area at `/admin`, served by Laravel with Filament, for admins only. It
 - **In the admin's language,** the one chosen in the app; Filament's own texts come translated.
 - **Exercises:** list, search and filters like the library, plus a filter of the languages still to review and one of the source; create, edit, delete and restore public exercises, the ones imported from free-exercise-db included ([D2.3](D2-decisions.md#d23-exercise-library)). Never deleted for good, and personal exercises never shown.
 - **Translations:** one tab per language with name, other names, description and steps; under each translation, the English original, folded, to compare with; a **Reviewed by a person** switch per language clears its **Machine translated** flag.
-- **Media:** photos and videos of public exercises, with their processing status (to come with `feat/exercise-media`; the list shows the first photo).
+- **Media:** the photos of public exercises, uploaded, put in order and removed on the edit page; the list shows the first one's small copy. Videos in phase 2.
 - **Users:** list, role (user / admin), disable an account, which signs it out at once; never on the admin's own account.
 
 Built: [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament).

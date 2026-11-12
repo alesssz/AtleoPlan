@@ -23,8 +23,8 @@ describe('ExerciseDetailPage', () => {
     renderRoutes(routes, '/exercises/12')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Barbell Bench Press' })).toBeInTheDocument()
-    // The photos, each with its text alternative
-    expect(screen.getByRole('img', { name: 'Barbell Bench Press, photo 1' })).toHaveAttribute('src', '/storage/1/0.jpg')
+    // The photos, each with its text alternative, from their large copy (url)
+    expect(screen.getByRole('img', { name: 'Barbell Bench Press, photo 1' })).toHaveAttribute('src', '/storage/1/conversions/0-large.webp')
     expect(screen.getByRole('img', { name: 'Barbell Bench Press, photo 2' })).toBeInTheDocument()
     // The facts: each term is followed by its value
     expect(screen.getByText('Equipment').nextElementSibling).toHaveTextContent('Barbell')

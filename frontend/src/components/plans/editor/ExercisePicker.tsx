@@ -220,6 +220,7 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
         {/* Dimmed while the list of a new search loads, as on the Exercises page */}
         <ul className={cn('flex flex-col gap-1 transition-opacity', searching && 'opacity-60')}>
           {exercises.map((exercise) => {
+            // The first photo, drawn from its small copy (thumb_url)
             const cover = exercise.photos[0]
             const ticked = chosen.some(other => other.id === exercise.id)
             return (
@@ -228,7 +229,7 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
                 {replacing && (
                   <button type="button" onClick={() => onAdd([exercise])} className="flex min-h-14 w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-muted">
                     {cover
-                      ? <img src={cover.url} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-muted object-cover" />
+                      ? <img src={cover.thumb_url} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-muted object-cover" />
                       : <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted"><Dumbbell className="size-4 text-muted-foreground" /></span>}
                     <span className="min-w-0 flex-1 truncate font-semibold">{exercise.name}</span>
                   </button>
@@ -240,7 +241,7 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
                   <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl p-2 hover:bg-muted">
                     <Checkbox checked={ticked} onCheckedChange={value => toggle(exercise, value === true)} aria-label={t('plans.editor.picker.choose', { name: exercise.name })} className="size-5" />
                     {cover
-                      ? <img src={cover.url} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-muted object-cover" />
+                      ? <img src={cover.thumb_url} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-muted object-cover" />
                       : <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted"><Dumbbell className="size-4 text-muted-foreground" /></span>}
                     <span className="min-w-0 flex-1 truncate font-semibold">{exercise.name}</span>
                   </label>

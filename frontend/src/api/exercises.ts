@@ -1,7 +1,8 @@
 /*
  * The exercise library's API (backend docs/concepts/C2-backend.md C2.5.4): the
- * list with search, filters and pages, one exercise, and creating, changing
- * and deleting personal ones. Like every file in src/api/: the types, the
+ * list with search, filters and pages, one exercise, creating, changing
+ * and deleting personal ones, their photos, and Duplicate as mine
+ * (C2.5.9). Like every file in src/api/: the types, the
  * cache keys, the functions that call the API and the hooks components use
  * (docs/concepts/C1-frontend.md C1.6, C1.14).
  *
@@ -18,7 +19,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Equipment } from '@/api/equipment'
 import type { Muscle } from '@/api/muscles'
-import { request } from '@/lib/http'
+import { request, upload } from '@/lib/http'
 
 /**
  * How the sets of an exercise are logged (backend app/Enums/LoggingType.php):
@@ -35,13 +36,28 @@ export interface ExerciseMuscle extends Muscle {
   role: 'primary' | 'secondary'
 }
 
-/** One photo of an exercise. */
+/**
+ * One photo of an exercise (backend ExercisePhotoResource). Both addresses
+ * are paths on the app's own address; until the server's queue has made the
+ * smaller copies, a moment after an upload, both are the original's.
+ */
 export interface ExercisePhoto {
   /** The row of the backend's `media` table. */
   id: number
-  /** Where the browser finds it, a path on the app's own address: "/storage/12/0.jpg". */
+  /** For the exercise's page: at most 1600 px, "/storage/12/conversions/photo-large.webp". */
   url: string
+  /** For lists, plans and workout mode: at most 400 px, "/storage/12/conversions/photo-thumb.webp". */
+  thumb_url: string
 }
+
+/** At most this many photos per exercise (docs/design/D2-decisions.md D2.5), as the backend checks. */
+export const MAX_PHOTOS = 5
+
+/** The largest photo accepted, in bytes: 10 MB (D2.5). */
+export const MAX_PHOTO_BYTES = 10 * 1024 * 1024
+
+/** The photo types accepted: JPEG, PNG, WebP; not HEIC, which the server cannot read (D2.5). */
+export const PHOTO_TYPES: readonly string[] = ['image/jpeg', 'image/png', 'image/webp']
 
 /** An exercise, as the backend's ExerciseResource sends it. */
 export interface Exercise {
@@ -264,5 +280,83 @@ export function useDeleteExercise(id: number) {
       queryClient.removeQueries({ predicate: query => query.queryKey[0] === 'exercises' && query.queryKey[1] === 'detail' && query.queryKey[3] === id })
       return queryClient.invalidateQueries({ queryKey: exerciseKeys.all })
     },
+  })
+}
+
+/**
+ * Hook: Duplicate as mine (POST /api/exercises/{id}/duplicate): a copy of a
+ * public exercise, photos included, that becomes the user's own, in the
+ * app's language (docs/design/D1-ui.md D1.4.4). The lists are read again,
+ * since the copy is in them.
+ * @param id the public exercise's number
+ * @example const duplicate = useDuplicateExercise(12); duplicate.mutate(undefined, { onSuccess: copy => … })
+ */
+export function useDuplicateExercise(id: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      request<{ data: Exercise }>(`/api/exercises/${id}/duplicate`, { method: 'POST' }).then(answer => answer.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: exerciseKeys.all }),
+  })
+}
+
+/** What useUploadExercisePhoto's mutate() takes. */
+export interface PhotoUpload {
+  /** The file the user chose or dropped. */
+  file: File
+  /** Called as the file is sent, with the share sent from 0 to 1. */
+  onProgress?: (share: number) => void
+}
+
+/**
+ * Hook: adds a photo to a personal exercise (POST /api/exercises/{id}/photos,
+ * a multipart form), reporting how much has been sent
+ * (docs/concepts/C1-frontend.md C1.14.7). Afterwards the exercise and the
+ * lists are read again, so the new photo appears.
+ * @param id the exercise's number
+ * @example const add = useUploadExercisePhoto(12); add.mutate({ file, onProgress: setShare })
+ */
+export function useUploadExercisePhoto(id: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ file, onProgress }: PhotoUpload) => {
+      // A form with one field, `photo`, holding the file: what the backend's
+      // StoreExercisePhotoRequest reads
+      const form = new FormData()
+      form.append('photo', file)
+      return upload<{ data: ExercisePhoto }>(`/api/exercises/${id}/photos`, form, onProgress).then(answer => answer.data)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: exerciseKeys.all }),
+  })
+}
+
+/**
+ * Hook: removes a photo of a personal exercise
+ * (DELETE /api/exercises/{id}/photos/{photoId}). The exercise and the lists
+ * are read again.
+ * @param id the exercise's number
+ * @example const remove = useDeleteExercisePhoto(12); remove.mutate(photo.id)
+ */
+export function useDeleteExercisePhoto(id: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (photoId: number) => request<void>(`/api/exercises/${id}/photos/${photoId}`, { method: 'DELETE' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: exerciseKeys.all }),
+  })
+}
+
+/**
+ * Hook: puts the photos of a personal exercise in a new order, the cover
+ * first (PUT /api/exercises/{id}/photos with `ids`). The exercise and the
+ * lists are read again.
+ * @param id the exercise's number
+ * @example const reorder = useReorderExercisePhotos(12); reorder.mutate([14, 12, 13])
+ */
+export function useReorderExercisePhotos(id: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: number[]) =>
+      request<{ data: ExercisePhoto[] }>(`/api/exercises/${id}/photos`, { method: 'PUT', body: { ids } }).then(answer => answer.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: exerciseKeys.all }),
   })
 }

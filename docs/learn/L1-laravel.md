@@ -1276,7 +1276,7 @@ Route::middleware(['auth:sanctum', EnsureUserIsNotDisabled::class])->group(funct
 
 `auth:sanctum` is itself a middleware: `auth`, with `sanctum` as its parameter (the "guard", [L1.17](#l117-signing-in-guards-sanctum-and-fortify)).
 
-**In AtleoPlan:** `app/Http/Middleware/SetLocaleFromRequest.php` reads `Accept-Language` and sets the language of the request. The middleware of this lesson is what [BE-2](../project/backlog.md#be-2-manage-users-in-the-admin-panel) will build for real.
+**In AtleoPlan:** `app/Http/Middleware/SetLocaleFromRequest.php` reads `Accept-Language` and sets the language of the request. The middleware of this lesson was then built for real by BE-2: `app/Http/Middleware/SignOutDisabledAccount.php` ([C2.7.9](../concepts/C2-backend.md#c279-a-disabled-account-is-signed-out-at-once)).
 
 **Recap**
 - A middleware wraps the route: code before `$next($request)`, code after.
@@ -1551,9 +1551,9 @@ Laravel covers much more than an API needs at first. These parts are not in the 
 
 | Part | What it is for | In AtleoPlan |
 |---|---|---|
-| [Queues and jobs](https://laravel.com/docs/queues) | Slow work in the background, out of the request | The `queue` container runs; the video conversion of `feat/exercise-media` will be the first job. Example: [H2.5](../how-to/H2-backend.md#h25-work-in-the-background) |
+| [Queues and jobs](https://laravel.com/docs/queues) | Slow work in the background, out of the request | The `queue` container runs; its first jobs are the photos' copies of `feat/exercise-media` ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)), the videos' conversion will follow. Example: [H2.5](../how-to/H2-backend.md#h25-work-in-the-background) |
 | [Notifications](https://laravel.com/docs/notifications), [Mail](https://laravel.com/docs/mail) | Emails and other messages | Only the password reset email, sent by Laravel itself ([C2.7.5](../concepts/C2-backend.md#c275-forgot-password)); Mailpit shows it |
-| [File storage](https://laravel.com/docs/filesystem) | Files on a "disk": local, or a cloud like R2 | Indirectly: the import copies the photos to the `public` disk (`storage/app/public`) through medialibrary; uploads come with the photos and videos of `feat/exercise-media` ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)) |
+| [File storage](https://laravel.com/docs/filesystem) | Files on a "disk": local, or a cloud like R2 | Through medialibrary: the import and the photo uploads put files on the `public` disk (`storage/app/public`) ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)) |
 | [Task scheduling](https://laravel.com/docs/scheduling) | Commands that run at set times | Not yet; `routes/console.php` is where they would go |
 | [Events](https://laravel.com/docs/events) | Code reacting to something that happened | Not yet |
 | [Cache](https://laravel.com/docs/cache) | Keeping a result to avoid recomputing it | Not yet |

@@ -68,8 +68,8 @@ return [
         'source_details' => 'Herkunft',
         'external_id' => 'Importiert als :id',
         'created_in_panel' => 'Im Admin-Bereich erstellt.',
-        'photos' => '{0} Keine Fotos.|{1} 1 Foto.|[2,*] :count Fotos.',
-        'photos_help' => 'Fotos und Videos werden in einer späteren Version dieser Seite verwaltet.',
+        'photos' => 'Fotos',
+        'photos_help' => 'Bis zu 5, JPEG, PNG oder WebP, je 10 MB. Zum Umsortieren ziehen: das erste ist das Titelbild.',
     ],
 
     'users' => [

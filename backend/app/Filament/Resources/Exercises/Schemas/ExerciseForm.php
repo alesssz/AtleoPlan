@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\Exercises\Schemas;
 
-// Imports: our enums and models, then Filament's form fields
+// Imports: the photos' action (for its limit), our enums and models, then Filament's form fields
 // (Filament\Forms\Components) and layout pieces (Filament\Schemas\Components),
 // and Laravel's HtmlString for text that is already HTML
+use App\Actions\Exercises\ExercisePhotos;
 use App\Enums\Locale;
 use App\Enums\LoggingType;
 use App\Models\Equipment;
@@ -12,6 +13,7 @@ use App\Models\Exercise;
 use App\Models\Muscle;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -41,7 +43,8 @@ use Illuminate\Support\HtmlString;
  *   but English has a "Reviewed by a person" switch and, on the edit page,
  *   the English original to compare with.
  * - **Exercise:** logging type, equipment, primary and secondary muscles, video.
- * - **Source** (edit page only): where the exercise came from, and its photos.
+ * - **Photos:** upload, order, remove, with the medialibrary plugin's field.
+ * - **Source** (edit page only): where the exercise came from.
  */
 class ExerciseForm
 {
@@ -96,7 +99,36 @@ class ExerciseForm
                     ->columns(2)
                     ->columnSpanFull(),
 
-                // Where it came from, and its photos: on the edit page only.
+                // The photos: upload, drag into order, remove
+                // (docs/concepts/C2-backend.md C2.8.2, D2.5)
+                Section::make(__('admin.exercises.photos'))
+                    ->schema([
+                        // The field of the plugin filament/spatie-laravel-media-library-plugin:
+                        // it reads and writes the exercise's `photos` collection
+                        // of medialibrary itself, so the files never pass
+                        // through SavePublicExercise. Filament saves it after
+                        // the exercise, on the create page too (saveRelationships()).
+                        // The same limits as the app's upload
+                        // (StoreExercisePhotoRequest): 5 photos, 10 MB,
+                        // JPEG, PNG or WebP. maxSize() is in kilobytes.
+                        // conversion('thumb'): the previews show the 400 px
+                        // copy, once the queue has made it
+                        SpatieMediaLibraryFileUpload::make('photos')
+                            ->hiddenLabel()
+                            ->collection('photos')
+                            ->multiple()
+                            ->reorderable()
+                            ->maxFiles(ExercisePhotos::MAX)
+                            ->image()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->maxSize(10 * 1024)
+                            ->conversion('thumb')
+                            ->panelLayout('grid')
+                            ->helperText(__('admin.exercises.photos_help')),
+                    ])
+                    ->columnSpanFull(),
+
+                // Where it came from: on the edit page only.
                 // visibleOn('edit'): hidden on the create page, where there is no exercise yet
                 Section::make(__('admin.exercises.source_details'))
                     ->schema([
@@ -105,13 +137,6 @@ class ExerciseForm
                         Text::make(fn (?Exercise $record) => $record?->external_id !== null
                             ? __('admin.exercises.external_id', ['id' => $record->external_id])
                             : __('admin.exercises.created_in_panel')),
-                        // trans_choice(): the sentence for this number, from
-                        // "{0} No photos.|{1} 1 photo.|[2,*] :count photos."
-                        Text::make(fn (?Exercise $record) => trans_choice(
-                            'admin.exercises.photos',
-                            $record?->getMedia('photos')->count() ?? 0,
-                        )),
-                        Text::make(__('admin.exercises.photos_help')),
                     ])
                     ->visibleOn('edit')
                     ->columnSpanFull(),

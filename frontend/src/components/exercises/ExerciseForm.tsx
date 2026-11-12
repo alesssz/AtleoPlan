@@ -3,8 +3,9 @@
  * description, instructions, main and secondary muscles, equipment, logging
  * type and YouTube link. Used to create an exercise and to change one
  * (src/pages/ExerciseEditorPage.tsx), and to create one without leaving the
- * plan editor, inside its exercise picker (ExercisePicker); photos and videos
- * come with BE-1's feat/exercise-media.
+ * plan editor, inside its exercise picker (ExercisePicker). The photos are
+ * not fields of this form: the edit page shows them under it
+ * (ExercisePhotoManager), each change sent at once.
  *
  * The same four pieces as every form of the app (docs/concepts/C1-frontend.md
  * C1.13.3): a zod schema for the rules (exercise-form.ts), react-hook-form for

@@ -899,7 +899,7 @@ More on Pest: [C2.11](../concepts/C2-backend.md#c211-tests-with-pest).
 
 ## H1.10 The exercise library, as built
 
-The first part of [BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin) created four tables that point to each other ([D3.4](../design/D3-data-model.md#d34-exercise-library)). This section follows what was done, with the real output. It shows what [H1.2](#h12-a-new-table-from-start-to-finish) does not: foreign keys, a pivot table with an extra column, soft deletes, a package configured at start-up, and tests of what the database refuses.
+The first part of BE-1 created four tables that point to each other ([D3.4](../design/D3-data-model.md#d34-exercise-library)). This section follows what was done, with the real output. It shows what [H1.2](#h12-a-new-table-from-start-to-finish) does not: foreign keys, a pivot table with an extra column, soft deletes, a package configured at start-up, and tests of what the database refuses.
 
 | File | What it is |
 |---|---|
@@ -1178,6 +1178,7 @@ Tests:    16 passed (97 assertions)
 | Translate it again, or one language | `make exercises-translate`, `o="--locale=it --force"` ([H1.14](#h114-the-translation-of-the-library-as-built)) |
 | Add the extra exercises (calisthenics) to a library imported before them | `make exercises-extra` ([H1.17](#h117-the-extra-exercises-as-built)) |
 | Correct the logging types the import guessed wrong (Plank as time) | `make exercises-correct` ([H1.19](#h119-the-corrected-logging-types-as-built)) |
+| The small and large copies of the photos that lack them | `make exercises-thumbnails` ([H2.17.4](H2-backend.md#h2174-the-copies-of-the-photos-already-there)) |
 | Two example plans for every user who has none, after the import | `make plans-demo` ([H3.13.1](H3-frontend.md#h3131-plans-to-look-at)) |
 | A command of our own | `make artisan c="make:command ImportSomething"` |
 | The SQL of undoing the last migration, without running it | `make artisan c="migrate:rollback --step=1 --pretend"` |
@@ -1826,7 +1827,7 @@ Two exercises have an empty step in the source, which the import removes (`Impor
 
 **Reading samples.** 45 random Italian names next to the English, and whole exercises in each language. The names are those of an Italian gym ("Scrollate con bilanciere", "Tirate al mento con bilanciere", "French press con manubri", "Cyclette"); 50 stay as in English because gyms say them so ("Face pull", "Goblet squat", "Leg press").
 
-**What to review first**, among the names the translators themselves doubted (Italian): Moving_Claw_Series "Corsa ad artiglio", Neck_Press "Panca piana al collo", Lying_Crossover "Allungamento in torsione da sdraiato con partner", Drop_Push "Piegamenti pliometrici con caduta dai rialzi", Dumbbell_Lying_Pronation "Pronazione da sdraiato con manubrio" (the movement is an external rotation), Band_Hip_Adductions "Adduzioni dell'anca con elastico" (the steps describe an abduction, the source's name says adduction), Cable_Incline_Pushdown "Pushdown al cavo su panca inclinata" (really a pullover), Groiners "Groiner", Otis-Up "Otis-up". Where the English is wrong, the translation kept it, as the guide asked; a few translators corrected a detail and said so (the palms' direction in two Smith machine exercises). The review is the admin screen's job ([BE-1](../project/backlog.md#be-1-exercise-library-api-and-admin)); until then every language stays in `machine_translated`.
+**What to review first**, among the names the translators themselves doubted (Italian): Moving_Claw_Series "Corsa ad artiglio", Neck_Press "Panca piana al collo", Lying_Crossover "Allungamento in torsione da sdraiato con partner", Drop_Push "Piegamenti pliometrici con caduta dai rialzi", Dumbbell_Lying_Pronation "Pronazione da sdraiato con manubrio" (the movement is an external rotation), Band_Hip_Adductions "Adduzioni dell'anca con elastico" (the steps describe an abduction, the source's name says adduction), Cable_Incline_Pushdown "Pushdown al cavo su panca inclinata" (really a pullover), Groiners "Groiner", Otis-Up "Otis-up". Where the English is wrong, the translation kept it, as the guide asked; a few translators corrected a detail and said so (the palms' direction in two Smith machine exercises). The review is the admin screen's job (BE-1); until then every language stays in `machine_translated`.
 
 ### H1.14.4 The command
 

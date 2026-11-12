@@ -84,7 +84,8 @@ export function EditorItem(props: EditorItemProps) {
   // CSS.Transform.toString turns dnd-kit's offset into a CSS transform
   const style = { transform: CSS.Transform.toString(transform), transition }
 
-  // The cover, and the line that sums up the sets, as on the plan's page
+  // The cover (its small copy, thumb_url), and the line that sums up the
+  // sets, as on the plan's page
   const cover = item.exercise.photos[0]
   const summary = itemSummary(draftItemAsPlanItem(item, unit), { language, weightUnit: unit, defaultRestSeconds, t })
   const warmUps = warmUpCount(item.sets)
@@ -138,7 +139,7 @@ export function EditorItem(props: EditorItemProps) {
           className="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-xl p-1 text-left hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           {cover
-            ? <img src={cover.url} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-muted object-cover" />
+            ? <img src={cover.thumb_url} alt="" loading="lazy" className="size-10 shrink-0 rounded-lg bg-muted object-cover" />
             : (
                 <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted">
                   <Dumbbell className="size-4 text-muted-foreground" />

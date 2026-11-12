@@ -1,16 +1,17 @@
 /*
  * One exercise (route `/exercises/:id`, docs/design/D1-ui.md D1.4.4): its
  * photos, equipment, logging type, muscles, instructions, description and
- * YouTube link; for the user's own exercise, Edit and Delete.
+ * YouTube link; for the user's own exercise, Edit and Delete; for a public
+ * one, Duplicate as mine, which opens the editor of the copy
+ * (docs/concepts/C1-frontend.md C1.14.7).
  *
- * Not here yet, with the feature that brings them: "Add to plan" (FEAT-2),
- * the "My history" tab (FEAT-4), "Duplicate as mine" and the videos
- * (BE-1, feat/exercise-media).
+ * Not here yet, with the feature that brings them: "Add to plan" (UI-3),
+ * the "My history" tab (FEAT-7), the videos (phase 2).
  */
-import { ArrowLeft, ExternalLink, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, Copy, ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
-import { useDeleteExercise, useExercise, type Exercise } from '@/api/exercises'
+import { useDeleteExercise, useDuplicateExercise, useExercise, type Exercise } from '@/api/exercises'
 import { ExercisePhotos } from '@/components/exercises/ExercisePhotos'
 import { FormBanner } from '@/components/FormBanner'
 import { PageHeader } from '@/components/PageHeader'
@@ -107,6 +108,9 @@ function ExerciseDetail({ exercise }: ExerciseDetailProps) {
           </div>
         )}
 
+        {/* A public exercise: copy it as one's own, to change it */}
+        {!exercise.is_mine && <DuplicateExerciseButton exercise={exercise} />}
+
         <ExercisePhotos photos={exercise.photos} name={exercise.name} />
 
         {/* The facts, as a description list: a term (dt) and its value (dd)
@@ -184,6 +188,39 @@ function MuscleChips({ names, strong = false }: MuscleChipsProps) {
         </li>
       ))}
     </ul>
+  )
+}
+
+/** Props of DuplicateExerciseButton. */
+interface DuplicateExerciseButtonProps {
+  /** The public exercise to copy. */
+  exercise: Exercise
+}
+
+/**
+ * Duplicate as mine (D1.4.4): asks the server for a copy, photos included,
+ * then opens the copy's editor, where it can be changed at once.
+ * `replace: false`: Back from the editor returns to the public exercise.
+ */
+function DuplicateExerciseButton({ exercise }: DuplicateExerciseButtonProps) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const duplicate = useDuplicateExercise(exercise.id)
+
+  return (
+    <div className="flex flex-col items-start gap-3">
+      {/* pending: a spinner in place of the icon while the copy is made */}
+      <Button
+        variant="outline"
+        size="xl"
+        pending={duplicate.isPending}
+        onClick={() => duplicate.mutate(undefined, { onSuccess: copy => void navigate(`/exercises/${copy.id}/edit`) })}
+      >
+        <Copy aria-hidden="true" />
+        {t('exercises.detail.duplicate')}
+      </Button>
+      {duplicate.isError && <FormBanner variant="error">{t('exercises.detail.duplicateError')}</FormBanner>}
+    </div>
   )
 }
 
