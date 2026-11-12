@@ -41,8 +41,44 @@ describe('ProfilePage', () => {
     expect(screen.getByText('ann@example.com')).toBeInTheDocument()
   })
 
+  it('links an admin to the admin panel, in a new tab', async () => {
+    fakeApi({ 'GET /api/user': signedInAs({ ...testUser, is_admin: true, admin_url: 'http://localhost:8500/admin' }), 'GET /api/health': health })
+    renderRoutes(routes, '/profile')
+
+    // The link's accessible name is its text, "Open", inside the card
+    // named by its heading
+    const card = await screen.findByRole('region', { name: 'Administration' })
+    // The link inside it, found by its text
+    const link = within(card).getByRole('link', { name: 'Open' })
+    expect(link).toHaveAttribute('href', 'http://localhost:8500/admin')
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
+  it('shows no admin panel to anyone else', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/health': health })
+    renderRoutes(routes, '/profile')
+
+    expect(await screen.findByText('Ann')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Administration' })).not.toBeInTheDocument()
+  })
+
   it('signs out and goes to the sign-in form', async () => {
-    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/health': { status: 200, body: { status: 'ok' } } })
+    // A fake server that remembers signing out, as the real one does: after
+    // POST /api/auth/logout, GET /api/user answers 401. One that kept
+    // answering "Ann" made the test flaky: the sign-in page reads the user
+    // again when it mounts, found Ann, and went back to Profile, sometimes
+    // before the test could see the form
+    let signedOut = false
+    // The fake server, whose calls tell what was sent
+    const fake = fakeApi({
+      'GET /api/user': () => (signedOut ? visitor : signedInAs()),
+      'GET /api/health': health,
+      'POST /api/auth/logout': () => {
+        signedOut = true
+        return { status: 204 }
+      },
+    })
+    // The router, to read the address the app ends on
     const { router } = renderRoutes(routes, '/profile')
 
     await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
@@ -53,7 +89,17 @@ describe('ProfilePage', () => {
   })
 
   it('goes to the sign-in form even if the session had already ended', async () => {
-    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/health': { status: 200, body: { status: 'ok' } }, 'POST /api/auth/logout': visitor })
+    // The session had ended: logout answers 401, and so does GET /api/user
+    // after it (see the test above)
+    let signedOut = false
+    fakeApi({
+      'GET /api/user': () => (signedOut ? visitor : signedInAs()),
+      'GET /api/health': health,
+      'POST /api/auth/logout': () => {
+        signedOut = true
+        return visitor
+      },
+    })
     renderRoutes(routes, '/profile')
 
     await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }))
@@ -73,6 +119,7 @@ describe('ProfilePage', () => {
       'PATCH /api/user/preferences': { status: 204 },
     })
     renderRoutes(routes, '/profile')
+    // A user that types and clicks, as a person would
     const user = userEvent.setup()
 
     // The card, with the account's values: kg, 90 s, 2.5 kg, sound and
@@ -104,8 +151,10 @@ describe('ProfilePage', () => {
   })
 
   it('changes the unit with the step that suits it', async () => {
+    // The fake server, whose calls tell what was sent
     const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/health': health, 'PATCH /api/user/preferences': { status: 204 } })
     renderRoutes(routes, '/profile')
+    // A user that types and clicks
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('combobox', { name: 'Weight unit' }))

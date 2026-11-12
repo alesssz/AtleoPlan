@@ -310,7 +310,7 @@ Giving the constraint a name makes the error readable when it fires. A check pas
 | Column | Type | Default | What it is for |
 |---|---|---|---|
 | `is_admin` | boolean | false | Opens Filament ([D1.4.15](D1-ui.md#d1415-admin-panel-filament)), where it shows as the role "user / admin". Never fillable from a request, or anyone could make themselves an admin |
-| `disabled_at` | timestampTz, nullable | | Set by an admin to disable an account |
+| `disabled_at` | timestampTz, nullable | | Set by an admin to disable an account, in the panel's Users screen; signing in is refused, and a session already open ends at its next request ([C2.7.9](../concepts/C2-backend.md#c279-a-disabled-account-is-signed-out-at-once)) |
 | `locale` | enum `it`, `en`, `es`, `de` | `en` | The interface's language. Preset from the browser when signing up ([D2.4](D2-decisions.md#d24-languages)) |
 | `theme` | enum `dark`, `light`, `system` | `dark` | Saved on the account, so it follows the user to another device |
 | `weight_unit` | enum `kg`, `lb` | `kg` | Which unit to show and read ([D3.2.3](#d323-weights-are-always-in-kilograms)) |

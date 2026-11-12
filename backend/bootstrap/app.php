@@ -14,6 +14,8 @@
 
 // Imports: the classes used below, by their short names (docs/concepts/C2-backend.md C2.2)
 use App\Http\Middleware\SetLocaleFromRequest;
+use App\Http\Middleware\SignOutDisabledAccount;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -53,6 +55,20 @@ return Application::configure(basePath: dirname(__DIR__))
         // Fortify's sign-in routes are on `web` and the others on `api`
         $middleware->web(append: [SetLocaleFromRequest::class]);
         $middleware->api(append: [SetLocaleFromRequest::class]);
+
+        // A user disabled by an admin is signed out at their next request,
+        // not when their session ends (BE-2, docs/concepts/C2-backend.md C2.7.9).
+        // Both groups, for the same reason as above
+        $middleware->web(append: [SignOutDisabledAccount::class]);
+        $middleware->api(append: [SignOutDisabledAccount::class]);
+        // Laravel sorts a route's middleware by a priority list, whatever
+        // order they were added in: the session first, authentication
+        // (`auth:sanctum`, whose class implements AuthenticatesRequests)
+        // before most others. A middleware not in the list keeps its place
+        // after those that are, so this one would run after `auth:sanctum`
+        // had already let the user in. It must run before, between the
+        // session and authentication (docs/how-to/H2-backend.md H2.16.5)
+        $middleware->prependToPriorityList(AuthenticatesRequests::class, SignOutDisabledAccount::class);
     })
     // How errors are turned into responses
     ->withExceptions(function (Exceptions $exceptions): void {

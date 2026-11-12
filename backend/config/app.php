@@ -69,6 +69,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Admin panel URL
+    |--------------------------------------------------------------------------
+    |
+    | Where the Filament admin panel is, for the React app's link to it and
+    | for coming back from Google to the panel (docs/concepts/C2-backend.md
+    | C2.8.4). In development Laravel's own port, since Vite does not forward
+    | /admin; in production the same host as the app, APP_URL + /admin.
+    |
+    */
+
+    'admin_url' => env('ADMIN_URL', 'http://localhost:8500/admin'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

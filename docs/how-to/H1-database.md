@@ -1410,7 +1410,7 @@ The five of the first try came out `Unchanged`, with their photos already there.
 
 `selectRaw` with `groupBy` is SQL's `select logging_type, count(*) … group by logging_type`; `pluck('n', 'logging_type')` turns the rows into a map.
 
-The exceptions, such as a weighted exercise with "body only" in the source, are for an admin to correct (BE-1, `feat/exercise-admin`).
+The exceptions, such as a weighted exercise with "body only" in the source, are for an admin to correct, in the admin panel ([C2.8.2](../concepts/C2-backend.md#c282-the-exercise-library-screen)), or in the list of DATA-3 ([H1.19](#h119-the-corrected-logging-types-as-built)).
 
 **Run it again:** nothing changes.
 

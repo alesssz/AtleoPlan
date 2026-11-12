@@ -393,7 +393,11 @@
   },
   "profile": {
     "signOut": "Cerrar sesión",
-    "about": "Información"
+    "about": "Información",
+    "adminTitle": "Administración",
+    "adminPanel": "Panel de administración",
+    "adminHint": "La biblioteca pública de ejercicios y los usuarios. Se abre en una pestaña nueva.",
+    "adminOpen": "Abrir"
   },
   "auth": {
     "checking": "Comprobando tu cuenta…",

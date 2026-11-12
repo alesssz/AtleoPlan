@@ -5,13 +5,14 @@
  * - the preferences, language and theme, as rows of a settings list;
  * - the workout's preferences: unit, default rest, weight step, the rest
  *   timer's sound and vibration (WorkoutPreferences);
+ * - for an admin only, the link to the admin panel (docs/concepts/C2-backend.md C2.8.4);
  * - the connection to the server.
  *
  * Built from small components: SettingRow for each row, LanguageSelect and
  * ThemeSelect as controls, WorkoutPreferences for the workout's card,
  * ServerStatus for the server.
  */
-import { Languages, LogOut, Palette, Server, UserRound } from 'lucide-react'
+import { ExternalLink, Languages, LogOut, Palette, Server, ShieldCheck, UserRound } from 'lucide-react'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentUser, useSignOut } from '@/api/auth'
@@ -46,7 +47,7 @@ export function ProfilePage() {
     <>
       <PageHeader eyebrow={t('pages.profile.eyebrow')} title={t('pages.profile.title')} description={t('pages.profile.description')} />
 
-      {/* Four blocks, 24 px apart (flex column + gap) */}
+      {/* The blocks, 24 px apart (flex column + gap) */}
       <div className="flex flex-col gap-6">
         {/* Account header: the gradient-bordered card, avatar + name + email +
             sign out. A column on phones, a row from 640 px up.
@@ -104,6 +105,27 @@ export function ProfilePage() {
 
         {/* The workout's preferences, in a card of the same look */}
         <WorkoutPreferences />
+
+        {/* Administration: the link to the admin panel, for admins only.
+            `cond && <jsx>` draws the JSX only when cond is true; admin_url is
+            null for everyone else. The panel is another site (Filament, served
+            by Laravel), so the link is a plain <a>, not React Router's <Link>,
+            and opens in a new tab: the app stays where it was.
+            rel="noopener": the new tab cannot reach back into this one */}
+        {user?.admin_url && (
+          <section aria-labelledby="admin-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
+            <h2 id="admin-title" className="font-heading text-lg font-extrabold tracking-tight">{t('profile.adminTitle')}</h2>
+            <SettingRow icon={ShieldCheck} label={t('profile.adminPanel')} description={t('profile.adminHint')}>
+              {/* asChild: the Button's look on the <a> inside */}
+              <Button asChild variant="outline">
+                <a href={user.admin_url} target="_blank" rel="noopener">
+                  {t('profile.adminOpen')}
+                  <ExternalLink aria-hidden="true" />
+                </a>
+              </Button>
+            </SettingRow>
+          </section>
+        )}
 
         {/* About: the connection to the backend, from GET /api/health */}
         <section aria-labelledby="about-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">

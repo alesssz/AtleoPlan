@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 // Imports: the action that finds the user, the enums, the exception it throws,
-// and Laravel's and Socialite's pieces used below
+// and Filament's, Laravel's and Socialite's pieces used below
 use App\Actions\Auth\SignInWithSocialAccount;
 use App\Enums\Locale;
 use App\Enums\SocialProvider;
 use App\Enums\SocialSignInError;
 use App\Exceptions\SocialSignInRefused;
 use Exception;
+use Filament\Facades\Filament;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -54,11 +55,14 @@ class GoogleSignInController extends Controller
     /**
      * The first stop: off to Google.
      *
-     * The link may carry two things from the React app, both optional and
-     * both checked, since anyone can type a link:
+     * The link may carry three things, all optional and all checked, since
+     * anyone can type a link:
      * - `from`: the page the person was trying to open (D1.4.1, "Coming
      *   back"), only a path of this app such as `/plans`;
-     * - `locale`: the language the app is showing, for a new account.
+     * - `locale`: the language the app is showing, for a new account;
+     * - `to=admin`: the visit started on the admin panel's login page, and
+     *   goes back there (docs/concepts/C2-backend.md C2.8.4). Only that one
+     *   word is read: never an address, which would be an open redirect.
      *
      * @param  Request  $request  the browser's visit
      * @return AnyRedirect to Google, or back to the sign-in page when Google
@@ -73,7 +77,7 @@ class GoogleSignInController extends Controller
         if (blank(config('services.google.client_id')) || blank(config('services.google.client_secret'))) {
             Log::warning('Sign in with Google is not set up: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are missing from backend/.env (docs/start/S1-setup.md S1.11).');
 
-            return $this->backToSignIn(SocialSignInError::Failed);
+            return $this->backToSignIn(SocialSignInError::Failed, $request->query('to') === 'admin');
         }
 
         // Kept for the second stop. session()->put() writes in this visitor's
@@ -83,6 +87,8 @@ class GoogleSignInController extends Controller
         $request->session()->put(self::SESSION_KEY, [
             'from' => $this->safePath($request->query('from')),
             'locale' => Locale::tryFrom((string) $request->query('locale'))?->value,
+            // true only for the exact word "admin"
+            'admin' => $request->query('to') === 'admin',
         ]);
 
         // Socialite::driver('google') is the Google provider, set up from
@@ -106,12 +112,15 @@ class GoogleSignInController extends Controller
         // What the first stop kept, taken out of the session (pull: read and
         // forget, so it is used once). [] when the visit did not start there
         $intent = $request->session()->pull(self::SESSION_KEY, []);
+        // Whether the visit started on the admin panel's login page
+        $toAdmin = (bool) ($intent['admin'] ?? false);
 
         // Google adds ?error=access_denied when the person pressed Cancel
         // (or did not give consent). Any other error is not theirs to fix
         if ($request->filled('error')) {
             return $this->backToSignIn(
                 $request->query('error') === 'access_denied' ? SocialSignInError::Cancelled : SocialSignInError::Failed,
+                $toAdmin,
             );
         }
 
@@ -128,7 +137,7 @@ class GoogleSignInController extends Controller
             // useful; the person only sees "something went wrong"
             report($e);
 
-            return $this->backToSignIn(SocialSignInError::Failed);
+            return $this->backToSignIn(SocialSignInError::Failed, $toAdmin);
         }
 
         try {
@@ -138,9 +147,10 @@ class GoogleSignInController extends Controller
             $locale = Locale::tryFrom((string) ($intent['locale'] ?? ''))
                 ?? Locale::tryFrom(app()->getLocale())
                 ?? Locale::En;
+            // The user to sign in: found, linked or created (C2.7.8)
             $user = $signIn->handle(SocialProvider::Google, $outside, $locale);
         } catch (SocialSignInRefused $e) {
-            return $this->backToSignIn($e->reason);
+            return $this->backToSignIn($e->reason, $toAdmin);
         }
 
         // Signs the user in, as Fortify does after a password: the session
@@ -151,20 +161,34 @@ class GoogleSignInController extends Controller
         // ("session fixation", C2.7.2)
         $request->session()->regenerate();
 
+        // Into the admin panel, when the visit started there and the user is
+        // an admin. canAccessPanel() wants the panel; Filament::getPanel()
+        // gives it ('admin', the only one). Someone who is not an admin has
+        // signed in all the same, and lands in the React app instead of on
+        // the panel's 403
+        if ($toAdmin && $user->canAccessPanel(Filament::getPanel('admin'))) {
+            return redirect()->to(config('app.admin_url'));
+        }
+
         // Into the React app: the page first asked for, or Home. Its
         // RequireAuth then finds the session through GET /api/user
         return redirect()->to(config('app.frontend_url').($intent['from'] ?? '/'));
     }
 
     /**
-     * Back to the React app's sign-in page, which shows the reason
-     * (`auth.google.errors.<reason>`).
+     * Back to the sign-in page the visit started from, which shows the
+     * reason: the React app's (`auth.google.errors.<reason>`), or the admin
+     * panel's (`admin.google.errors.<reason>`, read by
+     * resources/views/filament/google-sign-in.blade.php).
      *
      * @param  SocialSignInError  $reason  why
+     * @param  bool  $toAdmin  the visit started on the admin panel's login page
      */
-    private function backToSignIn(SocialSignInError $reason): RedirectResponse
+    private function backToSignIn(SocialSignInError $reason, bool $toAdmin = false): RedirectResponse
     {
-        return redirect()->to(config('app.frontend_url').'/login?error='.$reason->value);
+        return redirect()->to($toAdmin
+            ? config('app.admin_url').'/login?google_error='.$reason->value
+            : config('app.frontend_url').'/login?error='.$reason->value);
     }
 
     /**
