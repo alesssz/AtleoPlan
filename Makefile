@@ -282,9 +282,12 @@ toc-check: ## Fail if a doc's contents list is out of date (part of make check)
 	node scripts/docs-toc.mjs --check
 
 # The leading "-" lets the second audit run when the first finds something.
+# npm's goes through scripts/npm-audit.mjs, which leaves out the advisories
+# reviewed in frontend/package.json (auditIgnore), as the Audit workflow
+# does (.github/workflows/audit.yml, docs/how-to/H5-ci.md H5.4).
 audit: ## Known vulnerabilities in the Composer and npm packages (report only, changes nothing)
 	-$(DC) exec backend composer audit
-	-$(NPM) audit
+	-node scripts/npm-audit.mjs
 
 # --- Git ----------------------------------------------------------------------
 

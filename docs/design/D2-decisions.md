@@ -14,6 +14,7 @@ The choices made before writing code, each with its reason and what was set asid
 - [D2.8 Workout rules](#d28-workout-rules)
 - [D2.9 Plan files](#d29-plan-files)
 - [D2.10 Local development](#d210-local-development)
+- [D2.11 Continuous integration](#d211-continuous-integration)
 
 ---
 
@@ -208,6 +209,27 @@ A plan can be saved as a file and imported again, on the same server or another 
 - **FrankenPHP's worker mode with Laravel Octane:** the app stays loaded between requests, fastest of all. One more package, and a different way of thinking: what a request leaves in memory is still there for the next. Its reload on save watches the files, which does not work through the shared folder on Windows. It may still come with production ([D2.6](#d26-hosting)).
 - **Docker Desktop's synchronized file shares:** Docker's own answer, a synchronized copy inside the virtual machine, as fast as a volume for all the code. Only with a paid Docker subscription.
 - **Mutagen, docker-sync, OrbStack:** the same synchronization for free, but one more tool to install and keep running on each computer; OrbStack is for the Mac only.
+
+## D2.11 Continuous integration
+
+**GitHub Actions checks every push, with the same layout as Chronovault's:** a CI workflow on any branch, an audit of the dependencies every week and when they change, and Dependabot proposing the actions' new versions. Built in `chore/ci`; how it works: [H5](../how-to/H5-ci.md).
+
+| Choice | Why |
+|---|---|
+| Runs on a push to any branch, not on pull requests | Branches are merged on the computer (`make merge`), never through a pull request: the branch's run, after `make push`, is the check before `main` |
+| The backend in its own Docker image, with Docker Compose | The rule of the project, PHP only through Docker ([D2.10](#d210-local-development)), holds in CI too: the same PHP, extensions and Postgres as on the computers; a failure in CI is one on the computer, and the other way round |
+| Only GitHub's own actions (`actions/checkout`, `actions/setup-node`) | An action is someone's code run with the repository's token. The backend needs none (Docker is on the runner), so the setting "GitHub's actions only" holds with no exception ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)) |
+| A read-only token in every workflow | The jobs read the code and run checks; nothing they run could push, comment or open a pull request |
+| An audit workflow beside Dependabot's alerts | The alerts only warn, on GitHub's page; the audit fails the branch that brings a vulnerable version, before the merge, and fails weekly on a new advisory, by email |
+| The advisories reviewed listed with their reason (`auditIgnore`, `config.audit.ignore`) | Some advisories have no fix (deepmerge's, [H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)); a failure always there would hide the new one. Each one left out is written down, with why |
+| Dependabot's version updates for the actions only | npm and Composer updates are made by hand, a few at a time, with `make check`; their security is covered by the alerts and the audit |
+| No status check required on `main` | `make merge` pushes a merge commit made on the computer, which no check has seen: a required check would refuse it. The rule is a habit: a green branch before the merge |
+
+**Set aside:**
+
+- **PHP set up on the runner by a third-party action** (`shivammathur/setup-php`): faster than building the image, but one more author's code with the token, an exception to "GitHub's actions only", and a PHP that is not the project's image.
+- **Caching the Docker image between runs** (`docker/build-push-action` with GitHub's cache): a minute or two saved per run, for another third-party action. Worth it if the backend job grows slow.
+- **Pinning the actions by commit** (`actions/checkout@<sha>` instead of `@v7`): protects against a tag moved by a compromised author. For GitHub's own actions the tag is accepted here, as in Chronovault; Dependabot proposes the new ones.
 
 ---
 

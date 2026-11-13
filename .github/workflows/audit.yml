@@ -1,0 +1,93 @@
+# Dependency audit: the npm and Composer packages against the advisory
+# databases, every week and whenever the dependencies change, on any branch.
+# A new advisory fails the run, and GitHub emails the repository's owner
+# about a failed scheduled run.
+#
+# Beside Dependabot's alerts, not instead: they only warn, on GitHub's page,
+# and say nothing about a branch before it is merged; this fails the branch
+# that brings a vulnerable version, next to its CI. Advisories reviewed and
+# left out, each with its reason, are in frontend/package.json (auditIgnore)
+# and backend/composer.json (config.audit.ignore).
+#
+# The run's summary also lists the outdated packages, to plan updates; that
+# list never fails the run. How it works: docs/how-to/H5-ci.md.
+name: Audit
+
+on:
+  schedule:
+    # Mondays at 06:00 UTC: a new advisory on a package that did not change.
+    - cron: '0 6 * * 1'
+  # Run by hand from the Actions tab.
+  workflow_dispatch:
+  # A push to any branch that changes the dependencies: branches are merged
+  # on the computer (`make merge`), never through a pull request, so this is
+  # the check before main.
+  push:
+    branches: ['**']
+    paths: [frontend/package.json, frontend/package-lock.json, backend/composer.json, backend/composer.lock]
+  # A pull request that changes them: none is opened by hand, but one opened
+  # on GitHub, by Dependabot or from a fork, is audited before it is merged.
+  pull_request:
+    paths: [frontend/package.json, frontend/package-lock.json, backend/composer.json, backend/composer.lock]
+
+# Read-only token: the jobs only read the code and the advisory databases.
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    name: npm packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # Installed so that `npm outdated` compares what is really resolved
+      - run: npm ci
+        working-directory: frontend
+      - name: Outdated packages (summary)
+        working-directory: frontend
+        # `npm outdated` exits 1 when anything is outdated: informative only.
+        # GITHUB_STEP_SUMMARY is a file whose Markdown GitHub shows under the run
+        run: |
+          {
+            echo '### Outdated npm packages'
+            echo '```'
+            npm outdated || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      # The lockfile against the advisory database, every severity; the
+      # advisories in auditIgnore are left out, any other fails the run
+      - name: Audit
+        run: node scripts/npm-audit.mjs
+
+  composer:
+    name: Composer packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      # Composer's official image, with no PHP of the project's: --locked
+      # reads composer.lock alone, installing nothing, which is all an audit
+      # and a list of updates need. The backend's own image would take
+      # minutes to build for the same answer. backend/ is mounted read-only
+      # (`:ro`): neither command has anything to write there.
+      # --ignore-platform-reqs: that image lacks the project's PHP extensions
+      # (gd, exif…), and without it Composer offered the newest version that
+      # would run there, laravel-medialibrary 8 for an 11
+      - name: Outdated packages (summary)
+        run: |
+          {
+            echo '### Outdated Composer packages'
+            echo '```'
+            docker run --rm -v "$PWD/backend:/app:ro" -w /app composer:2 composer outdated --direct --locked --ignore-platform-reqs || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      # Fails on any advisory not in composer.json's config.audit.ignore, and
+      # on an abandoned package (config.audit.abandoned: fail, Composer's default)
+      - name: Audit
+        run: docker run --rm -v "$PWD/backend:/app:ro" -w /app composer:2 composer audit --locked

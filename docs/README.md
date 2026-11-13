@@ -45,7 +45,7 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 | Document | What it covers |
 |---|---|
 | [D1. UI design](design/D1-ui.md) | Users, design principles, user journeys, navigation and routes, every screen, design system, states (empty, loading, error, offline), responsive layout and accessibility, release phases |
-| [D2. Decisions](design/D2-decisions.md) | Name, stack, exercise library and its import, languages, photo and video limits and storage, hosting, offline sync, workout rules, plan files, local development |
+| [D2. Decisions](design/D2-decisions.md) | Name, stack, exercise library and its import, languages, photo and video limits and storage, hosting, offline sync, workout rules, plan files, local development, continuous integration |
 | [D3. Data model](design/D3-data-model.md) | Every table of the MVP, for a reader new to databases: the basic ideas, columns, relations and the Laravel code, ids, what happens on delete, what is computed, one week of training step by step, traps to avoid |
 
 ### C · Concepts
@@ -63,12 +63,13 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 | [H2. Backend](how-to/H2-backend.md) | An endpoint that reads and one that changes data (controller, resource, form request, policy, tests), an admin screen, a background job, translated messages, settings, packages, debugging, common errors, the exercise library API and the plans API and the workouts API as built (a body shaped as a tree, a rule of our own, data sent late by a phone, the same day done before), sign in with Google as built, the admin panel as built (a form in four languages, a screen's own permissions, row actions, the middleware priority list, Livewire tests), the photos of an exercise as built (uploads, image copies, a package added), a fast local backend (measuring a slow request, the packages in a Docker volume) |
 | [H3. Frontend](how-to/H3-frontend.md) | A new page, data from the API, a form that saves, tests, translations, npm packages (and `overrides` for a vulnerable one deep in the tree), the browser's tools, shadcn/ui components, common errors, the exercise library's and the plan screens, the plan editor, workout mode, Home, the summary and history as built, loose ends (a UUID without HTTPS, last used, Finish from the banner), the logo, the stepper and the exercise menu, the workout preferences, the plan editor in two steps, creating an exercise from the picker, the loading signs (shadcn's Spinner, a button's `pending`, the search box's spinner), Continue with Google and the link to the admin panel as built, the photos of an exercise as built, workout mode after a real workout (the stopwatch docked with Pause, times as "14:30", Up next, How to do it, removing what was added by hand, deleting a workout in progress) |
 | [H4. Opening the database](how-to/H4-database-tools.md) | The connection details, TablePlus step by step (connecting, browsing, SQL, editing safely, shortcuts), the terminal's ways, the alternatives (DBeaver, pgAdmin, Adminer…), connection errors |
+| [H5. Continuous integration](how-to/H5-ci.md) | What GitHub checks on every push and every week (CI, the dependency audit, Dependabot for the actions), the workflows line by line for a reader new to GitHub Actions, the settings on GitHub, the advisories reviewed, reading a failed run, the same checks on the computer, as built |
 
 ### P · Project
 
 | Document | What it covers |
 |---|---|
-| [P1. Conventions](project/P1-conventions.md) | Git, code and comments, documentation, backlog, the public repository (what never goes in, the check before going public, the account and repository settings on GitHub) |
+| [P1. Conventions](project/P1-conventions.md) | Git, code and comments, documentation, backlog, the public repository (what never goes in, the check before going public, the account and repository settings on GitHub, the CI) |
 | [Backlog](project/backlog.md) | The work known and waiting, one entry per point with options and a recommendation; an entry is deleted when its work is done |
 
 ### L · Learn
@@ -78,4 +79,4 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 | [L1. Laravel course](learn/L1-laravel.md) | Standard Laravel in 24 lessons, each with where the project uses it, a tried example, a recap and an exercise: PHP, Artisan, the container, migrations, Eloquent, relations, queries, collections, factories, routes, controllers, validation, policies, resources, middleware, signing in, configuration, translations, tests; what the project adds on top. A running example, training notes, built and thrown away |
 | [L2. React course](learn/L2-react.md) | React and the libraries of the frontend in 23 lessons, each with where the app uses it, a tried example, a recap and an exercise: JavaScript and TypeScript, Vite, components, props, lists, state, effects, hooks, context, React Router, TanStack Query (reading and changing data), forms with react-hook-form and zod, translations, Tailwind, shadcn/ui, tests, the checks; what is React and what is a library or ours. A running example, a muscles page, built and thrown away |
 
-**Reading order the first time:** S1, then D1 to D3, then C1 or C2, depending on the side you work on. New to Laravel or React: L1 or L2 first, at your own pace, next to C2 or C1. Keep H1 to H4 at hand while working.
+**Reading order the first time:** S1, then D1 to D3, then C1 or C2, depending on the side you work on. New to Laravel or React: L1 or L2 first, at your own pace, next to C2 or C1. Keep H1 to H5 at hand while working.
