@@ -11,7 +11,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
+        artisan composer vendor migratefresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
         dev fe-install fe-build \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit toc toc-check \
         branch sync push merge
@@ -44,7 +44,9 @@ doctor: ## Check this computer and clone (Docker, disk, Node, npm cache, Git ide
 # - backend/.env comes first: without it Laravel believes it is in production
 #   and `migrate` stops to ask for confirmation.
 # - Composer runs before the stack starts: without vendor/ the queue worker
-#   crashes and keeps restarting until the packages arrive.
+#   crashes and keeps restarting until the packages arrive. They go into the
+#   `vendor` Docker volume, and Composer then copies them to backend/vendor/
+#   for the editor (docs/how-to/H2-backend.md H2.18); about 20 s on Windows.
 # - The key is generated only when empty, because replacing it would invalidate
 #   existing sessions. grep -q tests the file and prints nothing: it holds secrets.
 # - The fixed lists (muscles, equipment) come right after the migrations: the
@@ -84,7 +86,7 @@ up: ## Start backend, worker, Postgres and Mailpit
 down: ## Stop everything (data is kept)
 	$(DC) down
 
-down-v: ## Stop everything and DELETE the database
+down-v: ## Stop everything and DELETE the database (and the Composer packages: make setup after)
 	$(DC) down -v
 
 build: ## Rebuild the backend image (after changing Dockerfile or docker/php/dev.ini)
@@ -112,6 +114,17 @@ artisan: ## Any artisan command: make artisan c="route:list"
 composer: ## Any Composer command: make composer c="require vendor/package"
 	@test -n "$(c)" || { echo 'Usage: make composer c="<command>"'; exit 1; }
 	$(DC) exec backend composer $(c)
+
+# The packages the app runs on live in the `vendor` Docker volume, not in the
+# folder shared with the computer, so that requests are fast
+# (docs/how-to/H2-backend.md H2.18). backend/vendor/ on the computer is a copy,
+# for the editor: Composer refreshes it by itself after every install,
+# require, update and remove, through the script docker/php/sync-vendor.sh.
+# This target runs that script by hand, for when the copy is missing (a clone
+# whose packages were installed before the volume existed) or was touched.
+# rsync sends only what differs, so running it again is safe.
+vendor: ## Copy the Composer packages to backend/vendor/ for the editor (Composer does it by itself)
+	$(DC) exec backend sync-vendor
 
 migrate: ## Run the new migrations
 	$(ARTISAN) migrate

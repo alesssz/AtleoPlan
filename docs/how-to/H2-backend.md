@@ -15,6 +15,7 @@
 - Routes the browser visits rather than fetches, a package for signing in with Google, an outside service faked in the tests: [H2.15](#h215-sign-in-with-google-as-built).
 - Real admin screens: a form in four languages, permissions of the screen's own, row actions, the panel in the admin's language, a middleware placed in Laravel's priority list, Livewire tests: [H2.16](#h216-the-admin-panel-as-built).
 - Files: uploads, image copies made by a queue, a package added with Composer: [H2.17](#h217-the-photos-of-an-exercise-as-built).
+- The local server is slow: measuring inside the container, why the packages live in a Docker volume: [H2.18](#h218-a-fast-local-backend-the-packages-in-a-volume-as-built).
 - The same feature on the React side: [H3. Frontend: how to](H3-frontend.md).
 
 ## Contents
@@ -97,6 +98,13 @@
   - [H2.17.4 The copies of the photos already there](#h2174-the-copies-of-the-photos-already-there)
   - [H2.17.5 The tests](#h2175-the-tests)
   - [H2.17.6 Check it](#h2176-check-it)
+- [H2.18 A fast local backend: the packages in a volume, as built](#h218-a-fast-local-backend-the-packages-in-a-volume-as-built)
+  - [H2.18.1 Measuring: where the time goes](#h2181-measuring-where-the-time-goes)
+  - [H2.18.2 Two kinds of mount](#h2182-two-kinds-of-mount)
+  - [H2.18.3 The fix, file by file](#h2183-the-fix-file-by-file)
+  - [H2.18.4 Checking it](#h2184-checking-it)
+  - [H2.18.5 Living with it](#h2185-living-with-it)
+  - [H2.18.6 When something goes wrong](#h2186-when-something-goes-wrong)
 
 ---
 
@@ -677,7 +685,7 @@ make composer c="require --dev vendor/package"    # only for development and tes
 
 - **`composer.json`** lists the packages wanted and the versions accepted: `^1.41` means any 1.x from 1.41 up.
 - **`composer.lock`** records the exact version installed of every package, and of the packages they need. Both files are committed.
-- **`backend/vendor/`** holds the packages' code. It is not in Git.
+- **`backend/vendor/`** holds the packages' code. It is not in Git. The app reads them from a Docker volume; the folder on the computer is a copy for the editor, which Composer refreshes by itself after every change ([H2.18](#h218-a-fast-local-backend-the-packages-in-a-volume-as-built)).
 
 **Other computers** therefore get the new entry in `composer.json` with `git pull`, but not the code. Until they run `make composer c=install`, Laravel stops with:
 
@@ -2322,6 +2330,362 @@ docker compose exec backend php artisan test --filter=ExercisePhotosTest
 3. One of your exercises → Edit → **Add photos**: the bar, then the photo as the cover; a moment later its address ends in `-thumb.webp` (the `queue` container made it: `make logs s=queue`).
 4. A public exercise → **Duplicate as mine**: the editor of the copy, its photos with it.
 5. The admin panel → an exercise → **Photos**: upload, drag, remove.
+
+---
+
+## H2.18 A fast local backend: the packages in a volume, as built
+
+`fix/dev-vendor-volume`. Every API call took **1 to 2 seconds** on the local stack, on the Mac and on Windows alike, although the code did almost nothing. This section is how the cause was measured, what was changed, how to check it and how to live with it. It is also the recipe for any "the local server is slow" question: measure inside the container first, then change one thing at a time and measure again. Why this fix and not another: [D2.10](../design/D2-decisions.md#d210-local-development); what OPcache is: [C2.4](../concepts/C2-backend.md#c24-the-life-of-a-request).
+
+| File | What changed |
+|---|---|
+| `compose.yaml` | `vendor:/app/vendor`, a named volume over the shared folder; `./backend/vendor:/vendor-host`, the computer's copy; `vendor:` declared under `volumes:` |
+| `Dockerfile` | In the `dev` target: `rsync` installed; `docker/php/sync-vendor.sh` copied in as `/usr/local/bin/sync-vendor` |
+| `docker/php/sync-vendor.sh` | New: copies the volume's packages to the computer, only what changed |
+| `backend/composer.json` | `post-autoload-dump` ends by running `sync-vendor` |
+| `Makefile` | `make vendor` runs the copy by hand; `down-v` says it deletes the packages too |
+| `scripts/doctor.mjs` | Checks the packages in the volume and the copy for the editor separately |
+| `.gitattributes` | New: `.sh` files keep LF line endings on Windows |
+
+**After pulling this branch on another computer:** `make setup`, once. It rebuilds the image (rsync and the script arrive), installs the packages into the new, empty volume, and makes the first copy for the editor. Until then the backend starts with an empty `vendor/` and every request fails ([H2.18.6](#h2186-when-something-goes-wrong)).
+
+### H2.18.1 Measuring: where the time goes
+
+**1. Inside the container, not from the browser.** A time read in the browser's Network tab adds Vite's proxy, Docker's port forwarding and the browser itself. PHP inside the backend container can call the web server on its own port, 8000, with none of those in between. `sleep(3)` waits as a person does between two clicks; the second request goes at once:
+
+```sh
+docker compose exec -T backend php -r '
+$ctx = stream_context_create(["http"=>["ignore_errors"=>true,"header"=>"Accept: application/json"]]);
+foreach (["/up","/api/user","/up","/api/user"] as $p) {
+  sleep(3);
+  $t = microtime(true); file_get_contents("http://localhost:8000$p", false, $ctx);
+  printf("%-10s after a 3 s pause: %4d ms\n", $p, (microtime(true)-$t)*1000);
+  $t = microtime(true); file_get_contents("http://localhost:8000$p", false, $ctx);
+  printf("%-10s right after:       %4d ms\n", $p, (microtime(true)-$t)*1000);
+}'
+```
+
+- **`docker compose exec -T backend …`** runs a command in the running `backend` container; `-T` gives it no terminal, which a command that only prints does not need.
+- **`php -r '…'`** runs the PHP code written on the command line, with no file.
+- **`stream_context_create()`** sets the request's options: `ignore_errors` reads the answer even when it is an error (`/api/user` without a session answers 401), and the `Accept` header asks Laravel for JSON.
+- **`file_get_contents()`** reads a file, or, given an address, makes an HTTP request and returns the answer's body.
+- **`microtime(true)`** is the time in seconds, with decimals; the difference times 1000 is milliseconds. **`printf()`** prints with a format: `%-10s` a text padded to 10 characters, `%4d` a whole number in 4.
+- **`/up`** is Laravel's health page (`bootstrap/app.php`, `health: '/up'`): the smallest request the app answers, with no database. **`/api/user`** goes through the API's middleware and Sanctum. If both are slow, the time is not in our code.
+
+The output, before the change:
+
+```
+/up        after a 3 s pause: 1093 ms
+/up        right after:        123 ms
+/api/user  after a 3 s pause: 1226 ms
+/api/user  right after:        125 ms
+```
+
+The same request is ten times slower after a pause. The code that runs is the same both times, so the difference is not in the code, but in something that happens only after a pause.
+
+**2. How the code reaches the container.** `mount` lists the folders a container sees and where they come from; `grep` keeps the line of `/app`:
+
+```sh
+docker compose exec -T backend sh -c 'mount | grep " /app "'
+```
+
+```
+D:\ on /app type 9p (rw,noatime,aname=drvfs;path=D:\;…)
+```
+
+`9p` is the protocol Docker Desktop uses on Windows to share a folder of the computer with its Linux virtual machine; on the Mac it is `virtiofs`, faster but of the same kind. The next section explains what this means.
+
+**3. How many files a request uses.** OPcache keeps every PHP file it has compiled in memory, and `opcache_get_status()` lists them. A small page in `public/`, called right after a request, counted them; it was deleted at once:
+
+```php
+<?php $v=0;$o=0; foreach (array_keys(opcache_get_status(true)["scripts"]) as $f) { str_starts_with($f,"/app/vendor/") ? $v++ : $o++; } echo "vendor: $v, rest: $o\n";
+```
+
+```
+vendor: 955, rest: 37
+```
+
+Nearly a thousand files per request, and 96% of them are Composer's packages. It must be a page served by FrankenPHP, not `php -r`: the command line has its own PHP process, with OPcache off and empty.
+
+**4. The cause, proved by turning it off.** In development, OPcache checks a file's date again once more than `opcache.revalidate_freq` seconds have passed (2, from `php.ini-development`), so that a saved change is seen. After a pause, a request checks all thousand files, and each check crosses to the computer. `php -i` shows the settings in force:
+
+```sh
+docker compose exec -T backend sh -c 'php -i | grep -E "^opcache\.(validate_timestamps|revalidate_freq) "'
+```
+
+```
+opcache.revalidate_freq => 2 => 2
+opcache.validate_timestamps => On => On
+```
+
+To prove it, the check was turned off for one test: a setting file added to PHP's configuration folder, the container restarted to read it, the measurement of step 1, then the file removed and the container restarted again.
+
+```sh
+docker compose exec -T backend sh -c 'echo "opcache.validate_timestamps=0" > "$PHP_INI_DIR/conf.d/zz-bench.ini"'
+docker compose restart backend
+# … the measurement of step 1 …
+docker compose exec -T backend sh -c 'rm "$PHP_INI_DIR/conf.d/zz-bench.ini"'
+docker compose restart backend
+```
+
+```
+/up        after a 3 s pause:  122 ms
+/api/user  after a 3 s pause:  122 ms
+```
+
+1.2 seconds became 0.12. Leaving the check off is not the fix: a saved change would then never be seen without a restart. The fix is to make the check cheap.
+
+**5. The same Laravel on Linux's own disk.** For a sense of scale, `php artisan route:list`, which loads the whole app, run from `/app` and from a copy of it in the container's `/tmp`: about **4,500 ms** against **200 ms**. Making that copy took about two minutes: writing 17,000 files through the shared folder is slow too.
+
+### H2.18.2 Two kinds of mount
+
+A container has its own files, those of its image. `compose.yaml` adds folders from outside under `volumes:`, one per line, `source:path inside the container`. There are two kinds, told apart by the source:
+
+| | Bind mount | Named volume |
+|---|---|---|
+| Written as | A path: `./backend:/app` | A name: `vendor:/app/vendor`, declared again under `volumes:` at the end of the file |
+| Where the files are | In a folder of the computer | On the disk of Docker's virtual machine, managed by Docker |
+| Who sees them | The computer and the container, the same files at once | The containers that mount it; the computer does not |
+| Speed in the container | Each file access crosses the virtual machine (9p, virtiofs) | Linux's own disk |
+| Lifetime | The computer's folder | Until `docker compose down -v` or `docker volume rm` |
+| Used here for | The code, edited in VS Code | Postgres's data, Composer's download cache, and now the packages |
+
+**When two lines cover the same place, the deeper path wins.** `./backend` is mounted at `/app`, and `vendor` at `/app/vendor`: inside the container, `/app/vendor` shows the volume, and the `vendor/` folder of `./backend` is hidden behind it. Everything else in `/app` is still the computer's folder. What the container sees:
+
+```
+/app/                ← ./backend on the computer (bind mount, live)
+├── app/, routes/, config/, …
+└── vendor/          ← the `vendor` volume (Linux's disk, fast)
+/vendor-host/        ← ./backend/vendor on the computer (bind mount): the editor's copy
+```
+
+The packages are the right thing to move: they change only through Composer, never by hand, so not seeing them live costs nothing. The app's own code stays shared, and a saved change is still seen at the next request.
+
+### H2.18.3 The fix, file by file
+
+**`compose.yaml`.** Two lines in the shared list of `backend` and `queue` (the `x-backend` block), after the code's:
+
+```yaml
+  volumes:
+    - ./backend:/app
+    - vendor:/app/vendor
+    - ./backend/vendor:/vendor-host
+```
+
+and the volume declared at the end, next to the others:
+
+```yaml
+volumes:
+  postgres-data:
+  vendor:
+  composer-cache:
+```
+
+A named volume starts empty, and Docker names it after the project: `atleoplan_vendor`. Both services mount the same volume, so the worker runs on the same packages as the web server.
+
+**The catch: the editor.** VS Code runs on the computer and reads `backend/vendor/` there, to complete Laravel's classes and to open their source (as in [H2.16.8](#h2168-the-way-in-the-link-and-google-on-the-panels-login), reading Filament's render hooks). That folder is no longer what the app uses. So it is kept as a **copy**: the third line mounts it again, at `/vendor-host`, and a script copies the volume onto it.
+
+**`docker/php/sync-vendor.sh`.** The script, commented line by line in the file. Its heart:
+
+```sh
+MIRROR=/vendor-host
+if [ ! -d "$MIRROR" ]; then
+    exit 0
+fi
+rsync -rlt --delete /app/vendor/ "$MIRROR/"
+```
+
+- When `/vendor-host` does not exist, the container is not the development one (a future production image), and the script does nothing.
+- **rsync** copies one folder onto another and sends only the files that differ, comparing size and date. After `composer require`, one package travels, not 17,000 files. `-r` sub-folders, `-l` links as links, `-t` keep the dates (what the next run compares), `--delete` remove from the copy what is gone from the volume.
+
+**`Dockerfile`.** In the `dev` target, after PHP's settings:
+
+```dockerfile
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends rsync \
+ && rm -rf /var/lib/apt/lists/*
+COPY --chmod=755 docker/php/sync-vendor.sh /usr/local/bin/sync-vendor
+```
+
+`/usr/local/bin` is on the PATH, so `sync-vendor` alone runs it; `--chmod=755` makes it executable, which Windows files cannot say by themselves. The script is in the image, not read from the shared folder: a change to it needs `make build`.
+
+**`backend/composer.json`.** Composer runs **scripts** at given moments of its work, listed under `"scripts"`. JSON has no comments, so they are explained here. `post-autoload-dump` runs every time Composer writes its autoloader: after `install`, `require`, `update`, `remove` and `dump-autoload`, so after every change to the packages. Its list, with the new last line:
+
+```json
+"post-autoload-dump": [
+    "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+    "@php artisan package:discover --ansi",
+    "@php artisan filament:upgrade",
+    "[ ! -x /usr/local/bin/sync-vendor ] || sync-vendor"
+],
+```
+
+| Line | What it does |
+|---|---|
+| `Illuminate\\Foundation\\ComposerScripts::postAutoloadDump` | A PHP method, run inside Composer (a line naming `Class::method`). Laravel's: it deletes the cached lists of services and packages in `bootstrap/cache/`, which may now be wrong. The `\\` is a single `\` written in JSON |
+| `@php artisan package:discover --ansi` | `@php` runs the command with the same PHP that runs Composer. Laravel reads every package's `composer.json` for the service providers it declares, and writes their list to `bootstrap/cache/packages.php` ([C2.4](../concepts/C2-backend.md#c24-the-life-of-a-request), step 4): this is how a package added with `require` starts working without being registered by hand |
+| `@php artisan filament:upgrade` | Filament copies its CSS, JavaScript and fonts into `public/` and clears Laravel's caches: the `⇂ public/js/filament/…` lines and `Successfully upgraded!` in Composer's output |
+| `[ ! -x /usr/local/bin/sync-vendor ] \|\| sync-vendor` | New. A line that names no class and does not start with `@` is a shell command. `[ ! -x file ]` succeeds when the file is not an executable; `a \|\| b` runs b only when a fails. So: in a container without the script (a future production image) nothing happens; in development `sync-vendor` runs |
+
+It is the last line on purpose: the copy then includes the autoloader Composer just wrote. It is in `post-autoload-dump`, not in `post-install-cmd` or `post-update-cmd`, because this one runs in every case, `dump-autoload` included. Since Composer runs it, the copy follows `make composer c="…"` and a plain `docker compose exec backend composer …` alike. `--no-scripts` skips every script, this one too: then `make vendor`.
+
+**`.gitattributes`.** Git on the Windows PC writes files with CRLF line endings (`core.autocrlf=true`). With CRLF, the script's first line `#!/bin/sh` asks for a program called `/bin/sh\r`, and the script fails before it starts. The new file at the repository's root says `*.sh text eol=lf`: shell scripts always LF.
+
+**`Makefile` and `scripts/doctor.mjs`.** `make vendor` runs `docker compose exec backend sync-vendor`. `make doctor` now checks the two places apart: the copy on the computer (a warning if missing: the app works without it) and the volume, by asking the running container whether `vendor/autoload.php` exists (a failure if missing: every request errors).
+
+**The commands, in order, as run on the Windows PC:**
+
+```sh
+# 1. The image, with rsync and the script
+docker compose build
+# 2. The packages into the new, empty volume; Composer's hook makes the first copy
+docker compose run --rm backend composer install
+# 3. The containers again, with the new volumes
+docker compose up -d --wait
+```
+
+`run --rm` in step 2 because the containers were stopped: `exec` needs a running one ([S1.6](../start/S1-setup.md#s16-creating-the-laravel-backend)). The end of step 2:
+
+```
+Generating optimized autoload files
+…
+   INFO  Successfully upgraded!
+
+> [ ! -x /usr/local/bin/sync-vendor ] || sync-vendor
+Copying vendor/ to the computer, for the editor (only what changed)...
+vendor/ copied in 20 s.
+```
+
+Composer prints each script before running it, after `>`. `make setup` does the same three steps, so on another computer it is the only command.
+
+### H2.18.4 Checking it
+
+**1. The mounts.** `/app/vendor` is now on Linux's disk (`ext4`); `/app` and `/vendor-host` are still shared:
+
+```sh
+docker compose exec -T backend sh -c 'mount | grep -E " /app(/vendor)? | /vendor-host "'
+```
+
+```
+D:\ on /app type 9p (…)
+D:\ on /vendor-host type 9p (…)
+/dev/sdd on /app/vendor type ext4 (rw,relatime)
+```
+
+**2. The speed, inside the container.** The measurement of H2.18.1, step 1:
+
+```
+/up        after a 3 s pause:  126 ms
+/api/user  after a 3 s pause:   96 ms
+/up        after a 3 s pause:   89 ms
+/api/user  after a 3 s pause:   92 ms
+```
+
+From about 1,200 ms to about 90.
+
+**3. The speed, as the browser sees it.** Through Vite (`make dev` running), from the computer, in PowerShell:
+
+```powershell
+foreach ($p in '/api/user','/api/user','/api/user') { Start-Sleep -Seconds 3; $t = Measure-Command { try { Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:5673$p" -Headers @{Accept='application/json'} | Out-Null } catch {} }; "{0}  after a 3 s pause: {1} ms" -f $p, [int]$t.TotalMilliseconds }
+```
+
+```
+/api/user  after a 3 s pause: 2486 ms
+/api/user  after a 3 s pause: 116 ms
+/api/user  after a 3 s pause: 110 ms
+```
+
+The first was the first request after the containers were created: OPcache was empty and compiled every file. That happens once per start, not after every pause. In the browser, the Network tab (F12) shows the same times ([H3.8](H3-frontend.md#h38-checking-in-the-browser)).
+
+**4. A package added and removed reaches the copy.**
+
+```sh
+make composer c="require spatie/array-to-xml"
+ls backend/vendor/spatie            # array-to-xml is there
+make composer c="remove spatie/array-to-xml"
+ls backend/vendor/spatie            # gone again
+git diff backend/composer.json backend/composer.lock    # nothing left
+```
+
+```
+  - Installing spatie/array-to-xml (3.4.4): Extracting archive
+…
+> [ ! -x /usr/local/bin/sync-vendor ] || sync-vendor
+Copying vendor/ to the computer, for the editor (only what changed)...
+vendor/ copied in 20 s.
+```
+
+**5. `make doctor`.** Two lines now speak of the packages, one under Apps, one at the end:
+
+```
+Apps
+  ✔ backend packages copied for the editor
+…
+  ✔ test database atleoplan_test exists
+  ✔ backend packages installed
+```
+
+### H2.18.5 Living with it
+
+**Adding, updating, removing a package:** as before ([H2.8](#h28-adding-a-package)). The copy for the editor follows by itself. If VS Code still does not know the new classes, its PHP extension may need to read the folder again: Command Palette → "Developer: Reload Window".
+
+**After a pull that changes `composer.lock`:** `make setup`, as always. Its `composer install` updates the volume, then the copy.
+
+**Looking inside the volume.** From the container, as any folder: `make shell`, then `ls vendor`. From the computer, Docker's own commands:
+
+```sh
+docker volume ls --format '{{.Name}}' | grep atleoplan
+docker system df -v | grep -E "VOLUME NAME|atleoplan_"
+```
+
+```
+atleoplan_composer-cache
+atleoplan_postgres-data
+atleoplan_vendor
+
+VOLUME NAME                 LINKS     SIZE
+atleoplan_vendor            2         92.33MB
+atleoplan_composer-cache    2         55.06MB
+atleoplan_postgres-data     1         84.29MB
+```
+
+`LINKS` is how many containers use it: `backend` and `queue` for the packages.
+
+**Starting the packages over**, without touching the database: stop the stack, delete only that volume, install again. Composer takes the packages from its download cache, a volume too, so nothing is downloaded:
+
+```sh
+docker compose down
+docker volume rm atleoplan_vendor
+docker compose run --rm backend composer install
+docker compose up -d --wait
+```
+
+```
+Installing dependencies from lock file (including require-dev)
+Package operations: 189 installs, 0 updates, 0 removals
+Generating optimized autoload files
+Copying vendor/ to the computer, for the editor (only what changed)...
+vendor/ copied in 20 s.
+```
+
+About 27 seconds in all on Windows. `make down-v` does the same and also empties the database; `make setup` then rebuilds both.
+
+**The cost.** On Windows each copy takes about 20 seconds even when nothing changed: `rsync` still checks the dates of all 24,722 files of the copy, and each check crosses the shared folder. It runs only after a Composer command, so it is paid rarely, and Composer itself takes a few seconds anyway. The packages also take their space twice: about 92 MB in the volume, the same in the copy.
+
+**On the Mac** everything above is the same: the shared folder is `virtiofs` instead of `9p`, faster, so the copy should take less, and the gain after a pause should be similar. The measurement of H2.18.1 is the way to see it.
+
+### H2.18.6 When something goes wrong
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Every API call takes **1–2 seconds** after a pause | The packages are read through the shared folder: the stack runs without the `vendor` volume, as on a computer that has not run `make setup` since this branch | `make setup`; `mount` as in H2.18.4 shows `ext4` on `/app/vendor` |
+| Every request fails; `php artisan` says `require(/app/vendor/autoload.php): Failed to open stream: No such file or directory` and `Failed opening required '/app/vendor/autoload.php'` | The `vendor` volume is empty: after `make down-v`, or on a computer that pulled this branch without `make setup`. Reproduced with an empty volume | `make setup` |
+| The editor does not know a class of a package just added | The copy was not made: Composer run with `--no-scripts`, or the copy interrupted | `make vendor` |
+| A change made in a file under `backend/vendor/` has no effect | That folder is the copy; the app reads the volume. Packages are never edited anyway | Undo it: the next copy overwrites it |
+| `composer require spatie/once` said it succeeded, yet no `vendor/spatie/once` existed, in the volume or in the copy | Met while testing. `laravel/framework` declares that it *replaces* that package (Laravel has its own `once()`), so Composer installs nothing | Not an error; to test the copy, use a package nothing replaces, as in H2.18.4 |
+| `create-project` says `Project directory "/app/." is not empty.` | Only when creating the Laravel app from scratch ([S1.6](../start/S1-setup.md#s16-creating-the-laravel-backend)): Docker creates `backend/vendor/` as the place where the volume is mounted, so `./backend` is never empty. Reproduced on an empty folder | Comment out the two `vendor` lines in `compose.yaml` for that one command |
+| `docker compose build` stops at `[internal] load local bake definitions` with `failed to execute bake: exit status 1` | Met in the shell the assistant runs commands in, on clean `main` too; the same command in PowerShell built the image | Build from another terminal; `docker buildx build --target dev -t atleoplan-backend:dev .` builds the same image |
+| `composer install` ends with `/bin/sh^M: bad interpreter`, or `sync-vendor: not found` though the file is there | Not met, prevented: a script checked out with CRLF line endings | `.gitattributes` keeps `*.sh` in LF. A copy checked out before it: delete `docker/php/sync-vendor.sh`, `git checkout -- docker/php/sync-vendor.sh`, then `make build` |
 
 ---
 

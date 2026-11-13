@@ -57,6 +57,33 @@ FROM base AS dev
 RUN cp "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
 COPY docker/php/dev.ini "$PHP_INI_DIR/conf.d/zz-atleoplan.ini"
 
+# The Composer packages: in development they live in a Docker volume, not in
+# the folder shared with the computer, because reading a thousand files
+# through that folder made every request after a pause take over a second
+# (compose.yaml, docs/how-to/H2-backend.md H2.18). After every Composer change,
+# sync-vendor copies them to the computer's backend/vendor/ for the editor.
+#
+# rsync makes that copy, sending only the files that changed. It is installed
+# here, in the `dev` target, and not in `base` with the other packages: only
+# development has a computer to copy to, and a future production image does
+# not need it. Its own RUN, after the lines above, so the layers built before
+# it stay in Docker's build cache.
+# - apt-get update                 downloads the list of available packages
+# - --no-install-recommends        installs rsync alone, without the extras
+#                                  Debian suggests with it
+# - rm -rf /var/lib/apt/lists/*    deletes that list again: the image stays
+#                                  smaller, and it would be stale anyway
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends rsync \
+ && rm -rf /var/lib/apt/lists/*
+
+# The script itself, into /usr/local/bin: a folder on the PATH, so the command
+# `sync-vendor` alone runs it, from Composer or from `make vendor`.
+# --chmod=755 makes it executable (owner: read, write, run; others: read,
+# run), whatever permissions the file has on the computer; Windows has no
+# such permissions at all. A change to the script needs `make build`.
+COPY --chmod=755 docker/php/sync-vendor.sh /usr/local/bin/sync-vendor
+
 # Plain HTTP on port 8000. With a name such as `localhost` Caddy would create
 # HTTPS certificates, which local development does not need.
 ENV SERVER_NAME=:8000

@@ -1,0 +1,21 @@
+# =============================================================================
+# AtleoPlan — how Git treats some files: here, their line endings.
+#
+# A text file ends each line with an invisible character: LF on macOS and
+# Linux, CR+LF (CRLF) on Windows. Git on Windows is usually set to convert
+# (`core.autocrlf=true`, as on the project's Windows PC): files are stored
+# with LF in the repository and written with CRLF in the working folder.
+# Most files do not mind. A shell script run inside a Linux container does:
+# with CRLF its first line, #!/bin/sh, asks for a program called "/bin/sh\r",
+# which does not exist, and the script fails before its first command
+# (docker/php/sync-vendor.sh, docs/how-to/H2-backend.md H2.18).
+#
+# Each line is `pattern attributes`, the pattern written as in .gitignore:
+# - text     the file is text, so Git may convert its line endings
+# - eol=lf   and it is always written with LF, whatever the computer's setting
+#
+# A file checked out before a rule existed keeps its old line endings until
+# it is written again: delete it, then `git checkout -- <file>`.
+# =============================================================================
+
+*.sh text eol=lf
