@@ -21,7 +21,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 
 ## Running things
 
-- **The project is developed on a Mac (a work computer) and on a Windows PC.** On Windows, run commands from Git Bash, not the Command Prompt or PowerShell: the `Makefile` needs `bash`, `grep` and `cp` (docs/start/S1-setup.md S1.2).
+- **The project is developed on a Mac and on a Windows PC.** On Windows, run commands from Git Bash, not the Command Prompt or PowerShell: the `Makefile` needs `bash`, `grep` and `cp` (docs/start/S1-setup.md S1.2).
 - **PHP and Composer are used only through Docker.** Never install PHP, Composer or Laravel Boost for this project, and do not use a copy already on the computer. Run backend commands from the repository root through the container:
   `docker compose exec backend php artisan …`, `docker compose exec backend composer …` (`run --rm` instead of `exec` when the stack is stopped).
 - **The frontend runs directly on the computer**, Node 24 (`.nvmrc`): `npm …` inside `frontend/`, no Docker. Never `npm audit fix --force`, never `sudo npm`.
@@ -42,7 +42,9 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 
 ## Git identity
 
-Commits use the personal GitHub noreply address set in this repository's `.git/config`; a computer's global identity (on the Mac, the work one) must never appear. The hook in `.githooks/` refuses any other email. Never add a `Co-Authored-By` trailer or any Claude attribution to commits or pull requests.
+Commits use the personal GitHub noreply address set in this repository's `.git/config`; a computer's global identity, which may be another account, must never appear. The hook in `.githooks/` refuses any other email. Never add a `Co-Authored-By` trailer or any Claude attribution to commits or pull requests.
+
+**The repository is public** (docs/project/P1-conventions.md P1.5): nothing committed may hold a secret, a real person's data or a private detail of the user, in code, docs, fixtures or commit messages.
 
 **At the end of every task, give a ready-to-paste commit message** for the work done, following [P1.1](docs/project/P1-conventions.md#p11-git): English, imperative one-line subject, a body when the why is not obvious, backlog IDs or doc sections when relevant, no attribution line. **Never commit, push or merge yourself: the user does it by hand.** Leave the changes in the working tree and say which branch they are on.
 
