@@ -15,6 +15,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 | Building endpoints, admin screens, jobs in practice: commands, files, tests, errors | [docs/how-to/H2-backend.md](docs/how-to/H2-backend.md) |
 | Building pages, data hooks, forms in practice: files, tests, translations, browser tools, errors | [docs/how-to/H3-frontend.md](docs/how-to/H3-frontend.md) |
 | Opening the database: connection details, TablePlus, alternatives | [docs/how-to/H4-database-tools.md](docs/how-to/H4-database-tools.md) |
+| What GitHub checks on every push (CI, audit, Dependabot), reading a failed run | [docs/how-to/H5-ci.md](docs/how-to/H5-ci.md) |
 | Learning standard Laravel lesson by lesson, with exercises | [docs/learn/L1-laravel.md](docs/learn/L1-laravel.md) |
 | Learning React and the frontend's libraries lesson by lesson, with exercises | [docs/learn/L2-react.md](docs/learn/L2-react.md) |
 | What to work on next | [docs/project/backlog.md](docs/project/backlog.md) |
@@ -26,7 +27,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
   `docker compose exec backend php artisan …`, `docker compose exec backend composer …` (`run --rm` instead of `exec` when the stack is stopped).
 - **The frontend runs directly on the computer**, Node 24 (`.nvmrc`): `npm …` inside `frontend/`, no Docker. Never `npm audit fix --force`, never `sudo npm`.
 - Host ports are standard + 500: Laravel 8500, Postgres 5932, Mailpit 8525, Vite 5673.
-- The `Makefile` wraps all of this (`make help`); `make check` runs every check (Pint, tests, lint, types) and must pass before a merge.
+- The `Makefile` wraps all of this (`make help`); `make check` runs every check (Pint, tests, lint, types) and must pass before a merge. GitHub runs the same checks, plus the build, on every push (`.github/workflows/ci.yml`), and a dependency audit weekly and when the lockfiles change (`audit.yml`, `make audit` locally): docs/how-to/H5-ci.md. Workflows use only GitHub's own actions (`actions/*`) and a read-only token.
 - Tests: `make test` (`docker compose exec backend php artisan test`). They run on the `atleoplan_test` database; `tests/Feature/TestDatabaseTest.php` guards it. Never weaken the `<server>` / `<env force>` overrides in `backend/phpunit.xml`.
 - Style: `docker compose exec backend vendor/bin/pint`, `npm run lint` in `frontend/`.
 - `.env` files hold secrets: do not read or print them; new variables go in `.env.example` (or in `compose.yaml` when they are development settings).

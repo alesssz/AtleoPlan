@@ -1,0 +1,90 @@
+# Continuous integration: the checks of `make check`, run by GitHub on every
+# push, in two jobs side by side, each on a fresh Linux machine:
+#   frontend  the docs' contents lists, ESLint, TypeScript, Vitest, the build
+#   backend   Pint and the Pest tests, in the backend's own Docker image, with Postgres
+#
+# Runs on a push to any branch, not only main: branches are merged into main
+# on the computer (`make merge`), never through a pull request, so the run
+# of the branch pushed by `make push` is the check that comes before main.
+# How it works and how to read a failed run: docs/how-to/H5-ci.md.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  # Run by hand from the Actions tab, on any branch.
+  workflow_dispatch:
+
+# Read-only token: the jobs only check out the code and run checks. A job
+# that tried to push, comment or open a pull request would be refused.
+permissions:
+  contents: read
+
+# On a branch, a new push cancels the run still going: only the latest commit
+# matters. On main every merge keeps its run, so no commit goes unchecked.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  frontend:
+    name: Frontend and docs
+    runs-on: ubuntu-latest
+    # A stuck run stops here instead of at GitHub's six hours
+    timeout-minutes: 15
+    # Every `run:` below starts in frontend/, unless it says otherwise
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      # Node at the version of .nvmrc, as on the computer; npm's download
+      # cache kept between runs, keyed on the lockfile
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # Each doc's "Contents" list matches its headings (make toc-check);
+      # first, since it needs no package
+      - run: node scripts/docs-toc.mjs --check
+        working-directory: .
+      # Exactly the lockfile's versions: a lockfile out of step with
+      # package.json fails here, where `npm install` would quietly fix it
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      # The production build: an import that resolves in Vitest but not in
+      # Vite's build, or a type error only the build sees, fails here
+      - run: npm run build
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      # The settings file the app reads. The repository has only its
+      # example; the tests' own values come from phpunit.xml, which forces
+      # the test database, the in-memory mail and the jobs run at once
+      - run: cp backend/.env.example backend/.env
+      # The image of development (Dockerfile, target dev): the same PHP, the
+      # same extensions as on the computer. Built from scratch, a few minutes
+      - run: docker compose build backend
+      # Postgres alone, waiting for its health check. Its first start runs
+      # docker/postgres/init, which creates the tests' database atleoplan_test
+      - run: docker compose up -d --wait postgres
+      # The Composer packages, from composer.lock. `run --rm`: a container
+      # for the command only, as `make setup` does with the stack stopped
+      - run: docker compose run --rm backend composer install --no-interaction --no-progress
+      # The app key, written into backend/.env: encryption and sessions need one
+      - run: docker compose run --rm backend php artisan key:generate
+      # The PHP code's format, without changing it (make pint-check)
+      - run: docker compose run --rm backend vendor/bin/pint --test
+      # The tests, on atleoplan_test (make test)
+      - run: docker compose run --rm backend php artisan test
+      # On failure, the containers' logs in the run's page (Postgres's
+      # above all); `always()` would print them on success too, for nothing
+      - if: failure()
+        run: docker compose logs --no-color

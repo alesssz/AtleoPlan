@@ -63,6 +63,12 @@
     "eslint, typescript-eslint and shadcn (through ts-morph) still ask for 10. Development tools only, nothing of it reaches the browser.",
     "Remove it when they accept 11 by themselves: docs/how-to/H3-frontend.md H3.7.1, backlog OPS-5. (npm ignores fields named //.)"
   ],
+  "//auditIgnore": [
+    "auditIgnore: npm advisories reviewed and left out on purpose, by GHSA id, with the reason. scripts/npm-audit.mjs (make audit, and the Audit workflow) fails on any other: docs/how-to/H5-ci.md H5.4."
+  ],
+  "auditIgnore": {
+    "GHSA-gcqx-w48m-w2h4": "deepmerge, low: only in shadcn's command, a development tool, never in the app; no patched version exists (docs/how-to/H3-frontend.md H3.7.1)"
+  },
   "overrides": {
     "minimatch": "^11.0.8"
   }

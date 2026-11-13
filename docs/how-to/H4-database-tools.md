@@ -200,4 +200,4 @@ What the pasted name of [H4.2.1](#h421-creating-the-connection-once) looked like
 
 ---
 
-← [H3. Frontend: how to](H3-frontend.md) · [Contents](../README.md) · [P1. Conventions](../project/P1-conventions.md) →
+← [H3. Frontend: how to](H3-frontend.md) · [Contents](../README.md) · [H5. Continuous integration](H5-ci.md) →
