@@ -28,6 +28,7 @@
 - [H3.5 Testing a page](#h35-testing-a-page)
 - [H3.6 Translations](#h36-translations)
 - [H3.7 Adding an npm package](#h37-adding-an-npm-package)
+  - [H3.7.1 A vulnerable package deep in the tree: overrides](#h371-a-vulnerable-package-deep-in-the-tree-overrides)
 - [H3.8 Checking in the browser](#h38-checking-in-the-browser)
   - [H3.8.1 Phone, tablet and desktop widths](#h381-phone-tablet-and-desktop-widths)
   - [H3.8.2 A real Android phone over USB](#h382-a-real-android-phone-over-usb)
@@ -695,6 +696,100 @@ npm install -D package-name         # only for development: tests, types, tools
 After a `git pull` that changes `package-lock.json`, run `npm install` in `frontend/` (`make fe-install`), then restart `make dev`. Vite prepares the packages when it starts.
 
 **Never** `npm audit fix --force` (it can install incompatible major versions) and never `sudo npm` ([S1.10](../start/S1-setup.md#s110-troubleshooting)). `make audit` lists known vulnerabilities without changing anything.
+
+### H3.7.1 A vulnerable package deep in the tree: overrides
+
+`chore/minimatch-override`. GitHub's Dependabot ([P1.5.2](../project/P1-conventions.md#p152-the-account-and-the-repository-on-github)) reported a failed run, "Dependabot encountered an error performing the update". With no `.github/dependabot.yml` in the repository, it was a **security update**: Dependabot had found a vulnerable package and tried to open a pull request with the fix, and could not find one to propose.
+
+**1. What is vulnerable, and who brings it.** From `frontend/`, and the same for the backend from the root:
+
+```sh
+npm audit                                         # the report, by package
+npm ls minimatch                                  # who depends on it
+docker compose exec -T backend composer audit     # the backend's packages
+```
+
+```
+15 vulnerabilities (2 low, 13 moderate)
+
++-- eslint@10.14.0
+| `-- minimatch@10.2.6
++-- shadcn@4.23.0
+| `-- ts-morph@26.0.0
+|   `-- @ts-morph/common@0.27.0
+|     `-- minimatch@10.2.6 deduped
+`-- typescript-eslint@8.72.1
+  `-- @typescript-eslint/typescript-estree@8.72.1
+    `-- minimatch@10.2.6 deduped
+
+No security vulnerability advisories found.
+```
+
+Fifteen packages, but **two advisories**: npm counts every package on the way to a vulnerable one. `npm audit --json` lists each with `via`: an object there is the advisory itself, a name is a package that only depends on it. Here `minimatch` 10.2.6 (moderate, a denial of service through crafted patterns, GHSA-g3hv-75wg-m249, fixed in 11.0.1) and `deepmerge` 4.3.1 (low, prototype poisoning, GHSA-gcqx-w48m-w2h4).
+
+**2. Why Dependabot could not fix them.** The fix of `minimatch` is a new major version, 11, and its three parents all ask for `^10`; no version of them accepts 11. `deepmerge` has no fixed version at all: 4.3.1 is the latest, from 2023. `npm view` says both:
+
+```sh
+npm view minimatch dist-tags.latest    # 11.0.8
+npm view deepmerge dist-tags.latest    # 4.3.1, the vulnerable one
+```
+
+npm's own advice, `npm audit fix --force`, would have **gone back**: `eslint` 9, `shadcn` 1, major versions older than the project's.
+
+**3. How much it matters.** `node -e "…"` on `package.json` showed `eslint` and `typescript-eslint` in `devDependencies`; `shadcn` is in `dependencies`, but the app imports from it only a stylesheet, `@import "shadcn/tailwind.css"` in `src/index.css`. Its JavaScript (`ts-morph`, `deepmerge`) is the command that adds components, and never reaches the browser. Every vulnerable package runs only on the developer's computer.
+
+**4. The fix: `overrides`.** A field of `package.json` that forces a version of a package anywhere in the tree, whatever its parents ask:
+
+```json
+"overrides": {
+  "minimatch": "^11.0.8"
+}
+```
+
+```sh
+npm install
+npm ls minimatch
+npm audit
+```
+
+```
++-- eslint@10.14.0
+| +-- @eslint/config-array@0.23.5
+| | `-- minimatch@11.0.8 deduped
+| `-- minimatch@11.0.8
++-- shadcn@4.23.0
+| `-- ts-morph@26.0.0
+|   `-- @ts-morph/common@0.27.0
+|     `-- minimatch@11.0.8 deduped
+`-- typescript-eslint@8.72.1
+  `-- @typescript-eslint/typescript-estree@8.72.1
+    `-- minimatch@11.0.8 deduped
+
+3 low severity vulnerabilities
+```
+
+`git diff package-lock.json` is worth reading before going on: `minimatch` from 10.2.6 to 11.0.8, one new package it brings (`@isaacs/nonrecursive-glob-match`, by the same author), and its need of Node raised from `18 || 20 || >=22` to `20 || >=22`, which the project's Node 24 meets. Nothing else moved.
+
+The parents now get a version they did not ask for: **an override is a promise that it still works**, and has to be checked. JSON takes no comments, so the reason is written in a field named `"//"`, which npm ignores, beside the override.
+
+**5. Checking that it still works.** The usual checks, then the two programs that use `minimatch`, on what they use it for:
+
+```sh
+npm run lint && npm run typecheck && npx vitest run && npm run build
+```
+
+```
+ Test Files  32 passed (32)
+      Tests  291 passed (291)
+✓ built in 347ms
+```
+
+- **ESLint picks its files with `minimatch`** (the `files` and `ignores` patterns of `eslint.config.js`). A broken `minimatch` could make it lint nothing and report nothing, which reads as a pass. So: `npx eslint . --format json` piped into a few lines of Node that count the files by folder said `files linted: 184`, `in dist: 0` (ignored, though `dist/` existed after the build), `in src/components/ui: 19`, whose own rule (`react-refresh/only-export-components` off) still applied, or the lint would have failed on `buttonVariants`. And a file written to fail, `const unused = 1`, failed: `'unused' is assigned a value but never used`. Then it was deleted.
+- **shadcn reads the project with `ts-morph`:** `npx shadcn add badge --dry-run` answered with the file it would overwrite, `src\components\ui\badge.tsx`, and wrote nothing (`git status` showed only `package.json` and `package-lock.json`).
+
+**6. The rest, on GitHub.** `deepmerge` has no fix: its alert is closed by hand, **Security → Dependabot → the alert → Dismiss alert → Risk is tolerable to this project**, with a note such as "dev-only: shadcn's CLI, not bundled; no patched version". The `minimatch` alert closes by itself once the branch is on `main` and GitHub reads the new `package-lock.json`.
+
+**7. Removing the override later.** It stays only until `eslint`, `typescript-eslint` and `ts-morph` ask for `minimatch` 11 themselves ([OPS-5](../project/backlog.md#ops-5-drop-the-minimatch-override)). To check, remove the `overrides` and `"//"` fields, `npm install`, `npm ls minimatch`: no 10.x left means it can go.
 
 ---
 
