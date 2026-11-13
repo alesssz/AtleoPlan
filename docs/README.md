@@ -68,7 +68,7 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 
 | Document | What it covers |
 |---|---|
-| [P1. Conventions](project/P1-conventions.md) | Git, code and comments, documentation, backlog, the public repository (what never goes in, the check before going public, the visibility on GitHub) |
+| [P1. Conventions](project/P1-conventions.md) | Git, code and comments, documentation, backlog, the public repository (what never goes in, the check before going public, the account and repository settings on GitHub) |
 | [Backlog](project/backlog.md) | The work known and waiting, one entry per point with options and a recommendation; an entry is deleted when its work is done |
 
 ### L · Learn
