@@ -1,9 +1,12 @@
 /*
  * The exercise library (route `/exercises`, docs/design/D1-ui.md D1.4.3):
  * public exercises and the user's own, with search, filters and a button to
- * load more. Its pieces: ExerciseFilters and ExerciseListItem
+ * load more. New exercise sits at the right of the title, in PageHeader's
+ * `actions` (D1.5 "Page header"). Its pieces: ExerciseFilters (the search,
+ * the Filters panel, the source) and ExerciseListItem
  * (src/components/exercises/), the hook useExercises (src/api/exercises.ts).
- * How it was built: docs/how-to/H3-frontend.md H3.12.
+ * How it was built: docs/how-to/H3-frontend.md H3.12; the compact header
+ * and the Filters panel: H3.31.
  *
  * The filters live in the address, as its query string:
  * /exercises?q=panca&muscle=chest&source=mine. React Router's useSearchParams
@@ -106,17 +109,21 @@ export function ExercisesPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('pages.exercises.eyebrow')} title={t('pages.exercises.title')} description={t('pages.exercises.description')} />
-
-      {/* The main action, above the filters: a real link styled as a button */}
-      <div className="mb-6">
-        <Button asChild size="xl">
-          <Link to="/exercises/new">
-            <Plus aria-hidden="true" />
-            {t('exercises.new')}
-          </Link>
-        </Button>
-      </div>
+      {/* The header, with the main action at the right of the title: a real
+          link styled as a button, passed as the `actions` prop (D1.5 "Page
+          header") */}
+      <PageHeader
+        title={t('pages.exercises.title')}
+        description={t('pages.exercises.description')}
+        actions={(
+          <Button asChild size="xl">
+            <Link to="/exercises/new">
+              <Plus aria-hidden="true" />
+              {t('exercises.new')}
+            </Link>
+          </Button>
+        )}
+      />
 
       <ExerciseFilters values={values} onChange={changeFilters} searching={searching} />
 

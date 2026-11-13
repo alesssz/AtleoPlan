@@ -33,7 +33,9 @@ export function ProgressPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('pages.progress.eyebrow')} title={t('pages.progress.title')} description={t('pages.progress.description')} />
+      {/* No eyebrow: the tab bar and the sidebar already name the section
+          (D1.5 "Page header", PageHeader.tsx) */}
+      <PageHeader title={t('pages.progress.title')} description={t('pages.progress.description')} />
 
       <div className="flex flex-col gap-6">
         {list.isPending && (

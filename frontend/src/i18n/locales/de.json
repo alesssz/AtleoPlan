@@ -15,28 +15,23 @@
   "pages": {
     "home": {
       "title": "Start",
-      "description": "Dein aktiver Plan, der vorgeschlagene Tag und die Trainings dieser Woche.",
-      "eyebrow": "Heute"
+      "description": "Dein aktiver Plan, der vorgeschlagene Tag und die Trainings dieser Woche."
     },
     "plans": {
       "title": "Pläne",
-      "description": "Deine Trainingspläne mit ihren Tagen und Übungen.",
-      "eyebrow": "Training"
+      "description": "Deine Trainingspläne mit ihren Tagen und Übungen."
     },
     "exercises": {
       "title": "Übungen",
-      "description": "Die Übungsbibliothek: öffentliche Übungen und deine eigenen.",
-      "eyebrow": "Bibliothek"
+      "description": "Die Übungsbibliothek: öffentliche Übungen und deine eigenen."
     },
     "progress": {
       "title": "Fortschritt",
-      "description": "Diagramme, persönliche Rekorde und dein Trainingsverlauf.",
-      "eyebrow": "Ergebnisse"
+      "description": "Diagramme, persönliche Rekorde und dein Trainingsverlauf."
     },
     "profile": {
       "title": "Profil",
-      "description": "Dein Konto und wie die App aussieht und funktioniert.",
-      "eyebrow": "Konto"
+      "description": "Dein Konto und wie die App aussieht und funktioniert."
     }
   },
   "preferences": {
@@ -305,6 +300,10 @@
     "searchLabel": "Übungen suchen",
     "searchPlaceholder": "Nach Namen suchen",
     "filtersLabel": "Filter",
+    "filtersActive_one": "{{count}} aktiv",
+    "filtersActive_other": "{{count}} aktiv",
+    "filtersText": "Die Liste ändert sich, während du wählst.",
+    "showResults": "Übungen anzeigen",
     "muscleFilter": "Muskelgruppe",
     "allMuscles": "Alle Muskeln",
     "equipmentFilter": "Ausrüstung",

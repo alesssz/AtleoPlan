@@ -1,5 +1,6 @@
 /*
- * Import plan, on the plans' list (docs/design/D1-ui.md D1.4.6): a file
+ * Import plan, in the header of the plans' list, beside New plan; only its
+ * icon on phones (docs/design/D1-ui.md D1.4.6): a file
  * saved by a plan's Export (ExportPlanButton.tsx), here or on another
  * server, becomes a new plan; its page then opens, saying which exercises
  * had to be created. How it works: docs/concepts/C1-frontend.md C1.15.6.
@@ -126,12 +127,17 @@ export function ImportPlanButton() {
     // onOpenChange, so closing can also reset the window. Uncontrolled,
     // Radix would keep it to itself, and this code would not know
     <Dialog open={open} onOpenChange={changeOpen}>
-      {/* The button on the list, outlined beside New plan. DialogTrigger
-          asChild: it opens the window, drawn as our Button */}
+      {/* The button on the list, outlined beside New plan, in the page's
+          header. DialogTrigger asChild: it opens the window, drawn as our
+          Button. On phones (max-sm:, below 640 px) only its icon shows, so
+          that it fits on the title's row: the button becomes a 48 px square
+          (w-12, no side padding) and the text is sr-only, still read by
+          screen readers as the button's name. `title`: the same words as a
+          tooltip, for a mouse (docs/project/P1-conventions.md P1.2) */}
       <DialogTrigger asChild>
-        <Button size="xl" variant="outline">
+        <Button size="xl" variant="outline" title={t('plans.import.button')} className="max-sm:w-12 max-sm:px-0">
           <Upload aria-hidden="true" />
-          {t('plans.import.button')}
+          <span className="max-sm:sr-only">{t('plans.import.button')}</span>
         </Button>
       </DialogTrigger>
 

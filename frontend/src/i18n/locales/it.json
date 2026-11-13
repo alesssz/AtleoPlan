@@ -15,28 +15,23 @@
   "pages": {
     "home": {
       "title": "Home",
-      "description": "La tua scheda attiva, il giorno consigliato e gli allenamenti della settimana.",
-      "eyebrow": "Oggi"
+      "description": "La tua scheda attiva, il giorno consigliato e gli allenamenti della settimana."
     },
     "plans": {
       "title": "Schede",
-      "description": "Le tue schede di allenamento, con i loro giorni ed esercizi.",
-      "eyebrow": "Allenamento"
+      "description": "Le tue schede di allenamento, con i loro giorni ed esercizi."
     },
     "exercises": {
       "title": "Esercizi",
-      "description": "La libreria degli esercizi: quelli pubblici e i tuoi.",
-      "eyebrow": "Libreria"
+      "description": "La libreria degli esercizi: quelli pubblici e i tuoi."
     },
     "progress": {
       "title": "Progressi",
-      "description": "Grafici, record personali e lo storico dei tuoi allenamenti.",
-      "eyebrow": "Risultati"
+      "description": "Grafici, record personali e lo storico dei tuoi allenamenti."
     },
     "profile": {
       "title": "Profilo",
-      "description": "Il tuo account e come l'app appare e funziona.",
-      "eyebrow": "Account"
+      "description": "Il tuo account e come l'app appare e funziona."
     }
   },
   "preferences": {
@@ -305,6 +300,10 @@
     "searchLabel": "Cerca esercizi",
     "searchPlaceholder": "Cerca per nome",
     "filtersLabel": "Filtri",
+    "filtersActive_one": "{{count}} attivo",
+    "filtersActive_other": "{{count}} attivi",
+    "filtersText": "La lista cambia mentre scegli.",
+    "showResults": "Mostra gli esercizi",
     "muscleFilter": "Gruppo muscolare",
     "allMuscles": "Tutti i muscoli",
     "equipmentFilter": "Attrezzatura",

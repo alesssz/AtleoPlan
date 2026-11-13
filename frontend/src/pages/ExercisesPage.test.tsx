@@ -89,18 +89,28 @@ describe('ExercisesPage', () => {
 
     expect(sentFilter(fake, 'filter[muscle]')).toEqual(['chest'])
     expect(sentFilter(fake, 'filter[source]')).toEqual(['mine'])
-    // The controls show them: the select's value, the pressed button
-    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Muscle group' })).toHaveValue('chest'))
+    // The controls show them: the pressed button, the number on Filters,
+    // and, in the panel it opens, the select's value
     expect(screen.getByRole('button', { name: 'Mine' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(screen.getByRole('button', { name: 'Filters, 1 active' }))
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Muscle group' })).toHaveValue('chest'))
   })
 
   it('changes a filter in the address and in the request', async () => {
     const fake = fakeApi({ ...fixedLists, 'GET /api/exercises': exercisePage([testExercise()]) })
     const { router } = renderRoutes(routes, '/exercises')
 
+    // Muscle and equipment are in the Filters panel, from the bottom
+    await userEvent.click(screen.getByRole('button', { name: 'Filters' }))
+    // The panel: a dialog named by its title
+    const panel = screen.getByRole('dialog', { name: 'Filters' })
     // The option exists once GET /api/equipment has answered
-    await screen.findByRole('option', { name: 'Barbell' })
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Equipment' }), 'barbell')
+    await within(panel).findByRole('option', { name: 'Barbell' })
+    await userEvent.selectOptions(within(panel).getByRole('combobox', { name: 'Equipment' }), 'barbell')
+    // Show closes the panel; the button now says one filter is on
+    await userEvent.click(within(panel).getByRole('button', { name: 'Show exercises' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Filters, 1 active' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Public' }))
 
     expect(router.state.location.search).toBe('?equipment=barbell&source=public')

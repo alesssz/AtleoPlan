@@ -98,6 +98,8 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
         <ArrowLeft aria-hidden="true" className="size-4" />
         {t('history.back')}
       </Link>
+      {/* The eyebrow is the workout's date: information the title, the
+          day's name, does not give (D1.5 "Page header") */}
       <PageHeader eyebrow={when} title={session.day_name ?? t('workout.free')} description={session.plan_name ?? undefined} />
 
       <div className="flex flex-col gap-8">

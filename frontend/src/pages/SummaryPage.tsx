@@ -205,6 +205,8 @@ function Summary({ finished }: SummaryProps) {
 
   return (
     <>
+      {/* The eyebrow says what this page is, "Workout finished", above
+          the day's name; the tab bar alone would not (D1.5 "Page header") */}
       <PageHeader eyebrow={t('summary.eyebrow')} title={input.day_name ?? t('workout.free')} description={input.plan_name ?? undefined} />
 
       <div className="flex flex-col gap-8">

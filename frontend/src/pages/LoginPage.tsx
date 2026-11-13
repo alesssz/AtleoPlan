@@ -58,7 +58,10 @@ export function LoginPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('auth.signIn.eyebrow')} title={t('auth.signIn.title')} description={t('auth.signIn.description')} className="mb-6" />
+      {/* The eyebrow stays on the sign-in screens: they have no tab bar or
+          sidebar saying where the user is (D1.5 "Page header"). PageHeader's
+          own 24 px under it suits them (they used to pass className="mb-6") */}
+      <PageHeader eyebrow={t('auth.signIn.eyebrow')} title={t('auth.signIn.title')} description={t('auth.signIn.description')} />
 
       {/* handleSubmit checks the fields first and calls onSubmit only when they
           are valid. noValidate turns off the browser's own bubbles: the messages

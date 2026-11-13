@@ -60,7 +60,9 @@ function NewPlan() {
 
   return (
     <>
-      <PageHeader eyebrow={t('pages.plans.eyebrow')} title={t('plans.editor.newTitle')} />
+      {/* No eyebrow: the tab bar and the sidebar already name the section
+          (D1.5 "Page header", PageHeader.tsx) */}
+      <PageHeader title={t('plans.editor.newTitle')} />
       <PlanEditor
         initial={initial}
         storageKey={draftKey(undefined)}
@@ -135,6 +137,8 @@ function EditPlanForm({ plan, unit }: EditPlanFormProps) {
 
   return (
     <>
+      {/* Here the eyebrow says something the title does not: the title is
+          the plan's name, the eyebrow what is being done to it, "Edit plan" */}
       <PageHeader eyebrow={t('plans.editor.editTitle')} title={plan.name} />
       <PlanEditor
         initial={initial}

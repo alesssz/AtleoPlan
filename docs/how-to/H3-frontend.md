@@ -189,6 +189,11 @@
   - [H3.30.3 The section of the editor](#h3303-the-section-of-the-editor)
   - [H3.30.4 The tests](#h3304-the-tests)
   - [H3.30.5 Check it in the browser](#h3305-check-it-in-the-browser)
+- [H3.31 Compact page headers and the Filters panel](#h331-compact-page-headers-and-the-filters-panel)
+  - [H3.31.1 A prop that takes JSX](#h3311-a-prop-that-takes-jsx)
+  - [H3.31.2 The commands, in order](#h3312-the-commands-in-order)
+  - [H3.31.3 Testing a panel](#h3313-testing-a-panel)
+  - [H3.31.4 Check it in the browser](#h3314-check-it-in-the-browser)
 
 ---
 
@@ -244,7 +249,7 @@ export function MusclesPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('pages.muscles.eyebrow')} title={t('pages.muscles.title')} description={t('pages.muscles.description')} />
+      <PageHeader title={t('pages.muscles.title')} description={t('pages.muscles.description')} />
       {/* the content comes in H3.3 */}
     </>
   )
@@ -255,6 +260,8 @@ export function MusclesPage() {
 - **`export`** makes it importable from other files.
 - **`@/`** means `src/`, so imports do not need `../../`.
 - **No text is written in the component:** every text is a key, looked up with `t()` ([H3.6](#h36-translations)).
+- **No `eyebrow` with the section's name** ("LIBRARY"): the navigation already says it. Pass one only when it adds something, such as a date ([D1.5](../design/D1-ui.md#d15-design-system) "Page header").
+- **A main action** (a New button) goes in the header's `actions` prop, at the right of the title: `actions={<Button asChild size="xl"><Link to="/muscles/new">…</Link></Button>}`. `ExercisesPage` and `PlansPage` are the examples ([H3.31](#h331-compact-page-headers-and-the-filters-panel)).
 
 ### H3.2.2 Its texts
 
@@ -262,7 +269,6 @@ In **each of the four** files `src/i18n/locales/{en,it,es,de}.json`, under `page
 
 ```json
 "muscles": {
-  "eyebrow": "Library",
   "title": "Muscles",
   "description": "The muscles the exercises work."
 }
@@ -270,7 +276,6 @@ In **each of the four** files `src/i18n/locales/{en,it,es,de}.json`, under `page
 
 ```json
 "muscles": {
-  "eyebrow": "Libreria",
   "title": "Muscoli",
   "description": "I muscoli che gli esercizi allenano."
 }
@@ -4537,6 +4542,129 @@ npx vitest run src/pages/ExercisePhotos.test.tsx
 3. Pick a `.heic` or a large file from a computer: the message appears at once, nothing is sent (developer tools, Network tab).
 4. A public exercise → **Duplicate as mine**: the editor of the copy, with its photos.
 5. On a phone ([H3.8.2](#h382-a-real-android-phone-over-usb)): Add photos opens the camera roll or the camera; the photo arrives as JPEG.
+
+---
+
+## H3.31 Compact page headers and the Filters panel
+
+`feat/compact-headers`: less empty room at the top of the pages. The title carries the page's main actions on its row, the description is smaller, the eyebrow that repeated the section's name is gone, and the library's muscle and equipment filters moved into a panel from the bottom. Why, and the options weighed: [D1.5](../design/D1-ui.md#d15-design-system) "Page header" and [D1.4.3](../design/D1-ui.md#d143-exercise-library); how the filters work: [C1.14.3](../concepts/C1-frontend.md#c1143-filters-in-the-address).
+
+| File | Change |
+|---|---|
+| `src/components/PageHeader.tsx` | New `actions` prop, drawn at the right of the title; title 24/30 px instead of 30/36; description 14 px; 24 px under the header instead of 32 |
+| `src/pages/ExercisesPage.tsx`, `PlansPage.tsx` | Their New buttons (and Import plan) passed as `actions`, no longer on a row of their own |
+| `src/components/plans/ImportPlanButton.tsx` | Only its icon on phones, the name kept for screen readers and as a tooltip |
+| `src/components/exercises/ExerciseFilters.tsx` | Search, **Filters** (a `Sheet` with the two selects) and the source on one row |
+| Nine pages | `eyebrow={t('pages.….eyebrow')}` removed; the four sign-in pages lose their `className="mb-6"`, now the default |
+| `src/i18n/locales/*.json` | `pages.*.eyebrow` removed (none is used any more); `exercises.filtersActive_one/_other`, `filtersText`, `showResults` added |
+| `src/pages/ExercisesPage.test.tsx` | The two filter tests open the panel first |
+
+### H3.31.1 A prop that takes JSX
+
+`PageHeader` does not know which buttons a page has: the page passes them, ready-made, in a prop typed `ReactNode` (React's type for anything drawable):
+
+```tsx
+<PageHeader
+  title={t('pages.plans.title')}
+  description={t('pages.plans.description')}
+  actions={(
+    <>
+      <Button asChild size="xl"><Link to="/plans/new"><Plus aria-hidden="true" />{t('plans.new')}</Link></Button>
+      <ImportPlanButton />
+    </>
+  )}
+/>
+```
+
+`<>…</>`, a fragment, groups the two buttons without adding an element. In `PageHeader` the title and `{actions}` sit in one `flex flex-wrap justify-between` row: side by side when they fit, the actions on a row of their own when they do not (a long plan name, German on a narrow phone).
+
+**An icon-only button on phones** keeps its text for screen readers: the text in `<span className="max-sm:sr-only">`, the button `max-sm:w-12 max-sm:px-0` (a 48 px square), and `title` for the tooltip.
+
+### H3.31.2 The commands, in order
+
+From the repository's root, on a clean `main`:
+
+```sh
+make branch name=feat/compact-headers
+```
+
+```
+git switch -c feat/compact-headers
+Switched to a new branch 'feat/compact-headers'
+```
+
+The eyebrows that only repeated the section, removed from nine pages at once with Perl's search and replace (`-p` runs over each line, `-i` writes the file back), from `frontend/src/pages/`:
+
+```sh
+perl -pi -e "s/<PageHeader eyebrow=\{t\('pages\.(exercises|plans|progress|profile)\.eyebrow'\)\} /<PageHeader /" \
+  ExerciseDetailPage.tsx ExerciseEditorPage.tsx ProgressPage.tsx ProfilePage.tsx PlanDetailPage.tsx PlanEditorPage.tsx
+perl -pi -e "s/<PageHeader eyebrow=\{t\('pages\.progress\.title'\)\} /<PageHeader /" HistoryPage.tsx
+grep -rn "<PageHeader" . | grep -v test        # what is left: the eyebrows that add something
+```
+
+The eyebrows kept: the sign-in pages (no navigation there), the workout summary, a past workout's date, "Edit plan". Then the keys no page reads any more, removed from the four locale files with a few lines of Node, which read the JSON, delete the field, and write it back with the same two-space indentation:
+
+```sh
+cd frontend
+for l in en it es de; do node -e '
+const fs=require("fs"),f=process.argv[1],j=JSON.parse(fs.readFileSync(f,"utf8"));
+for (const k of Object.keys(j.pages)) delete j.pages[k].eyebrow;
+fs.writeFileSync(f,JSON.stringify(j,null,2)+"\n");' src/i18n/locales/$l.json; done
+git diff --stat src/i18n
+```
+
+```
+ frontend/src/i18n/locales/de.json | 15 +++++----------
+ frontend/src/i18n/locales/en.json | 15 +++++----------
+ frontend/src/i18n/locales/es.json | 15 +++++----------
+ frontend/src/i18n/locales/it.json | 15 +++++----------
+ 4 files changed, 20 insertions(+), 40 deletions(-)
+```
+
+`git diff` showed only the `eyebrow` lines and the commas before them. Then the components by hand (the table above), the new texts in the four files, and the checks, with Node 24 (`nvm use` in `frontend/`):
+
+```sh
+npx vitest run src/pages/ExercisesPage.test.tsx
+npm run lint && npm run typecheck && npx vitest run
+```
+
+```
+ Test Files  32 passed (32)
+      Tests  273 passed (273)
+```
+
+Last, from the root, `make toc` and `make check`.
+
+### H3.31.3 Testing a panel
+
+The panel's content is drawn only while it is open (Radix mounts a dialog's content when it opens), so a test opens it first, then looks inside it with `within()`:
+
+```tsx
+await userEvent.click(screen.getByRole('button', { name: 'Filters' }))
+const panel = screen.getByRole('dialog', { name: 'Filters' })          // named by its SheetTitle
+await within(panel).findByRole('option', { name: 'Barbell' })         // the list has loaded
+await userEvent.selectOptions(within(panel).getByRole('combobox', { name: 'Equipment' }), 'barbell')
+await userEvent.click(within(panel).getByRole('button', { name: 'Show exercises' }))
+await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+expect(screen.getByRole('button', { name: 'Filters, 1 active' })).toBeInTheDocument()
+```
+
+**Errors met:**
+
+| Message | Cause | Fix |
+|---|---|---|
+| `Unable to find an accessible element with the role "button" and name "Filters 1 active"`; the list of buttons printed under it showed `Name "Filters1 active"` | A button's accessible name is its texts joined, and two `<span>`s side by side are joined without a space: a screen reader would have read "Filters1 active" too | The hidden text starts with a comma and a space, as a template literal: `` {`, ${t('exercises.filtersActive', { count })}`} ``; the name is now "Filters, 1 active" |
+| `Error: [vitest-pool]: Failed to start forks worker for test files …` | The terminal had Node 22.9; the project wants Node 24 (`.nvmrc`), [S1](../start/S1-setup.md) | `nvm use` in `frontend/`, then the same command |
+
+### H3.31.4 Check it in the browser
+
+Not looked at by the assistant: the development server could not be reached from its tools in this session. By hand, at a phone's width ([H3.8.1](#h381-phone-tablet-and-desktop-widths)) and on a wide window:
+
+1. **Exercises:** the title with **New exercise** on its right, the small description under them; then the search box with the Filters icon beside it, and All / Mine / Public under them. Scroll: the search and Filters stay at the top, the source goes.
+2. **Filters:** the panel rises from the bottom; choose a muscle, the list changes behind it; **Show exercises** closes it, and the button shows a lime **1**. **Clear filters** in the panel removes it. From 640 px the button says "Filters" and the source sits on the same row.
+3. **Plans:** **New plan** and the Import icon on the title's row on a phone; hovering the icon with a mouse shows "Import plan".
+4. **Exercise, plan, progress, profile pages:** no lime word above the title; a past workout still shows its date there, the summary "Workout finished".
+5. Both themes, and German (the longest words): when the buttons do not fit, they go under the title, never over it.
 
 ---
 
