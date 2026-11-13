@@ -8,6 +8,9 @@ How work is done in this repository: Git, code, comments, documentation and the 
 - [P1.2 Code](#p12-code)
 - [P1.3 Documentation](#p13-documentation)
 - [P1.4 Backlog](#p14-backlog)
+- [P1.5 A public repository](#p15-a-public-repository)
+  - [P1.5.1 The check before going public](#p151-the-check-before-going-public)
+  - [P1.5.2 Changing the visibility on GitHub](#p152-changing-the-visibility-on-github)
 
 ---
 
@@ -15,8 +18,8 @@ How work is done in this repository: Git, code, comments, documentation and the 
 
 - **One branch per task** from `main`, with a short English name and a type prefix: `feat/plan-editor`, `fix/rest-timer`, `docs/ui-design`, `chore/docker`. `make branch name=feat/plan-editor` creates it from an up-to-date `main`.
 - **Commit messages** in English, imperative, one subject line (`Add the rest timer to workout mode`), a body when the why is not obvious.
-- **Identity:** commits use the same personal GitHub identity as Chronovault, set in this repository's own `.git/config`; a computer's global Git configuration (on the work Mac, the work identity) is never used here.
-- **No real email in the history:** author and committer are always the GitHub noreply address, so the repository can become public as it is. The `pre-commit` hook in `.githooks/` refuses any other identity; a new clone turns it on with `git config core.hooksPath .githooks` ([S1.3](../start/S1-setup.md#s13-git-identity)).
+- **Identity:** commits use the same personal GitHub identity as Chronovault, set in this repository's own `.git/config`; a computer's global Git configuration, which may hold another identity, is never used here.
+- **No real email in the history:** author and committer are always the GitHub noreply address, which is what let the repository become public as it was ([P1.5](#p15-a-public-repository)). The `pre-commit` hook in `.githooks/` refuses any other identity; a new clone turns it on with `git config core.hooksPath .githooks` ([S1.3](../start/S1-setup.md#s13-git-identity)).
 - Merges into `main` keep a merge commit (`--no-ff`), so each branch stays readable in the history.
 - **Merging is done with `make merge`** ([`scripts/merge-main.mjs`](../../scripts/merge-main.mjs), the same as Chronovault's), from the branch, once it is pushed (`make push`). It stops if the branch is not ready (uncommitted or unpushed work, nothing new), runs `make check`, shows the commits and asks; then it updates `main`, merges with a message listing the branch's commits, pushes `main`, deletes the branch on GitHub and locally, and leaves you on `main` in sync. A conflict is aborted and you are back on the branch. `yes=1` skips the question, `checks=0` the checks (for a docs-only branch).
 
@@ -75,6 +78,97 @@ How work is done in this repository: Git, code, comments, documentation and the 
 ## P1.4 Backlog
 
 Work known and waiting goes in [`docs/project/backlog.md`](backlog.md), one entry per point with an ID (`UI-5`, `FEAT-1`) that is never reused. The branch that does a point deletes its entry in the same commit; a point found along the way that does not belong to the branch gets an entry instead of a fix on the side.
+
+---
+
+## P1.5 A public repository
+
+The repository on GitHub is **public**: anyone can read the code, the docs and the whole history of commits. It stays a personal project in development: it is not deployed, and nothing about how work is done changes. Made public in `docs/public-repo`.
+
+**What public means here:**
+
+- **No licence, on purpose.** Without a `LICENSE` file the code is visible but all rights are reserved: it can be read and studied, not reused, copied or redistributed without permission. A licence can be added later; taking one back is not possible, since copies made under it keep it.
+- **No contributions expected.** Issues and pull requests from others are not part of the plan; the README says so.
+- **Public cannot really be undone.** Turning the repository private again hides it, but every clone, fork and cache made meanwhile keeps everything, history included. That is why the check below runs before, not after.
+
+**What never goes in a commit,** in code, docs, test data or commit messages, because it would stay readable in the history even after being deleted:
+
+- secrets: `.env` files (ignored by `.gitignore`), Laravel's `APP_KEY`, the Google client secret ([S1.11.5](../start/S1-setup.md#s1115-the-two-lines-on-each-computer)), tokens, private keys;
+- database dumps: `make db-dump` writes to `backups/`, ignored;
+- a real person's data: test accounts use `example.com` addresses (`ann@example.com`), the development admin is `test@example.com`;
+- private details of the people working on it: a real email (commits use the noreply address, [P1.1](#p11-git)), the computers' user names and paths, an employer.
+
+A secret committed by mistake is **revoked first** (a new Google client secret, a new `APP_KEY`), then removed: rewriting the history alone does not help once it has been pushed to a public repository.
+
+### P1.5.1 The check before going public
+
+Run from the repository's root in Git Bash, on an up-to-date `main`. Each command reads every commit of every branch (`git rev-list --all`), not only today's files. The outputs are those of 2026-11-13, 92 commits.
+
+**1. Who wrote the commits.** `%an <%ae>` is the author's name and email, `%cn <%ce>` the committer's; `uniq -c` counts each pair:
+
+```sh
+git log --all --format='%an <%ae> | %cn <%ce>' | sort | uniq -c
+```
+
+```
+     92 Alessandro <32982604+alesssz@users.noreply.github.com> | Alessandro <32982604+alesssz@users.noreply.github.com>
+```
+
+One line, the noreply address: no real email in the history.
+
+**2. Files that should never have been added.** `--diff-filter=A` lists the files each commit added; `grep` keeps the names that look like secrets or dumps:
+
+```sh
+git log --all --diff-filter=A --name-only --format= | grep -iE '(^|/)\.env|\.pem$|\.key$|id_rsa|credentials|\.sql$|\.dump$|secret' | sort -u
+```
+
+```
+backend/.env.example
+docker/postgres/init/01-test-database.sql
+```
+
+Both expected: the template of the settings with no values, and the script that creates the test database.
+
+**3. Secrets in the content, in every commit.** `git grep` searches the files of the commits given; the pattern catches the shape of common secrets: Laravel's key (`base64:` and 30 characters or more), a Google client secret (`GOCSPX-`) or client id, AWS, OpenAI-style and GitHub tokens, private keys, Slack tokens, Google API keys:
+
+```sh
+git grep -nIE "(base64:[A-Za-z0-9+/=]{30,}|GOCSPX-[A-Za-z0-9_-]+|[0-9]+-[a-z0-9]{20,}\.apps\.googleusercontent\.com|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_|-----BEGIN [A-Z ]*PRIVATE KEY|xox[bp]-|AIza[0-9A-Za-z_-]{30,})" $(git rev-list --all) -- .
+```
+
+No output: nothing found. `-I` skips binary files, `-n` gives line numbers.
+
+**4. Email addresses in today's files.** `-o` prints only the match, `-h` leaves out the file name; the lock files are left out (`':!*.lock'`), as they hold the package authors' public addresses:
+
+```sh
+git grep -nIhoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" -- . ':!*.lock' ':!frontend/package-lock.json' | sed 's/^[0-9]*://' | sort | uniq -c | sort -rn
+```
+
+```
+     54 ann@example.com
+      6 test@example.com
+      4 ann@x.com
+      …
+      3 32982604+alesssz@users.noreply.github.com
+```
+
+Only test addresses and the noreply one.
+
+**5. Private details.** The same `git grep … $(git rev-list --all)` with words of your own: a surname, a computer's user name (`/Users/<name>/`, `C:\Users\<name>\`), an employer. `-w` matches whole words only: without it, a short name also matches every longer word that contains it, and the Italian exercise translations hide it under hundreds of false hits. Found this way, and made neutral in `docs/public-repo`: "a Mac (a work computer)" in CLAUDE.md, P1.1 and S1.3. The older commits keep the old wording; it named no employer, so they were left as they were.
+
+**6. Third-party content.** The exercise library comes from free-exercise-db, public domain (Unlicense, [D2.3](../design/D2-decisions.md#d23-exercise-library)): its data and our translations of it can be published. The photos are downloaded by `make exercises-import` into `storage/`, which Git ignores, so none is in the repository.
+
+**7. Size.** `git count-objects -vH | grep size-pack` gives `size-pack: 2.41 MiB`: nothing large was committed by mistake.
+
+### P1.5.2 Changing the visibility on GitHub
+
+By hand, on github.com, signed in as the owner (the GitHub CLI `gh` is not installed on these computers):
+
+1. The repository → **Settings** → **General** → at the bottom, **Danger Zone** → **Change repository visibility** → **Change to public**. GitHub asks to confirm, typing the repository's name.
+2. **Settings** → **Advanced Security** (on some accounts **Code security**): turn on **Secret Protection** and its **Push protection**, free on public repositories. GitHub then scans every push for secrets and refuses one that holds a known kind, such as a Google client secret. Turn on **Dependabot alerts** too: a warning when a Composer or npm package in use has a known vulnerability, the same as `make audit` but by itself.
+3. **Settings** → **General** → **Features**: leave **Issues** on or off as preferred; **Wikis** and **Projects** off, as everything is in `docs/`.
+4. The repository's main page → the gear next to **About**: a one-line description and, if wanted, topics (`laravel`, `react`, `pwa`).
+
+**How to check:** open the repository's address in a private browser window, signed out: it shows the code. **Settings → Advanced Security** shows push protection as enabled.
 
 ---
 

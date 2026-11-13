@@ -86,7 +86,7 @@ Docker Desktop needs free space on its virtual disk: when it is full, builds fai
 
 ## S1.3 Git identity
 
-A computer's global Git identity may be another one (on the work Mac it is the work identity). In this repository every commit uses the **personal GitHub identity** (the same as Chronovault) with GitHub's **noreply address**, so no real email ever enters the history and the repository can become public as it is ([P1.1](../project/P1-conventions.md#p11-git)).
+A computer's global Git identity may be another one. In this repository every commit uses the **personal GitHub identity** (the same as Chronovault) with GitHub's **noreply address**, so no real email ever enters the history of this public repository ([P1.1](../project/P1-conventions.md#p11-git), [P1.5](../project/P1-conventions.md#p15-a-public-repository)).
 
 On a **new clone**, before the first commit:
 
