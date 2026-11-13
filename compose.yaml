@@ -25,9 +25,36 @@ x-backend: &backend
     context: .
     target: dev
   image: atleoplan-backend:dev
+  # What the containers see of the outside, each line `source:path inside`.
+  # Two kinds (docs/how-to/H2-backend.md H2.18.2):
+  # - a BIND MOUNT, when the source is a path (./backend): a folder of the
+  #   computer, shared with the container; both see the same files at once.
+  #   Docker Desktop runs Linux in a virtual machine, on the Mac and on
+  #   Windows, so every file read through it crosses from one system to the
+  #   other: fine for a few files, slow for a thousand.
+  # - a NAMED VOLUME, when the source is a name (vendor): a folder Docker
+  #   keeps on the virtual machine's own disk, declared under `volumes:` at
+  #   the end of this file. As fast as Linux's own disk; the computer does
+  #   not see it, and it survives `docker compose down` (not `down -v`).
+  # When two lines cover the same place, the deeper path wins: /app/vendor
+  # below hides the vendor/ folder of ./backend inside the container.
   volumes:
     # The Laravel code, live: edits on the computer are seen at once in the container.
     - ./backend:/app
+    # The Composer packages, in a named volume over the folder above. A
+    # request reads about a thousand package files, and PHP's OPcache checks
+    # their dates again after every pause of two seconds: through the shared
+    # folder that took over a second, from the volume about a tenth
+    # (docs/concepts/C2-backend.md C2.4). The packages change only through
+    # Composer, so nothing is lost by not seeing them live; the app's own
+    # code stays shared.
+    - vendor:/app/vendor
+    # The computer's backend/vendor/ again, at another place in the
+    # container: Composer copies the volume onto it after every change
+    # (docker/php/sync-vendor.sh), so the editor on the computer still sees
+    # the packages. The app never reads it. The queue worker gets it too,
+    # because both services share this list; it never runs Composer.
+    - ./backend/vendor:/vendor-host
     # Composer's download cache, kept between containers (COMPOSER_CACHE_DIR).
     - composer-cache:/composer-cache
   environment:
@@ -122,4 +149,10 @@ services:
 
 volumes:
   postgres-data:
+  # The backend's Composer packages, shared by `backend` and `queue`
+  # (docs/how-to/H2-backend.md H2.18). It starts empty: `make setup` fills it
+  # with `composer install`. Docker names it after the project,
+  # `atleoplan_vendor` (`docker volume ls`). `down -v` deletes it with the
+  # database; `make setup` then installs the packages again.
+  vendor:
   composer-cache:

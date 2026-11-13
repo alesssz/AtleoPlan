@@ -151,7 +151,7 @@ backend/
 │   └── console.php           scheduled tasks and small custom Artisan commands
 ├── storage/                files written while running: logs, uploads, caches (never committed)
 ├── tests/                  Pest tests: Feature/ (through HTTP), Unit/ (single classes) (C2.11)
-├── vendor/                 packages installed by Composer: never edited, never committed
+├── vendor/                 packages installed by Composer: never edited, never committed; a copy for the editor, the app reads a Docker volume (C2.4)
 ├── artisan                 the Artisan command-line tool
 ├── composer.json / .lock   the PHP packages, like package.json / package-lock.json
 ├── phpunit.xml             test settings: the test database, mail and queue for tests
@@ -189,6 +189,10 @@ What happens, step by step, when the React app calls `GET /api/health`:
 8. The response crosses the middleware back, which may add cookies or headers, and goes to the browser.
 
 In development the whole sequence restarts from scratch on every request, so a code change is live on the next request without restarting anything.
+
+**Why it is still fast: OPcache.** PHP compiles each file into instructions before running it. **OPcache**, a part of PHP, keeps those compiled files in memory, so a file used by the previous request is not read and compiled again. Step 3 alone uses nearly a thousand files, 96% of them Composer's packages in `vendor/`. To notice a saved change, OPcache checks a file's date again once two seconds have passed since the last check (`opcache.revalidate_freq`, 2 in development). On a normal disk, a thousand such checks cost nothing.
+
+**Why `vendor/` lives in a Docker volume.** Docker Desktop runs Linux in a virtual machine, on the Mac and on Windows. `./backend`, mounted into the container, is a folder shared between the two systems, and every date check crosses from one to the other. After a pause, a request paid a thousand of them: over a second, against a tenth of a second right after another request. So `compose.yaml` puts `vendor/` in a **named volume**, a folder on the virtual machine's own disk. The app's code stays shared and live; the packages, changed only by Composer, are read at Linux's speed. The `backend/vendor/` folder on the computer becomes a copy for the editor, refreshed by Composer after every change. How it was measured and built: [H2.18](../how-to/H2-backend.md#h218-a-fast-local-backend-the-packages-in-a-volume-as-built); why this and not another fix: [D2.10](../design/D2-decisions.md#d210-local-development).
 
 **When something breaks,** Laravel writes the error and its stack trace to `storage/logs/laravel.log`. For an API call, it also answers with JSON describing the error, while `APP_DEBUG` is on in development.
 

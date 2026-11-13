@@ -13,6 +13,7 @@ The choices made before writing code, each with its reason and what was set asid
 - [D2.7 Offline and sync](#d27-offline-and-sync)
 - [D2.8 Workout rules](#d28-workout-rules)
 - [D2.9 Plan files](#d29-plan-files)
+- [D2.10 Local development](#d210-local-development)
 
 ---
 
@@ -184,6 +185,29 @@ A plan can be saved as a file and imported again, on the same server or another 
 - **Each exercise described in full,** public ones too, so that an exercise missing on the other server is created as the importer's own rather than refusing the file: an extra exercise not yet imported there, a personal one.
 - **Nothing is sent by surprise.** Import plan explains what file it wants, looks at the file on the device (size, JSON, format, version), and shows what it holds before **Import**; the backend still checks every field. Added after a first look: a picker that sent whatever was chosen gave no idea of what it expected.
 - **An import never changes anything:** the plan arrives as a new one. Exercises already there are reused, found by their stable id or their name, so importing twice does not duplicate them.
+
+---
+
+## D2.10 Local development
+
+**The stack runs in Docker on both computers, the Mac and the Windows PC; the frontend runs directly on the computer** (Vite, Node 24). PHP and Composer are never installed on the computer: one image gives the same PHP, the same extensions and ffmpeg everywhere ([S1.5](../start/S1-setup.md#s15-first-start-the-docker-stack)).
+
+**The code is shared, the Composer packages are in a volume.** Decided in `fix/dev-vendor-volume`, when every API call took 1 to 2 seconds locally on both computers. Docker Desktop runs Linux in a virtual machine; `./backend`, shared with it, is slow to read file by file, and after every pause of two seconds PHP's OPcache checks the date of the thousand files a request uses, 96% of them in `vendor/` ([C2.4](../concepts/C2-backend.md#c24-the-life-of-a-request)). With `vendor/` in a Docker named volume, a request after a pause went from about 1,200 ms to about 90 ms. The code stays shared, so a saved change is still seen at the next request. The computer's `backend/vendor/` becomes a copy for the editor, refreshed by Composer after every change. How it was measured and built: [H2.18](../how-to/H2-backend.md#h218-a-fast-local-backend-the-packages-in-a-volume-as-built).
+
+| Choice | Why |
+|---|---|
+| `vendor/` in a named volume | Same fix on the Mac and on Windows, free, a few lines of `compose.yaml`, nothing to install on the computers |
+| A copy on the computer, made by Composer's `post-autoload-dump` | The editor keeps completing Laravel's classes and opening their source; it follows every Composer command by itself, whoever types it |
+| rsync for the copy | Sends only what changed; still about 20 s on Windows, where checking 24,722 files through the shared folder is slow, but only after a Composer command |
+
+**Set aside:**
+
+- **The repository inside WSL2's own disk** (on Windows): what Laravel's documentation advises there, and the fastest. Windows only, so the Mac would stay slow; it also moves the whole way of working (Node, Git, the editor through VS Code's WSL extension) into Linux.
+- **A longer `opcache.revalidate_freq`** (30 s, say): one line, but a saved change would be seen only up to 30 s later, which is confusing while learning; requests after a long pause would stay slow.
+- **`opcache.validate_timestamps=0`:** the fastest, but no change is ever seen without a restart.
+- **FrankenPHP's worker mode with Laravel Octane:** the app stays loaded between requests, fastest of all. One more package, and a different way of thinking: what a request leaves in memory is still there for the next. Its reload on save watches the files, which does not work through the shared folder on Windows. It may still come with production ([D2.6](#d26-hosting)).
+- **Docker Desktop's synchronized file shares:** Docker's own answer, a synchronized copy inside the virtual machine, as fast as a volume for all the code. Only with a paid Docker subscription.
+- **Mutagen, docker-sync, OrbStack:** the same synchronization for free, but one more tool to install and keep running on each computer; OrbStack is for the Mac only.
 
 ---
 

@@ -181,8 +181,14 @@ else {
 
 // --- The apps ----------------------------------------------------------------------
 console.log('Apps')
-if (existsSync(join(ROOT, 'backend/vendor'))) ok('backend packages installed')
-else fail('backend packages missing', 'make composer c=install')
+// The Composer packages exist twice (docs/how-to/H2-backend.md H2.18): the
+// ones the app runs on, in the `vendor` Docker volume, checked further down
+// once the containers are known to run; and this copy on the computer, which
+// only the editor reads. vendor/autoload.php is the file every PHP request
+// loads first, so its presence means the copy is complete, not just begun.
+// A missing copy is only a warning: the app works without it.
+if (existsSync(join(ROOT, 'backend/vendor/autoload.php'))) ok('backend packages copied for the editor')
+else warn('backend/vendor/ empty: the editor cannot see the packages', 'make vendor (make setup on a new clone)')
 // Existence only: the file holds secrets and is never read here
 if (existsSync(join(ROOT, 'backend/.env'))) ok('backend/.env present')
 else fail('backend/.env missing', 'cp backend/.env.example backend/.env && make artisan c="key:generate"')
@@ -206,6 +212,19 @@ const testDb = run('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U',
 if (testDb === null) warn('Postgres not running, test database not checked', 'make up')
 else if (testDb === '1') ok('test database atleoplan_test exists')
 else fail('test database atleoplan_test missing', 'make test-db')
+
+// The packages the app runs on, in the `vendor` Docker volume, when the
+// backend runs (docs/how-to/H2-backend.md H2.18). The volume is inside Docker's
+// virtual machine, where this script cannot look, so the question goes to the
+// container: `test -f` succeeds when the file exists, and `a && b || c`
+// prints yes after a success, no after a failure. The answer is never empty
+// when the container answers, so null (run() failed) means it is not running.
+// An empty volume, as after `make down-v`, is a failure: every request errors.
+/** "yes" or "no" from the container, or null when the backend is not running. */
+const packages = run('docker', ['compose', 'exec', '-T', 'backend', 'sh', '-c', 'test -f vendor/autoload.php && echo yes || echo no'])
+if (packages === null) warn('backend not running, its packages not checked', 'make up')
+else if (packages === 'yes') ok('backend packages installed')
+else fail('backend packages missing from the vendor volume (after make down-v?)', 'make setup')
 
 console.log(failures ? `\n✖ ${failures} problem(s) to fix.` : '\n✔ All good.')
 process.exitCode = failures ? 1 : 0

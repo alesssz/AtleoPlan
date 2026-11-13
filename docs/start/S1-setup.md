@@ -126,12 +126,25 @@ A new service follows the same rule. To use another port once: `APP_PORT=8600 do
 1. turns on the Git hook;
 2. creates `backend/.env` from `backend/.env.example`, if missing: without it Laravel believes it is in production and `migrate` stops to ask for confirmation;
 3. builds the image;
-4. installs the Composer packages, before the stack starts: without `vendor/` the queue worker crashes and keeps restarting until they arrive;
+4. installs the Composer packages, before the stack starts: without `vendor/` the queue worker crashes and keeps restarting until they arrive. They go into the `vendor` Docker volume, which makes requests ten times faster than reading them through the folder shared with the computer, and Composer then copies them to `backend/vendor/` for the editor ([H2.18](../how-to/H2-backend.md#h218-a-fast-local-backend-the-packages-in-a-volume-as-built));
 5. generates Laravel's key, only if it is empty: replacing it would invalidate existing sessions;
 6. starts the containers, installs the npm packages, creates the test database and runs the migrations;
 7. fills the muscles and the equipment (`make reference-data`): the fixed lists every exercise points to ([D3.4.1](../design/D3-data-model.md#d341-muscles-and-equipment)), which the app and the exercise import both need.
 
 It can be run again safely: what is already in place stays as it is.
+
+**Where the files live.** Docker Desktop runs Linux in a virtual machine, on the Mac and on Windows alike. A folder of the computer shared with a container (a *bind mount*) is seen by both at once, but every file read through it crosses from one system to the other; a Docker *named volume* sits on the virtual machine's own disk, fast, and the computer does not see it ([H2.18.2](../how-to/H2-backend.md#h2182-two-kinds-of-mount)):
+
+| What | Where | Kind | Why there |
+|---|---|---|---|
+| The Laravel code, `backend/` | The computer's folder, at `/app` in the container | Bind mount | Edited in VS Code, seen at once by Laravel |
+| The Composer packages, `backend/vendor/` as the app reads them | The `vendor` volume (`atleoplan_vendor`), at `/app/vendor` | Named volume | Read a thousand at a time on every request: ten times faster than through the shared folder ([D2.10](../design/D2-decisions.md#d210-local-development)) |
+| The same packages, a copy for the editor | `backend/vendor/` on the computer, at `/vendor-host` | Bind mount | So VS Code can complete and open Laravel's classes; Composer refreshes it after every change, `make vendor` by hand |
+| The database | The `postgres-data` volume | Named volume | Survives `make down`; `make down-v` deletes it |
+| Composer's downloads | The `composer-cache` volume | Named volume | A package is downloaded once, even when the `vendor` volume is rebuilt |
+| The frontend, `frontend/` with its `node_modules/` | The computer only | — | Vite runs on the computer, not in Docker |
+
+`make down-v` deletes every volume, the packages' too: `make setup` puts them back.
 
 **After a pull, on either computer,** run `make setup` again: it brings the image, the packages and the database up to date with what was pulled, so new packages and new migrations are never forgotten. `make doctor` is not enough for this: it checks that the packages are installed, not that they are the latest. Then, if the exercise library is empty (on a new database, or the first time after the library was added), run `make exercises-import`; if it is there but older than the extra exercises (no "Frog stand" in it), `make exercises-extra` adds them in seconds; if Plank is still logged as reps, `make exercises-correct` puts it right; if the library's photos have no small copies yet (their addresses end in `.jpg`, not `-thumb.webp`), `make exercises-thumbnails` makes them, in about 5 minutes.
 
@@ -181,7 +194,7 @@ How the backend works once created, for a reader new to PHP and Laravel: [C2. Ba
 
 `run --rm` is for when the stack is stopped (as now, before Laravel exists); once it runs, `docker compose exec backend <command>` uses the container already started, which is faster ([S1.8](#s18-everyday-commands)).
 
-For `create-project`, `./backend` must be empty (or missing: Docker creates it).
+For `create-project`, `./backend` must be empty (or missing: Docker creates it). With today's `compose.yaml` it never is: Docker creates `backend/vendor/` as the place where the `vendor` volume is mounted, and Composer stops with `Project directory "/app/." is not empty.` To create the app again from scratch, comment out the two `vendor` lines under the `x-backend` block's `volumes:` for that one command ([H2.18.6](../how-to/H2-backend.md#h2186-when-something-goes-wrong)).
 
 ```sh
 # D1. Create the Laravel app in ./backend
@@ -327,7 +340,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 |---|---|
 | Start everything | `docker compose up -d` |
 | Stop (data kept) | `docker compose down` |
-| Stop and **delete the database** | `docker compose down -v` |
+| Stop and **delete the database** (and the Composer packages: `make setup` after) | `docker compose down -v` |
 | What is running, and on which ports | `docker compose ps` |
 | Follow the logs | `docker compose logs -f backend` (or `queue`, `postgres`) |
 | Restart the queue worker | `docker compose restart queue` |
@@ -346,7 +359,8 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Correct the logging types the import guessed wrong (Plank as time) in a library imported before the list | `make exercises-correct` ([H1.19](../how-to/H1-database.md#h119-the-corrected-logging-types-as-built)) |
 | Make the small and large copies of photos added before they existed | `make exercises-thumbnails` ([H2.17](../how-to/H2-backend.md#h2174-the-copies-of-the-photos-already-there)) |
 | Example plans to look at (after the import) | `make plans-demo`: two plans for every user who has none ([H3.13.1](../how-to/H3-frontend.md#h3131-plans-to-look-at)) |
-| Add a package | `docker compose exec backend composer require <package>` |
+| Add a package (it is then copied to `backend/vendor/` for the editor by itself, about 20 s on Windows) | `docker compose exec backend composer require <package>` |
+| Copy the packages to `backend/vendor/` by hand | `make vendor` ([H2.18](../how-to/H2-backend.md#h218-a-fast-local-backend-the-packages-in-a-volume-as-built)) |
 | Interactive console | `docker compose exec backend php artisan tinker` |
 | Tests (on the `atleoplan_test` database) | `docker compose exec backend php artisan test` |
 | Format the code (Pint) | `docker compose exec backend vendor/bin/pint` |
@@ -445,6 +459,9 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | A build fails in `apt-get update` with **"At least one invalid signature was encountered"** | Docker Desktop's disk is full, not a signature problem. `docker system df` shows it; `docker builder prune -af` (build cache) and `docker image prune -af` (unused images) free space without touching data. |
 | `exercises:import` fails with **`Unknown equipment "barbell"`** or **`Unknown muscle`** for every exercise | The muscles and the equipment are missing, as on a database made with `make migrate` alone. `make reference-data`, then the import again; `make exercises-import` and `make setup` now do it themselves ([S1.5](#s15-first-start-the-docker-stack)) |
 | A new screen shows an error after a pull, or a table "does not exist" | The pull brought new migrations or packages: `make setup` ([S1.5](#s15-first-start-the-docker-stack)) |
+| Every API call takes **1–2 seconds** on the local stack | Composer's packages are read through the folder shared with Docker's virtual machine. They belong in the `vendor` volume: `make setup`; `make doctor` says whether they are there ([H2.18](../how-to/H2-backend.md#h218-a-fast-local-backend-the-packages-in-a-volume-as-built)) |
+| Every request fails with **`vendor/autoload.php: Failed to open stream`** | The `vendor` volume is empty, as after `make down-v`: `make setup` |
+| The editor does not know a package's classes | The copy in `backend/vendor/` is missing or old: `make vendor` ([H2.18](../how-to/H2-backend.md#h218-a-fast-local-backend-the-packages-in-a-volume-as-built)) |
 | **"port is already allocated"** | Another project uses that port. Check with `lsof -nP -iTCP:8500 -sTCP:LISTEN` (on Windows, `netstat -ano \| grep :8500`); change it once with the variable of [S1.4](#s14-ports). |
 | `make` stops with **`"grep" is not recognized`**, or **`cp`** is not recognized | The terminal is the Command Prompt or PowerShell: on Windows, use Git Bash ([S1.2](#s12-prerequisites)). |
 | `migrate` says **"APPLICATION IN PRODUCTION"** on a new clone | `backend/.env` is missing, so Laravel assumes production. `make setup` creates it ([S1.5](#s15-first-start-the-docker-stack)). |
