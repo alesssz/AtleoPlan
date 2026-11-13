@@ -10,7 +10,8 @@ How work is done in this repository: Git, code, comments, documentation and the 
 - [P1.4 Backlog](#p14-backlog)
 - [P1.5 A public repository](#p15-a-public-repository)
   - [P1.5.1 The check before going public](#p151-the-check-before-going-public)
-  - [P1.5.2 Changing the visibility on GitHub](#p152-changing-the-visibility-on-github)
+  - [P1.5.2 The account and the repository on GitHub](#p152-the-account-and-the-repository-on-github)
+  - [P1.5.3 From here on](#p153-from-here-on)
 
 ---
 
@@ -159,16 +160,60 @@ Only test addresses and the noreply one.
 
 **7. Size.** `git count-objects -vH | grep size-pack` gives `size-pack: 2.41 MiB`: nothing large was committed by mistake.
 
-### P1.5.2 Changing the visibility on GitHub
+### P1.5.2 The account and the repository on GitHub
 
-By hand, on github.com, signed in as the owner (the GitHub CLI `gh` is not installed on these computers):
+All by hand on github.com, signed in as the owner (the GitHub CLI `gh` is not installed on these computers), in this order: the account first, since whoever gets into it controls the repository; the repository's settings before it goes public; the protections GitHub gives free to public repositories right after. Done on 2026-11-13; the state below is the one in force. GitHub moves and renames its menus at times: when a name differs, the nearest one on the same page.
 
-1. The repository → **Settings** → **General** → at the bottom, **Danger Zone** → **Change repository visibility** → **Change to public**. GitHub asks to confirm, typing the repository's name.
-2. **Settings** → **Advanced Security** (on some accounts **Code security**): turn on **Secret Protection** and its **Push protection**, free on public repositories. GitHub then scans every push for secrets and refuses one that holds a known kind, such as a Google client secret. Turn on **Dependabot alerts** too: a warning when a Composer or npm package in use has a known vulnerability, the same as `make audit` but by itself.
-3. **Settings** → **General** → **Features**: leave **Issues** on or off as preferred; **Wikis** and **Projects** off, as everything is in `docs/`.
-4. The repository's main page → the gear next to **About**: a one-line description and, if wanted, topics (`laravel`, `react`, `pwa`).
+**1. The account** (avatar, top right → **Settings**):
 
-**How to check:** open the repository's address in a private browser window, signed out: it shows the code. **Settings → Advanced Security** shows push protection as enabled.
+| Page | Setting | Why |
+|---|---|---|
+| **Password and authentication** | Two-factor authentication on, with an authenticator app or a passkey rather than SMS; the recovery codes saved outside GitHub | A stolen password alone is not enough to get in |
+| **Emails** | **Keep my email addresses private**, **Block command line pushes that expose my email** | The server refuses a push with the real email, behind the local hook ([P1.1](#p11-git)) |
+| **Sessions** | Only sessions recognised | A forgotten signed-in browser is a way in |
+| **SSH and GPG keys** | None | Pushes go over HTTPS, through Git Credential Manager, which signs in with the browser and keeps the token in the computer's keychain |
+| **Developer settings → Personal access tokens** | None. If one is ever needed: fine-grained, this repository only, with an expiry date | A token works like a password, without two-factor authentication |
+| **Applications** | Only the apps in use (Git Credential Manager among them; revoking it only means signing in again at the next push) | Each one can act on the account |
+| **Security log** | Read now and then | Shows sign-ins and changes to the account |
+
+**2. The repository, before it goes public** (the repository → **Settings**):
+
+| Page | Setting | Why |
+|---|---|---|
+| **Collaborators** | Only the owner | Nobody else can push |
+| **Deploy keys**, **Webhooks**, **Integrations → GitHub Apps** | Empty | Nothing outside reads or writes the repository |
+| **Secrets and variables → Actions** | Empty | A public repository holds no secret until a CI needs one |
+| **Actions → General** | **Disable actions** | There is no workflow yet; with Actions off, a pull request from a stranger cannot make anything run. Turned on again with the CI, as in P1.5.3 |
+| **General → Features** | **Wikis**, **Projects**, **Discussions**, **Sponsorships** off | Everything is in `docs/` |
+| **General → Pull Requests** | **Automatically delete head branches** | Branches merged on GitHub do not pile up |
+| **Pages** | Off | Nothing is published as a website |
+
+**3. Public.** After merging the branch that prepared it (the README's paragraph, this section): **Settings → General → Danger Zone → Change repository visibility → Change to public**, confirmed by typing the repository's name.
+
+**4. Right after, free because the repository is public:**
+
+| Page | Setting | Why |
+|---|---|---|
+| **Advanced Security** (on some accounts **Code security**) | **Private vulnerability reporting** on | Someone who finds a problem reports it privately, from the **Security** tab, instead of in a public issue ([`SECURITY.md`](../../SECURITY.md)) |
+| | **Dependency graph** and **Dependabot alerts** on | A warning when a Composer or npm package in use has a known vulnerability: `make audit`, by itself |
+| | **Secret Protection** and its **Push protection** on | GitHub scanned the whole history, and refuses any push holding a secret of a known kind, such as a Google client secret |
+| **Rules → Rulesets → New branch ruleset** | Name `main`, **Active**, target **Include default branch**; **Restrict deletions** and **Block force pushes**. Not **Require a pull request before merging**: `make merge` pushes `main` itself, and would be refused | Nobody, the owner by mistake included, can delete `main` or rewrite its history |
+
+**How to check:**
+
+- The repository's address in a private browser window, signed out: it shows the code.
+- **Security → Secret scanning**: no alerts.
+- **Security → Dependabot**: the packages with a known vulnerability, if any; `make audit` lists the same.
+- **Settings → Rules → Rulesets**: `main`, Active.
+
+### P1.5.3 From here on
+
+- **On each computer:** `git config core.hooksPath` answers `.githooks`, and `make doctor` passes. Secrets live in `.env` files only.
+- **When a CI arrives** (GitHub Actions): **Settings → Actions → General** → **Allow alesssz, and select non-alesssz, actions and reusable workflows**; **Workflow permissions: Read repository contents**; **Require approval for all external contributors**, so a stranger's pull request runs nothing until it has been read. Its secrets, if any, in **Secrets and variables → Actions**, never in the workflow's file.
+- **A secret committed by mistake:** revoke it first (a new Google client secret, a new `APP_KEY`), then remove it. Push protection stops the known kinds; it does not see everything.
+- **A report through Private vulnerability reporting:** it arrives by email and in the **Security** tab. Answer there; the fix goes on a `fix/…` branch like any other.
+- **On deploying** ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)): anyone can read the code, so the app's own security matters more than before: `APP_DEBUG=false` in production, secrets only in the server's environment, and the security points still in the backlog ([BE-3](backlog.md#be-3-harden-the-public-sign-in-routes)). That is the app's security, a subject apart from the repository's.
+- **Not done, possible later:** signing commits with an SSH key, with **Vigilant mode** (which marks unsigned commits as unverified); **CodeQL** code scanning, which needs Actions and reads TypeScript but not PHP.
 
 ---
 
