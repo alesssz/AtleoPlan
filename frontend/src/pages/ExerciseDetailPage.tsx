@@ -91,7 +91,9 @@ function ExerciseDetail({ exercise }: ExerciseDetailProps) {
         {t('exercises.detail.back')}
       </Link>
 
-      <PageHeader eyebrow={t('pages.exercises.eyebrow')} title={exercise.name} />
+      {/* No eyebrow: the tab bar and the sidebar already name the section
+          (D1.5 "Page header", PageHeader.tsx) */}
+      <PageHeader title={exercise.name} />
 
       <div className="flex flex-col gap-8">
         {/* The Mine badge and the owner's actions */}

@@ -10,8 +10,9 @@
  * to the same view.
  *
  * New plan opens the plan editor (/plans/new); Import plan makes a plan of
- * a file saved by a plan's Export (ImportPlanButton, C1.15.6). The
- * Templates section and Share are phase 2.
+ * a file saved by a plan's Export (ImportPlanButton, C1.15.6). Both sit at
+ * the right of the title, in PageHeader's `actions` (docs/design/D1-ui.md
+ * D1.5 "Page header"). The Templates section and Share are phase 2.
  */
 import { Archive, ClipboardList, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -50,19 +51,25 @@ export function PlansPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('pages.plans.eyebrow')} title={t('pages.plans.title')} description={t('pages.plans.description')} />
-
-      {/* The main action, a real link styled as a button; beside it,
-          outlined, Import plan, with its error under it */}
-      <div className="mb-6 flex flex-wrap items-start gap-3">
-        <Button asChild size="xl">
-          <Link to="/plans/new">
-            <Plus aria-hidden="true" />
-            {t('plans.new')}
-          </Link>
-        </Button>
-        <ImportPlanButton />
-      </div>
+      {/* The header, with the actions at the right of the title (D1.5 "Page
+          header"): the main one, a real link styled as a button, and beside
+          it, outlined, Import plan, only its icon on phones. `<>…</>` (a
+          fragment) groups the two without adding an element around them */}
+      <PageHeader
+        title={t('pages.plans.title')}
+        description={t('pages.plans.description')}
+        actions={(
+          <>
+            <Button asChild size="xl">
+              <Link to="/plans/new">
+                <Plus aria-hidden="true" />
+                {t('plans.new')}
+              </Link>
+            </Button>
+            <ImportPlanButton />
+          </>
+        )}
+      />
 
       {/* The two views: buttons side by side, one pressed, as the library's
           Source filter (aria-pressed says which, never colour alone, D1.7) */}

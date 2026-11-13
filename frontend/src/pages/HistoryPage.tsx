@@ -63,7 +63,9 @@ export function HistoryPage() {
         <ArrowLeft aria-hidden="true" className="size-4" />
         {t('history.backToProgress')}
       </Link>
-      <PageHeader eyebrow={t('pages.progress.title')} title={t('history.title')} description={t('history.description')} />
+      {/* No eyebrow: the tab bar and the sidebar already name the section
+          (D1.5 "Page header", PageHeader.tsx) */}
+      <PageHeader title={t('history.title')} description={t('history.description')} />
 
       {/* Loading: three grey rows */}
       {list.isPending && (

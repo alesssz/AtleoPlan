@@ -45,7 +45,9 @@ export function ProfilePage() {
   return (
     // A Fragment (<>…</>): siblings without a wrapping element
     <>
-      <PageHeader eyebrow={t('pages.profile.eyebrow')} title={t('pages.profile.title')} description={t('pages.profile.description')} />
+      {/* No eyebrow: the tab bar and the sidebar already name the section
+          (D1.5 "Page header", PageHeader.tsx) */}
+      <PageHeader title={t('pages.profile.title')} description={t('pages.profile.description')} />
 
       {/* The blocks, 24 px apart (flex column + gap) */}
       <div className="flex flex-col gap-6">

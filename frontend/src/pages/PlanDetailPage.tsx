@@ -132,8 +132,10 @@ function PlanDetail({ plan }: PlanDetailProps) {
         {t('plans.detail.back')}
       </Link>
 
-      {/* `?? undefined`: PageHeader leaves the description out when there is none */}
-      <PageHeader eyebrow={t('pages.plans.eyebrow')} title={plan.name} description={plan.goal ?? undefined} />
+      {/* No eyebrow: the tab bar and the sidebar already name the section
+          (D1.5 "Page header", PageHeader.tsx). `?? undefined`: PageHeader
+          leaves the description out when there is none */}
+      <PageHeader title={plan.name} description={plan.goal ?? undefined} />
 
       <div className="flex flex-col gap-6">
         {/* Saved over a version changed elsewhere: the last change won (D3.5.7) */}

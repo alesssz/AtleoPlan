@@ -15,28 +15,23 @@
   "pages": {
     "home": {
       "title": "Home",
-      "description": "Your active plan, the suggested day and this week's workouts.",
-      "eyebrow": "Today"
+      "description": "Your active plan, the suggested day and this week's workouts."
     },
     "plans": {
       "title": "Plans",
-      "description": "Your workout plans, their days and exercises.",
-      "eyebrow": "Training"
+      "description": "Your workout plans, their days and exercises."
     },
     "exercises": {
       "title": "Exercises",
-      "description": "The exercise library: public exercises and your own.",
-      "eyebrow": "Library"
+      "description": "The exercise library: public exercises and your own."
     },
     "progress": {
       "title": "Progress",
-      "description": "Charts, personal records and your workout history.",
-      "eyebrow": "Results"
+      "description": "Charts, personal records and your workout history."
     },
     "profile": {
       "title": "Profile",
-      "description": "Your account and how the app looks and works.",
-      "eyebrow": "Account"
+      "description": "Your account and how the app looks and works."
     }
   },
   "preferences": {
@@ -305,6 +300,10 @@
     "searchLabel": "Search exercises",
     "searchPlaceholder": "Search by name",
     "filtersLabel": "Filters",
+    "filtersActive_one": "{{count}} active",
+    "filtersActive_other": "{{count}} active",
+    "filtersText": "The list changes as you choose.",
+    "showResults": "Show exercises",
     "muscleFilter": "Muscle group",
     "allMuscles": "All muscles",
     "equipmentFilter": "Equipment",

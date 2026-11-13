@@ -49,7 +49,10 @@ export function RegisterPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('auth.signUp.eyebrow')} title={t('auth.signUp.title')} description={t('auth.signUp.description')} className="mb-6" />
+      {/* The eyebrow stays on the sign-in screens: they have no tab bar or
+          sidebar saying where the user is (D1.5 "Page header"). PageHeader's
+          own 24 px under it suits them (they used to pass className="mb-6") */}
+      <PageHeader eyebrow={t('auth.signUp.eyebrow')} title={t('auth.signUp.title')} description={t('auth.signUp.description')} />
 
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
         {errors.root?.message && <FormBanner variant="error">{errors.root.message}</FormBanner>}

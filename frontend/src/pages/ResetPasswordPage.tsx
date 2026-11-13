@@ -58,7 +58,10 @@ export function ResetPasswordPage() {
   if (!token || !email) {
     return (
       <>
-        <PageHeader eyebrow={t('auth.resetPassword.eyebrow')} title={t('auth.resetPassword.invalidTitle')} description={t('auth.resetPassword.invalidText')} className="mb-6" />
+        {/* The eyebrow stays on the sign-in screens: they have no tab bar or
+            sidebar saying where the user is (D1.5 "Page header"). PageHeader's
+            own 24 px under it suits them (they used to pass className="mb-6") */}
+        <PageHeader eyebrow={t('auth.resetPassword.eyebrow')} title={t('auth.resetPassword.invalidTitle')} description={t('auth.resetPassword.invalidText')} />
         <Button asChild size="xl" className="w-full">
           <Link to="/forgot-password">{t('auth.resetPassword.askAgain')}</Link>
         </Button>
@@ -68,7 +71,7 @@ export function ResetPasswordPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('auth.resetPassword.eyebrow')} title={t('auth.resetPassword.title')} description={t('auth.resetPassword.description', { email })} className="mb-6" />
+      <PageHeader eyebrow={t('auth.resetPassword.eyebrow')} title={t('auth.resetPassword.title')} description={t('auth.resetPassword.description', { email })} />
 
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
         {errors.root?.message && <FormBanner variant="error">{errors.root.message}</FormBanner>}

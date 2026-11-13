@@ -182,8 +182,9 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 
 ### D1.4.3 Exercise library
 
-- Search bar fixed at the top, with the filters too from 640 px (on phones they are stacked, and fixing them would take a quarter of the screen); matches names in the user's language and their aliases ("bench" finds "Barbell bench press"; "panca" finds "Panca piana con bilanciere"). It asks the server once typing pauses.
-- **Filters:** muscle group and equipment as lists that open the phone's own picker (17 and 12 values are too many for chips), source as three buttons (All / Mine / Public). The muscle filter matches the main muscles only.
+- **New exercise** at the right of the title ([D1.5 "Page header"](#d15-design-system)).
+- Search bar fixed at the top, with **Filters** beside it and the source from 640 px; on phones the source sits under them and scrolls away. The search matches names in the user's language and their aliases ("bench" finds "Barbell bench press"; "panca" finds "Panca piana con bilanciere"). It asks the server once typing pauses.
+- **Filters:** muscle group and equipment, used less often than the search, wait behind a **Filters** button (only its icon on phones) that opens a panel from the bottom; the button shows how many of the two are on ("Filters ②"), so a filtered list never looks like the whole library. In the panel, lists that open the phone's own picker (17 and 12 values are too many for chips), applied at once, with **Clear filters** and **Show exercises**. The source stays in sight as three buttons (All / Mine / Public), one tap to switch. The muscle filter matches the main muscles only.
 - **Filters and search live in the address** (`/exercises?q=panca&muscle=chest`): Back returns to the same list, a reload keeps it.
 - Row: thumbnail, name, main muscle, **Mine** badge for personal exercises. 50 rows at a time, then **Show more**.
 - Built in UI-1 ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)); the select mode below, with the plan editor, as its picker window ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)).
@@ -211,6 +212,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - One card per plan: name, number of days, last used, **Active** and **Shared** badges.
 - The active plan is always first.
 - **New plan**; a **Templates** section with public plans to duplicate.
+- **New plan** and **Import plan** at the right of the title ([D1.5 "Page header"](#d15-design-system)); on phones Import plan shows only its icon, with its name as a tooltip and for screen readers.
 - **Import plan**, outlined beside New plan, opens a window: what file it wants (one saved by a plan's **Export**, D1.4.7, ending in `.atleoplan.json`), and that the plan arrives as a new one, changing nothing; **Choose the file**. The file is looked at on the device first: too big (over 1 MB), not JSON, not a plan, or a plan from a later version of the app is said in the window, and nothing is sent. A plan shows a preview, "Calisthenics · 3 days · 23 exercises" and the file's name, with **Import** and **Choose another file**. After Import, the new plan's page opens saying "Plan imported", with the exercises that were not here and are now the user's own, by name.
 - Archived plans behind a filter of their own.
 - Built in FEAT-2, without what needs a later feature: Templates and the Shared badge for phase 2. Import plan came with `feat/plan-import-export` ([C1.15.6](../concepts/C1-frontend.md#c1156-a-plan-as-a-file-export-and-import)). "Last used" ("Used 3 days ago", from the plan's latest finished workout) came once workouts existed (`fix/loose-ends`) ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
@@ -397,12 +399,28 @@ The look of a sports app, chosen over a minimal or a "glass" style: the lime is 
 
 - **Glow.** Soft colour fading into the background behind every page: lime from the top, the timer's blue from the top right (`body` in `index.css`). Lime halos around what matters: the logo, the main button, the current tab (`glow-primary`).
 - **Gradient borders.** The important cards have a 1 px border that is lime at the top-left and fades out (`border-glow`), with 24 px corners.
-- **Heavy type.** Titles are extra-bold or black, with tight letter spacing. Above each page title sits an **eyebrow**: one or two words in small lime capitals with wide spacing ("TRAINING", or today's date on Home). One word of Home's greeting is painted with a lime gradient (`text-gradient-primary`).
+- **Heavy type.** Titles are extra-bold or black, with tight letter spacing. Above a page title, where it adds something, sits an **eyebrow**: one or two words in small lime capitals with wide spacing (today's date on Home and on a past workout, "Edit plan" above the plan's name, "Workout finished"). Never the section's name, which the navigation already shows (see "Page header" below). One word of Home's greeting is painted with a lime gradient (`text-gradient-primary`).
 - **Big numbers.** Counters are black-weight with same-width digits (`tabular-nums`).
 - **Brand.** The mark is a **heavy italic A with a tick cut out of it**, dark on a lime tile; beside it the wordmark Atleo**Plan**, "Plan" in lime (`components/brand/Brand.tsx`). The A is the name's initial, the tick the app's own gesture (a set done, one tap), the slant forward the movement; the weight matches the black, tight titles of the app. One mark everywhere, the browser tab included (`public/favicon.svg`, lime on dark); the tick's cut is wide enough to stay open at 16 px. The drawings at full size are in [`docs/design/brand/`](brand/). The logo sits in the sidebar, at the top of the page on phones, and above the sign-in forms. Chosen in November 2026 after five rounds of proposals: an athlete with arms raised was first picked, then left because, small, it read as a little man and not as an A; marks too close to existing brands were set aside (two rising chevrons, near Strava's; an A in a shield, near Angular's).
 - **Navigation.** The current tab sits in a lime "pill" (phones); the current sidebar link has a glowing lime bar on its left edge.
 - **Motion, short and optional.** Each page fades in while rising 8 px (300 ms); the server's "connected" dot pulses. Both are switched off with the device's reduced-motion setting ([D1.7](#d17-responsive-layout-and-accessibility)).
 - **Main actions** are 48 px tall, bold, and glow when enabled (`Button size="xl"`).
+
+**Page header**
+
+Every page opens with the same block (`components/PageHeader.tsx`), kept short so the content starts high on a phone:
+
+```
+Exercises                     [+ New exercise]
+The exercise library: public exercises and your own.
+```
+
+- **The title** (24 px on phones, 30 px from 640 px) and, **on its row at the right, the page's main actions**: New exercise, New plan and Import plan. When both do not fit (a long plan name, a narrow phone), the actions move to a row of their own rather than squeeze the title. A secondary action shows only its icon on phones.
+- **The description** under it, one sentence in small muted text (14 px).
+- **No eyebrow repeating the section** ("LIBRARY" above "Exercises"): the tab bar or the sidebar already says where the user is. The eyebrow stays where it says something new (Visual style above).
+- 24 px under the header.
+
+Chosen in November 2026 (`feat/compact-headers`). On a 360 px phone, eyebrow, title, description and a row for the New button took about 220 px, three of those lines saying where the user was; the library's three stacked filters about 220 px more, so the first exercise started near the middle of the screen. Now the header takes about 115 px and the filters about 100 (sums of the Tailwind classes' sizes, not measured on a device). The alternatives weighed: a round floating **+** button on phones (more room still, but it covers a corner of the list) and a large title that shrinks to a bar while scrolling (the first screen keeps its empty space, and needs animation and a fixed bar).
 
 ---
 

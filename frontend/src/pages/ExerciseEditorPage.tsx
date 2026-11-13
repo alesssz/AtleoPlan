@@ -45,7 +45,9 @@ function NewExercise() {
 
   return (
     <>
-      <PageHeader eyebrow={t('pages.exercises.eyebrow')} title={t('exercises.editor.newTitle')} />
+      {/* No eyebrow: the tab bar and the sidebar already name the section
+          (D1.5 "Page header", PageHeader.tsx) */}
+      <PageHeader title={t('exercises.editor.newTitle')} />
       <ExerciseForm
         defaultValues={emptyFormValues(searchParams.get('name') ?? '')}
         // mutateAsync(): like mutate(), but returns a Promise of the answer,
@@ -97,7 +99,7 @@ function EditExercise({ id }: EditExerciseProps) {
 
   return (
     <>
-      <PageHeader eyebrow={t('pages.exercises.eyebrow')} title={t('exercises.editor.editTitle')} />
+      <PageHeader title={t('exercises.editor.editTitle')} />
       {/* The form is drawn only now, with the data there: useForm() reads its
           defaultValues once, when the form first appears. `key` makes React
           start a fresh form if another exercise is opened in the same place */}

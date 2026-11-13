@@ -41,7 +41,10 @@ export function ForgotPasswordPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t('auth.forgotPassword.eyebrow')} title={t('auth.forgotPassword.title')} description={t('auth.forgotPassword.description')} className="mb-6" />
+      {/* The eyebrow stays on the sign-in screens: they have no tab bar or
+          sidebar saying where the user is (D1.5 "Page header"). PageHeader's
+          own 24 px under it suits them (they used to pass className="mb-6") */}
+      <PageHeader eyebrow={t('auth.forgotPassword.eyebrow')} title={t('auth.forgotPassword.title')} description={t('auth.forgotPassword.description')} />
 
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
         {forgotPassword.isSuccess && <FormBanner variant="success">{t('auth.forgotPassword.sent')}</FormBanner>}

@@ -431,7 +431,7 @@ New screens add their own group (`plans.editor.*`, …).
 | `glow-primary` (utility) | A soft lime halo around an element | the logo, the current tab |
 | `border-glow` (utility) | A card background with a 1 px lime-to-transparent border | `EmptyState`, Home's week card, Profile's header |
 | `Button size="xl"` | The 48 px main action, glowing when enabled | every call to action |
-| `PageHeader eyebrow="…"` | The lime capitals above a page title | every page but Home |
+| `PageHeader` | The page's title, its main actions at the right (`actions`), a small description under it; `eyebrow` adds lime capitals above, only where they say something new ([D1.5](../design/D1-ui.md#d15-design-system) "Page header") | every page but Home; actions on Exercises and Plans |
 | `EmptyState` | Illustration, title, sentence, actions; `comingSoon` adds the badge | Plans, Exercises, Progress, Home |
 | `SettingRow` | One settings row: icon tile, label, hint, control | Profile |
 | `WorkoutPreferences` | Profile's Workout card: the unit, the default rest, the weight step (Selects), the timer's sound and vibration (Switches) | Profile ([C1.13.4](#c1134-preferences-on-the-account)) |
@@ -454,7 +454,7 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 
 **A new page:**
 
-1. `src/pages/ThingPage.tsx`, exporting `ThingPage`, with a `PageHeader` (with its `eyebrow`) and its content; while there is no data, an `EmptyState`.
+1. `src/pages/ThingPage.tsx`, exporting `ThingPage`, with a `PageHeader` (its main action, if any, in `actions`; no `eyebrow` with the section's name) and its content; while there is no data, an `EmptyState`.
 2. Its texts under `pages.thing` in the four locale files.
 3. A route in `src/router.tsx`, inside the frame's `children`.
 4. If it is a main section: an entry in `components/layout/nav-items.ts`. Both navigations update.
@@ -827,7 +827,8 @@ setSearchParams(next, { replace: true })               // next: a URLSearchParam
 - **Why the address and not state:** the browser's Back returns to the list as it was, a reload keeps the filters, a filtered list can be bookmarked or shared.
 - **`replace: true`** changes the current history entry instead of adding one: otherwise Back would undo the search one letter at a time.
 - **A filter back to its default is removed** from the address, so the plain list is plain `/exercises`.
-- **The search and the filters stay at the top** while the list scrolls: `sticky top-0` on the block that holds them all. From 640 px they fit in about 120 px (the search box, then one row of filters). On phones the filters are stacked and would take a quarter of the screen, so only the search box sticks there. The trick is `max-sm:contents` on the block: `display: contents` makes the browser draw the children as if the block were not there, so the block's own `sticky` does nothing, and the search box's `max-sm:sticky` takes over. The search box cannot simply be sticky *inside* the block, because a sticky element sticks only within its parent, and the block is short: the box would scroll away with it.
+- **Muscle and equipment wait in a panel.** `ExerciseFilters` shows the search box, a **Filters** button and the source; the button opens a `Sheet` from the bottom (shadcn/ui's, `src/components/ui/sheet.tsx`, a dialog against an edge) with the two selects. The panel's open state is the one `useState` of the component: the filters themselves stay in the address, and a choice in the panel applies at once, as before. **Show exercises** is wrapped in `SheetClose asChild`, which closes the panel; **Clear filters** empties both. The button counts the filters on, with a lime badge for the eye and hidden words for screen readers, "Filters, 1 active" (the comma: see [H3.31](../how-to/H3-frontend.md#h331-compact-page-headers-and-the-filters-panel)). Why: [D1.4.3](../design/D1-ui.md#d143-exercise-library).
+- **The search and the filters stay at the top** while the list scrolls: `sticky top-0` on the row that holds them all. From 640 px they fit on one row of 48 px: search box, Filters, source. On phones the source goes under the other two, and only the search box and Filters stick. The trick is `max-sm:contents` on the row: `display: contents` makes the browser draw the children as if the row were not there, so the row's own `sticky` does nothing, and the inner row's `max-sm:sticky` (search and Filters) takes over. That inner row cannot simply be sticky *inside* a short block, because a sticky element sticks only within its parent: it would scroll away with it.
 - **The search waits for a pause.** The box shows every letter at once (its value is in the address), but the request uses **`useDebouncedValue(search, 300)`** (`src/lib/useDebouncedValue.ts`): a value that follows another one 300 ms after it stops changing. Typing "panca" sends one request, not five. While the two differ (`values.search !== search`) the request is still to come: the page counts that moment as searching, with the spinner in the box and the rows dimmed, so the pause does not look like a frozen screen ([C1.20](#c120-showing-that-something-is-loading)).
 
 ### C1.14.4 The editor's form
