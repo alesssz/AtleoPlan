@@ -1,14 +1,15 @@
 /*
  * A logged set written as a gym writes it: "80×8", "+10×6" (added weight on
- * a bodyweight exercise), "12" (reps with the body alone), "1 min", "400 m",
- * and "50 in 1:12" for reps done as fast as possible.
+ * a bodyweight exercise), "12" (reps with the body alone), "45 s", "1 min",
+ * "14:30" (a time over a minute, as the stopwatch writes it), "400 m", and
+ * "50 in 1:12" for reps done as fast as possible.
  * Shared by workout mode's "Last" column (SetRow.tsx) and by history's sets
  * (docs/concepts/C1-frontend.md C1.17, C1.19), so both write a set the same
  * way. Plain functions, no React.
  */
 import type { LoggingType } from '@/api/exercises'
 import type { LoggedSet } from '@/api/sessions'
-import { formatDistance, formatSeconds, weightIn } from '@/components/plans/plan-format'
+import { durationText, formatDistance, weightIn } from '@/components/plans/plan-format'
 import i18n from '@/i18n'
 import { formatNumber, type WeightUnit } from '@/lib/format'
 import { clock } from './clock'
@@ -32,10 +33,11 @@ export function weightText(kilograms: string | number, unit: WeightUnit, languag
  * @param loggingType how its exercise is logged: decides what is written
  * @param unit the user's unit
  * @param language the interface's language
- * @returns "80×8", "+10×6", "12", "1 min", "400 m" or "50 in 1:12"
+ * @returns "80×8", "+10×6", "12", "1 min", "14:30", "400 m" or "50 in 1:12"
  */
 export function loggedSetText(set: SetTextValues, loggingType: LoggingType, unit: WeightUnit, language: string): string {
-  if (loggingType === 'time') return formatSeconds(set.duration_seconds ?? 0, language)
+  // A time over a minute as a clock, "14:30", not "870 s" (durationText)
+  if (loggingType === 'time') return durationText(set.duration_seconds ?? 0, language)
   if (loggingType === 'distance') return formatDistance(set.distance_meters ?? 0, language)
   // By reps: the weight first when there is one, with "+" when it is added
   // to the body (an exercise logged as reps), then "×"

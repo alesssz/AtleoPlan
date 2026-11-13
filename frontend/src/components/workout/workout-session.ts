@@ -93,6 +93,13 @@ export interface Rest {
  * than a counter, so it keeps running with the screen off or the app
  * closed. The set is named by its id, which stays the same when exercises
  * are added or sets are added.
+ *
+ * It can be paused (Pause, in StopwatchPanel.tsx), still without a counter:
+ * the moment of the pause is kept, and on Resume the length of the pause is
+ * added to `paused_ms`; the time is then "from the start to now (or to the
+ * pause), minus the pauses" (stopwatchSeconds). The two fields are optional
+ * (`?`): a stopwatch kept on the phone before Pause existed has neither,
+ * which reads as never paused.
  */
 export interface Stopwatch {
   /** The id of the set being timed. */
@@ -101,6 +108,10 @@ export interface Stopwatch {
   started_at: string
   /** The seconds to reach, from the set's field at the start; null when empty. */
   target: number | null
+  /** When it was paused, as ISO 8601 text; null or missing while it runs. */
+  paused_at?: string | null
+  /** The milliseconds spent paused before the current pause, if any; missing reads as 0. */
+  paused_ms?: number
 }
 
 /** The whole workout in progress. */
@@ -388,12 +399,28 @@ export function restLeft(session: ActiveSession, now: Date): number {
 }
 
 /**
- * The seconds a stopwatch has run, whole, never below 0.
+ * The seconds a stopwatch has run, whole, never below 0, the pauses left
+ * out: from the start to now, or to the pause while it is paused, minus the
+ * pauses before.
  * @param stopwatch the stopwatch
  * @param now the current moment
  */
 export function stopwatchSeconds(stopwatch: Stopwatch, now: Date): number {
-  return Math.max(0, Math.floor((now.getTime() - Date.parse(stopwatch.started_at)) / 1000))
+  // Where the count stops: the moment of the pause, or now while it runs
+  const end = stopwatch.paused_at ? Date.parse(stopwatch.paused_at) : now.getTime()
+  // `?? 0`: a stopwatch from before Pause existed has no paused_ms
+  return Math.max(0, Math.floor((end - Date.parse(stopwatch.started_at) - (stopwatch.paused_ms ?? 0)) / 1000))
+}
+
+/**
+ * The moment a running stopwatch reaches its target, in milliseconds since
+ * 1970 (as Date.now()); null with no target or while paused, when it will
+ * not be reached until Resume. Used to set the signal's timer.
+ * @param stopwatch the stopwatch
+ */
+export function stopwatchTargetAt(stopwatch: Stopwatch): number | null {
+  if (stopwatch.target === null || stopwatch.paused_at) return null
+  return Date.parse(stopwatch.started_at) + (stopwatch.paused_ms ?? 0) + stopwatch.target * 1000
 }
 
 /**
@@ -441,6 +468,36 @@ export function canComplete(set: WorkoutSet, loggingType: LoggingType, forTime =
  */
 export function hasWorkLeft(item: WorkoutExercise): boolean {
   return !item.skipped && item.sets.some(set => !set.done)
+}
+
+/**
+ * Whether an exercise can be removed from the workout: only one added by
+ * hand during it (Add exercises, or any exercise of a free workout), which
+ * has no plan item. What the plan holds stays: it can be skipped, not
+ * removed, so the plan's day is always there whole.
+ *
+ * Read from the exercise itself, with no flag stored: a workout kept on the
+ * phone before removing existed works the same.
+ * @param item the exercise
+ */
+export function canRemoveExercise(item: WorkoutExercise): boolean {
+  return item.plan_item === null
+}
+
+/**
+ * Whether a set can be removed: only one added by hand during the workout.
+ * The plan's sets of an exercise are the first ones, as many as the plan
+ * item has (startSession makes one per planned set, Swap keeps the count);
+ * Add set always adds at the end, so any set after them was added. Every
+ * set of an exercise added by hand was added too. Never the only set left:
+ * an exercise with no set is removed as a whole, from its menu.
+ * @param item the set's exercise
+ * @param index the set's position
+ */
+export function canRemoveSet(item: WorkoutExercise, index: number): boolean {
+  // How many sets come from the plan: none for an exercise added by hand
+  const planned = item.plan_item?.sets.length ?? 0
+  return index >= planned && index < item.sets.length && item.sets.length > 1
 }
 
 /**
@@ -494,6 +551,33 @@ export function supersetNext(session: ActiveSession, index: number, scope: 'roun
   return group.find(position => position !== index && hasWork(position)) ?? null
 }
 
+/**
+ * The exercise to do after this one, for the "Up next" card under the sets
+ * and the rest bar (WorkoutScreen): the first one after it with work left;
+ * in a superset, after the whole superset, whose own exercises the bottom
+ * bar already names (supersetNext). When none is left after it, the first
+ * one from the top that still has work: an exercise jumped over with the
+ * dots. Null when nothing else is left to do: the last exercise, then
+ * Finish workout.
+ * @param session the workout
+ * @param index the exercise on screen
+ */
+export function upNext(session: ActiveSession, index: number): number | null {
+  // The exercises of this one's superset (just itself when alone), left out
+  const group = supersetOf(session, index)
+  // The positions after the superset, then the ones before it: the order
+  // in which to look. Array.from({ length }, fn) builds a list of that
+  // length from fn(_, i), here 0, 1, 2…; `...group` spreads the list into
+  // separate arguments, since Math.max(3, 4) takes numbers, not a list:
+  // the superset's last position, and Math.min its first
+  const after = Array.from({ length: session.exercises.length }, (_, i) => i).filter(i => i > Math.max(...group))
+  const before = Array.from({ length: Math.min(...group) }, (_, i) => i)
+  return [...after, ...before].find((position) => {
+    const item = session.exercises[position]
+    return item !== undefined && hasWorkLeft(item)
+  }) ?? null
+}
+
 /** How a set is called on screen. */
 export interface SetNumber {
   /** True for a warm-up, counted apart from the others. */
@@ -532,6 +616,8 @@ export type WorkoutAction
     | { type: 'setField', exercise: number, set: number, field: SetField, value: string }
     | { type: 'setSetType', exercise: number, set: number, setType: SetType }
     | { type: 'addSet', exercise: number }
+    | { type: 'removeSet', exercise: number, set: number }
+    | { type: 'removeExercise', exercise: number }
     | { type: 'addExercises', exercises: WorkoutExercise[] }
     | { type: 'swapExercise', exercise: number, replacement: WorkoutExercise }
     | { type: 'skipExercise', exercise: number, skipped: boolean }
@@ -541,6 +627,8 @@ export type WorkoutAction
     | { type: 'endRest' }
     | { type: 'startStopwatch', exercise: number, set: number, now: string }
     | { type: 'stopStopwatch', now: string }
+    | { type: 'pauseStopwatch', now: string }
+    | { type: 'resumeStopwatch', now: string }
     | { type: 'cancelStopwatch' }
     | { type: 'pause', now: string }
     | { type: 'resume', now: string }
@@ -636,6 +724,30 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       })
       break
     }
+    case 'removeSet': {
+      // Only a set added by hand (canRemoveSet): the plan's stay
+      if (!exercise || !canRemoveSet(exercise, action.set)) break
+      // splice(start, count) takes the items out of the list, and gives
+      // them back: here the one set removed
+      const [removed] = exercise.sets.splice(action.set, 1)
+      // A stopwatch running on it would time a set that is gone
+      if (removed && next.stopwatch?.set_id === removed.id) next.stopwatch = null
+      break
+    }
+    case 'removeExercise': {
+      // Only an exercise added by hand (canRemoveExercise)
+      if (!exercise || !canRemoveExercise(exercise)) break
+      next.exercises.splice(action.exercise, 1)
+      // A stopwatch on one of its sets goes with it: findSet() looks for
+      // its set by id in what is left, and no longer finds it
+      if (next.stopwatch && !findSet(next, next.stopwatch.set_id)) next.stopwatch = null
+      // The exercise on screen: one after the removed one moves back one
+      // place, as the list does; the removed one itself is replaced by the
+      // exercise that took its place, or, when it was the last, by the one
+      // before. Math.max: never below 0, a free workout left empty
+      if (next.current > action.exercise || next.current >= next.exercises.length) next.current = Math.max(0, next.current - 1)
+      break
+    }
     case 'addExercises':
       // Added at the end, and the first of them opened: the user picked
       // them to do them now
@@ -706,6 +818,19 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       if (!timedSet.done) return workoutReducer(next, { type: 'toggleSet', exercise: timed.exercise, set: timed.set, now: action.now })
       break
     }
+    case 'pauseStopwatch':
+      // Only a running one: a second Pause would move the moment of the
+      // pause, and the seconds between the two would be lost
+      if (next.stopwatch && !next.stopwatch.paused_at) next.stopwatch.paused_at = action.now
+      break
+    case 'resumeStopwatch':
+      if (next.stopwatch?.paused_at) {
+        // The pause just over joins the ones before; the count goes on
+        // from where it stopped
+        next.stopwatch.paused_ms = (next.stopwatch.paused_ms ?? 0) + Date.parse(action.now) - Date.parse(next.stopwatch.paused_at)
+        next.stopwatch.paused_at = null
+      }
+      break
     case 'cancelStopwatch':
       next.stopwatch = null
       break

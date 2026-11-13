@@ -1,6 +1,6 @@
 /*
  * The exercise's menu in workout mode (docs/design/D1-ui.md D1.4.9): a "⋯"
- * beside the exercise's name, opening a panel from the bottom with four
+ * beside the exercise's name, opening a panel from the bottom with up to five
  * actions, each a row 48 px tall:
  *
  * - **Swap exercise**: the library's picker, filtered by the exercise's
@@ -8,14 +8,18 @@
  * - **Skip exercise**, or **Do it after all** once skipped;
  * - **Add a note** (or **Edit the note**): the panel turns into a text box;
  *   the note goes with the workout, on that exercise;
- * - **Watch the video**, when the exercise has one: YouTube, in a new tab.
+ * - **Watch the video**, when the exercise has one: YouTube, in a new tab;
+ * - **Remove from workout**, only on an exercise added by hand during the
+ *   workout (canRemoveExercise, workout-session.ts): the panel turns into
+ *   a question first, since its sets, ticked ones included, go with it.
+ *   The plan's exercises have Skip instead: the day stays whole.
  *
  * A panel from the bottom rather than a small drop-down menu: rows as wide
  * as the phone are easy to hit mid-workout, and it is the same Sheet as the
  * stepper's (src/components/ui/sheet.tsx). How it works:
  * docs/concepts/C1-frontend.md C1.17.7.
  */
-import { ArrowLeftRight, CirclePlay, Ellipsis, NotebookPen, SkipForward, Undo2 } from 'lucide-react'
+import { ArrowLeftRight, CirclePlay, Ellipsis, NotebookPen, SkipForward, Trash2, Undo2 } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -40,15 +44,18 @@ interface ExerciseMenuProps {
   onSkip: (skipped: boolean) => void
   /** The note, as written. */
   onSaveNote: (notes: string) => void
+  /** Remove the exercise from the workout; missing for one of the plan's. */
+  onRemove?: () => void
 }
 
 /** The "⋯" button and the panel it opens. */
-export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote }: ExerciseMenuProps) {
+export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: ExerciseMenuProps) {
   const { t } = useTranslation()
   // Whether the panel is open, controlled here so the actions can close it
   const [open, setOpen] = useState(false)
-  // What the panel shows: the four actions, or the note's text box
-  const [view, setView] = useState<'menu' | 'note'>('menu')
+  // What the panel shows: the actions, the note's text box, or the
+  // question before removing the exercise
+  const [view, setView] = useState<'menu' | 'note' | 'remove'>('menu')
   // The note while it is written; kept by Save only
   const [draft, setDraft] = useState('')
   // Links the note's label to its text box
@@ -57,7 +64,7 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote }: ExerciseMenuP
   const started = item.sets.some(set => set.done)
 
   /**
-   * Opens or closes the panel; closed, it goes back to the four actions.
+   * Opens or closes the panel; closed, it goes back to the list of actions.
    * @param next true to open
    */
   function change(next: boolean) {
@@ -133,6 +140,29 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote }: ExerciseMenuP
                   </a>
                 </Button>
               )}
+
+              {/* Remove, only on an exercise added by hand; red, last, and
+                  asking first: the panel turns into the question. The
+                  classes: the rows' own (ROW), then the red, joined in a
+                  template literal (backticks, ${…} inserts a value) */}
+              {onRemove && (
+                <Button variant="ghost" size="xl" className={`${ROW} text-destructive hover:text-destructive`} onClick={() => setView('remove')}>
+                  <Trash2 aria-hidden="true" />
+                  {t('workout.removeExercise')}
+                </Button>
+              )}
+            </>
+          )}
+
+          {/* The question: what goes, then Remove (red) and Back */}
+          {view === 'remove' && onRemove && (
+            <>
+              <p className="font-semibold">{t('workout.removeExerciseTitle', { name: item.exercise.name })}</p>
+              <p className="text-sm text-muted-foreground">{t('workout.removeExerciseText')}</p>
+              <div className="flex flex-wrap gap-3">
+                <Button variant="destructive" size="xl" onClick={() => act(onRemove)}>{t('workout.removeConfirm')}</Button>
+                <Button variant="outline" size="xl" onClick={() => setView('menu')}>{t('workout.noteBack')}</Button>
+              </div>
             </>
           )}
 

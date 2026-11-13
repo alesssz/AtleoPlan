@@ -107,8 +107,9 @@ function PlanDetail({ plan }: PlanDetailProps) {
   // Partial<T>: T with every field optional, since either may be there;
   // `&` joins the two types into one with the fields of both
   const state = useLocation().state as (Partial<PlanSavedState> & Partial<PlanImportedState>) | null
-  // The workout in progress on this phone, if any, read once
-  const [active] = useState(loadActiveSession)
+  // The workout in progress on this phone, if any, read once; dropped
+  // (setActive(null)) when the banner deletes it, so Start works again
+  const [active, setActive] = useState(loadActiveSession)
 
   // The open day, from `?day=` (1 for the first). Anything that is not one
   // of the plan's days, a hand-typed ?day=9 say, opens the first
@@ -152,7 +153,7 @@ function PlanDetail({ plan }: PlanDetailProps) {
         )}
 
         {/* A workout left in progress on this phone, of any plan: Resume */}
-        {active && <ResumeBanner session={active} />}
+        {active && <ResumeBanner session={active} onDiscarded={() => setActive(null)} />}
 
         {/* Its state, in words */}
         {(plan.is_active || archived) && (

@@ -13,19 +13,28 @@
  * once every set is ticked. Both ask for a confirmation, then finish the
  * workout, put it in the queue of workouts to send, try to send it at once
  * (src/lib/pending-sessions.ts), and open its summary (src/pages/SummaryPage.tsx).
+ * Their dialog also offers Delete workout, which throws the workout away
+ * without finishing it, after a second question (FinishButton.tsx).
  *
  * Exercises can be added on the way (Add exercises, the plan editor's
  * picker): in any workout, and in a free workout (Home), which starts with
- * none and shows only that until the first is added.
+ * none and shows only that until the first is added. What is added by hand
+ * can be removed again, and only that: an exercise from its menu, a set
+ * from its stepper (canRemoveExercise, canRemoveSet in workout-session.ts).
+ * The plan's exercises and sets stay; they can be skipped or left unticked.
  *
- * Two panels from the bottom (UI-6): the big stepper, opened by a tap on a
+ * Three panels from the bottom: the big stepper, opened by a tap on a
  * set's value (SetStepper.tsx), and the exercise's menu, behind the "⋯"
- * beside its name (ExerciseMenu.tsx): swap, skip, a note, the video. And
- * one full screen: the stopwatch of a timed set, opened by its ▶
- * (StopwatchPanel.tsx).
+ * beside its name (ExerciseMenu.tsx): swap, skip, a note, the video (UI-6);
+ * and "How to do it", opened by a tap on the exercise's photo or name
+ * (ExerciseInfoSheet.tsx): its photos, muscles and steps. The stopwatch of
+ * a timed set, opened by its ▶, is docked at the bottom where the rest bar
+ * goes (StopwatchPanel.tsx), so the sets stay in sight. Under the sets, the
+ * "Up next" card names the exercise that follows (UpNextCard.tsx), as does
+ * the rest bar once the exercise on screen is done.
  */
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Dumbbell, Link2, ListPlus, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Dumbbell, Info, Link2, ListPlus, Plus, X } from 'lucide-react'
 import { useEffect, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -45,12 +54,14 @@ import { RestBar } from './RestBar'
 import { finishWorkout } from './finish-workout'
 import { FinishButton } from './FinishButton'
 import { storeActiveSession } from './session-storage'
+import { ExerciseInfoSheet } from './ExerciseInfoSheet'
 import { ExerciseMenu } from './ExerciseMenu'
 import { SetHeader, SetRow } from './SetRow'
 import { SetStepper } from './SetStepper'
 import { StopwatchPanel } from './StopwatchPanel'
+import { UpNextCard } from './UpNextCard'
 import { FALLBACK_REST_SECONDS } from './useStartWorkout'
-import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, findSet, isForTime, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, workoutReducer, type ActiveSession, type SetField } from './workout-session'
+import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, canRemoveExercise, canRemoveSet, findSet, hasWorkLeft, isForTime, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, upNext, workoutReducer, type ActiveSession, type SetField, type WorkoutExercise } from './workout-session'
 
 /**
  * The one touch the two "add" buttons, Add set and Add exercises, have
@@ -94,6 +105,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const [stepping, setStepping] = useState<{ set: number, field: SetField }>({ set: 0, field: 'weight' })
   // The picker of Swap exercise, opened from the exercise's menu
   const [swapOpen, setSwapOpen] = useState(false)
+  // "How to do it", opened by a tap on the exercise's photo or name
+  const [infoOpen, setInfoOpen] = useState(false)
 
   // The screen stays on (Wake Lock API) for the whole workout
   useWakeLock(true)
@@ -143,8 +156,9 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const numbers = setNumbers(item?.sets ?? [])
   // The sets that count, done and in all, for the Finish dialog
   const count = countSets(session)
-  // What the two Finish buttons share: the count, busy, the action
-  const finishProps = { count, disabled: finishing, onFinish: () => void finish() }
+  // What the two Finish buttons share: the count, busy, the two endings
+  // their dialog offers, finish or delete
+  const finishProps = { count, disabled: finishing, onFinish: () => void finish(), onDiscard: discard }
   // Time to finish: the last exercise, or nothing left to tick. The bottom
   // bar then offers Finish workout instead of Next. Never with no exercise
   // at all: a free workout just started has nothing to finish
@@ -173,6 +187,27 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const timedSet = timed ? timedItem?.sets[timed.set] : undefined
   const timedNumber = timed && timedItem ? setNumbers(timedItem.sets)[timed.set] : undefined
   const timedName = timedNumber?.warmUp ? t('workout.warmUpName', { number: timedNumber.number }) : t('workout.setName', { number: timedNumber?.number ?? 1 })
+  // The exercise after this one (after its superset), with sets left; null
+  // when none is (upNext). The "Up next" card under the sets names it
+  const nextIndex = item ? upNext(session, index) : null
+  const nextItem = nextIndex === null ? undefined : session.exercises[nextIndex]
+  // The rest bar names it too, when the rest leads there: the exercise on
+  // screen has no set left, and no exercise of its superset is waiting
+  const restNext = item && !hasWorkLeft(item) && supersetTarget === null ? (nextItem?.exercise.name ?? null) : null
+  /**
+   * Where the running stopwatch is, from a row's point of view: on its
+   * set, on another set, or none (SetRow's `stopwatch` prop).
+   * @param setId the row's set
+   */
+  const stopwatchFor = (setId: string) => (stopwatch === null ? null : stopwatch.set_id === setId ? 'this' : 'other')
+  /**
+   * What the plan asks of an exercise, "4 × 8–10 · 80 kg · 90 s"; null for
+   * one added on the way, which has no plan item.
+   * @param exercise the exercise
+   */
+  const planSummary = (exercise: WorkoutExercise) => (exercise.plan_item
+    ? itemSummary(exercise.plan_item, { language: i18n.language, weightUnit: unit, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS, t })
+    : null)
   // The settings an added exercise needs
   const addOptions = { unit, language: i18n.language, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS }
 
@@ -199,10 +234,17 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
     dispatch({ type: 'swapExercise', exercise: index, replacement: swappedExercise(item, exercise, lastSets, addOptions) })
   }
 
-  /** Cancel, on an empty free workout: nothing was done, so nothing is kept. */
-  function cancel() {
+  /**
+   * Delete workout, from the Finish dialog, and Cancel workout on an empty
+   * free workout: the workout is forgotten, and nothing is sent. Nothing
+   * needs undoing on the server: a workout reaches it only at Finish
+   * (C1.17.5), so until then it lives on this phone alone. Then the plan's
+   * page, or Home for a free workout, as ✕ does; `replace`: Back does not
+   * return to a workout that no longer exists.
+   */
+  function discard() {
     storeActiveSession(null)
-    void navigate('/', { replace: true })
+    void navigate(session.plan_id ? `/plans/${session.plan_id}` : '/', { replace: true })
   }
 
   /** ✕: pauses the workout, keeps it on the phone, and leaves. */
@@ -266,7 +308,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   )}
                   onAdd={exercises => void addExercises(exercises)}
                 />
-                <Button variant="outline" size="xl" onClick={cancel}>{t('workout.cancel')}</Button>
+                <Button variant="outline" size="xl" onClick={discard}>{t('workout.cancel')}</Button>
               </div>
             </div>
           )}
@@ -322,16 +364,41 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
               {/* The exercise: photo, name, what was planned, the plan's
                   notes, the user's own note, and its menu (⋯) on the right */}
               <div className="mb-6 flex gap-4">
-                {cover
-                  ? <img src={cover.thumb_url} alt="" className="size-20 shrink-0 rounded-2xl bg-muted object-cover" />
-                  : <div aria-hidden="true" className="grid size-20 shrink-0 place-items-center rounded-2xl bg-muted"><Dumbbell className="size-7 text-muted-foreground" /></div>}
+                {/* The photo, a button: "How to do it" (ExerciseInfoSheet).
+                    A small ⓘ in its corner says it can be tapped. Named in
+                    words for screen readers, the photo itself being
+                    decoration (alt=""). aria-haspopup="dialog": it opens
+                    a panel, said before the tap */}
+                <button
+                  type="button"
+                  aria-label={t('workout.howTo.open', { name: item.exercise.name })}
+                  aria-haspopup="dialog"
+                  onClick={() => setInfoOpen(true)}
+                  className="relative size-20 shrink-0 rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {cover
+                    ? <img src={cover.thumb_url} alt="" className="size-full rounded-2xl bg-muted object-cover" />
+                    : <span aria-hidden="true" className="grid size-full place-items-center rounded-2xl bg-muted"><Dumbbell className="size-7 text-muted-foreground" /></span>}
+                  <span aria-hidden="true" className="absolute -right-1 -bottom-1 grid size-6 place-items-center rounded-full border bg-background">
+                    <Info className="size-4 text-primary" />
+                  </span>
+                </button>
                 <div className="min-w-0 flex-1">
-                  <h2 id="exercise-name" className="font-heading text-xl font-extrabold">{item.exercise.name}</h2>
-                  {item.plan_item && (
-                    <p className="text-sm text-muted-foreground tabular-nums">
-                      {itemSummary(item.plan_item, { language: i18n.language, weightUnit: unit, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS, t })}
-                    </p>
-                  )}
+                  {/* The name, a button too, for the same panel: the
+                      larger target. Inside the heading, so the heading
+                      keeps the exercise's name; the text looks as before,
+                      with a dotted underline that says it opens something */}
+                  <h2 id="exercise-name" className="font-heading text-xl font-extrabold">
+                    <button
+                      type="button"
+                      aria-haspopup="dialog"
+                      onClick={() => setInfoOpen(true)}
+                      className="text-left underline decoration-muted-foreground/50 decoration-dotted underline-offset-4 outline-none hover:decoration-primary focus-visible:rounded-md focus-visible:ring-3 focus-visible:ring-ring/50"
+                    >
+                      {item.exercise.name}
+                    </button>
+                  </h2>
+                  {item.plan_item && <p className="text-sm text-muted-foreground tabular-nums">{planSummary(item)}</p>}
                   {item.plan_item?.notes && <p className="mt-1 text-sm italic">{item.plan_item.notes}</p>}
                   {/* The note written from the menu, today */}
                   {item.notes && (
@@ -354,6 +421,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   onSwap={() => setSwapOpen(true)}
                   onSkip={skipped => dispatch({ type: 'skipExercise', exercise: index, skipped })}
                   onSaveNote={notes => dispatch({ type: 'setNote', exercise: index, notes })}
+                  // Only for an exercise added by hand; undefined hides the row
+                  onRemove={canRemoveExercise(item) ? () => dispatch({ type: 'removeExercise', exercise: index }) : undefined}
                 />
               </div>
 
@@ -386,6 +455,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                     }}
                     onTypeChange={setType => dispatch({ type: 'setSetType', exercise: index, set: position, setType })}
                     onStartStopwatch={() => dispatch({ type: 'startStopwatch', exercise: index, set: position, now: new Date().toISOString() })}
+                    stopwatch={stopwatchFor(set.id)}
                   />
                 ))}
               </ol>
@@ -402,6 +472,14 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                 weightStep={user?.weight_step}
                 focus={stepping.field}
                 onChange={(field, value) => dispatch({ type: 'setField', exercise: index, set: stepping.set, field, value })}
+                // Only for a set added by hand: the panel closes first, as
+                // the set it shows is about to be gone
+                onRemove={canRemoveSet(item, stepping.set)
+                  ? () => {
+                      setStepperOpen(false)
+                      dispatch({ type: 'removeSet', exercise: index, set: stepping.set })
+                    }
+                  : undefined}
               />
               {/* Swap exercise's picker: opened by the menu, one tap picks */}
               <ExercisePicker open={swapOpen} onOpenChange={setSwapOpen} replacing={item.exercise} onAdd={exercises => void (exercises[0] && swap(exercises[0]))} />
@@ -414,6 +492,12 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                 <Plus aria-hidden="true" />
                 {t('plans.editor.addSet')}
               </Button>
+              {/* "How to do it": opened by the photo or the name above */}
+              <ExerciseInfoSheet open={infoOpen} onOpenChange={setInfoOpen} exercise={item.exercise} />
+              {/* Up next: a reminder of the exercise after this one, not a
+                  way to go there (the bottom bar is). None on the last
+                  one, where Finish workout waits below */}
+              {nextItem && <UpNextCard item={nextItem} summary={planSummary(nextItem)} />}
             </section>
           )}
 
@@ -422,10 +506,11 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         </div>
       </main>
 
-      {/* The stopwatch of a timed set, full screen, while it runs. Last
-          time's time as the clock shows it, "1:31". Done as fast as
-          possible, it is a race: the target is a time to beat, and the
-          reps to do are named under the set */}
+      {/* The stopwatch of a timed set, docked under the sets while it runs
+          (or is paused), where the rest bar goes. Last time's time as the
+          clock shows it, "1:31". Done as fast as possible, it is a race:
+          the target is a time to beat, and the reps to do are named after
+          the set */}
       {stopwatch && timedItem && timedSet && (
         <StopwatchPanel
           stopwatch={stopwatch}
@@ -435,15 +520,18 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
           lastText={timedSet.last?.duration_seconds ? clock(timedSet.last.duration_seconds) : null}
           alarm={{ sound: user?.timer_sound ?? true, vibration: user?.timer_vibration ?? true }}
           onStop={() => dispatch({ type: 'stopStopwatch', now: new Date().toISOString() })}
+          onPause={paused => dispatch({ type: paused ? 'pauseStopwatch' : 'resumeStopwatch', now: new Date().toISOString() })}
           onCancel={() => dispatch({ type: 'cancelStopwatch' })}
         />
       )}
 
-      {/* The rest timer, while it runs */}
+      {/* The rest timer, while it runs, with the next exercise's name when
+          the rest leads to it */}
       {session.rest !== null && (
         <RestBar
           left={left}
           total={session.rest.total}
+          next={restNext}
           onAdjust={seconds => dispatch({ type: 'adjustRest', seconds })}
           onSkip={() => dispatch({ type: 'endRest' })}
         />

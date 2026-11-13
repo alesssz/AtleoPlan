@@ -4,6 +4,11 @@
  * −15 s, +15 s, Skip. The time left is worked out by the screen from the
  * session's `rest.ends_at` and the current moment, so the timer survives a
  * reload: it is a moment, not a counter.
+ *
+ * When the rest leads to another exercise (the one on screen has no set
+ * left), a line under the time names it, "Up next: Lateral Raise": the rest is
+ * when the next machine is got ready, and this bar is always in sight,
+ * unlike the "Up next" card at the end of a long table (UpNextCard.tsx).
  */
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -20,10 +25,12 @@ interface RestBarProps {
   onAdjust: (seconds: number) => void
   /** Ends the rest now. */
   onSkip: () => void
+  /** The exercise the rest leads to, by name; null or missing when the sets on screen go on. */
+  next?: string | null
 }
 
 /** The rest bar. */
-export function RestBar({ left, total, onAdjust, onSkip }: RestBarProps) {
+export function RestBar({ left, total, onAdjust, onSkip, next = null }: RestBarProps) {
   const { t } = useTranslation()
   // How much of the rest is left, from 0 to 1, for the bar's width
   const share = total > 0 ? Math.min(1, left / total) : 0
@@ -47,6 +54,8 @@ export function RestBar({ left, total, onAdjust, onSkip }: RestBarProps) {
           {/* Outlined like −15 and +15: the app's look for actions that are not the main one */}
           <Button variant="outline" size="xl" className="px-3" onClick={onSkip}>{t('workout.restSkip')}</Button>
         </div>
+        {/* What comes after the rest, cut with "…" when long */}
+        {next && <p className="mt-2 truncate text-sm text-muted-foreground">{t('workout.upNextName', { name: next })}</p>}
       </div>
     </section>
   )
