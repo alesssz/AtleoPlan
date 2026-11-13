@@ -8,7 +8,10 @@
  * - **Finish**, outlined: finishes it from here, with the same question as
  *   in workout mode (FinishButton) and the same steps (finishWorkout), then
  *   opens its summary. For a workout done but never finished: the app
- *   closed at the end, the phone in the bag.
+ *   closed at the end, the phone in the bag. Its dialog also offers
+ *   **Delete workout**, for one started by mistake or abandoned: the
+ *   workout is forgotten, and the page is told (`onDiscarded`) so the
+ *   banner goes.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { Play } from 'lucide-react'
@@ -20,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { finishWorkout } from './finish-workout'
 import { FinishButton } from './FinishButton'
+import { storeActiveSession } from './session-storage'
 import { countSets, type ActiveSession } from './workout-session'
 
 /** Props of ResumeBanner. */
@@ -28,10 +32,15 @@ interface ResumeBannerProps {
   session: ActiveSession
   /** Extra classes, for the page's grid. */
   className?: string
+  /**
+   * Called once the workout is deleted from the banner: the page keeps the
+   * workout it read in its state, and must drop it to hide the banner.
+   */
+  onDiscarded: () => void
 }
 
 /** "Workout in progress: Day A – Push", Finish and Resume. */
-export function ResumeBanner({ session, className }: ResumeBannerProps) {
+export function ResumeBanner({ session, className, onDiscarded }: ResumeBannerProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -47,6 +56,12 @@ export function ResumeBanner({ session, className }: ResumeBannerProps) {
     void navigate(`/session/${id}/summary`)
   }
 
+  /** Delete workout, confirmed: forgotten on the phone; nothing was sent yet. */
+  function discard() {
+    storeActiveSession(null)
+    onDiscarded()
+  }
+
   return (
     // A lime-tinted box: the one thing to do before starting anything else.
     // flex-wrap: on a narrow phone the buttons go under the text
@@ -55,7 +70,7 @@ export function ResumeBanner({ session, className }: ResumeBannerProps) {
       <p className="flex-1 basis-48 font-semibold">{t('workout.inProgress', { day: session.day_name ?? t('workout.free') })}</p>
       <div className="flex flex-wrap gap-3">
         {/* Outlined: Resume is the main action; Finish asks first */}
-        <FinishButton count={countSets(session)} label={t('workout.done')} variant="outline" disabled={finishing} onFinish={() => void finish()} />
+        <FinishButton count={countSets(session)} label={t('workout.done')} variant="outline" disabled={finishing} onFinish={() => void finish()} onDiscard={discard} />
         {/* Button asChild + Link: a link that looks like a button (C1.8) */}
         <Button asChild size="xl">
           <Link to={`/session/${session.id}`}>

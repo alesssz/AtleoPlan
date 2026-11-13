@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
 import { testExercise } from '@/test/exercise-helpers'
 import { testPlanItem, testPlanSet } from '@/test/plan-helpers'
-import { formatSeconds, groupSupersets, itemSummary, warmUpCount, type SummaryOptions } from './plan-format'
+import { durationText, formatSeconds, groupSupersets, itemSummary, warmUpCount, type SummaryOptions } from './plan-format'
 
 /** The options of an English reader in kilograms, with 90 s of default rest. */
 let options: SummaryOptions
@@ -76,6 +76,19 @@ describe('formatSeconds', () => {
     expect(formatSeconds(45, 'it')).toBe('45 s')
     expect(formatSeconds(180, 'it')).toBe('3 min')
     expect(formatSeconds(90, 'de')).toBe('90 Sek.')
+  })
+})
+
+describe('durationText', () => {
+  it('writes a set\'s time past a minute as a clock, never as a heap of seconds', () => {
+    // Under a minute and whole minutes: as formatSeconds
+    expect(durationText(45, 'it')).toBe('45 s')
+    expect(durationText(60, 'it')).toBe('1 min')
+    expect(durationText(180, 'en')).toBe('3 min')
+    // Anything else past a minute: minutes and seconds, as the stopwatch
+    expect(durationText(870, 'it')).toBe('14:30')
+    expect(durationText(72, 'en')).toBe('1:12')
+    expect(durationText(3723, 'en')).toBe('1:02:03')
   })
 })
 

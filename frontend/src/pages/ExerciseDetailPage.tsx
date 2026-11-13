@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useDeleteExercise, useDuplicateExercise, useExercise, type Exercise } from '@/api/exercises'
 import { ExercisePhotos } from '@/components/exercises/ExercisePhotos'
+import { MuscleChips } from '@/components/exercises/MuscleChips'
 import { FormBanner } from '@/components/FormBanner'
 import { PageHeader } from '@/components/PageHeader'
 import {
@@ -169,27 +170,6 @@ function ExerciseDetail({ exercise }: ExerciseDetailProps) {
         )}
       </div>
     </>
-  )
-}
-
-/** Props of MuscleChips. */
-interface MuscleChipsProps {
-  /** The muscles' names. */
-  names: string[]
-  /** Lime chips for the main muscles; quieter ones otherwise. */
-  strong?: boolean
-}
-
-/** Muscle names as rounded chips, wrapping on as many lines as needed. */
-function MuscleChips({ names, strong = false }: MuscleChipsProps) {
-  return (
-    <ul className="flex flex-wrap gap-2">
-      {names.map(name => (
-        <li key={name}>
-          <Badge variant={strong ? 'default' : 'secondary'} className="h-7 px-3 text-sm">{name}</Badge>
-        </li>
-      ))}
-    </ul>
   )
 }
 

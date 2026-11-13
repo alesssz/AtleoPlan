@@ -8,11 +8,14 @@
  * tested on their own (plan-format.test.ts) and the components stay short.
  * Numbers and units are written by the browser's Intl API in the user's
  * language, through src/lib/format.ts: "82,5 kg" in Italian, "90 Sek." in
- * German (docs/concepts/C1-frontend.md C1.7).
+ * German (docs/concepts/C1-frontend.md C1.7). A time past a minute that is
+ * not whole minutes is written as a clock, "14:30" (durationText), as
+ * workout mode's stopwatch writes it.
  */
 import type { TFunction } from 'i18next'
 import type { LoggingType } from '@/api/exercises'
 import type { PlanItem, PlanSet, SetType } from '@/api/plans'
+import { clock } from '@/components/workout/clock'
 import { formatNumber, formatWeight, type WeightUnit } from '@/lib/format'
 
 /** How many kilograms make a pound, exactly (docs/design/D3-data-model.md D3.2.3). */
@@ -41,6 +44,20 @@ export function formatSeconds(seconds: number, language: string): string {
     return formatNumber(seconds / 60, language, { style: 'unit', unit: 'minute', unitDisplay: 'short' })
   }
   return formatNumber(seconds, language, { style: 'unit', unit: 'second', unitDisplay: 'short' })
+}
+
+/**
+ * The time of a timed set, done or planned: as formatSeconds() under a
+ * minute and for whole minutes ("45 s", "2 min"), as a clock otherwise
+ * ("14:30", "1:12"), never as a heap of seconds ("870 s"). The clock is the
+ * stopwatch's own way of writing it, so the time read on the stopwatch is
+ * the time written in the set. Rests keep formatSeconds() ("90 s"): there
+ * the gym counts in seconds.
+ * @param seconds the time, in seconds
+ * @param language a language code such as 'it'
+ */
+export function durationText(seconds: number, language: string): string {
+  return seconds > 60 && seconds % 60 !== 0 ? clock(seconds) : formatSeconds(seconds, language)
 }
 
 /**
@@ -86,7 +103,7 @@ export function warmUpCount(sets: { set_type: SetType }[]): number {
  */
 export function formatSetTarget(set: PlanSet, loggingType: LoggingType, language: string): string | null {
   if (loggingType === 'time') {
-    return set.target_duration_seconds === null ? null : formatSeconds(set.target_duration_seconds, language)
+    return set.target_duration_seconds === null ? null : durationText(set.target_duration_seconds, language)
   }
   if (loggingType === 'distance') {
     return set.target_distance_meters === null ? null : formatDistance(set.target_distance_meters, language)

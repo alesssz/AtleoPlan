@@ -64,6 +64,9 @@ Every source file starts with a comment saying what it is for, and the code is c
   - [C1.17.7 The big stepper and the exercise's menu](#c1177-the-big-stepper-and-the-exercises-menu)
   - [C1.17.8 The stopwatch of a timed set](#c1178-the-stopwatch-of-a-timed-set)
   - [C1.17.9 Exercises done as fast as possible](#c1179-exercises-done-as-fast-as-possible)
+  - [C1.17.10 After a real workout: times, up next, how to do it](#c11710-after-a-real-workout-times-up-next-how-to-do-it)
+  - [C1.17.11 Removing what was added by hand](#c11711-removing-what-was-added-by-hand)
+  - [C1.17.12 Deleting a workout in progress](#c11712-deleting-a-workout-in-progress)
 - [C1.18 Home](#c118-home)
   - [C1.18.1 The pieces](#c1181-the-pieces)
   - [C1.18.2 Starting from Home: one hook for two pages](#c1182-starting-from-home-one-hook-for-two-pages)
@@ -928,7 +931,7 @@ PlanDetailPage                 the plan: header, badges, actions, notes
 
 - **Plain functions, not components.** `plan-format.ts` takes data and gives text, so `plan-format.test.ts` tests every case above without drawing anything, and `PlanItemRow` stays short. The translate function is a parameter, `t`, for the few words ("sets", "max", "RPE").
 - **Warm-ups never count** in the line or in the day's "7 sets" ([D2.8](../design/D2-decisions.md#d28-workout-rules)): `workingSets()` leaves them out.
-- **Units come from `Intl`.** `formatSeconds()` and `formatDistance()` use `Intl.NumberFormat` with `style: 'unit'`, so each language writes its own: "90 s" in Italian and Spanish, "90 sec" in English, "90 Sek." in German. The weight is converted to the user's unit (`weightIn()`, 1 lb = 0.45359237 kg) and written by `formatWeight()` ([C1.7](#c17-translations)).
+- **Units come from `Intl`.** `formatSeconds()` and `formatDistance()` use `Intl.NumberFormat` with `style: 'unit'`, so each language writes its own: "90 s" in Italian and Spanish, "90 sec" in English, "90 Sek." in German. A **time target** past a minute that is not whole minutes is written as a clock instead, "1 × 14:30", by `durationText()` ([C1.17.10](#c11710-after-a-real-workout-times-up-next-how-to-do-it)); rests stay in seconds. The weight is converted to the user's unit (`weightIn()`, 1 lb = 0.45359237 kg) and written by `formatWeight()` ([C1.7](#c17-translations)).
 - **The user's settings:** an exercise without its own rest shows the user's `default_rest_seconds`; the weights follow `weight_unit`. Both come from `useCurrentUser()`, already in the cache.
 - **Supersets:** `groupSupersets()` splits a day's exercises into runs, keeping the order: neighbours with the same `superset_group` form one run, every other exercise is a run of its own. The backend guarantees the neighbours ([C2.5.6](C2-backend.md#c256-validating-nested-data)), so a run is the whole superset. On screen a run is a `<section aria-label="Superset">` with a lime bar on its left: the label is there for screen readers, which cannot see the bar.
 
@@ -1257,14 +1260,17 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 └── WorkoutScreen        the workout (useReducer); top: ✕, the day, the clock, Finish; the dots;
     │                    "＋ Add exercises" beside the dots; the exercise, Add set; Previous / Next (Finish workout when it is time);
     │                    stores every change; keeps the screen on
-    ├── ExerciseMenu     "⋯" beside the exercise's name: swap, skip, a note, the video (a panel from the bottom)
-    ├── SetHeader        the titles above the sets: Set, Last, kg, Reps (or Sec, m)
+    ├── ExerciseMenu     "⋯" beside the exercise's name: swap, skip, a note, the video; remove, if added (a panel from the bottom)
+    ├── ExerciseInfoSheet "How to do it", from the exercise's photo or name: photos, muscles, steps (a panel from the bottom, C1.17.10)
+    ├── SetHeader        the titles above the sets: Set, Last, kg, Reps (or Time, m)
     ├── SetRow           a set: its number or type letter (the list of types), last time, the fields (buttons);
     │                    ▶ on a timed exercise; ✓
-    ├── StopwatchPanel   the stopwatch of a timed set, full screen: the time, a ring to the target, Stop, Cancel (C1.17.8)
-    ├── SetStepper       the big stepper of the set tapped: − and + for each field (a panel from the bottom)
+    ├── UpNextCard       under the sets: a reminder of the exercise that comes next, not a button (C1.17.10)
+    ├── StopwatchPanel   the stopwatch of a timed set, docked at the bottom: the time, a bar to the target,
+    │                    Pause, Stop, Cancel (C1.17.8)
+    ├── SetStepper       the big stepper of the set tapped: − and + for each field; Remove this set, if added (a panel from the bottom)
     ├── ExercisePicker   Add exercises; and Swap exercise, one tap, filtered by the main muscle
-    └── RestBar          the rest timer: time left, a shrinking bar, −15, +15, Skip
+    └── RestBar          the rest timer: time left, a shrinking bar, −15, +15, Skip; "Up next: …" when the exercise is done
 ```
 
 | File | Holds |
@@ -1277,7 +1283,9 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 | `components/workout/SetStepper.tsx`, `stepper.ts` | The big stepper, and its arithmetic: the step of each field, the next value after a tap (C1.17.7) |
 | `components/workout/ExerciseMenu.tsx` | The exercise's menu (C1.17.7) |
 | `components/workout/StopwatchPanel.tsx` | The stopwatch (C1.17.8) |
-| `components/ui/sheet.tsx` | shadcn/ui's Sheet: a dialog against an edge of the screen, the two panels' frame |
+| `components/workout/ExerciseInfoSheet.tsx`, `UpNextCard.tsx` | "How to do it" and the card of the next exercise (C1.17.10) |
+| `components/exercises/MuscleChips.tsx` | The muscles as chips, shared with the exercise's page |
+| `components/ui/sheet.tsx` | shadcn/ui's Sheet: a dialog against an edge of the screen, the frame of the three panels from the bottom |
 | `components/workout/layout.ts` | `WORKOUT_COLUMN`, the side margins shared by the screen's parts |
 | `components/workout/useStartWorkout.ts`, `ResumeBanner.tsx` | Starting a workout, and the banner with Resume: shared by the plan's page and Home ([C1.18](#c118-home)) |
 | `pages/WorkoutPage.tsx` | The route's page |
@@ -1333,7 +1341,7 @@ dispatch({ type: 'adjustRest', seconds: 15 })                                   
   A rest of 0 seconds starts no timer. `supersetOf(session, index)` finds the superset: the neighbours with the same `superset_group`, as the editor keeps them ([C1.16.2](#c1162-the-draft-and-its-reducer)).
 
 - **Numbers on screen** come from `setNumbers()`: warm-ups are counted apart, so the sets that count are numbered 1, 2, 3 whatever warm-ups come first, as D1.4.9 draws them (`W W 1 2 3`, not `W W 3 4 5`). A set whose type changes renumbers the ones after it. Screen readers hear the same names: "Set 1, kg: 80" (the row's button, with its value), "Warm-up 2, Reps" (the stepper's box), "Tick: Set 1".
-- **The columns have titles** (`SetHeader`): Set, Last, then one per field, kg (or lb) and Reps, or Sec, or m. The header and the rows build their fields with the same function, `fieldsFor()`, and use the same widths (`w-12`, `w-16`, `flex-1`, `w-12`), so each number sits under its title.
+- **The columns have titles** (`SetHeader`): Set, Last, then one per field, kg (or lb) and Reps, or Time, or m. The header and the rows build their fields with the same function, `fieldsFor()`, and use the same widths (`w-12`, `w-16`, `flex-1`, `w-12`), so each number sits under its title.
 - **Exercises added on the way.** **Add exercises**, the outlined button on the right of the dots, opens the plan editor's picker (`ExercisePicker`, [C1.16](#c116-the-plan-editor)); the exercises ticked are added at the end, the first of them opened. Each is built by `exerciseFrom()`: one set per set of last time, with its values and types, or one empty set for an exercise never done; the user's default rest; no plan item. They are built *outside* the reducer and handed to it ready (`{ type: 'addExercises', exercises }`), because building one makes new UUIDs: a reducer must give the same result every time it gets the same action, and React may call it twice to check (StrictMode, [C1.4](#c14-react-from-scratch)).
 - **A free workout** (Home, [C1.18](#c118-home)) is `startFreeSession(now)`: no plan, no day's name, no exercises. The screen shows "Free workout" as its title and, until the first exercise is added, only **Add exercises** (lime) and **Cancel workout**, which forgets it: nothing was done. No Finish, no Previous or Next, with nothing to finish or move to; `finishTime` is false with no exercise.
 - **At Finish,** `toSessionInput()` builds the body: every exercise, **only the ticked sets**, only the values that fit how the exercise is logged, weights in kilograms. An exercise with no set ticked is sent with none: skipped, which the history can show. The note written from the exercise's menu goes as its `notes` (C1.17.7).
@@ -1440,6 +1448,7 @@ Two panels that slide up from the bottom of the screen, added by UI-6 ([D1.4.9](
 | **Skip exercise** / **Do it after all** | Marks it skipped and opens the next exercise; or takes the skip back | `skipExercise` |
 | **Add a note** / **Edit the note** | The panel turns into a text box (500 characters, the backend's limit); Save keeps it, shown under the name as "Your note" and sent as the exercise's `notes` | `setNote` |
 | **Watch the video** | Only when the exercise has a `youtube_url`: YouTube in a new tab (`target="_blank" rel="noreferrer"`) | none |
+| **Remove from workout** | Only on an exercise added by hand; the panel turns into a question, then removes it (C1.17.11) | `removeExercise` |
 
 - **Swapping keeps the place, not the values.** `swappedExercise(current, exercise, lastSets, options)` keeps the workout exercise's id, plan item, superset and rest, and as many sets as before with the same types; the values and "Last" come from the new exercise's own last time (`GET /api/sessions/last-sets`, none offline). With no last time, the plan's reps fill the sets but **not the plan's weight**: 80 kg were meant for the barbell, not for dumbbells. Built outside the reducer, like `exerciseFrom()`, because it makes new UUIDs. The note and a skip go with the old exercise.
 - **The swap picker** is `ExercisePicker` with `replacing`: no tick boxes, a tap on a row picks it; the list starts filtered by the replaced exercise's first main muscle (`filter[muscle]=chest`), with a chip, **Only Chest**, that turns the filter off and on (`aria-pressed`); the exercise being replaced is left out. The menu opens it without a button of its own: `open` and `onOpenChange` let the screen **control** the dialog, where Add exercises lets the picker keep its own state (**uncontrolled**). `open ?? ownOpen` supports both.
@@ -1450,26 +1459,39 @@ Two panels that slide up from the bottom of the screen, added by UI-6 ([D1.4.9](
 
 ### C1.17.8 The stopwatch of a timed set
 
-A set of an exercise logged by time had only a box for the seconds: fine for a plank timed by the gym's clock, poor for "30 s dead hang". Such a row now has **▶** before ✓, which opens `StopwatchPanel`, full screen: the time counting up inside a ring, the target under it, **Last time**, **Stop** and **Cancel**.
+A set of an exercise logged by time had only a box for the seconds: fine for a plank timed by the gym's clock, poor for "30 s dead hang". Such a row now has **▶** before ✓, which opens `StopwatchPanel`, **docked at the bottom of the screen**, where the rest bar goes: a bar filling up to the target, the time counting up, large, the target and **Last time** under it, **Pause**, **Stop** and **Cancel**. The sets stay in sight above it, the one being timed with a lime ring.
+
+**Docked, not full screen.** The first version filled the screen. Used in a real workout, it hid everything for the length of the set (the table, the plan's notes, what came next) to show one number very large. Docked, the time is still large (48 px figures, `text-5xl`), and the screen stays the workout's. The ring became a bar like the rest's: the same look for the two timers, and it fits the height of a bar.
 
 **A moment, like the rest** (C1.17.4). The workout keeps when the stopwatch started, not a counter:
 
 ```ts
 session.stopwatch = { set_id: '0192…', started_at: '2026-11-10T18:05:12.000Z', target: 30 }
-stopwatchSeconds(stopwatch, now)   // (now − started_at) in whole seconds
+stopwatchSeconds(stopwatch, now)   // (now − started_at − the pauses) in whole seconds
 ```
 
 - **Stored with the workout** (`session-storage.ts`), so the screen off, the app closed and opened again, or a reload lose nothing: the time is still right. `stopwatch?` is optional in `ActiveSession`, since workouts kept on a phone before it have no such key.
 - **The set by its id,** not by its indexes: exercises can be added while it runs, and `findSet(session, id)` finds it wherever it is.
 - **The target** is the set's `seconds` when ▶ is tapped: the plan's target, or last time's time, which fill the field (C1.17.2). For a hold it is the time to reach; for reps done as fast as possible (C1.17.9), last time's time to beat. Empty, there is none.
 - **Starting ends the rest**, if one was running: the set has begun.
+- **Pausing keeps a moment too.** Pause stores when it happened, `paused_at`; Resume adds the pause's length to `paused_ms` and clears `paused_at`. The time is then the time from the start to now (or to the pause, while paused), minus the pauses:
 
-**Four actions of the reducer:**
+```ts
+const end = stopwatch.paused_at ? Date.parse(stopwatch.paused_at) : now.getTime()
+const seconds = Math.floor((end - Date.parse(stopwatch.started_at) - (stopwatch.paused_ms ?? 0)) / 1000)
+```
+
+  Both fields are optional, `paused_at?` and `paused_ms?`: a stopwatch stored on the phone before Pause existed has neither, and `?? 0` reads it as never paused. A second Pause is ignored: moving `paused_at` would lose the seconds between the two. Stop while paused writes the time at the pause.
+- **One stopwatch at a time.** While it runs (or is paused), every ▶ is disabled (`SetRow`'s `stopwatch` prop, `'this'` on the set being timed, `'other'` elsewhere): with the table in sight, a second ▶ would replace the running time and lose it. The full-screen version had no such risk, since nothing else could be touched.
+
+**The actions of the reducer:**
 
 | Action | Does |
 |---|---|
 | `startStopwatch` | `{ set_id, started_at: now, target }`, the rest ended; nothing on a set already done |
 | `stopStopwatch` | The seconds, at least 1 (the backend's minimum), into the set; then the set is ticked by calling the reducer again with `toggleSet`, so the rest and the superset's round follow the rules of ✓ |
+| `pauseStopwatch` | `paused_at: now`; nothing when already paused |
+| `resumeStopwatch` | `paused_ms` grows by `now − paused_at`, `paused_at: null` |
 | `cancelStopwatch` | Forgets it; the set stays as it was |
 | `finish` | Also forgets it |
 
@@ -1477,14 +1499,15 @@ stopwatchSeconds(stopwatch, now)   // (now − started_at) in whole seconds
 
 **The panel.**
 
-- **The ring** is an SVG circle whose line is drawn as one dash: `stroke-dasharray` the circle's length (2πr), `stroke-dashoffset` the part not yet filled, `CIRCUMFERENCE * (1 - share)`. `share` is `seconds / target`; with no target, the seconds of the current minute, a stopwatch's hand. `-rotate-90` starts it at the top.
+- **The bar** is the rest bar's: a lime band whose width is `share`, `seconds / target`; with no target, the seconds of the current minute, as a stopwatch's hand goes round. Red once a race's time to beat is gone (C1.17.9).
 - **Its own clock,** `useNow(250)`: four times a second, so the seconds change on time, not up to a second late as with the screen's clock.
-- **The target's signal** is the rest's (`restOver()`, with the user's sound and vibration), from a `setTimeout` set for that moment, as in C1.17.4; none when the moment is already past (the app opened again after it), or it would ring late. "Target reached" replaces "Target 0:30", in lime, and is read out (`aria-live`).
-- **A Dialog that does not close by itself.** It is shadcn/ui's `Dialog` stretched to the whole screen (`h-dvh w-full max-w-none rounded-none`), always `open` while it is drawn; `onEscapeKeyDown` and `onInteractOutside` call `event.preventDefault()`, which tells Radix to stay open. A time ends with Stop or Cancel only, never with a stray touch. The Dialog still traps the focus and names itself after the exercise (`DialogTitle`).
+- **The target's signal** is the rest's (`restOver()`, with the user's sound and vibration), from a `setTimeout` set for that moment, as in C1.17.4. The moment is `stopwatchTargetAt(stopwatch)`: the start, plus the pauses, plus the target; `null` while paused, so no timer is set. Resume makes a new `stopwatch` object, and the effect, which depends on it, sets a new timer later by the pause's length. None when the moment is already past (the app opened again after it), or it would ring late. "Target reached" replaces "Target 0:30", in lime, and is read out (`aria-live`).
+- **A region, not a dialog.** The panel is a `<section aria-label="Stopwatch">`, as the rest bar is a region named "Rest": screen readers can jump to it, and the table above stays reachable, which a Dialog would have hidden from them (`aria-hidden` on the rest of the page). With no dialog, nothing moves the focus by itself: an effect gives it to **Stop** when the panel appears, since ▶, which had it, is now disabled. **Pause** is an outlined square showing ⏸ or ▶, named "Pause the stopwatch" or "Resume the stopwatch"; paused, the time turns grey and pulses (`animate-pulse`) and "Paused" takes the target's line. **Cancel** is a quiet word on the right of the first line, "Cancel", its full name for screen readers "Cancel, without saving the time": it starts with the visible word, so a voice command finds it.
+- **The first line** names the set first, then the exercise, cut with "…" when long: "Set 2 · Plank". The other way round, a long name pushed "Set 2" off a phone's screen.
 
-**Testing it.** `workout-session.test.ts`: the start with its target and the rest ended, Stop with the time and the tick and the rest, no target and at least a second, Cancel, no start on a set done. `WorkoutPage.test.tsx`: ▶, the panel named after the exercise with "Target 0:45" and "Last time 0:45", the stopwatch kept on the phone, Stop, the set ticked with its seconds, the rest running.
+**Testing it.** `workout-session.test.ts`: the start with its target and the rest ended, Stop with the time and the tick and the rest, no target and at least a second, Cancel, no start on a set done; Pause with the time standing still and no target's moment, a second Pause ignored, Resume with the pause left out and the target later, Stop while paused, an old stopwatch without the pause's fields. `WorkoutPage.test.tsx`: ▶, the region "Stopwatch" with "Target 0:45" and "Last time 0:45", the set's row marked (`aria-current`), ▶ disabled, the focus on Stop, Pause and Resume kept on the phone, Stop, the set ticked with its seconds, the rest running.
 
-How it was built: [H3.24](../how-to/H3-frontend.md#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built).
+How it was built: [H3.24](../how-to/H3-frontend.md#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built); docked, with Pause: [H3.32](../how-to/H3-frontend.md#h332-workout-mode-after-a-real-workout-as-built).
 
 ### C1.17.9 Exercises done as fast as possible
 
@@ -1500,13 +1523,99 @@ A plan of calisthenics has many lines such as "50 push-ups, 50 sit-ups, 50 squat
 | `SetRow`, `SetHeader` | ▶ before ✓, as on a timed exercise; **no Last column**: 48 + 64 px less, so the two fields keep a thumb's width at 360 px. Last time's time is in the seconds' field (C1.17.2), in the stepper and in the stopwatch |
 | `canComplete(set, loggingType, forTime)` | The seconds are needed too |
 | `toSessionInput()` | `duration_seconds` beside `reps`; the backend takes it (`OPTIONAL_BY_LOGGING`, [C2.5.7](C2-backend.md#c257-the-workouts-endpoints)) |
-| `StopwatchPanel`'s `race` | "Set 2 · 50 reps"; **To beat 1:12**, then "0:14 over" and the ring in red; no signal at the target, which is not the goal here |
+| `StopwatchPanel`'s `race` | "Set 2 · 50 reps · Push-ups"; **To beat 1:12**, then "0:14 over" and the bar in red; no signal at the target, which is not the goal here |
 
 **Last time of the same kind.** Push-ups done 3 × 15 on Monday and 50 for time on Thursday: Thursday's time to beat is last Thursday's, not Monday's 15. The backend gives one last time per exercise **and kind** ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)), so an exercise done both ways has two entries; the app picks with `hasTimedSets(entry.sets)` (`compare.ts`): one set with seconds makes it timed. `lastOfKind()` in `workout-session.ts` does it for a workout's start, Add exercises and Swap; `compareWorkout()` for the summary and history. No flag is stored with the workout: a set with reps and seconds says it by itself.
 
 **Written and compared.** `loggedSetText()` writes such a set "50 in 1:12" (`workout.repsInTime`: "en" in Spanish). The text comes from `i18n.t()` with `lng: language`: `set-text.ts` is a plain function, with no `useTranslation()`, and the same i18next instance gives the same translations outside React. `compare.ts` scores it `[weight, reps, −seconds]`: more reps first, then fewer seconds, since a list of scores is compared item by item and the higher wins (C1.19.3).
 
-**Testing it.** `plan-draft.test.ts`: the switch on and off, sent only for reps. `plan-format.test.ts`: "1 × 50 · as fast as possible · 90 sec". `compare.test.ts`: less time wins; last time of the same kind. `workout-session.test.ts`: last time of the same kind at the start, the seconds needed, the stopwatch's time sent with the reps, "50 in 1:12" and "50 en 1:12". `PlanEditorPage.test.tsx`: the switch and the body sent. `WorkoutPage.test.tsx`: the row with Reps and Sec and no Last, the panel's "Set 1 · 50 reps" and "To beat 1:12", Stop. How it was built: [H3.25](../how-to/H3-frontend.md#h325-exercises-done-as-fast-as-possible-as-built).
+**Testing it.** `plan-draft.test.ts`: the switch on and off, sent only for reps. `plan-format.test.ts`: "1 × 50 · as fast as possible · 90 sec". `compare.test.ts`: less time wins; last time of the same kind. `workout-session.test.ts`: last time of the same kind at the start, the seconds needed, the stopwatch's time sent with the reps, "50 in 1:12" and "50 en 1:12". `PlanEditorPage.test.tsx`: the switch and the body sent. `WorkoutPage.test.tsx`: the row with Reps and Time (72 seconds shown "1:12") and no Last, the panel's "Set 1 · 50 reps · Pushups" and "To beat 1:12", Stop. How it was built: [H3.25](../how-to/H3-frontend.md#h325-exercises-done-as-fast-as-possible-as-built).
+
+### C1.17.10 After a real workout: times, up next, how to do it
+
+Three changes asked for after the app was used for a whole workout, besides the stopwatch's (C1.17.8). How they were built: [H3.32](../how-to/H3-frontend.md#h332-workout-mode-after-a-real-workout-as-built).
+
+**A time past a minute as minutes and seconds.** A 14½-minute set showed "870" in the row, and "870 s" in the Last column and in history. The time is still kept in seconds, as typed, stored and sent (`duration_seconds`); only the text changes, in one function, `durationText(seconds, language)` in `plan-format.ts`:
+
+| Seconds | Text | Why |
+|---|---|---|
+| 45 | "45 s" ("45 sec" in English) | under a minute: `formatSeconds()`, as before |
+| 120 | "2 min" | whole minutes: `formatSeconds()`, as before |
+| 870 | "14:30" | anything else: `clock()`, the stopwatch's own way of writing it, so the time read on the stopwatch is the time written in the set |
+
+- **Where:** the row's field (`fieldText()` in `set-fields.ts`, which leaves the other fields and a time being typed as they are), the Last column and history (`loggedSetText()`), a plan's targets (`formatSetTarget()`). **Not the rests,** which stay "90 s": in the gym a rest is counted in seconds, and changing them would change every plan's line.
+- **The column is titled "Time"** (`workout.colTime`), no longer "Sec", since its values are no longer all seconds. Its spoken name says the unit of the value read out, "Set 1, Seconds: 870", the value typed in the stepper.
+- **The stepper** types seconds, so the field's title there is "Seconds", followed by the clock past a minute: "Seconds · 14:30". Typing 870 shows at once what it means.
+
+**Up next.** `upNext(session, index)` (`workout-session.ts`) is the exercise to do after this one: the first after it with work left (`hasWorkLeft`); in a superset, after the whole superset, whose exercises the bottom bar already names (C1.17.3); when nothing is left after it, the first from the top with work left (an exercise jumped over with the dots); `null` when nothing else is left, and the bottom bar offers Finish workout. It shows in two places:
+
+- **`UpNextCard`**, under Add set: a dashed card with the next exercise's photo, a small "Up next" title, its name and what the plan asks ("2 × 10/8 · 60–70 kg · 90 s"). **A reminder, not a button:** moving on is the bottom bar's job, and the first version, which opened the exercise on a tap, gave a second way out of the exercise in the middle of the screen (H3.32.6). It is an `<aside aria-label="Up next">`, content beside the main one; with a name it is a region screen readers can find, role `complementary`.
+- **`RestBar`**, under the time: "Up next: Bent Over Barbell Row", when the rest leads there: the exercise on screen has no set left and no exercise of its superset waits. The rest is when the next machine is got ready, and the bar is always in sight, unlike the card at the end of a long table. Mid-exercise it says nothing: the next set is in sight.
+
+**How to do it.** A tap on the exercise's photo or on its name opens `ExerciseInfoSheet`, a panel from the bottom (the same `Sheet` as C1.17.7's) with what the exercise's page in the library shows: the equipment, the photos of the start and end position (`ExercisePhotos`), the main and secondary muscles (`MuscleChips`, moved out of `ExerciseDetailPage` into `components/exercises/` so both use it), the steps, the description, the video.
+
+- **No request.** The exercise is the one kept in the workout (`WorkoutExercise.exercise`): the library's whole JSON, copied at Start from the plan (`PlanItemResource` holds an `ExerciseResource`), steps and photos' addresses included. The panel works offline; only the photos need the network, unless the browser has kept them.
+- **Two buttons, one panel.** The photo is a `<button>` named "How to do it: Bench Press" (the image itself is decoration, `alt=""`), with a small ⓘ in its corner that says it can be tapped. The name is a `<button>` *inside* the `<h2>`, with a dotted underline: the heading keeps the exercise's name, which a screen reader lists among the page's headings. Both carry `aria-haspopup="dialog"`, said before the tap. The screen holds the panel's state (`infoOpen`): the panel is **controlled**, as the swap picker is.
+- **Taller, and scrolling inside.** At most 90% of the screen (`max-h-[90dvh]`); the title stays and the content scrolls (`overflow-y-auto`), which in a flex column works only with `min-h-0` on the scrolling child: a flex child does not shrink below its content otherwise.
+- **An exercise with nothing to show** (a personal one saved with a name only) says so in words instead of an empty panel.
+
+**Testing it.** `plan-format.test.ts`: `durationText()` from 45 seconds to an hour. `workout-session.test.ts`: `upNext()` after a superset, back to the top, past done and skipped exercises, `null`; "14:30" for a hold of 870 seconds. `WorkoutPage.test.tsx`: 870 typed in the stepper, "Seconds · 14:30", the row "14:30", the workout still holding "870"; the card under the bench press naming the rows with the plan's line, nothing to tap in it, the rest bar silent after one set and naming the rows after the last, the screen still on the bench press; "How to do it" from the photo, with the equipment, two photos, the muscles and a step, then from the name.
+
+### C1.17.11 Removing what was added by hand
+
+A set added with **Add set**, or an exercise added with **Add exercises**, could not be taken back: a tap too many stayed in the workout. Now **what was added by hand during the workout can be removed, and only that**: the plan's exercises and sets stay, so the day is always there whole; they can be skipped (C1.17.7) or left unticked, which already keeps them out of what is saved. How it was built: [H3.32.7](../how-to/H3-frontend.md#h3327-third-pass-removing-what-was-added-by-hand).
+
+**What was added, read from the workout itself.** No flag is stored; two functions of `workout-session.ts` read it from what is already there:
+
+```ts
+canRemoveExercise(item)       // item.plan_item === null
+canRemoveSet(item, index)     // index >= (item.plan_item?.sets.length ?? 0) && item.sets.length > 1
+```
+
+- **An exercise** comes from the plan when it has a plan item; one added by **Add exercises** (`exerciseFrom()`), and every exercise of a free workout, has none. Swap keeps the plan item (C1.17.7): a swapped exercise is still the plan's.
+- **A set** comes from the plan when it is among the first ones, as many as the plan item's sets: `startSession()` makes one set per planned set, Swap keeps the count, and **Add set** always adds at the end. Any set after them was added; every set of an exercise with no plan item was too.
+- **Never the only set left:** an exercise with no set would be an empty table; it is removed as a whole, from its menu.
+- **Why no flag:** a flag (`added: true`) would have to be set by every action that adds, kept by Swap, and would be missing on a workout already on the phone before this change. Read from the plan item, the rule holds for those too.
+
+**Two actions of the reducer,** each checking the rule again, so a stray call cannot remove a plan's set:
+
+| Action | Does |
+|---|---|
+| `removeSet` | `splice(set, 1)` out of the exercise's sets; a stopwatch running on that set is forgotten |
+| `removeExercise` | `splice(exercise, 1)` out of the workout; a stopwatch on one of its sets is forgotten (`findSet` no longer finds it); the exercise on screen moves back one place when it came after the removed one, or when the removed one was the last; a free workout left with none shows its empty screen again |
+
+**Where on screen.**
+
+- **A set:** **Remove this set**, at the bottom of its stepper (`SetStepper`'s `onRemove`, given only when `canRemoveSet` holds). The stepper is the set's own panel, opened by a tap on its values, and the row has no room left at 360 px: one more button would squeeze the weight and the reps under a thumb's width. Red text (`ghost`, `text-destructive`) under **Done**, apart from where the thumb goes to close. One tap, no question: a set added a moment ago is as quick to add again. The panel closes first, since the set it shows is about to go.
+- **An exercise:** **Remove from workout**, red, the last row of its menu (`ExerciseMenu`'s `onRemove`). The panel then turns into a question, as it turns into the note's box: "Remove Barbell Squat?", that its sets go with it, ticked ones included, then **Remove** (red) and **Back**. A question here and not for a set: an exercise may hold several sets already done.
+- **Optional props as switches.** `onRemove?: () => void`: the screen passes a function when removing is allowed and `undefined` otherwise, and the component draws the button only when there is one (`{onRemove && …}`). One prop says both whether and what.
+
+**Testing it.** `workout-session.test.ts`: a set added to the bench press removed, a plan's set not; an added exercise's sets removed but not the last; the stopwatch forgotten with its set; an added exercise removed and the screen on the one before, a plan's exercise not; a free workout left empty. `WorkoutPage.test.tsx`: no Remove in a plan's set's stepper; Add set, Remove this set, the set gone on screen and on the phone; no Remove in a plan's exercise's menu; an exercise added from the picker, Remove from workout, the question, Remove, back on the pull-ups.
+
+### C1.17.12 Deleting a workout in progress
+
+A workout started by mistake, or abandoned, could be thrown away only the long way: Finish, which sends it, then **Delete workout** in the summary, which deletes it on the server ([C1.19](#c119-the-summary-and-history)). Now the Finish dialog offers it directly. How it was built: [H3.32.8](../how-to/H3-frontend.md#h3328-fourth-pass-deleting-a-workout-in-progress).
+
+**Nothing to undo on the server.** A workout in progress lives on the phone alone: it is sent only at Finish (C1.17.5). Deleting it is therefore one line, `storeActiveSession(null)`, then a page to go to; no request, nothing in the queue, nothing to fail offline.
+
+**One door for ending a workout.** Finishing and deleting both end it, so they share Finish's dialog (`FinishButton`) instead of a new button in a top bar already holding ✕, the day, the clock and Finish:
+
+| The dialog shows | Buttons |
+|---|---|
+| "Finish the workout?" with the sets done | **Keep going**, **Finish and save**; under them, in red, **Delete workout** |
+| "Delete the workout in progress?": nothing will be saved, not even the sets ticked; it cannot be undone | **Back** (to the first question), **Delete** (red) |
+
+- **Two views in one dialog.** `FinishButton` keeps `view: 'finish' | 'discard'` in its state, as the exercise's menu keeps its views (C1.17.7). **Delete workout** and **Back** are plain `Button`s, which only change the view; `AlertDialogCancel` and `AlertDialogAction` would close the dialog.
+- **Controlled, to start over.** The dialog's `open` is held in `FinishButton` too (`open`, `onOpenChange={change}`), so that closing it, however it is closed, also brings `view` back to `'finish'`: opened again, it asks the first question, never the second.
+- **`onDiscard?`,** an optional prop as in C1.17.11: the dialog offers Delete only when it is given.
+- **Inside the footer, in a column.** `AlertDialogFooter` is the box's bottom edge: a grey band with negative margins (`-mx-4 -mb-4`) and the bottom corners rounded. **Delete workout** is one of its children, first in the code: the footer is a reversed column (`flex-col-reverse`), so it shows last, under Keep going. From 640 px the footer is normally a row; with Delete it stays a column (`sm:flex-col-reverse`, which replaces the footer's `sm:flex-row`): three buttons on one row did not fit the dialog's 384 px in Spanish or German (H3.32.9).
+
+**Where it leads.**
+
+- **In workout mode,** `discard()` in `WorkoutScreen`: the workout forgotten, then the plan's page, or Home for a free workout, as ✕ does, with `replace: true` so Back does not return to a workout that no longer exists. The empty free workout's **Cancel workout** is the same function, which it was already in all but name.
+- **In the banner** (`ResumeBanner`, on Home and on the plan's page), the workout forgotten, then `onDiscarded()`: the page read the workout once into its state (`useState(loadActiveSession)`), and only the page can drop it, `setActive(null)`. The banner goes, and **Start** and **Free workout**, disabled while a workout was in progress (`busy={active !== null}`), work again.
+
+**Testing it.** `WorkoutPage.test.tsx`: a set ticked, Finish, Delete workout, the second question with its text, Back to the first, Delete workout and Delete; then the plan's page, nothing on the phone (`loadActiveSession()`, `loadPending()`, `loadFinished()`), no request to `/api/sessions`. `HomePage.test.tsx`: the same from the banner; the banner gone, Start enabled, nothing sent.
 
 ## C1.18 Home
 

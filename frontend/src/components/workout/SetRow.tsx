@@ -11,8 +11,11 @@
  * a text box, for a value far from the one shown.
  *
  * An exercise logged by time has one more button before ✓: ▶, which opens
- * the stopwatch (StopwatchPanel.tsx); its Stop fills the seconds and ticks
- * the set. A done set keeps the place empty, so the columns stay aligned.
+ * the stopwatch (StopwatchPanel.tsx, docked at the bottom, under the table);
+ * its Stop fills the seconds and ticks the set. While it runs, the set it
+ * times has a lime ring and every ▶ is disabled. A done set keeps the place
+ * empty, so the columns stay aligned. The time is kept in seconds and shown
+ * as a time: "45 s", "14:30" (fieldText, set-fields.ts).
  * So has one counted in reps and done as fast as possible (`forTime`): its
  * row shows the reps and the seconds, and no Last column, for room. Last
  * time is in the seconds' field, the time to beat, in the stepper and in
@@ -31,7 +34,7 @@ import { SetTypeSelect } from '@/components/plans/SetTypeSelect'
 import { Button } from '@/components/ui/button'
 import type { WeightUnit } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { fieldsFor } from './set-fields'
+import { fieldsFor, fieldText } from './set-fields'
 import { loggedSetText } from './set-text'
 import { canComplete, type SetField, type SetNumber, type WorkoutSet } from './workout-session'
 
@@ -88,10 +91,17 @@ interface SetRowProps {
   onTypeChange: (type: SetType) => void
   /** ▶, on a timed exercise: the stopwatch starts on this set. */
   onStartStopwatch: () => void
+  /**
+   * The stopwatch, if one runs: 'this' when it times this set, which gets
+   * a lime outline; 'other' when it times another set. Either way ▶ is
+   * disabled: a second ▶ would replace the running time and lose it.
+   * Optional: none runs when it is missing.
+   */
+  stopwatch?: 'this' | 'other' | null
 }
 
 /** A row of the sets' table. */
-export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOpenStepper, onTypeChange, onStartStopwatch }: SetRowProps) {
+export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOpenStepper, onTypeChange, onStartStopwatch, stopwatch = null }: SetRowProps) {
   const { t, i18n } = useTranslation()
   // The interface's language, for the decimal separator
   const language = i18n.language
@@ -104,7 +114,10 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
   const lastText = set.last === null ? '–' : loggedSetText(set.last, loggingType, unit, language)
 
   return (
-    <li className={cn('flex items-center gap-2 rounded-xl p-1 sm:gap-3', set.done && 'bg-primary/10')}>
+    // The set being timed: a lime ring, so the eye finds it between the
+    // stopwatch at the bottom and the table (aria-current says it to
+    // screen readers)
+    <li aria-current={stopwatch === 'this' ? 'true' : undefined} className={cn('flex items-center gap-2 rounded-xl p-1 sm:gap-3', set.done && 'bg-primary/10', stopwatch === 'this' && 'ring-2 ring-primary')}>
       {/* The number, or the type's letter: a tap opens the list of types */}
       <SetTypeSelect
         value={set.set_type}
@@ -128,7 +141,8 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
           onClick={() => onOpenStepper(field)}
           className="h-12 min-w-0 flex-1 truncate rounded-xl border border-input bg-transparent px-2 text-center text-lg font-semibold tabular-nums transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50"
         >
-          {set[field] === '' ? <span className="text-muted-foreground">{placeholder ?? ''}</span> : set[field]}
+          {/* The time as people read it, "14:30" for 870 seconds (fieldText) */}
+          {set[field] === '' ? <span className="text-muted-foreground">{placeholder ?? ''}</span> : fieldText(field, set[field], language)}
         </button>
       ))}
 
@@ -137,7 +151,7 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
       {(loggingType === 'time' || forTime) && (set.done
         ? <span className="w-12 shrink-0" />
         : (
-            <Button size="icon-xl" variant="outline" className="border-primary/70 text-primary" aria-label={t('workout.stopwatch.start', { name })} onClick={onStartStopwatch}>
+            <Button size="icon-xl" variant="outline" className="border-primary/70 text-primary" aria-label={t('workout.stopwatch.start', { name })} disabled={stopwatch !== null} onClick={onStartStopwatch}>
               <Play aria-hidden="true" className="fill-current" />
             </Button>
           ))}

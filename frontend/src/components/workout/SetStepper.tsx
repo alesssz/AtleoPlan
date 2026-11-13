@@ -7,7 +7,11 @@
  * them, for a value far from the one shown.
  *
  * Each tap changes the set at once (the screen's `setField` action), as
- * typing in the row did: there is no Cancel, and **Done** only closes. The
+ * typing in the row did: there is no Cancel, and **Done** only closes.
+ * Under it, on a set added by hand during the workout (never one of the
+ * plan's), **Remove this set** takes it out (canRemoveSet,
+ * workout-session.ts): this panel is the set's own, opened on its values,
+ * and the row has no room for one more button. The
  * panel is shadcn/ui's Sheet (src/components/ui/sheet.tsx), a Radix dialog
  * against the bottom edge: the page behind waits, a tap outside or Escape
  * closes it.
@@ -15,6 +19,7 @@
  * How it works: docs/concepts/C1-frontend.md C1.17.7; how it was built:
  * docs/how-to/H3-frontend.md H3.20.
  */
+import { Trash2 } from 'lucide-react'
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { LoggingType } from '@/api/exercises'
@@ -24,7 +29,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { formatNumber, type WeightUnit } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { loggedSetText } from './set-text'
-import { fieldsFor } from './set-fields'
+import { fieldsFor, fieldText } from './set-fields'
 import { fieldStep, stepValue } from './stepper'
 import type { SetField, WorkoutSet } from './workout-session'
 
@@ -52,10 +57,12 @@ interface SetStepperProps {
   focus: SetField | null
   /** A field changed, by a tap or by typing. */
   onChange: (field: SetField, value: string) => void
+  /** Remove this set; missing for a set that cannot be removed (the plan's). */
+  onRemove?: () => void
 }
 
 /** The panel with the steppers of one set. */
-export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggingType, forTime, unit, weightStep, focus, onChange }: SetStepperProps) {
+export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggingType, forTime, unit, weightStep, focus, onChange, onRemove }: SetStepperProps) {
   const { t, i18n } = useTranslation()
   // The interface's language: decimal separator of the values and the steps
   const language = i18n.language
@@ -102,12 +109,18 @@ export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggin
              * @param sign -1 for −, 1 for +
              */
             const tap = (sign: number) => onChange(field, stepValue(set[field], field, sign * step, language))
+            // The title above the field. The time is typed in seconds, so
+            // its title says so, "Seconds", rather than the row's "Time";
+            // past a minute the value follows as a clock, "Seconds · 14:30",
+            // since 870 alone is hard to read (fieldText)
+            const shown = fieldText(field, set[field], language)
+            const title = field === 'seconds' ? (shown.includes(':') ? `${spoken} · ${shown}` : spoken) : label
             return (
               // role="group" with a name: screen readers hear "kg, group"
               // before its three controls
               <div key={field} role="group" aria-label={spoken} className="flex flex-col gap-2">
                 {/* The field's title; lime for the one tapped in the row */}
-                <p aria-hidden="true" className={cn('text-xs font-bold tracking-wider uppercase', field === focus ? 'text-primary' : 'text-muted-foreground')}>{label}</p>
+                <p aria-hidden="true" className={cn('text-xs font-bold tracking-wider uppercase', field === focus ? 'text-primary' : 'text-muted-foreground')}>{title}</p>
                 <div className="flex items-center gap-3">
                   {/* − and +: 64 px squares, with the step written on them.
                       "−" is the minus sign (U+2212), not a hyphen */}
@@ -142,6 +155,17 @@ export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggin
 
           {/* Done: the changes are already made, it only closes */}
           <Button size="xl" className="w-full" onClick={() => onOpenChange(false)}>{t('workout.stepperDone')}</Button>
+          {/* Remove this set: only on a set added by hand. Plain red text
+              (ghost, destructive colour), under Done and apart from it:
+              there but not where the thumb goes to close the panel. One
+              tap, no question: a set added a moment ago is quick to add
+              again */}
+          {onRemove && (
+            <Button variant="ghost" size="xl" className="w-full text-destructive hover:text-destructive" onClick={onRemove}>
+              <Trash2 aria-hidden="true" />
+              {t('workout.removeSet')}
+            </Button>
+          )}
         </div>
       </SheetContent>
     </Sheet>

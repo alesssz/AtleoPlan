@@ -1,7 +1,9 @@
 /*
  * The workout in progress (workout-session.ts), without React: starting from
  * a plan's day with last time's values, ticking sets, the rest timer, the
- * supersets, the clock with its pauses, and the body sent at the end.
+ * supersets, the clock with its pauses, and the body sent at the end; the
+ * stopwatch with its pauses, the exercise up next, and removing what was
+ * added by hand (docs/how-to/H3-frontend.md H3.32).
  */
 import { describe, expect, it } from 'vitest'
 import type { LastSets } from '@/api/sessions'
@@ -9,7 +11,7 @@ import { testPlan } from '@/test/plan-helpers'
 import { clock } from './clock'
 import { testExercise } from '@/test/exercise-helpers'
 import { loggedSetText } from './set-text'
-import { allSetsDone, canComplete, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, isForTime, restLeft, setNumbers, startFreeSession, startSession, stopwatchSeconds, supersetNext, swappedExercise, toSessionInput, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
+import { allSetsDone, canComplete, canRemoveExercise, canRemoveSet, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, isForTime, restLeft, setNumbers, startFreeSession, startSession, stopwatchSeconds, stopwatchTargetAt, supersetNext, swappedExercise, toSessionInput, upNext, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
 
 /** The moment the workout starts: 18:00 UTC. */
 const START = new Date('2026-11-09T18:00:00Z')
@@ -178,6 +180,120 @@ describe('the stopwatch', () => {
 
     expect(run(done, { type: 'startStopwatch', exercise: 0, set: 0, now: at(20) }).stopwatch ?? null).toBeNull()
   })
+
+  it('pauses: the time stands still, and the pause is not counted', () => {
+    // Started at 10 s, paused at 25 s: 15 seconds, at 25 as at 60
+    const paused = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'pauseStopwatch', now: at(25) })
+    expect(paused.stopwatch?.paused_at).toBe(at(25))
+    expect(stopwatchSeconds(paused.stopwatch!, new Date(at(60)))).toBe(15)
+    // While paused, the target is not reached: no signal is set
+    expect(stopwatchTargetAt(paused.stopwatch!)).toBeNull()
+    // A second Pause changes nothing: the seconds between the two would be lost
+    expect(run(paused, { type: 'pauseStopwatch', now: at(40) }).stopwatch?.paused_at).toBe(at(25))
+
+    // Resumed at 40 s, after 15 s of pause: the count goes on from 15, and
+    // the target, 30 s, moves 15 s later, to 10 + 15 + 30 = 55 s
+    const resumed = run(paused, { type: 'resumeStopwatch', now: at(40) })
+    expect(resumed.stopwatch).toMatchObject({ paused_at: null, paused_ms: 15_000 })
+    expect(stopwatchSeconds(resumed.stopwatch!, new Date(at(45)))).toBe(20)
+    expect(stopwatchTargetAt(resumed.stopwatch!)).toBe(Date.parse(at(55)))
+
+    // Stopped at 50 s: 40 seconds since the start, minus 15 of pause
+    const stopped = run(resumed, { type: 'stopStopwatch', now: at(50) })
+    expect(stopped.exercises[0]?.sets[0]).toMatchObject({ seconds: '25', done: true })
+  })
+
+  it('stops while paused, with the time of the pause', () => {
+    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'pauseStopwatch', now: at(22) }, { type: 'stopStopwatch', now: at(90) })
+
+    expect(session.exercises[0]?.sets[0]?.seconds).toBe('12')
+  })
+
+  it('reads a stopwatch kept before Pause existed as never paused', () => {
+    const old = { set_id: 'set-1', started_at: at(10), target: 30 }
+
+    expect(stopwatchSeconds(old, new Date(at(42)))).toBe(32)
+    expect(stopwatchTargetAt(old)).toBe(Date.parse(at(40)))
+  })
+})
+
+describe('removing what was added by hand', () => {
+  it('removes a set added to a planned exercise, never one of the plan\'s', () => {
+    // The bench press: six sets from the plan, and one added at the end
+    const added = run(dayA(), { type: 'addSet', exercise: 0 })
+    const bench = added.exercises[0]!
+    expect(bench.sets).toHaveLength(7)
+    expect(canRemoveSet(bench, 6)).toBe(true)
+    expect(canRemoveSet(bench, 5)).toBe(false)
+
+    // The plan's set stays; the added one goes
+    expect(run(added, { type: 'removeSet', exercise: 0, set: 5 }).exercises[0]?.sets).toHaveLength(7)
+    const removed = run(added, { type: 'removeSet', exercise: 0, set: 6 })
+    expect(removed.exercises[0]?.sets.map(set => set.id)).toEqual(bench.sets.slice(0, 6).map(set => set.id))
+  })
+
+  it('removes the sets of an exercise added by hand, but never its last one', () => {
+    const squat = exerciseFrom(testExercise({ id: 40, name: 'Barbell Squat' }), [], { unit: 'kg', language: 'en', defaultRestSeconds: 90 })
+    const session = run(startFreeSession(START), { type: 'addExercises', exercises: [squat] }, { type: 'addSet', exercise: 0 })
+
+    expect(canRemoveSet(session.exercises[0]!, 0)).toBe(true)
+    const one = run(session, { type: 'removeSet', exercise: 0, set: 0 })
+    expect(one.exercises[0]?.sets).toHaveLength(1)
+    // The only set left: removing the exercise is the way
+    expect(canRemoveSet(one.exercises[0]!, 0)).toBe(false)
+    expect(run(one, { type: 'removeSet', exercise: 0, set: 0 }).exercises[0]?.sets).toHaveLength(1)
+  })
+
+  it('stops the stopwatch running on a set removed', () => {
+    const timed = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 1, now: at(10) }, { type: 'removeSet', exercise: 0, set: 1 })
+
+    expect(timed.stopwatch).toBeNull()
+  })
+
+  it('removes an exercise added by hand, never one of the plan\'s, and keeps the screen on a neighbour', () => {
+    const squat = exerciseFrom(testExercise({ id: 40, name: 'Barbell Squat' }), [], { unit: 'kg', language: 'en', defaultRestSeconds: 90 })
+    // Day A's three exercises, the squat added at the end and opened
+    const added = run(dayA(), { type: 'addExercises', exercises: [squat] })
+    expect(added.current).toBe(3)
+    expect(canRemoveExercise(added.exercises[0]!)).toBe(false)
+    expect(canRemoveExercise(added.exercises[3]!)).toBe(true)
+
+    // The plan's bench press stays
+    expect(run(added, { type: 'removeExercise', exercise: 0 }).exercises).toHaveLength(4)
+    // The squat goes; it was the last, so the one before is on screen
+    const removed = run(added, { type: 'removeExercise', exercise: 3 })
+    expect(removed.exercises.map(item => item.exercise.name)).toEqual(['Barbell Bench Press', 'Bent Over Barbell Row', 'Pullups'])
+    expect(removed.current).toBe(2)
+  })
+
+  it('leaves a free workout empty when its only exercise is removed', () => {
+    const squat = exerciseFrom(testExercise({ id: 40, name: 'Barbell Squat' }), [], { unit: 'kg', language: 'en', defaultRestSeconds: 90 })
+    const session = run(startFreeSession(START), { type: 'addExercises', exercises: [squat] }, { type: 'removeExercise', exercise: 0 })
+
+    expect(session.exercises).toEqual([])
+    expect(session.current).toBe(0)
+  })
+})
+
+describe('upNext', () => {
+  it('names the exercise after this one, after its whole superset', () => {
+    // Day A: the bench press, then the rows and the pull-ups in a superset
+    const session = dayA()
+
+    expect(upNext(session, 0)).toBe(1)
+    // From the rows, not the pull-ups, which are in their superset (Next
+    // names those): after it nothing is left, so back to the bench press
+    expect(upNext(session, 1)).toBe(0)
+  })
+
+  it('passes over exercises done or skipped, and is null when nothing else is left', () => {
+    // The rows done, the pull-ups skipped: from the bench press, nothing
+    const session = dayA()
+    for (const set of session.exercises[1]!.sets) set.done = true
+    session.exercises[2]!.skipped = true
+
+    expect(upNext(session, 0)).toBeNull()
+  })
 })
 
 /**
@@ -225,6 +341,13 @@ describe('as fast as possible', () => {
 
     expect(loggedSetText(values, 'reps', 'kg', 'en')).toBe('50 in 1:12')
     expect(loggedSetText(values, 'reps', 'kg', 'es')).toBe('50 en 1:12')
+  })
+
+  it('writes a hold past a minute as a clock: "14:30", not "870 s"', () => {
+    const hold = { weight_kg: null, reps: null, duration_seconds: 870, distance_meters: null }
+
+    expect(loggedSetText(hold, 'time', 'kg', 'it')).toBe('14:30')
+    expect(loggedSetText({ ...hold, duration_seconds: 45 }, 'time', 'kg', 'it')).toBe('45 s')
   })
 })
 

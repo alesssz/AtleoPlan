@@ -1,10 +1,11 @@
 /*
  * Home (docs/design/D1-ui.md D1.4.2), used as a person would: the active
  * plan's card with the suggested day, Start, another day chosen with its
- * chip, the workout in progress, Free workout, this week, and Home without
- * an active plan or without the network.
+ * chip, the workout in progress (resumed, finished or deleted from its
+ * banner), Free workout, this week, and Home without an active plan or
+ * without the network.
  */
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { HomeData } from '@/api/home'
@@ -134,6 +135,25 @@ describe('HomePage', () => {
     expect(fake.mock.calls.map(([path, init]) => `${init?.method} ${path}`)).toContain(`PUT /api/sessions/${session.id}`)
     expect(loadActiveSession()).toBeNull()
     expect(loadFinished()?.id).toBe(session.id)
+  })
+
+  it('deletes a workout left open from its banner: nothing sent, Start free again', async () => {
+    const plan = testPlan()
+    const session = startSession(plan, plan.days[0]!, { unit: 'kg', defaultRestSeconds: 90, lastSets: [], language: 'en', now: new Date() })
+    storeActiveSession(session)
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer() })
+    renderRoutes(routes, '/')
+
+    // Finish's dialog, then Delete workout, then the second question
+    await userEvent.click(await screen.findByRole('button', { name: 'Finish' }))
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete workout' }))
+    await userEvent.click(within(screen.getByRole('alertdialog', { name: 'Delete the workout in progress?' })).getByRole('button', { name: 'Delete' }))
+
+    // The banner gone, Start usable again; forgotten on the phone, no request
+    await waitFor(() => expect(screen.queryByText('Workout in progress: Day A – Push')).not.toBeInTheDocument())
+    expect(await screen.findByRole('button', { name: 'Start' })).toBeEnabled()
+    expect(loadActiveSession()).toBeNull()
+    expect(fake.mock.calls.some(([path]) => path.startsWith('/api/sessions'))).toBe(false)
   })
 
   it('starts a free workout, with no plan and no exercises', async () => {

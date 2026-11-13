@@ -9,7 +9,7 @@
 - The first time: [H3.1](#h31-before-you-start), then [H3.2](#h32-a-new-page) to [H3.5](#h35-testing-a-page) in order. Together they make a complete screen.
 - Later, when you need one thing: translations [H3.6](#h36-translations), packages [H3.7](#h37-adding-an-npm-package), the browser's tools [H3.8](#h38-checking-in-the-browser) (a real phone: [H3.8.2](#h382-a-real-android-phone-over-usb)), ready-made components [H3.9](#h39-a-shadcnui-component).
 - Something broke: [H3.10](#h310-when-something-goes-wrong).
-- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built), the loading signs [H3.27](#h327-loading-signs-as-built), Continue with Google [H3.28](#h328-continue-with-google-as-built), the link to the admin panel [H3.29](#h329-the-link-to-the-admin-panel-as-built), the photos of an exercise [H3.30](#h330-the-photos-of-an-exercise-as-built).
+- Real screens, as built: the exercise library [H3.12](#h312-the-exercise-library-screens-as-built), the plans [H3.13](#h313-the-plan-screens-as-built), the plan editor [H3.14](#h314-the-plan-editor-as-built), its two steps [H3.22](#h322-the-plan-editor-in-two-steps-as-built) and its picker's Create [H3.23](#h323-creating-an-exercise-from-the-picker-as-built), workout mode [H3.15](#h315-workout-mode-as-built), the list of set types, the RPE switch and the stopwatch [H3.24](#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built), exercises done as fast as possible [H3.25](#h325-exercises-done-as-fast-as-possible-as-built), plan files [H3.26](#h326-plan-files-export-and-import-as-built), the loading signs [H3.27](#h327-loading-signs-as-built), Continue with Google [H3.28](#h328-continue-with-google-as-built), the link to the admin panel [H3.29](#h329-the-link-to-the-admin-panel-as-built), the photos of an exercise [H3.30](#h330-the-photos-of-an-exercise-as-built), workout mode after a real workout [H3.32](#h332-workout-mode-after-a-real-workout-as-built).
 
 ## Contents
 
@@ -194,6 +194,16 @@
   - [H3.31.2 The commands, in order](#h3312-the-commands-in-order)
   - [H3.31.3 Testing a panel](#h3313-testing-a-panel)
   - [H3.31.4 Check it in the browser](#h3314-check-it-in-the-browser)
+- [H3.32 Workout mode after a real workout, as built](#h332-workout-mode-after-a-real-workout-as-built)
+  - [H3.32.1 The commands, in order](#h3321-the-commands-in-order)
+  - [H3.32.2 Pausing a moment](#h3322-pausing-a-moment)
+  - [H3.32.3 The tests, and the errors met](#h3323-the-tests-and-the-errors-met)
+  - [H3.32.4 Looking at it](#h3324-looking-at-it)
+  - [H3.32.5 Checking in the browser and on a phone](#h3325-checking-in-the-browser-and-on-a-phone)
+  - [H3.32.6 Second pass: a reminder, not a button](#h3326-second-pass-a-reminder-not-a-button)
+  - [H3.32.7 Third pass: removing what was added by hand](#h3327-third-pass-removing-what-was-added-by-hand)
+  - [H3.32.8 Fourth pass: deleting a workout in progress](#h3328-fourth-pass-deleting-a-workout-in-progress)
+  - [H3.32.9 Fifth pass: Delete inside the dialog](#h3329-fifth-pass-delete-inside-the-dialog)
 
 ---
 
@@ -3381,6 +3391,8 @@ With `make start`, a plan's exercises step, **Add exercises**:
 
 Three changes asked for while writing a real calisthenics plan into the app: the set types' letters (W, D, F) meant nothing to someone who did not know them; the RPE field took room in every row for a number never used; and an exercise done "as fast as possible", or held for 30 seconds, only had a box to type its seconds into. How they work: [C1.16.9](../concepts/C1-frontend.md#c1169-set-types-and-the-rpe-field) and [C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set); how they look: [D1.4.8](../design/D1-ui.md#d148-plan-editor), [D1.4.9](../design/D1-ui.md#d149-workout-mode).
 
+> **Later:** the stopwatch described here was full screen, with a ring. After a real workout it was docked at the bottom, with a bar and Pause, and the column "Sec" became "Time" ([H3.32](#h332-workout-mode-after-a-real-workout-as-built)). This section stays as it was built: its commands and errors still teach.
+
 | File | Change |
 |---|---|
 | `backend/database/migrations/…_add_show_rpe_to_users_table.php` | New: `users.show_rpe`, boolean, false |
@@ -3700,6 +3712,8 @@ src/components/plans/editor/EditorItem.tsx(172,81): error TS2345: Argument of ty
 A misspelt key is a compile error, not an English key shown on screen.
 
 ### H3.25.4 Workout mode
+
+> **Later:** the stopwatch's ring is now a bar, the panel docked at the bottom, and the column "Sec" is "Time" ([H3.32](#h332-workout-mode-after-a-real-workout-as-built)).
 
 One function, `isForTime(item)`, and every piece asks it: `fieldsFor()` gives `[reps, seconds]`; `SetRow` and `SetHeader` show ▶ and drop the Last column; `canComplete()` wants the seconds; `toSessionInput()` sends them. The row at 360 px was worked out first: the number 48 px, Last 64, ▶ and ✓ 48 each, five gaps of 8: two fields beside all that would be 32 px each, too narrow for a thumb; without Last, 68. Last time's time stays in sight: it fills the seconds' field, the time to beat.
 
@@ -4665,6 +4679,357 @@ Not looked at by the assistant: the development server could not be reached from
 3. **Plans:** **New plan** and the Import icon on the title's row on a phone; hovering the icon with a mouse shows "Import plan".
 4. **Exercise, plan, progress, profile pages:** no lime word above the title; a past workout still shows its date there, the summary "Workout finished".
 5. Both themes, and German (the longest words): when the buttons do not fit, they go under the title, never over it.
+
+## H3.32 Workout mode after a real workout, as built
+
+`feat/workout-mode-feedback`: requests made after the app was used for a whole workout, five at first, then one at a time as each was tried. How each works: [C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set) (the stopwatch), [C1.17.10](../concepts/C1-frontend.md#c11710-after-a-real-workout-times-up-next-how-to-do-it) (times, up next, how to do it), [C1.17.11](../concepts/C1-frontend.md#c11711-removing-what-was-added-by-hand) (removing what was added), [C1.17.12](../concepts/C1-frontend.md#c11712-deleting-a-workout-in-progress) (deleting a workout in progress); what they look like: [D1.4.9](../design/D1-ui.md#d149-workout-mode).
+
+**How to read this section.** H3.32.1 to H3.32.5 are the first five requests, built together; each later subsection is one more round, with its own files, commands, errors and checks, in the order they came. A round that changes something built earlier says so; the earlier subsection is left as it was, since its steps still teach.
+
+| Request | Answer |
+|---|---|
+| The stopwatch is huge and covers the whole screen | Docked at the bottom, where the rest bar goes; the sets stay in sight, the one timed with a lime ring |
+| A 14½-minute set shows "870" seconds | Written "14:30" past a minute (the value kept in seconds); the column titled "Time" |
+| Show which exercise comes after this one | A reminder "Up next" under the sets, not a button (H3.32.6), and "Up next: …" in the rest bar once the exercise is done |
+| Pause the stopwatch | Pause / Resume, the pause not counted |
+| A tap on the exercise to see how it is done | A panel from the bottom with the photos, muscles and steps, from the photo or the name |
+| *(H3.32.6)* A tap on Up next must not move to that exercise | A reminder only, no longer a button |
+| *(H3.32.7)* What is added by hand during a workout cannot be removed | Removable again, the plan's sets and exercises not: a set from its stepper, an exercise from its menu |
+| *(H3.32.8)* Deleting a workout means finishing it first | **Delete workout** in Finish's dialog, after a second question, in workout mode and in the banner |
+| *(H3.32.9)* Delete hung outside the dialog | Inside the dialog's footer, the three answers in a column |
+
+| File | Change |
+|---|---|
+| `src/components/workout/workout-session.ts` | `Stopwatch` gains `paused_at?` and `paused_ms?`; `stopwatchSeconds()` leaves the pauses out; new `stopwatchTargetAt()`, `upNext()`; actions `pauseStopwatch`, `resumeStopwatch` |
+| `src/components/workout/StopwatchPanel.tsx` | Rewritten: a `<section>` docked at the bottom instead of a full-screen `Dialog`; a bar instead of the ring; Pause; the focus on Stop |
+| `src/components/workout/SetRow.tsx` | `stopwatch` prop: the lime ring on the set timed, ▶ disabled while one runs; the time shown with `fieldText()` |
+| `src/components/plans/plan-format.ts` | New `durationText()`; a plan's time targets use it |
+| `src/components/workout/set-fields.ts` | The time's column titled "Time", spoken "Seconds"; new `fieldText()` |
+| `src/components/workout/set-text.ts` | A logged time through `durationText()`: the Last column and history |
+| `src/components/workout/SetStepper.tsx` | The time's title "Seconds · 14:30" |
+| `src/components/workout/UpNextCard.tsx` | New: the reminder of the next exercise |
+| `src/components/workout/RestBar.tsx` | `next` prop: "Up next: …" under the time |
+| `src/components/workout/ExerciseInfoSheet.tsx` | New: "How to do it" |
+| `src/components/exercises/MuscleChips.tsx` | Moved out of `ExerciseDetailPage.tsx`, to be shared |
+| `src/components/workout/WorkoutScreen.tsx` | The photo and the name as buttons; the panel, the card, the rest bar's name, Pause wired |
+| `src/i18n/locales/*.json` | `workout.colTime`, `upNext`, `upNextName`, `howTo.open`, `howTo.empty`, `stopwatch.title`, `pause`, `resume`, `paused`, `cancelShort`; `colSeconds` becomes "Seconds"; `stopwatch.stopHint` removed |
+| `workout-session.test.ts`, `plan-format.test.ts`, `WorkoutPage.test.tsx` | The tests below |
+
+The files of the later rounds are listed in their own subsections.
+### H3.32.1 The commands, in order
+
+From the repository's root, on a clean `main`:
+
+```sh
+make branch name=feat/workout-mode-feedback
+```
+
+```
+git switch -c feat/workout-mode-feedback
+Switched to a new branch 'feat/workout-mode-feedback'
+```
+
+The order of building, each step leaning on the one before:
+
+1. **The workout's data first** (`workout-session.ts`): the pause's two fields, the readers, the two actions, `upNext()`. No screen yet, so the tests of H3.32.3 can be written against it at once.
+2. **The text of a time** (`durationText()` in `plan-format.ts`, then `fieldText()`, `loggedSetText()`, the stepper's title).
+3. **The pieces** (`StopwatchPanel`, `UpNextCard`, `ExerciseInfoSheet`, `RestBar`, `SetRow`), then `WorkoutScreen`, which wires them.
+4. **The texts** in the four locale files. Several keys at once, in the right places of the `workout` object, are easier with a script than by hand: it reads each file as JSON keeping the order of the keys, rebuilds `workout` with the new keys beside their neighbours, and writes it back with two spaces, as in H3.31.2. `git diff --stat` then shows the same count in each language:
+
+```
+ frontend/src/i18n/locales/de.json | 16 ++++++++++++++--
+ frontend/src/i18n/locales/en.json | 16 ++++++++++++++--
+ frontend/src/i18n/locales/es.json | 16 ++++++++++++++--
+ frontend/src/i18n/locales/it.json | 16 ++++++++++++++--
+ 4 files changed, 56 insertions(+), 8 deletions(-)
+```
+
+5. **The checks**, from `frontend/` (Node 24, `nvm use`):
+
+```sh
+npm run typecheck
+npm run lint
+npx vitest run src/pages/WorkoutPage.test.tsx src/components/workout src/components/plans/plan-format.test.ts
+npx vitest run
+```
+
+```
+> atleoplan-frontend@0.0.0 typecheck
+> tsc -b
+
+> atleoplan-frontend@0.0.0 lint
+> eslint .
+
+ Test Files  4 passed (4)
+      Tests  71 passed (71)
+
+ Test Files  32 passed (32)
+      Tests  283 passed (283)
+```
+
+`tsc` and ESLint print nothing when all is well. Last, from the root, `make toc` (H3.32 and C1.17.10 are new headings) and `make check`, with the stack up:
+
+```
+Contents written: docs\concepts\C1-frontend.md, docs\how-to\H3-frontend.md
+…
+  Tests:    359 passed (17807 assertions)
+ Test Files  32 passed (32)
+      Tests  283 passed (283)
+Contents up to date.
+```
+
+### H3.32.2 Pausing a moment
+
+The stopwatch was already a moment, not a counter (C1.17.8): the time is "now − start". A pause cannot just stop a counter that does not exist; it keeps **when** it happened, and Resume turns the pause into a length:
+
+```ts
+case 'pauseStopwatch':
+  if (next.stopwatch && !next.stopwatch.paused_at) next.stopwatch.paused_at = action.now
+  break
+case 'resumeStopwatch':
+  if (next.stopwatch?.paused_at) {
+    next.stopwatch.paused_ms = (next.stopwatch.paused_ms ?? 0) + Date.parse(action.now) - Date.parse(next.stopwatch.paused_at)
+    next.stopwatch.paused_at = null
+  }
+  break
+```
+
+and the reader counts up to the pause while paused, minus the pauses before:
+
+```ts
+const end = stopwatch.paused_at ? Date.parse(stopwatch.paused_at) : now.getTime()
+return Math.max(0, Math.floor((end - Date.parse(stopwatch.started_at) - (stopwatch.paused_ms ?? 0)) / 1000))
+```
+
+The same idea as the workout's own clock, `accumulated_seconds` and `running_since` (C1.17.3). Three things follow from it:
+
+- **New fields are optional.** A workout stored on the phone before this change has a stopwatch without them; `?` in the type and `?? 0` in the code read it as never paused, and a test checks exactly that.
+- **The signal at the target moves.** It was a `setTimeout` for "start + target"; it is now `stopwatchTargetAt()`, "start + pauses + target", and `null` while paused. The effect depends on the `stopwatch` object, which every action replaces (the reducer works on a copy), so Resume clears the old timer and sets the new one with no extra code.
+- **A second Pause does nothing**: moving `paused_at` later would drop the seconds between the two from the pause, and add them to the time.
+
+### H3.32.3 The tests, and the errors met
+
+Written with the code, then run; three failed at the first run, each for a reason worth knowing:
+
+| Message | Cause | Fix |
+|---|---|---|
+| `Unable to find role="button" and name '/^Up next Bent Over Barbell Row/'` | The card's lines are `<span className="block">`: a button's accessible name joins its texts **without spaces**, "Up nextBent Over Barbell Row…", as in H3.31.3. A screen reader would have read the same | The card named itself, `aria-label={t('workout.upNextName', { name })}`: "Up next: Bent Over Barbell Row". (The card is no longer a button since H3.32.6, and the problem went with it: `<p>`s, not a button's name) |
+| `Found multiple elements with the text: How to do it` | The panel's description said "How to do it", and so does the title of its steps, `exercises.detail.instructions`, in English | The description became the equipment, "Equipment: Barbell": not a repeat, and useful |
+| `Unable to find an element with the text: /Pushups · Set 1 · 50 reps/` | `getByText` reads an element's **own** text, without its children's: the line is `<p><span>Set 1</span> · 50 reps · Pushups</p>`, so the `<p>`'s own text is " · 50 reps · Pushups" | Match that part: `getByText(/· 50 reps · Pushups/)`; and `/Dead Hang/` rather than `'Dead Hang'`, which must match a whole text |
+
+**A button inside a heading.** The exercise's name became a button, but the tests still find the heading by its name, `getByRole('heading', { level: 2, name: 'Barbell Bench Press' })`: a heading's name is computed from its content, and a button with no `aria-label` contributes its text. Had the button an `aria-label` ("How to do it: …"), the heading would take that as its name, and every test (and screen reader's list of headings) looking for "Barbell Bench Press" would break. That is why the photo's button has the `aria-label` and the name's has none.
+
+**A panel that is not a dialog** is found by its role and name like any region: `getByRole('region', { name: 'Stopwatch' })`, as the rest bar's `{ name: 'Rest' }`. The old tests looked for `getByRole('dialog', { name: 'Dead Hang' })`; with the panel docked, they look for the region, and check what a dialog would have hidden: the set's row is reachable and marked, `closest('li')` with `aria-current="true"`.
+
+**Proving they can fail.** The pauses taken out of `stopwatchSeconds()` (`- (stopwatch.paused_ms ?? 0)` removed), then put back:
+
+```
+ × pauses: the time stands still, and the pause is not counted
+AssertionError: expected 35 to be 20 // Object.is equality
+      Tests  1 failed | 36 passed (37)
+```
+
+35 is 45 − 10 seconds since the start, with the 15 of pause counted: exactly the mistake the test is there for.
+
+### H3.32.4 Looking at it
+
+Photographed without the server, as in [H3.15.10](#h31510-fourth-pass-looking-at-the-screen-for-real) and [H3.22.5](#h3225-looking-at-it): a throw-away `frontend/preview-tmp/` with a `main.tsx` drawing `WorkoutScreen` in Italian, a free workout with a plank whose last time was 870 seconds, and `?state=` choosing the moment (`stopwatch`, `paused`, `rest`, `info`); a `host.html` with three `<iframe>`s, 360, 390 and 900 px wide. It cannot import the tests' helpers (`src/test/exercise-helpers.ts` imports Vitest, which does not belong in a page), so the exercises are written in it. From `frontend/`, in Git Bash:
+
+```sh
+npx vite build --config preview-tmp/vite.config.ts
+cd preview-tmp && D=$(cygpath -m "$PWD")
+for s in stopwatch paused rest info; do
+  "/c/Program Files/Google/Chrome/Application/chrome.exe" --headless=new --allow-file-access-from-files \
+    --hide-scrollbars --window-size=1700,800 --virtual-time-budget=5000 \
+    --screenshot="$D/dist/shot-$s.png" "file:///$D/dist/preview-tmp/host.html?state=$s"
+done
+cd .. && rm -r preview-tmp
+```
+
+**What the photos showed.**
+
+- **Running**, at 360 px: three rows in sight above the panel, the second ringed in lime; in the panel the bar, "0:47" large, "Obiettivo 14:30", "Ultima volta 14:30", ⏸ and **Stop** side by side, **Annulla** quiet at the top right. Every time in the rows reads "14:30", the column "TEMPO". One fault: the first line said "Plank con sollevamento alterna…", the long name pushing **"Serie 2" off the screen**. The set's name now comes first: "Serie 2 · Plank con sollevament…".
+- **Paused:** the time grey, "In pausa" under it, ▶ in place of ⏸.
+- **Resting** after the plank: "Dopo: Crunch inverso" under the rest's time.
+- **How to do it:** the first photo showed the *Finish* question instead. The preview clicked `[aria-haspopup=dialog]`, and the Finish button has that attribute too (it opens an alert dialog): the selector became `[aria-label^="Come si esegue"]`. Then the panel: the name, "Nessuna" under it, the muscles, the steps, the video link. "Nessuna" alone did not say of what: it became "Attrezzatura: Nessuna".
+
+### H3.32.5 Checking in the browser and on a phone
+
+With `make start`, at a phone's width ([H3.8.1](#h381-phone-tablet-and-desktop-widths)), and once on a real phone ([H3.8.2](#h382-a-real-android-phone-over-usb)) for what jsdom cannot do (the signal, the screen off):
+
+1. **The stopwatch:** a timed exercise (a plank), ▶. The panel rises at the bottom; the sets stay visible, the set timed ringed; the other ▶ are greyed. **Pause**, wait ten seconds, **Resume**: the time goes on from where it stopped. A target of 30 s: the signal comes 30 s of *counting* after the start, pauses excluded. Pause, lock the phone, unlock: still paused, same time. **Stop**: the set ticked with its time, the rest starts.
+2. **Times:** type 870 in a plank's set: the stepper's title "Secondi · 14:30", the row "14:30". The Last column and history of a long set: "14:30", not "870 s". A 45-second set: "45 s".
+3. **Up next:** on the first exercise of a day, the reminder under Add set names the second, with the plan's line; a tap on it does nothing. Tick every set of an exercise: the rest bar says "Dopo: …". On the last exercise: no card.
+4. **How to do it:** a tap on the photo, then on the name: the panel with photos, muscles, steps; a long list scrolls inside the panel, the title stays. Swipe down or tap outside: the workout as it was. With the network off (DevTools → Network → Offline): the panel still opens, the texts there.
+5. Both themes, and German: "Als Nächstes: …", "So geht's: …".
+
+### H3.32.6 Second pass: a reminder, not a button
+
+The first version made the "Up next" card a button that opened the next exercise, as Next does. Asked back at once: **moving on is the bottom bar's job**; the card should only say what comes next. Two ways of leaving the exercise, one in the middle of the screen beside the sets, is one too many, and a tap meant to scroll could land on it.
+
+The change, in three files:
+
+| File | Change |
+|---|---|
+| `src/components/workout/UpNextCard.tsx` | `<button onClick={onOpen}>` → `<aside aria-label={t('workout.upNext')}>`; the `onOpen` prop, the hover and focus styles and the › arrow removed; the lines are `<p>`s |
+| `src/components/workout/WorkoutScreen.tsx` | `<UpNextCard item={nextItem} summary={…} />`, without `onOpen` |
+| `src/pages/WorkoutPage.test.tsx` | The card found as `getByRole('complementary', { name: 'Up next' })`, its text checked, **no button inside it** (`within(card).queryByRole('button')` is null); the tap on it removed; the screen still on the bench press after every set is ticked |
+
+**Why an `<aside>`.** It is HTML's element for content beside the main one, which a reminder is. With a name (`aria-label`) it becomes a landmark of role `complementary` that a screen reader can jump to, and that a test finds by role and name like the rest bar's region. Without a name, inside a `<section>`, it would be an anonymous box.
+
+The checks, from `frontend/`:
+
+```sh
+npx vitest run src/pages/WorkoutPage.test.tsx
+npm run lint
+npm run typecheck
+```
+
+```
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+```
+
+ESLint and `tsc` printed nothing. Then `make toc` (a new heading) and `make check` from the root.
+
+### H3.32.7 Third pass: removing what was added by hand
+
+The next request: a set or an exercise added during the workout could not be removed. The rule asked for, and kept: **what the plan holds cannot be removed, what was added by hand can.** How it works and why it reads "added" from the plan item rather than from a stored flag: [C1.17.11](../concepts/C1-frontend.md#c11711-removing-what-was-added-by-hand).
+
+| File | Change |
+|---|---|
+| `src/components/workout/workout-session.ts` | `canRemoveExercise()`, `canRemoveSet()`; actions `removeSet`, `removeExercise` |
+| `src/components/workout/SetStepper.tsx` | `onRemove?` prop: **Remove this set** under Done |
+| `src/components/workout/ExerciseMenu.tsx` | `onRemove?` prop: **Remove from workout**, and a third view, `'remove'`, the question |
+| `src/components/workout/WorkoutScreen.tsx` | The two `onRemove`, given only when the rule allows; the set's closes the stepper first |
+| `src/i18n/locales/*.json` | `workout.removeSet`, `removeExercise`, `removeExerciseTitle`, `removeExerciseText`, `removeConfirm`; Back reuses `noteBack` |
+| `workout-session.test.ts`, `WorkoutPage.test.tsx` | Five tests of the rule and the reducer, one of the page |
+
+**The order:** the rule and the actions first, with their tests (`npx vitest run src/components/workout/workout-session.test.ts`); then the two props and the screen; then the texts, added with the same kind of script as in H3.32.1 (`removeSet` after `stepperDone`, the four others after `video`); then the page's test. From `frontend/`:
+
+```sh
+npx vitest run src/pages/WorkoutPage.test.tsx src/components/workout src/i18n
+npm run lint
+npm run typecheck
+```
+
+```
+ Test Files  4 passed (4)
+      Tests  78 passed (78)
+```
+
+All passed at the first run. **Proving they can fail:** `canRemoveSet()` changed to allow any set (`index >= planned` → `index >= 0`), then put back:
+
+```
+ × removes a set added to a planned exercise, never one of the plan's
+ × removes a set or an exercise added by hand, never the plan's
+AssertionError: expected true to be false // Object.is equality
+Error: expect(element).not.toBeInTheDocument()
+      Tests  2 failed | 58 passed (60)
+```
+
+The first is the rule's own test; the second, the page's, found **Remove this set** in the stepper of a plan's set.
+
+**Two details of the tests.**
+
+- **Finding the set added** without knowing its weight: Add set copies the last set's values, so its button's name is "Set 5, kg: …" with whatever was there; `getByRole('button', { name: /^Set 5, kg/ })` matches the start of the name.
+- **Closing a panel from a test** with the keyboard, `await user.keyboard('{Escape}')`, as a person on a laptop would: Radix closes a Sheet on Escape, and the next step starts with the page as it was.
+
+**Checking in the browser:** in a plan's workout, tap a set's value: no **Remove this set**. **Add set**, tap the new set's value: **Remove this set** in red under Done; tap it: the set is gone. ⋯ on a plan's exercise: no **Remove from workout**. **Add exercises**, pick one, ⋯: **Remove from workout** last, in red; the question; **Back** returns to the menu, **Remove** removes it and shows the exercise before. In a free workout, remove the only exercise: the empty screen, **Add exercises** and **Cancel workout**.
+
+### H3.32.8 Fourth pass: deleting a workout in progress
+
+The next request: deleting a workout meant finishing it, then **Delete workout** in the summary. Why it goes in Finish's dialog and what each piece does: [C1.17.12](../concepts/C1-frontend.md#c11712-deleting-a-workout-in-progress).
+
+| File | Change |
+|---|---|
+| `src/components/workout/FinishButton.tsx` | `onDiscard?` prop; the dialog controlled (`open`), with two views, the second asking again |
+| `src/components/workout/WorkoutScreen.tsx` | `discard()`, given to both Finish buttons; `cancel()` of the empty free workout is now the same function |
+| `src/components/workout/ResumeBanner.tsx` | `discard()` and the `onDiscarded` prop |
+| `src/pages/HomePage.tsx`, `PlanDetailPage.tsx` | `useState(loadActiveSession)` gains its setter; `onDiscarded={() => setActive(null)}` |
+| `src/i18n/locales/*.json` | `workout.discard`, `discardTitle`, `discardText`, `discardConfirm`, after `finishConfirm`; Back reuses `noteBack` |
+| `WorkoutPage.test.tsx`, `HomePage.test.tsx` | One test each |
+
+**A dialog that changes its question.** Radix's `AlertDialogAction` and `AlertDialogCancel` close the dialog when clicked; that is their job. To go from the first question to the second, and back, the buttons are plain `Button`s that only set the view:
+
+```tsx
+const [open, setOpen] = useState(false)
+const [view, setView] = useState<'finish' | 'discard'>('finish')
+
+function change(next: boolean) {   // the dialog's onOpenChange
+  setOpen(next)
+  if (!next) setView('finish')     // closed: the next opening starts from the first question
+}
+```
+
+Without `open` held here, the dialog would close by itself (Escape, a tap outside, Keep going) and come back on the second question next time.
+
+**A test's dialog changes name.** An alert dialog is named by its title, so after **Delete workout** the same dialog is found as `getByRole('alertdialog', { name: 'Delete the workout in progress?' })`, and after **Back** as "Finish the workout?" again. On Home, the banner leaves after a state change, so the test waits for it: `await waitFor(() => expect(screen.queryByText('Workout in progress: …')).not.toBeInTheDocument())`.
+
+From `frontend/`:
+
+```sh
+npx vitest run src/pages/WorkoutPage.test.tsx src/pages/HomePage.test.tsx src/pages/PlanDetailPage.test.tsx src/i18n
+npm run lint
+npm run typecheck
+```
+
+```
+ Test Files  4 passed (4)
+      Tests  54 passed (54)
+```
+
+**Proving they can fail:** `storeActiveSession(null)` commented out in `discard()`, then put back. Two tests failed, the new one and the old **Cancel workout** one, which now goes through the same function:
+
+```
+ × deletes the workout in progress from Finish's dialog, after a second question, sending nothing
+ × cancels an empty free workout, keeping nothing
+AssertionError: expected { …(13) } to be null
+```
+
+**Checking in the browser:** start a day, tick a set, **Concludi**: under **Continua** and **Concludi e salva**, **Elimina l'allenamento** in red. Tap it: "Eliminare l'allenamento in corso?"; **Indietro** returns to the first question; **Elimina**: the plan's page, no banner, **Inizia** usable. History has no new workout. Then ✕ out of another workout, and from the banner on Home: **Concludi**, **Elimina l'allenamento**, **Elimina**: the banner goes. Escape on the second question, then **Concludi** again: the first question.
+
+### H3.32.9 Fifth pass: Delete inside the dialog
+
+The first look on a real screen, after H3.32.8: **Delete workout** hung below the dialog, outside its box, under the grey band of Keep going and Finish and save. Every test passed: a test finds a button by its name, and does not see where it is drawn.
+
+**Why it was outside.** `AlertDialogFooter` (`src/components/ui/alert-dialog.tsx`) is not just a row of buttons: it *is* the bottom of the box, pulled to its edges with negative margins (`-mx-4 -mb-4`), with a border on top, a grey background and the bottom corners rounded (`rounded-b-xl`). An element placed after it starts below that edge, in the box's padding, and looks detached from the card. **The fix:** the button goes *inside* the footer, as one more of its children.
+
+**Where inside it.** First tried: first in the code with `sm:mr-auto`, so that on a phone (where the footer is a reversed column) it shows last, and from 640 px (where the footer is a row pushed to the right) it sits on the left edge, apart from the two answers. The dialog was widened to 448 px for the three of them (`data-[size=default]:sm:max-w-md`).
+
+**Looked at, as in H3.32.4,** with a throw-away preview drawing `FinishButton` and clicking it, in four languages at 360 and 700 px:
+
+- at 360 px, in every language: Finish and save, Keep going, then **Delete workout** in red, all inside the card. Good;
+- at 700 px, in Italian and English: the three on one row, inside. In **Spanish**, "Eliminar el entrenamiento", "Seguir", "Terminar y guardar": the grey band **ran past the card's right edge**; German was cut off the photo, with longer words still;
+- before that, the widening had done nothing at all: `sm:max-w-md` lost to the dialog's own `data-[size=default]:sm:max-w-sm`. A class with an attribute in its condition (`data-[size=default]:`) makes a more specific CSS selector, and the more specific rule wins whatever the order of the classes. The fix was to write it with the same condition, `data-[size=default]:sm:max-w-md`.
+
+**The final choice: a column everywhere when Delete is there.** Fitting three buttons on one row in four languages meant chasing widths language by language; the phone's column already looked right. The footer takes `className={cn(onDiscard && 'sm:flex-col-reverse')}`: the class replaces the footer's own `sm:flex-row` (`cn()` merges Tailwind classes, the later one winning within the same property, [C1.8](../concepts/C1-frontend.md#c18-styles-and-theme)), and the widening is no longer needed. Without Delete (no `onDiscard`), the footer is the row it always was. The photos again, Spanish, German and Italian at 360 and 700 px: three buttons one under the other, inside the card, Delete last in red.
+
+**Two traps of the preview.** The first round of photos showed the dialogs closed: the page clicked Finish 300 ms after loading, before React had drawn it; 1000 ms fixed it. And `rm -r preview-tmp` answered `Device or resource busy`, as in H3.22.5: the shell had been left inside the folder; from the repository's root, `rmdir frontend/preview-tmp` removed it.
+
+From `frontend/`:
+
+```sh
+npx vitest run src/pages/WorkoutPage.test.tsx src/pages/HomePage.test.tsx
+npm run lint
+npm run typecheck
+```
+
+```
+ Test Files  2 passed (2)
+      Tests  29 passed (29)
+```
+
+The tests did not change: the buttons' names and the dialog's behaviour are the same. **The lesson,** as in H3.15.10: a layout is not checked by tests; it is checked by looking at it, at the narrowest phone and on a wide window, in the longest language.
+
+**A last error, in the final pass on the comments.** `make check` stopped at ESLint:
+
+```
+  742:1  error  Expected indentation of 6 spaces but found 2  @stylistic/indent
+✖ 1 problem (1 error, 0 warnings)
+```
+
+`make check` names the line but not the file; `npx eslint src`, from `frontend/`, names both: `workout-session.ts`, a comment inside the reducer whose second line, rewritten by a script, had lost its indentation. The project's style rules check comments' indentation as well as code's. Indented like the line above it, `make check` passed.
 
 ---
 

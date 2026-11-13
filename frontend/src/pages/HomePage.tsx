@@ -48,8 +48,9 @@ export function HomePage() {
   const home = useHome()
   // The shared steps that start a workout, and their state
   const start = useStartWorkout()
-  // The workout in progress on this phone, if any, read once
-  const [active] = useState(loadActiveSession)
+  // The workout in progress on this phone, if any, read once; dropped
+  // (setActive(null)) when the banner deletes it, so Start works again
+  const [active, setActive] = useState(loadActiveSession)
   // After a workout's summary: saved, queued, refused or deleted; undefined otherwise
   const ended = (useLocation().state as Partial<WorkoutEndState> | null)?.workout
   // This week: the days trained and the three numbers, by the device's clock.
@@ -87,7 +88,7 @@ export function HomePage() {
         {ended === 'deleted' && <FormBanner variant="success">{t('workout.deleted')}</FormBanner>}
 
         {/* A workout left in progress on this phone: Resume */}
-        {active && <ResumeBanner session={active} />}
+        {active && <ResumeBanner session={active} onDiscarded={() => setActive(null)} />}
 
         {/* Two columns: stacked on phones and tablets; from 1024 px side by
             side on a 5-column grid, the plan taking 3 columns and the week 2 */}

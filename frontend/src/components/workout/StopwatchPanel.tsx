@@ -1,50 +1,52 @@
 /*
- * The stopwatch of a timed set, full screen (docs/design/D1-ui.md D1.4.9):
- * opened by ▶ on a set of an exercise logged by time (SetRow.tsx), for a
- * hold ("30 s dead hang") and for a race against the clock ("50 push-ups,
- * as fast as possible") alike.
+ * The stopwatch of a timed set (docs/design/D1-ui.md D1.4.9): opened by ▶ on
+ * a set of an exercise logged by time (SetRow.tsx), for a hold ("30 s dead
+ * hang") and for a race against the clock ("50 push-ups, as fast as
+ * possible") alike.
  *
- * - **The time** counts up, large, in the middle of a ring.
- * - **The ring** fills up to the target: the seconds that were in the set's
- *   field at the start, the plan's or last time's. Reaching it plays the
- *   end-of-rest signal (src/lib/alarm.ts, with the user's sound and
- *   vibration) and says "Target reached". With no target, the ring goes
- *   round once a minute, as a stopwatch's hand.
- * - **Last time**, under it, to beat.
+ * A panel docked at the bottom of workout mode, where the rest bar goes
+ * (RestBar.tsx), not a full screen: the time is big enough to read from the
+ * floor, and the sets stay in sight above it, the one being timed with a
+ * lime ring. (First built full screen: mid-workout, the table, the next set
+ * and the plan's notes were all hidden for the length of the set.)
+ *
+ * - **The time** counts up, large, on the left.
+ * - **The bar** above it fills up to the target: the seconds that were in
+ *   the set's field at the start, the plan's or last time's. Reaching it
+ *   plays the end-of-rest signal (src/lib/alarm.ts, with the user's sound
+ *   and vibration) and says "Target reached". With no target, the bar fills
+ *   once a minute, as a stopwatch's hand goes round.
+ * - **Last time**, under the time, to beat.
  * - **A race** (`race`: an exercise counted in reps, done as fast as
- *   possible, C1.17.9): the reps to do under the set's name, "50 reps";
+ *   possible, C1.17.9): the reps to do after the set's name, "50 reps";
  *   the target is a time to beat, "To beat 1:12", then "0:05 over" once
- *   past it, with no signal: reaching it is not the goal there.
+ *   past it, with the bar in red and no signal: reaching it is not the goal.
+ * - **Pause** stops the count, **Resume** takes it up again; the time paused
+ *   is not counted (stopwatchSeconds, workout-session.ts).
  * - **Stop** writes the time into the set and ticks it, which starts the
  *   rest as ✓ does; **Cancel** throws the time away.
  *
- * The time is worked out from the moment of the start, kept in the workout
- * (`session.stopwatch`, workout-session.ts): with the screen off, or the app
- * closed and opened again, it is still right. How it works:
+ * The time is worked out from the moment of the start and the pauses, kept
+ * in the workout (`session.stopwatch`, workout-session.ts): with the screen
+ * off, or the app closed and opened again, it is still right. How it works:
  * docs/concepts/C1-frontend.md C1.17.8.
  */
-import { Square } from 'lucide-react'
-import { useEffect } from 'react'
+import { Pause, Play, Square } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { restOver } from '@/lib/alarm'
 import { useNow } from '@/lib/useNow'
 import { cn } from '@/lib/utils'
 import { clock } from './clock'
-import { stopwatchSeconds, type Stopwatch } from './workout-session'
-
-/** The ring's radius and the width of its line, in the SVG's units. */
-const RADIUS = 110
-const STROKE = 12
-/** The ring's length: 2πr. The filled part is a dash of this line. */
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS
+import { WORKOUT_COLUMN } from './layout'
+import { stopwatchSeconds, stopwatchTargetAt, type Stopwatch } from './workout-session'
 
 /** Props of StopwatchPanel. */
 interface StopwatchPanelProps {
-  /** The stopwatch running. */
+  /** The stopwatch running (or paused). */
   stopwatch: Stopwatch
-  /** The exercise's name, the panel's title. */
+  /** The exercise's name, at the top of the panel. */
   exerciseName: string
   /** The set's name: "Set 1". */
   setName: string
@@ -56,111 +58,127 @@ interface StopwatchPanelProps {
   alarm: { sound: boolean, vibration: boolean }
   /** Stop: the time goes into the set. */
   onStop: () => void
+  /** Pause (true) or Resume (false). */
+  onPause: (paused: boolean) => void
   /** Cancel: the time is thrown away. */
   onCancel: () => void
 }
 
-/** The full-screen stopwatch. */
-export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastText, alarm, onStop, onCancel }: StopwatchPanelProps) {
+/** The stopwatch, docked at the bottom of workout mode. */
+export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastText, alarm, onStop, onPause, onCancel }: StopwatchPanelProps) {
   const { t } = useTranslation()
   // The current moment, four times a second: the seconds change on time,
   // not up to a second late as with the workout's clock
   const now = useNow(250)
-  // The seconds so far
+  // The seconds so far, the pauses left out
   const seconds = stopwatchSeconds(stopwatch, now)
   const { target } = stopwatch
+  // Whether it is paused: Resume instead of Pause, the time greyed
+  const paused = Boolean(stopwatch.paused_at)
   // Whether the target is reached: in a race, the time to beat is gone
   const reached = target !== null && seconds >= target
-  // The line under the time: the target, then reached; in a race, the
-  // time to beat, then how far past it
-  const targetText = target === null
-    ? null
-    : race
-      ? (reached ? t('workout.stopwatch.over', { time: clock(seconds - target) }) : t('workout.stopwatch.toBeat', { time: clock(target) }))
-      : (reached ? t('workout.stopwatch.reached') : t('workout.stopwatch.target', { time: clock(target) }))
-  // How much of the ring is filled, 0 to 1: the share of the target, or
+  // The line under the time: Paused; or the target, then reached; in a
+  // race, the time to beat, then how far past it
+  const targetText = paused
+    ? t('workout.stopwatch.paused')
+    : target === null
+      ? null
+      : race
+        ? (reached ? t('workout.stopwatch.over', { time: clock(seconds - target) }) : t('workout.stopwatch.toBeat', { time: clock(target) }))
+        : (reached ? t('workout.stopwatch.reached') : t('workout.stopwatch.target', { time: clock(target) }))
+  // How much of the bar is filled, 0 to 1: the share of the target, or
   // the seconds of the current minute when there is none
   const share = target !== null ? Math.min(1, seconds / target) : (seconds % 60) / 60
+  // Stop, to give it the focus when the panel appears: ▶, which opened it,
+  // is disabled meanwhile, and a keyboard user would be left nowhere.
+  // useRef keeps the button across draws (C1.17.7)
+  const stopButton = useRef<HTMLButtonElement>(null)
+
+  // Once, when the panel appears: the focus on Stop
+  useEffect(() => {
+    stopButton.current?.focus()
+  }, [])
 
   // The signal at the target: a timer set for that moment, as the rest's
-  // end is (WorkoutScreen). Not when the moment is already past, as when the
-  // app is opened again after it: the signal would come late, and twice.
-  // Not in a race either: there the target is a time not to reach
+  // end is (WorkoutScreen). None while paused (stopwatchTargetAt gives
+  // null): Resume sets a new stopwatch object, and so a new timer, later
+  // by the length of the pause. Not when the moment is already past, as
+  // when the app is opened again after it: the signal would come late, and
+  // twice. Not in a race either: there the target is a time not to reach
   const { sound, vibration } = alarm
   const isRace = race !== null
   useEffect(() => {
-    if (stopwatch.target === null || isRace) return
-    const delay = Date.parse(stopwatch.started_at) + stopwatch.target * 1000 - Date.now()
+    // The moment of the target, in ms; null with none, or while paused
+    const at = stopwatchTargetAt(stopwatch)
+    if (at === null || isRace) return
+    const delay = at - Date.now()
     if (delay < 0) return
     const timer = setTimeout(() => restOver({ sound, vibration }), delay)
     return () => clearTimeout(timer)
   }, [stopwatch, sound, vibration, isRace])
 
   return (
-    // Always open while it exists: WorkoutScreen draws it only with a
-    // stopwatch running. Escape and a tap outside do nothing
-    // (preventDefault): a time is ended by Stop or Cancel only, never lost
-    // by a stray touch
-    <Dialog open>
-      <DialogContent
-        showCloseButton={false}
-        onEscapeKeyDown={event => event.preventDefault()}
-        onInteractOutside={event => event.preventDefault()}
-        // Full screen: the dialog's box stretched to the whole viewport
-        className="flex h-dvh max-h-none w-full max-w-none flex-col items-center justify-between gap-6 rounded-none p-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] ring-0 sm:max-w-none"
-      >
-        {/* The exercise and the set */}
-        <div className="flex flex-col items-center gap-1 text-center">
-          <DialogTitle className="font-heading text-xl font-extrabold">{exerciseName}</DialogTitle>
-          <DialogDescription className="text-base">
-            {setName}
-            {race?.reps ? ` · ${t('workout.stopwatch.goal', { count: race.reps })}` : ''}
-          </DialogDescription>
+    // A region named "Stopwatch", as the rest bar is named "Rest": screen
+    // readers can jump to it. The card's colour and the line on top set it
+    // apart from the table above. `relative` keeps the hidden "Target
+    // reached" text (sr-only, absolutely positioned) inside the panel
+    // (docs/how-to/H3-frontend.md H3.15.11)
+    <section aria-label={t('workout.stopwatch.title')} className="relative border-t bg-card py-4">
+      <div className={WORKOUT_COLUMN}>
+        {/* The bar: lime up to the target; red once a race's time to beat
+            is gone, as the line under the time */}
+        <div aria-hidden="true" className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn('h-full rounded-full transition-[width] duration-200 ease-linear', race && reached ? 'bg-destructive' : 'bg-primary')}
+            style={{ width: `${share * 100}%` }}
+          />
         </div>
 
-        {/* The ring and the time. The SVG is a picture (aria-hidden); the
-            time is a timer, which screen readers do not read every second */}
-        <div className="relative grid size-64 place-items-center sm:size-72">
-          <svg aria-hidden="true" viewBox="0 0 256 256" className="absolute inset-0 size-full -rotate-90">
-            {/* The track, then the part filled: a dash as long as the
-                share, the rest of the circle a gap (stroke-dasharray) */}
-            <circle cx="128" cy="128" r={RADIUS} fill="none" strokeWidth={STROKE} className="stroke-muted" />
-            <circle
-              cx="128"
-              cy="128"
-              r={RADIUS}
-              fill="none"
-              strokeWidth={STROKE}
-              strokeLinecap="round"
-              strokeDasharray={CIRCUMFERENCE}
-              strokeDashoffset={CIRCUMFERENCE * (1 - share)}
-              // Lime; red once a race's time to beat is gone, as the line under the time
-              className={cn('transition-[stroke-dashoffset] duration-200 ease-linear', race && reached ? 'stroke-destructive' : 'stroke-primary')}
-            />
-          </svg>
-          <div className="flex flex-col items-center gap-1">
-            <span role="timer" className="font-heading text-6xl font-extrabold tabular-nums">{clock(seconds)}</span>
+        {/* The set, then the exercise, cut with "…" when long (truncate).
+            The set first: a long name would otherwise cut it off on a
+            phone, and the exercise is on screen above anyway.
+            Cancel on the right, quiet: it is not what a tired hand should
+            find first. Its visible word starts its spoken name, so a
+            voice command "Cancel" still finds it */}
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">{setName}</span>
+            {race?.reps ? ` · ${t('workout.stopwatch.goal', { count: race.reps })}` : ''}
+            {` · ${exerciseName}`}
+          </p>
+          <Button variant="ghost" size="xl" className="shrink-0 px-3 text-muted-foreground" aria-label={t('workout.stopwatch.cancel')} onClick={onCancel}>
+            {t('workout.stopwatch.cancelShort')}
+          </Button>
+        </div>
+
+        {/* The time with what it is measured against, then Pause and Stop */}
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            {/* The time, large. The timer role: a clock screen readers do
+                not read every second. Greyed and pulsing while paused */}
+            <span role="timer" className={cn('block font-heading text-5xl leading-none font-extrabold tabular-nums', paused && 'animate-pulse text-muted-foreground')}>
+              {clock(seconds)}
+            </span>
             {targetText !== null && (
-              <span className={cn('text-base font-semibold', !reached ? 'text-muted-foreground' : race ? 'text-destructive' : 'text-primary')}>
+              <span className={cn('mt-1 block text-sm font-semibold', paused || !reached ? 'text-muted-foreground' : race ? 'text-destructive' : 'text-primary')}>
                 {targetText}
               </span>
             )}
+            {lastText !== null && <span className="block text-sm text-muted-foreground">{t('workout.stopwatch.last', { time: lastText })}</span>}
           </div>
-        </div>
-        {/* Read out once, when the target of a hold is reached */}
-        <p aria-live="polite" className="sr-only">{reached && !race ? t('workout.stopwatch.reached') : ''}</p>
-
-        {/* Last time, then the two buttons, as wide as the phone */}
-        <div className="flex w-full max-w-sm flex-col gap-3">
-          {lastText !== null && <p className="text-center text-muted-foreground">{t('workout.stopwatch.last', { time: lastText })}</p>}
-          <Button size="xl" className="h-16 w-full text-lg" onClick={onStop}>
+          {/* Pause / Resume: an outlined square as tall as Stop */}
+          <Button variant="outline" size="icon-xl" className="size-14 shrink-0 rounded-2xl" aria-label={paused ? t('workout.stopwatch.resume') : t('workout.stopwatch.pause')} onClick={() => onPause(!paused)}>
+            {paused ? <Play aria-hidden="true" className="fill-current" /> : <Pause aria-hidden="true" className="fill-current" />}
+          </Button>
+          {/* Stop: lime, the one thing to do at the end of the set */}
+          <Button ref={stopButton} size="xl" className="h-14 shrink-0 rounded-2xl px-5 text-lg" onClick={onStop}>
             <Square aria-hidden="true" className="fill-current" />
             {t('workout.stopwatch.stop')}
           </Button>
-          <p className="text-center text-sm text-muted-foreground">{t('workout.stopwatch.stopHint')}</p>
-          <Button variant="outline" size="xl" className="w-full" onClick={onCancel}>{t('workout.stopwatch.cancel')}</Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+      {/* Read out once, when the target of a hold is reached */}
+      <p aria-live="polite" className="sr-only">{reached && !race ? t('workout.stopwatch.reached') : ''}</p>
+    </section>
   )
 }
