@@ -12,6 +12,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [OPS](#ops)
   - [OPS-2 Check that the AtleoPlan name is free](#ops-2-check-that-the-atleoplan-name-is-free)
   - [OPS-3 Deploy to the free server](#ops-3-deploy-to-the-free-server)
+  - [OPS-5 Drop the minimatch override](#ops-5-drop-the-minimatch-override)
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
@@ -95,6 +96,14 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - Write the deployment section of the docs ([P1.3](P1-conventions.md#p13-documentation)).
 
 **Recommended.** Keep the local stack close to the production one (same Docker images, Postgres rather than SQLite), so that deploying is a configuration step and not a rewrite.
+
+### OPS-5 Drop the minimatch override
+
+**Priority:** low · **Kind:** dependencies · **Found:** 2026-11-13
+
+**What is missing.** `frontend/package.json` forces `minimatch` 11 with `overrides`, for a vulnerability fixed only there, while `eslint`, `typescript-eslint` and `shadcn` (through `ts-morph`) still ask for 10 ([H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)). An override is a version nobody upstream tested with; it should not outlive its reason.
+
+**Recommended.** After updating those packages, remove `overrides` and the `"//"` note, `npm install`, `npm ls minimatch`: when no 10.x is left, the override goes, in a `chore/…` branch with `make check`.
 
 ## UI
 
