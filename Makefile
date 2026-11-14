@@ -13,7 +13,7 @@ SHELL := bash
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
         artisan composer vendor migratefresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
         dev fe-install fe-build \
-        test pint pint-check lint lint-fix typecheck fe-test fix check audit toc toc-check \
+        test pint pint-check lint lint-fix typecheck fe-test fix check audit github-check toc toc-check \
         branch sync push merge
 
 # docker compose, and the two ways into the backend container
@@ -288,6 +288,12 @@ toc-check: ## Fail if a doc's contents list is out of date (part of make check)
 audit: ## Known vulnerabilities in the Composer and npm packages (report only, changes nothing)
 	-$(DC) exec backend composer audit
 	-node scripts/npm-audit.mjs
+
+# Reads the repository's settings on GitHub through gh (signed in once with
+# `gh auth login`) and compares them with the ones decided; changes nothing
+# (scripts/github-check.mjs, docs/how-to/H5-ci.md H5.3).
+github-check: ## The repository's settings on GitHub and its last runs, against the ones decided (needs gh)
+	node scripts/github-check.mjs
 
 # --- Git ----------------------------------------------------------------------
 

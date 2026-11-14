@@ -104,8 +104,13 @@ function withContents(source) {
   const found = headings(lines)
   if (found.filter(heading => heading.level === 2).length < 2) return null
 
-  // One list item per heading; "###" ones indented under their "##"
-  const items = found.map(({ level, text, slug }) => `${level === 3 ? '  ' : ''}- [${text.replace(/[[\]]/g, '\\$&')}](#${slug})`)
+  // One list item per heading; "###" ones indented under their "##". In the
+  // link's text, "[", "]" and "\" get a backslash before them ("$&" is the
+  // character found), so Markdown reads them as text: an unescaped "]"
+  // would end the link early, and a "\" left alone would escape whatever
+  // follows it. The backslash was first forgotten, which CodeQL reported
+  // as js/incomplete-sanitization (docs/how-to/H5-ci.md H5.7.4)
+  const items = found.map(({ level, text, slug }) => `${level === 3 ? '  ' : ''}- [${text.replace(/[\\[\]]/g, '\\$&')}](#${slug})`)
 
   // Before the first "##", or before the "---" right above it
   let at = found.find(heading => heading.level === 2).line

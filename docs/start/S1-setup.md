@@ -403,6 +403,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Every check before a merge: Pint, tests, lint, types, the docs' contents lists | `make check` (needs the stack up) |
 | Rebuild the contents list at the top of every doc, after adding, renaming or removing a heading | `make toc` |
 | Known vulnerabilities in the packages (report only) | `make audit` |
+| The repository's settings on GitHub and its last CI runs, against the ones decided (needs `gh`, signed in) | `make github-check` |
 | New branch from an up-to-date `main` | `make branch name=feat/plan-editor` |
 | Back to `main`, up to date with GitHub | `make sync` |
 | Push the current branch | `make push` |
