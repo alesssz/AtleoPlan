@@ -5,9 +5,10 @@
  * heading; `make check` runs it with --check and fails if a list is out of
  * date.
  *
- * Which files: README.md and every .md under docs/ with at least two "##"
- * headings. Which headings: "##" and "###", nested; headings inside code
- * blocks (```) are skipped, since a "#" there is a shell comment.
+ * Which files: every .md under docs/ with at least two "##" headings; not the
+ * README, the project's front page. Which headings: "##" and "###", nested;
+ * headings inside code blocks (```) are skipped, since a "#" there is a shell
+ * comment.
  *
  * Where the list goes: just before the first "##" heading, as a "## Contents"
  * section. If the document has a "---" line right before that heading, the
@@ -120,7 +121,7 @@ function withContents(source) {
 }
 
 /** The documents to handle. */
-const files = [join(ROOT, 'README.md'), ...markdownFiles(join(ROOT, 'docs'))]
+const files = markdownFiles(join(ROOT, 'docs'))
 /** The files whose list is (or was) out of date. */
 const outdated = []
 

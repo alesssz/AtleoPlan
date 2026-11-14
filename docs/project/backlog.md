@@ -27,8 +27,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-11 Videos of an exercise](#feat-11-videos-of-an-exercise)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
-- [DOCS](#docs)
-  - [DOCS-5 A showcase README](#docs-5-a-showcase-readme)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
 
@@ -248,16 +246,6 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - B) Leave as it is while the app is personal.
 
 **Recommended.** B for now and A before opening to other users (phase 2): with a single user nothing is at stake, and signing up will still need to say that an email is taken, unless it moves to verifying the address by email.
-
-## DOCS
-
-### DOCS-5 A showcase README
-
-**Priority:** medium · **Kind:** documentation · **Found:** 2026-11-14
-
-**What is missing.** The README describes the project in one long status paragraph. A reader who opens the repository needs to see in a minute what the app does, how it is built and that it works.
-
-**Recommended.** What the app does with a few screenshots, the stack and an architecture sketch, how to run it, the CI and test badges, the docs' map; a link to a live demo once [OPS-3](#ops-3-deploy-to-the-free-server) is done.
 
 ## DATA
 

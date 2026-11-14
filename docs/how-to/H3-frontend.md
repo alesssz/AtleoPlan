@@ -15,6 +15,7 @@ Recipes for the React app: a new page, data from the API, a form, tests, transla
 - [H3.8 Checking in the browser](#h38-checking-in-the-browser)
   - [H3.8.1 Phone, tablet and desktop widths](#h381-phone-tablet-and-desktop-widths)
   - [H3.8.2 A real Android phone over USB](#h382-a-real-android-phone-over-usb)
+  - [H3.8.3 The README's screenshots](#h383-the-readmes-screenshots)
 - [H3.9 A shadcn/ui component](#h39-a-shadcnui-component)
 - [H3.10 When something goes wrong](#h310-when-something-goes-wrong)
 - [H3.11 Commands at a glance](#h311-commands-at-a-glance)
@@ -164,6 +165,16 @@ powershell -command "Expand-Archive ~/platform-tools.zip -DestinationPath $HOME"
 | `unauthorized` and no question on the phone | Unlock it; or *Revoke USB debugging authorizations*, unplug, plug again |
 | *This site can't be reached*, though the computer opens it | The cable was unplugged since `make phone`; or Vite is listening on `::1` only, where `adb reverse` does not connect: `server.host: '127.0.0.1'` in `vite.config.ts` prevents it, restart `make dev` after pulling it |
 | The sign-in fails on the phone | The address must be exactly `localhost:5673`, the one Sanctum knows |
+
+### H3.8.3 The README's screenshots
+
+The screenshots in `docs/screenshots/` show a demo account, never a real one: plans, names and history of real users are private ([P1.5](../project/P1-conventions.md#p15-a-public-repository)).
+
+1. **The demo user:** in tinker, `User::firstOrCreate(['email' => 'ada@example.com'], ['name' => 'Ada', 'password' => 'password', 'locale' => 'en'])`; then `make plans-demo` gives it the two example plans, Push Pull Legs active.
+2. **History to show:** one workout done through the app (Start, every set ticked, Finish), so Home suggests the next day and workout mode has last time's values.
+3. **The shots:** Playwright, installed in a folder outside the repository (`npm install playwright`, `npx playwright install chromium`), signed in as Ada with `make start` running: phone screens at 390 × 844, desktop at 1280 × 800, `deviceScaleFactor: 2`, `colorScheme: 'dark'`, `locale: 'en-US'`.
+4. **Hide the TanStack Query Devtools button,** which only development shows: a style `[class*="tsqd"] { display: none }` added by `context.addInitScript()`.
+5. **Look at each one** before committing: a layout bug shows here as clearly as anywhere.
 
 ---
 
