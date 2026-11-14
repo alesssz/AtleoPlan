@@ -2,10 +2,8 @@
 
 /**
  * GET, POST, PATCH and DELETE on /api/exercises: reading one exercise,
- * creating, changing and deleting personal ones (docs/design/D1-ui.md
- * D1.4.4, D1.4.5), with every refusal of ExercisePolicy
- * (docs/design/D2-decisions.md D2.3): someone else's exercise, and a public
- * one, admins included.
+ * creating, changing and deleting personal ones, with every refusal of
+ * ExercisePolicy: someone else's exercise, and a public one, admins included.
  *
  * The list has its own file, ExerciseListTest.php; the rules of saving
  * (languages, muscles) are tested without HTTP in SavePersonalExerciseTest.php.
@@ -45,8 +43,8 @@ it('shows a public exercise with every field, in the request\'s language', funct
     $this->actingAs(User::factory()->create())
         ->getJson("/api/exercises/{$exercise->id}", ['Accept-Language' => 'it'])
         ->assertOk()
-        // assertExactJson: this body and nothing else, so a column added to
-        // the table cannot reach the app by accident
+        // Exactly this body, so a column added to the table cannot reach the
+        // app by accident
         ->assertExactJson(['data' => [
             'id' => $exercise->id,
             'name' => 'Panca piana',
@@ -63,15 +61,13 @@ it('shows a public exercise with every field, in the request\'s language', funct
 });
 
 it('sends the photos as paths on the app\'s own address, in their order', function () {
-    // A fake media disk: the copies stay in a temporary folder
     Storage::fake('public');
     $exercise = Exercise::factory()->create();
-    // Two tiny JPEG files: the smallest valid one, written to a temporary file
+    // The smallest valid JPEG, twice
     $jpeg = base64_decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=');
     foreach (['0.jpg', '1.jpg'] as $name) {
         $file = tempnam(sys_get_temp_dir(), 'photo');
         file_put_contents($file, $jpeg);
-        // usingFileName(): the name the copy gets, instead of the temporary one
         $exercise->addMedia($file)->usingFileName($name)->toMediaCollection('photos');
     }
 
@@ -284,8 +280,7 @@ it('refuses to delete someone else\'s exercise or a public one', function (Closu
 
     $this->assertNotSoftDeleted($exercise);
 })->with([
-    // Functions, so that the rows are created inside the test, after the
-    // database has been reset
+    // Closures, so the rows are created after the database is reset
     'someone else\'s' => [fn () => Exercise::factory()->personal()->create()],
     'a public one' => [fn () => Exercise::factory()->create()],
 ]);

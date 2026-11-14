@@ -1,22 +1,9 @@
 <?php
 
 /**
- * The JSON API used by the React app, every route prefixed with /api.
- *
- * A route ties an HTTP method and a URL to the code that answers it
- * (docs/concepts/C2-backend.md C2.5). bootstrap/app.php loads this file with the /api
- * prefix and the "api" middleware group, so `Route::get('/health', ...)` here
- * answers GET /api/health. `make routes` (`php artisan route:list`) lists
- * every route of the app.
- *
- * Requests from the React app are authenticated with Sanctum's session
- * cookie (SPA mode, bootstrap/app.php; docs/concepts/C2-backend.md C2.7); a route under
- * `auth:sanctum` answers 401 to a visitor who is not signed in.
- *
- * One-line answers use an inline function; anything longer uses a controller
- * in app/Http/Controllers (docs/project/P1-conventions.md P1.2). Signing in, up and out
- * and resetting a password are not here: Fortify registers them under
- * /api/auth (config/fortify.php, docs/concepts/C2-backend.md C2.7).
+ * The JSON API of the React app, under /api, authenticated with Sanctum's
+ * session cookie. Sign-in, sign-up, sign-out and password reset are Fortify's,
+ * under /api/auth (config/fortify.php).
  */
 
 use App\Http\Controllers\CurrentUserController;
@@ -29,76 +16,39 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\WorkoutSessionController;
 use Illuminate\Support\Facades\Route;
 
-/*
- * Liveness check, public: proves the whole chain answers (browser → Vite
- * or Caddy → Laravel). Shown in the app's Profile page
- * (frontend/src/api/health.ts, docs/concepts/C1-frontend.md C1.6).
- *
- * Route is a facade: a class whose static calls (Route::get) Laravel passes
- * to the router object it keeps in the service container. The second argument
- * is the code to run, here an arrow function (`fn () => ...`, a one-expression
- * function that returns its value); response()->json() builds a JSON
- * response with status 200. name() gives the route a name, so code can build
- * its URL with route('health') instead of writing it.
- */
+// Public: proves the whole chain answers (browser → Vite or Caddy → Laravel);
+// shown on Profile (frontend/src/api/health.ts)
 Route::get('/health', fn () => response()->json(['status' => 'ok']))->name('health');
 
-// Everything inside this group needs a signed-in user: 401 otherwise.
-// `[Controller::class, 'method']` names the method that answers the route.
 Route::middleware('auth:sanctum')->group(function () {
-    // Who is signed in; the React app asks at start-up
     Route::get('/user', [CurrentUserController::class, 'show']);
-    // Saves the language, the theme or a workout preference on the account
     Route::patch('/user/preferences', [CurrentUserController::class, 'updatePreferences']);
 
-    // The exercise library (docs/concepts/C2-backend.md C2.5.4): the two
-    // fixed lists its filters and editor use, then the exercises themselves
+    // The exercise library
     Route::get('/muscles', [MuscleController::class, 'index']);
     Route::get('/equipment', [EquipmentController::class, 'index']);
-    // apiResource(): the five routes of a resource in one line, each tied to
-    // the controller method of the same name: GET /exercises (index),
-    // POST /exercises (store), GET /exercises/{exercise} (show),
-    // PUT|PATCH /exercises/{exercise} (update), DELETE /exercises/{exercise}
-    // (destroy). Their names are exercises.index, exercises.store…
     Route::apiResource('exercises', ExerciseController::class);
-
-    // A public exercise copied as the user's own, photos included (D1.4.4);
-    // 201 with the copy (docs/concepts/C2-backend.md C2.5.9)
     Route::post('/exercises/{exercise}/duplicate', [ExerciseController::class, 'duplicate']);
-
-    // The photos of a personal exercise: add one, order them, remove one
-    // (docs/concepts/C2-backend.md C2.5.9). whereNumber(): the {photo} part
-    // must be digits, or the route does not match at all
     Route::post('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'store']);
     Route::put('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'reorder']);
     Route::delete('/exercises/{exercise}/photos/{photo}', [ExercisePhotoController::class, 'destroy'])->whereNumber('photo');
 
-    // The workout plans (docs/concepts/C2-backend.md C2.5.5): the five
-    // routes of a resource, as for the exercises…
+    // The workout plans
     Route::apiResource('plans', PlanController::class);
-    // …and three actions that are not create, read, update or delete. Each
-    // gets a verb after the plan's address, and POST, since it changes
-    // something. {plan} is loaded by route model binding, as in apiResource
     Route::post('/plans/{plan}/activate', [PlanController::class, 'activate']);
     Route::post('/plans/{plan}/archive', [PlanController::class, 'archive']);
     Route::post('/plans/{plan}/unarchive', [PlanController::class, 'unarchive']);
-    // A plan as a file, and a file as a new plan (docs/concepts/C2-backend.md
-    // C2.5.8). POST /plans/import does not meet the resource's routes: the
-    // resource has no POST on /plans/{plan}
     Route::get('/plans/{plan}/export', [PlanController::class, 'export']);
     Route::post('/plans/import', [PlanController::class, 'import']);
 
-    // The workouts (docs/concepts/C2-backend.md C2.5.7). Written one by one:
-    // saving is a PUT to the session's own UUID, made on the phone, which
-    // creates the session when it is new (so no POST). whereUuid(): a
-    // {session} that is not a UUID gets a 404 before any code runs, which
-    // also keeps 'last-sets' from being read as a session's id
+    // The workouts. No POST: saving is a PUT to the session's own UUID, made on
+    // the phone. whereUuid() also keeps 'last-sets' from being read as a
+    // session's id
     Route::get('/sessions', [WorkoutSessionController::class, 'index']);
     Route::get('/sessions/last-sets', [WorkoutSessionController::class, 'lastSets']);
     Route::get('/sessions/{session}', [WorkoutSessionController::class, 'show'])->whereUuid('session');
     Route::put('/sessions/{session}', [WorkoutSessionController::class, 'save'])->whereUuid('session');
     Route::delete('/sessions/{session}', [WorkoutSessionController::class, 'destroy'])->whereUuid('session');
 
-    // Home's data in one request (D1.4.2)
     Route::get('/home', [HomeController::class, 'show']);
 });

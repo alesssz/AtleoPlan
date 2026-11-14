@@ -1,14 +1,9 @@
 <?php
 
 /**
- * English names of the fields inside validation messages
- * (docs/concepts/C2-backend.md C2.7.7).
- *
- * The English messages themselves are Laravel's, which this file does not
- * repeat: Laravel merges a language file of the app with the framework's own,
- * key by key, so only `attributes` is added, and the messages of our own rules
- * (app/Rules/), which Laravel cannot know. Without `attributes`, a message
- * would name the field by its key: "The muscles.0.role field is required."
+ * Merged over Laravel's own English messages: only our rules' messages and the
+ * fields' names, without which a message would read "The muscles.0.role field
+ * is required."
  */
 return [
     // The messages of SupersetsAreNeighbours, a rule of our own

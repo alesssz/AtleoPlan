@@ -1,6 +1,6 @@
 # AtleoPlan documentation
 
-The documents are grouped by **what you are looking for**. Each folder has a letter, and its documents are numbered from 1: `H2` is the second how-to, and `H2.3` is section 3 of it. A code comment such as `// docs/how-to/H2-backend.md H2.3` therefore points to one exact place.
+The documents are grouped by **what you are looking for**. Each folder has a letter, and its documents are numbered from 1: `H2` is the second how-to, and `H2.3` is section 3 of it, so a reference such as "see H2.3" points to one exact place.
 
 ## Contents
 
@@ -18,8 +18,8 @@ The documents are grouped by **what you are looking for**. Each folder has a let
 |---|---|---|
 | Install the project, start it, solve a setup problem | [`start/`](start) | **S** |
 | Know what the app does and why it is built this way: screens, decisions, tables | [`design/`](design) | **D** |
-| Understand how the code works: React, Laravel, the concepts behind them | [`concepts/`](concepts) | **C** |
-| Do something concrete, step by step, with the commands and their output | [`how-to/`](how-to) | **H** |
+| Understand how the code is built: the frontend's and the backend's architecture | [`concepts/`](concepts) | **C** |
+| Do something concrete: recipes with the commands in order, the files, the checks | [`how-to/`](how-to) | **H** |
 | Know how we work: Git, comments, docs, what comes next | [`project/`](project) | **P** |
 
 **A rule of thumb:**
@@ -27,7 +27,7 @@ The documents are grouped by **what you are looking for**. Each folder has a let
 - *how it works* → `concepts/`;
 - *how to do it* → `how-to/`.
 
-The how-to guides and the concepts go in pairs: H2 shows how to build an endpoint, and C2.5 explains what a controller is.
+The how-to guides and the concepts go in pairs: H2 is the recipe for an endpoint, C2.5 describes the routes and controllers it fits into.
 
 ## Every document
 
@@ -43,14 +43,14 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 |---|---|
 | [D1. UI design](design/D1-ui.md) | Users, design principles, user journeys, navigation and routes, every screen, design system, states (empty, loading, error, offline), responsive layout and accessibility, release phases |
 | [D2. Decisions](design/D2-decisions.md) | Name, stack, exercise library and its import, languages, photo and video limits and storage, hosting, offline sync, workout rules, plan files, local development, continuous integration |
-| [D3. Data model](design/D3-data-model.md) | Every table of the MVP, for a reader new to databases: the basic ideas, columns, relations and the Laravel code, ids, what happens on delete, what is computed, one week of training step by step, traps to avoid |
+| [D3. Data model](design/D3-data-model.md) | Every table of the MVP: columns, relations and the Laravel code, ids, what happens on delete, what is computed, one week of training traced through the tables, traps to avoid |
 
 ### C · Concepts
 
 | Document | What it covers |
 |---|---|
-| [C1. Frontend](concepts/C1-frontend.md) | The React app, for a reader new to React: its pieces, folders, start-up, React from scratch, routing, server data, translations, styles and theme, short recipes, tests, JavaScript and TypeScript syntax, signing in and forms, the exercise library's screens, the plan screens, the plan editor (its two steps, creating an exercise from the picker, container queries), workout mode (with the docked stopwatch and its pause, times as "14:30", up next, how to do it, removing what was added by hand, deleting a workout in progress), Home, the summary and history, showing that something is loading (skeletons, spinners, buttons' `pending`), the link to the admin panel, uploading photos with a progress bar |
-| [C2. Backend](concepts/C2-backend.md) | The Laravel app, for a reader new to PHP and Laravel: its pieces, PHP syntax, folders, the life of a request, routes and controllers, the exercise library's, the plans' and the workouts' endpoints, validating nested data, database, signing in with Fortify and by hand, admin panel, queues, configuration, tests, short recipes, commands, model events, a migration that writes data, Artisan commands of our own, the free-exercise-db import, the extra exercises and the logging types corrected after the import; the admin panel's exercise and user screens, in the admin's language; a disabled account signed out at once; the photos of an exercise (medialibrary, its conversions and queue) |
+| [C1. Frontend](concepts/C1-frontend.md) | The React app: its pieces, folders, start-up, routing, server data, translations, styles and theme, short recipes, tests, JavaScript and TypeScript syntax, signing in and forms, the exercise library's screens, the plan screens, the plan editor (its two steps, creating an exercise from the picker, container queries), workout mode (with the docked stopwatch and its pause, times as "14:30", up next, how to do it, removing what was added by hand, deleting a workout in progress), Home, the summary and history, showing that something is loading (skeletons, spinners, buttons' `pending`), the link to the admin panel, uploading photos with a progress bar |
+| [C2. Backend](concepts/C2-backend.md) | The Laravel app: its pieces, folders, the life of a request, routes and controllers, the exercise library's, the plans' and the workouts' endpoints, validating nested data, database, signing in with Fortify and by hand, admin panel, queues, configuration, tests, short recipes, commands, model events, a migration that writes data, Artisan commands of our own, the free-exercise-db import, the extra exercises and the logging types corrected after the import; the admin panel's exercise and user screens, in the admin's language; a disabled account signed out at once; the photos of an exercise (medialibrary, its conversions and queue) |
 
 ### H · How to
 
@@ -60,7 +60,7 @@ The how-to guides and the concepts go in pairs: H2 shows how to build an endpoin
 | [H2. Backend](how-to/H2-backend.md) | An endpoint that reads and one that changes data (controller, resource, form request, policy, tests), an admin screen, a background job, translated messages, settings, packages, debugging, common errors, the exercise library API and the plans API and the workouts API as built (a body shaped as a tree, a rule of our own, data sent late by a phone, the same day done before), sign in with Google as built, the admin panel as built (a form in four languages, a screen's own permissions, row actions, the middleware priority list, Livewire tests), the photos of an exercise as built (uploads, image copies, a package added), a fast local backend (measuring a slow request, the packages in a Docker volume) |
 | [H3. Frontend](how-to/H3-frontend.md) | A new page, data from the API, a form that saves, tests, translations, npm packages (and `overrides` for a vulnerable one deep in the tree), the browser's tools, shadcn/ui components, common errors, the exercise library's and the plan screens, the plan editor, workout mode, Home, the summary and history as built, loose ends (a UUID without HTTPS, last used, Finish from the banner), the logo, the stepper and the exercise menu, the workout preferences, the plan editor in two steps, creating an exercise from the picker, the loading signs (shadcn's Spinner, a button's `pending`, the search box's spinner), Continue with Google and the link to the admin panel as built, the photos of an exercise as built, workout mode after a real workout (the stopwatch docked with Pause, times as "14:30", Up next, How to do it, removing what was added by hand, deleting a workout in progress) |
 | [H4. Opening the database](how-to/H4-database-tools.md) | The connection details, TablePlus step by step (connecting, browsing, SQL, editing safely, shortcuts), the terminal's ways, the alternatives (DBeaver, pgAdmin, Adminer…), connection errors |
-| [H5. Continuous integration](how-to/H5-ci.md) | What GitHub checks on every push and every week (CI, the dependency audit, Dependabot for the actions), the workflows line by line for a reader new to GitHub Actions, the settings on GitHub and `make github-check` (reading them with `gh`), CodeQL, the advisories reviewed, reading a failed run, the same checks on the computer, as built |
+| [H5. Continuous integration](how-to/H5-ci.md) | What GitHub checks on every push and every week (CI, the dependency audit, Dependabot for the actions), the workflows, the settings on GitHub and `make github-check` (reading them with `gh`), CodeQL, the advisories reviewed, reading a failed run, the same checks on the computer, as built |
 
 ### P · Project
 

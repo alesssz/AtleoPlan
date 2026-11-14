@@ -1,10 +1,9 @@
 <?php
 
 /**
- * POST /api/plans and PUT /api/plans/{plan}: saving a whole plan from the
- * plan editor (docs/design/D1-ui.md D1.4.8; docs/design/D3-data-model.md
- * D3.5.6, D3.5.7). What is written, what is kept across saves, retries, the
- * version, and every refusal of PlanRequest and PlanPolicy.
+ * POST /api/plans and PUT /api/plans/{plan}: saving a whole plan from the plan
+ * editor. What is written, what is kept across saves, retries, the version, and
+ * every refusal of PlanRequest and PlanPolicy.
  */
 
 use App\Enums\SetType;
@@ -214,9 +213,8 @@ it('refuses a body whose lists are missing, so that nothing is deleted by mistak
 it('refuses an id that is not a UUID, without asking the database', function () {
     $user = User::factory()->create();
 
-    // If the unique and exists rules ran their query with these values,
-    // Postgres would answer with an error, and the request with a 500.
-    // Laravel skips them once an earlier rule of the field has failed
+    // Querying with these values would be a Postgres error, a 500; Laravel
+    // skips the database rules once 'uuid' has failed
     $body = ['id' => 'abc', 'name' => 'Plan', 'days' => [['id' => 'day-1', 'name' => 'Day A', 'items' => [
         ['id' => 'item-1', 'exercise_id' => 'bench', 'sets' => []],
     ]]]];

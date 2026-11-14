@@ -1,9 +1,7 @@
 /*
- * Better, the same or worse than last time, exercise by exercise
- * (docs/design/D1-ui.md D1.4.10, docs/design/D2-decisions.md D2.8). The
- * summary and a workout's page in history put it beside each exercise, and
- * count the verdicts: "3 better · 1 same · 1 worse". Plain functions, no
- * React, tested on their own (compare.test.ts).
+ * Better, the same or worse than last time, exercise by exercise. The summary
+ * and a workout's page in history put it beside each exercise, and count the
+ * verdicts: "3 better · 1 same · 1 worse".
  *
  * Why not a workout's total volume (weight × reps of everything): it adds up
  * unlike exercises (a kilogram of squat is not a kilogram of curl), and
@@ -25,35 +23,27 @@
  * against 3 × 15, so GET /api/sessions/last-sets gives one last time of
  * each kind.
  *
- * The estimated one-rep max is Epley's: weight × (1 + reps / 30), as D2.8
- * sets for records. When the best sets tie, the total reps of the working
- * sets decide: 3×8 beats 2×8 at the same weight. Warm-ups never count.
+ * The estimated one-rep max is Epley's, weight × (1 + reps / 30), the same as
+ * for records. When the best sets tie, the total reps of the working sets
+ * decide: 3×8 beats 2×8 at the same weight. Warm-ups never count.
  */
 import type { LoggingType } from '@/api/exercises'
 import type { SetType } from '@/api/plans'
 
 /** One set's values, whichever way they arrived: from the phone (numbers) or the API (weights as text). */
 export interface SetValues {
-  /** Its type; warm-ups are left out. */
   set_type: SetType
   /** Kilograms, as a number or as the API's exact text ("80.000"); null for none. */
   weight_kg: number | string | null
-  /** Reps; null for a timed or distance set. */
   reps: number | null
-  /** Seconds, for a timed set. */
   duration_seconds: number | null
-  /** Meters, for a distance set. */
   distance_meters: number | null
 }
 
-/** What an exercise did against last time. */
 export type Verdict = 'better' | 'same' | 'worse' | 'first'
 
-/** An exercise compared with last time. */
 export interface Comparison {
-  /** Better, the same, worse; or done for the first time. */
   verdict: Verdict
-  /** Its best set this time. */
   best: SetValues
   /** Its best set last time; null the first time. */
   previousBest: SetValues | null
@@ -63,7 +53,6 @@ export interface Comparison {
  * Whether a list of sets was timed: one of them has seconds. True for an
  * exercise logged by time, and for one counted in reps done as fast as
  * possible ("50 in 1:12"); the kind that last time must match.
- * @param sets the sets
  */
 export function hasTimedSets(sets: readonly Pick<SetValues, 'duration_seconds'>[]): boolean {
   return sets.some(set => set.duration_seconds !== null)
@@ -74,11 +63,8 @@ export function hasTimedSets(sets: readonly Pick<SetValues, 'duration_seconds'>[
  * by item: [estimated one-rep max] or [added weight, reps], [seconds], [meters].
  * A set of reps with seconds, done as fast as possible: [weight, reps, the
  * seconds negated], so that fewer seconds score higher.
- * @param set the set
- * @param loggingType how its exercise is logged
  */
 function score(set: SetValues, loggingType: LoggingType): number[] {
-  // The weight as a number; 0 for none (the body alone)
   const weight = Number(set.weight_kg ?? 0)
   const reps = set.reps ?? 0
   // Reps done as fast as possible: the same reps in less time is better
@@ -95,7 +81,6 @@ function score(set: SetValues, loggingType: LoggingType): number[] {
  * Compares two scores item by item: 1 when `a` is higher, -1 when lower, 0
  * when equal. Differences below 0.001 are equal: 80 × (1 + 8/30) computed
  * twice may differ in its last decimal.
- * @param a a score
  * @param b another score
  */
 function compareScores(a: number[], b: number[]): number {
@@ -106,10 +91,6 @@ function compareScores(a: number[], b: number[]): number {
   return 0
 }
 
-/**
- * The sets that count: warm-ups left out.
- * @param sets an exercise's sets
- */
 function working(sets: readonly SetValues[]): SetValues[] {
   return sets.filter(set => set.set_type !== 'warm_up')
 }
@@ -117,19 +98,14 @@ function working(sets: readonly SetValues[]): SetValues[] {
 /**
  * An exercise's best set by the rule of its logging type; null when it has
  * no set that counts.
- * @param sets its sets
- * @param loggingType how it is logged
  */
 export function bestSet(sets: readonly SetValues[], loggingType: LoggingType): SetValues | null {
-  // reduce(): walks the sets keeping the best so far
   return working(sets).reduce<SetValues | null>((best, set) => (best === null || compareScores(score(set, loggingType), score(best, loggingType)) > 0 ? set : best), null)
 }
 
 /**
  * An exercise of this workout against last time.
- * @param sets this time's sets
  * @param previous last time's sets; empty when it was never done
- * @param loggingType how the exercise is logged
  * @returns the comparison; null when nothing that counts was done this time (skipped, or warm-ups only)
  */
 export function compareExercise(sets: readonly SetValues[], previous: readonly SetValues[], loggingType: LoggingType): Comparison | null {
@@ -143,7 +119,6 @@ export function compareExercise(sets: readonly SetValues[], previous: readonly S
   return { verdict: difference > 0 ? 'better' : difference < 0 ? 'worse' : 'same', best, previousBest }
 }
 
-/** How many exercises got each verdict. */
 export type VerdictCount = Record<Verdict, number>
 
 /**
@@ -160,25 +135,19 @@ export function countVerdicts(comparisons: readonly (Comparison | null)[]): Verd
  * The volume of one exercise, weight × reps of its sets that count, in
  * kilograms. Meaningful only for an exercise logged as weight × reps, where
  * it is still shown, beside the exercise; never added across exercises.
- * @param sets the exercise's sets
  */
 export function exerciseVolume(sets: readonly SetValues[]): number {
   return working(sets).reduce((sum, set) => sum + Number(set.weight_kg ?? 0) * (set.reps ?? 0), 0)
 }
 
-/** An exercise of a workout, as far as the comparison needs it. */
 interface ComparedExercise {
-  /** Which exercise. */
   exercise_id: number
-  /** How it is logged. */
   exercise: { logging_type: LoggingType }
-  /** This time's sets. */
   sets: readonly SetValues[]
 }
 
 /**
  * Every exercise of a workout against last time, in order.
- * @param exercises the workout's exercises
  * @param lastSets last time's sets, by exercise and kind (two entries for an exercise done both for reps and for time); an exercise missing was never done
  * @returns one comparison per exercise; null for one with nothing that counts
  */

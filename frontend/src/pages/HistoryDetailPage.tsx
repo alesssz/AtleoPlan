@@ -1,12 +1,11 @@
 /*
- * One past workout (route `/progress/history/:id`, docs/design/D1-ui.md
- * D1.4.11): when, which day of which plan, its four numbers, how it felt and
- * the notes, then every exercise against the last time it was done before
- * this workout (compare.ts), with its sets. **Delete workout**, with a question first.
+ * One past workout (route `/progress/history/:id`): when, which day of which
+ * plan, its four numbers, how it felt and the notes, then every exercise
+ * against the last time it was done before this workout (compare.ts), with its
+ * sets. **Delete workout**, with a question first.
  *
- * Read from the server (GET /api/sessions/{id}, useSession): it may come
- * from another phone. Editing a workout's sets is not here yet: backlog
- * FEAT-6. How it works: docs/concepts/C1-frontend.md C1.19.
+ * Read from the server (GET /api/sessions/{id}, useSession): it may come from
+ * another phone. Editing a workout's sets is not here yet.
  */
 import { ArrowLeft, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -36,10 +35,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError } from '@/lib/http'
 
-/** The workout's page (route `/progress/history/:id`). */
 export function HistoryDetailPage() {
   const { t, i18n } = useTranslation()
-  // The :id of the address; '' when missing, which the route never is
   const id = useParams().id ?? ''
   const workout = useSession(id, i18n.language)
 
@@ -71,13 +68,10 @@ export function HistoryDetailPage() {
   return <WorkoutDetail data={workout.data} />
 }
 
-/** Props of WorkoutDetail. */
 interface WorkoutDetailProps {
-  /** The workout and last time for each of its exercises. */
   data: SessionWithLastSets
 }
 
-/** The page's content, once the workout has arrived. */
 function WorkoutDetail({ data }: WorkoutDetailProps) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -88,7 +82,6 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
   const totals = sessionTotals(session)
   // Each exercise against the last time it was done before this workout
   const comparisons = compareWorkout(session.exercises, lastSets)
-  // "Tuesday 3 November 2026 · 18:05": the day in full and the time it started
   const started = new Date(session.started_at)
   const when = new Intl.DateTimeFormat(i18n.language, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(started)
 
@@ -98,8 +91,7 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
         <ArrowLeft aria-hidden="true" className="size-4" />
         {t('history.back')}
       </Link>
-      {/* The eyebrow is the workout's date: information the title, the
-          day's name, does not give (D1.5 "Page header") */}
+      {/* The date: what the title, the day's name, does not say */}
       <PageHeader eyebrow={when} title={session.day_name ?? t('workout.free')} description={session.plan_name ?? undefined} />
 
       <div className="flex flex-col gap-8">
@@ -109,7 +101,6 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
           <ComparisonSummary count={countVerdicts(comparisons)} />
         </section>
 
-        {/* How it felt and the notes, when the summary was answered */}
         {(session.feeling || session.notes) && (
           <section aria-labelledby="workout-notes" className="flex flex-col gap-2 rounded-2xl border bg-card/60 p-5">
             <h2 id="workout-notes" className="sr-only">{t('summary.notesLabel')}</h2>
@@ -125,7 +116,6 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
           <SessionExercises exercises={session.exercises} comparisons={comparisons} unit={unit} />
         </section>
 
-        {/* Delete, with a question first: it cannot be undone */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" size="xl" className="self-start text-destructive">
@@ -138,13 +128,11 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
               <AlertDialogTitle>{t('summary.deleteTitle')}</AlertDialogTitle>
               <AlertDialogDescription>{t('summary.deleteText')}</AlertDialogDescription>
             </AlertDialogHeader>
-            {/* Inside the window, which stays open when the request fails */}
             {remove.isError && <FormBanner variant="error">{t('summary.deleteError')}</FormBanner>}
             <AlertDialogFooter>
               <AlertDialogCancel>{t('summary.keep')}</AlertDialogCancel>
-              {/* preventDefault() keeps the dialog open until the request
-                  is done (as on the plan's page); `replace`: Back does not
-                  return to a deleted workout */}
+              {/* Open until the request is done; Back must not return to a
+                  deleted workout */}
               <AlertDialogAction
                 variant="destructive"
                 pending={remove.isPending}

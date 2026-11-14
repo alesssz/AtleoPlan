@@ -2,24 +2,18 @@
 
 namespace Database\Factories;
 
-// Imports: the models used below, and Laravel's base Factory
 use App\Models\User;
 use App\Models\WorkoutSession;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * Makes fake workouts for tests (what a factory is: UserFactory.php and
- * docs/how-to/H1-database.md H1.5). By default a free workout of an hour,
- * finished, owned by a new user, with no exercises. Tests add them with
- * has(SessionExercise::factory()…, 'sessionExercises').
+ * A finished free workout of an hour, with no exercises.
  *
  * @extends Factory<WorkoutSession>
  */
 class WorkoutSessionFactory extends Factory
 {
     /**
-     * A finished free workout: started an hour ago, lasting an hour.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -33,7 +27,7 @@ class WorkoutSessionFactory extends Factory
     }
 
     /**
-     * A workout still in progress: `WorkoutSession::factory()->open()`.
+     * Still in progress.
      */
     public function open(): static
     {

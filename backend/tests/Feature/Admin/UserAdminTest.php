@@ -1,21 +1,13 @@
 <?php
 
 /**
- * The admin panel's Users screen and its rules (BE-2,
- * docs/concepts/C2-backend.md C2.8.3): the list, the four row actions, and
- * the action ChangeUserAccess, which refuses an admin's change to their
- * own account.
- *
- * Tested as ExerciseAdminTest explains, with Livewire::test(). A row action
- * is called with TestAction::make('disable')->table($user): the action
- * named "disable" of that user's row.
+ * The admin panel's Users screen and its rules: the list, the four row actions,
+ * and the action ChangeUserAccess, which refuses an admin's change to their own
+ * account.
  *
  * Fixtures: an admin signed in, and the users each test makes.
  */
 
-// Imports: the action, the page tested, the model, Filament's helper for
-// naming an action of a table row, the trait that empties the database,
-// and Livewire's test entry
 use App\Actions\Users\ChangeUserAccess;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Models\User;
@@ -25,7 +17,7 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-// Before each test: an admin signed in, in English
+// An admin signed in, in English
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create(['locale' => 'en']);
     $this->actingAs($this->admin);
@@ -84,7 +76,6 @@ it('offers no action on the admin\'s own row', function () {
 
 // The rule itself, whatever the panel shows
 it('refuses an admin\'s change to their own account', function (string $change) {
-    // The action, from the service container
     $access = app(ChangeUserAccess::class);
 
     expect(fn () => $change === 'admin'

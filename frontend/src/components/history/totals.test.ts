@@ -9,7 +9,6 @@ import { inputTotals, sessionTotals } from './totals'
 
 /**
  * A set as the phone sends it.
- * @param changes the fields to change
  */
 function set(changes: Partial<LoggedSetInput>): LoggedSetInput {
   return { id: 's', set_type: 'normal', weight_kg: 80, reps: 8, duration_seconds: null, distance_meters: null, completed_at: '2026-11-09T18:00:00Z', ...changes }

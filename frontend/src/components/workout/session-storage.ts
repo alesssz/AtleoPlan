@@ -1,19 +1,18 @@
 /*
- * Where workouts live on the phone (docs/design/D2-decisions.md D2.7):
+ * Where workouts live on the phone:
  *
  * - **the workout in progress**, one at a time, written after every tap, so
- *   that closing the app, a reload or a flat battery loses nothing, and ✕
- *   only pauses it (docs/design/D1-ui.md D1.4.9);
+ *   that closing the app, a reload or a flat battery loses nothing, and ✕ only
+ *   pauses it;
  * - **the workouts waiting to be sent**, by id: a finished workout goes
  *   there first, and leaves only when the backend has it
  *   (src/lib/pending-sessions.ts);
  * - **the workout just finished**, for its summary (FinishedWorkout below):
  *   the summary is drawn from it, with no request, so it works offline too.
  *
- * Both in localStorage, like the plan editor's draft (draft-storage.ts,
- * docs/concepts/C1-frontend.md C1.16.4): a workout is a few kilobytes. Every
- * access is in try/catch, since a private window or full storage throws.
- * IndexedDB comes with the offline work of FEAT-3.
+ * Both in localStorage, like the plan editor's draft (draft-storage.ts): a
+ * workout is a few kilobytes. Every access is in try/catch, since a private
+ * window or full storage throws. IndexedDB comes with the offline work.
  */
 import type { SessionInput } from '@/api/sessions'
 import type { ActiveSession } from './workout-session'
@@ -51,7 +50,6 @@ const PENDING_KEY = 'atleoplan.pendingSessions'
 
 /**
  * Reads a JSON value kept under a key.
- * @param key the key
  * @returns the value, or null when there is none or it cannot be read
  */
 function read<T>(key: string): T | null {
@@ -66,7 +64,6 @@ function read<T>(key: string): T | null {
 
 /**
  * Keeps a JSON value under a key; null removes it.
- * @param key the key
  * @param value the value, or null
  */
 function write(key: string, value: unknown): void {
@@ -99,8 +96,6 @@ export function loadPending(): Record<string, SessionInput> {
 
 /**
  * Puts a finished workout among those waiting to be sent.
- * @param id the workout's UUID
- * @param input its body
  */
 export function addPending(id: string, input: SessionInput): void {
   write(PENDING_KEY, { ...loadPending(), [id]: input })
@@ -109,11 +104,8 @@ export function addPending(id: string, input: SessionInput): void {
 /**
  * Takes a workout off the waiting list: the backend has it, or will never
  * take it (410: deleted elsewhere).
- * @param id the workout's UUID
  */
 export function removePending(id: string): void {
-  // Every entry but `id`: Object.entries() gives the pairs, filter() drops
-  // one, Object.fromEntries() makes an object again
   const others = Object.fromEntries(Object.entries(loadPending()).filter(([key]) => key !== id))
   write(PENDING_KEY, Object.keys(others).length === 0 ? null : others)
 }

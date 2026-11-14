@@ -1,7 +1,6 @@
 /*
- * The exercise editor (docs/design/D1-ui.md D1.4.5): creating, changing, the
- * form's own messages, the server's messages, and an exercise that is not
- * the user's.
+ * The exercise editor: creating, changing, the form's own messages, the
+ * server's messages, and an exercise that is not the user's.
  */
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

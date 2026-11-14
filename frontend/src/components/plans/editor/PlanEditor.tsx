@@ -1,21 +1,17 @@
 /*
- * The plan editor (docs/design/D1-ui.md D1.4.8), in two steps on one draft:
- * first the plan's details (EditorOverview: name, goal, notes, the number of
- * days and their names), then the exercises (EditorDays: the days as tabs,
- * under each its exercises, their sets and their supersets). Used by
- * PlanEditorPage for /plans/new and /plans/:id/edit. How it works:
- * docs/concepts/C1-frontend.md C1.16.
+ * The plan editor, in two steps on one draft: first the plan's details
+ * (EditorOverview: name, goal, notes, the number of days and their names), then
+ * the exercises (EditorDays: the days as tabs, under each its exercises, their
+ * sets and their supersets). Used by PlanEditorPage for /plans/new and
+ * /plans/:id/edit.
  *
  * Which step shows is in the address: `?day=2` is the second step with the
- * second day's tab open, no `?day=` the first step. So the phone's Back
- * button, or the browser's, goes from the exercises back to the details, as
- * people expect, and a reload stays where it was (C1.16.7).
+ * second day's tab open, no `?day=` the first step. So the phone's Back button,
+ * or the browser's, goes from the exercises back to the details, as people
+ * expect, and a reload stays where it was.
  *
- * The draft is one object held with React's useReducer: every change is an
- * action ("add a set to this exercise") given to draftReducer
- * (plan-draft.ts), which returns the next draft. The pieces below
- * (EditorDay, EditorItem, EditorSet) get `dispatch` and send actions; none
- * of them holds a copy of the plan.
+ * The draft is one reducer state (draftReducer, plan-draft.ts); the pieces
+ * below get `dispatch`, and none holds a copy of the plan.
  *
  * The draft is kept in the browser at every change (draft-storage.ts), so
  * nothing is lost by leaving; "Discard changes" goes back to the plan as it
@@ -49,16 +45,14 @@ const FALLBACK_REST_SECONDS = 90
 const ITEM_ERROR = /^days\.(\d+)\.items\./
 
 /**
- * What the editor keeps in a history entry's `state` (the second argument
- * of a navigation, C1.16.5): whether the second step was opened from the
- * first, so the entry before it is the first step's.
+ * What the editor keeps in a history entry's `state` (the second argument of a
+ * navigation): whether the second step was opened from the first, so the entry
+ * before it is the first step's.
  */
 interface EditorHistoryState {
-  /** True when the entry before this one is the first step. */
   fromPlan: boolean
 }
 
-/** Props of PlanEditor. */
 interface PlanEditorProps {
   /** The plan as it is opened: saved, or new and empty. */
   initial: PlanDraft
@@ -74,12 +68,9 @@ interface PlanEditorProps {
   cancelTo: string
 }
 
-/** The editor: the plan's fields, its days, Save and Discard. */
 export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, cancelTo }: PlanEditorProps) {
   const { t, i18n } = useTranslation()
   const { data: user } = useCurrentUser()
-  // The address's `?day=`, the current history entry (its `state`), and the
-  // way to move to another entry
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
   const navigate = useNavigate()
@@ -88,24 +79,18 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
   // Whether the sets show the RPE field: a preference of Profile, off by default
   const showRpe = user?.show_rpe ?? false
 
-  // The draft kept from an earlier visit, read once, when the editor opens
+  // Read once, when the editor opens
   const [kept] = useState(() => loadDraft(storageKey))
-  // useReducer(reducer, first state): `draft` is the state, `dispatch(action)`
-  // asks the reducer for the next one, and React draws again with it
   const [draft, dispatch] = useReducer(draftReducer, kept?.draft ?? initial)
 
-  // The errors to show; whether a save is running; the message of a failed save
   const [errors, setErrors] = useState<DraftErrors>({})
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
 
-  // Whether the draft differs from the plan as opened. JSON.stringify turns
-  // each into text, the simplest way to compare two trees of objects
+  // The simplest deep comparison of two plain trees
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial)
 
-  // Keeps the draft in the browser after every change, and forgets it when
-  // it is back to the plan as opened. An effect: it runs after React has
-  // drawn, every time `draft` changes
+  // Forgotten again when it is back to the plan as opened
   useEffect(() => {
     if (dirty) storeDraft(storageKey, draft)
     else clearDraft(storageKey)
@@ -116,7 +101,6 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
   // ?day=9 or a day just discarded, shows the first step
   const requested = Number(searchParams.get('day'))
   const openDay = searchParams.has('day') && Number.isInteger(requested) && requested >= 1 && requested <= draft.days.length ? requested - 1 : null
-  // Whether the second step was reached from the first (goToDay)
   const fromPlan = (location.state as EditorHistoryState | null)?.fromPlan === true
 
   /**
@@ -125,7 +109,6 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
    */
   function errorOf(path: string): string | undefined {
     const key = errors[path]
-    // A key of ours is translated; a server's message arrives translated
     return key === undefined ? undefined : key.startsWith('plans.') ? t(key as 'plans.editor.errors.tooLong') : key
   }
 
@@ -146,8 +129,6 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
    */
   function goToDay(index: number) {
     if (index === openDay) return
-    // setSearchParams(params, options): a navigation to the same page with
-    // another `?…`; the options are navigate()'s (replace, state)
     if (openDay === null) setSearchParams({ day: String(index + 1) }, { state: { fromPlan: true } satisfies EditorHistoryState })
     else setSearchParams({ day: String(index + 1) }, { replace: true, state: location.state as EditorHistoryState | null })
   }
@@ -175,7 +156,6 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
       if (openDay !== null) backToPlan()
       return
     }
-    // The first day with an error: "days.2.items.…" gives 2
     const firstDay = paths.map(path => ITEM_ERROR.exec(path)?.[1]).find(index => index !== undefined)
     if (firstDay !== undefined) goToDay(Number(firstDay))
   }
@@ -194,18 +174,16 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
     try {
       const saved = await save(toPlanInput(draft, unit))
       clearDraft(storageKey)
-      // Saved from the second step opened from the first: first back to the
-      // first step's entry, so the plan's page then replaces it and Back
-      // from there does not return to the editor. `await`: navigate(-1) gives a Promise
-      // that ends when the browser has gone back
+      // Saved from the second step opened from the first: back to the first
+      // step's entry first, so the plan's page replaces it and Back from
+      // there does not return to the editor
       if (openDay !== null && fromPlan) await navigate(-1)
       onSaved(saved)
     }
     catch (error) {
       setSaving(false)
       if (error instanceof ApiError && error.status === 422) {
-        // The server's messages, each under its field: the backend names
-        // fields as the API does, draftField() as the draft does
+        // The backend names fields as the API does
         const fromServer: DraftErrors = {}
         for (const [field, messages] of Object.entries(error.fieldErrors)) {
           fromServer[draftField(field)] = messages[0] ?? ''
@@ -227,11 +205,9 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
     clearDraft(storageKey)
   }
 
-  // The buttons, in a bar that sticks to the top of the screen while a long
-  // plan scrolls, as the library's search does (C1.14.3): Save is always in
-  // reach, and there is one of each button, never two. One lime button at a
-  // time (docs/how-to/H3-frontend.md H3.15.10): in the first step the lime
-  // one is EditorOverview's "Next", so Save is outlined there
+  // A sticky bar, so Save stays in reach and is never doubled. One lime button
+  // at a time: in the first step it is EditorOverview's "Next", so Save is
+  // outlined there
   const saveVariant = openDay === null ? 'outline' : 'default'
   const actions = (
     <div className="sticky top-0 z-20 -my-2 flex flex-wrap items-center gap-3 bg-background/85 py-2 backdrop-blur">
@@ -259,7 +235,6 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
       {actions}
       {failure && <FormBanner variant="error">{failure}</FormBanner>}
 
-      {/* One of the two steps */}
       {openDay === null
         ? <EditorOverview draft={draft} dispatch={dispatch} errorOf={errorOf} onNext={() => goToDay(0)} />
         : (

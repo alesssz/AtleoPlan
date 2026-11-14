@@ -12,8 +12,6 @@
  * frontend/package.json, under `auditIgnore`, by its GHSA id with the reason;
  * any other advisory, of any severity, fails the run.
  *
- * How it was built and how to use it: docs/how-to/H5-ci.md H5.4.
- *
  * Exit code 1 when an advisory not in the list is found, or when the audit
  * itself cannot run (no network); 0 otherwise.
  */

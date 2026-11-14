@@ -1,7 +1,6 @@
 /*
- * The plan list (docs/design/D1-ui.md D1.4.6): the cards, the two views kept
- * in the address, and the empty and error states (D1.6). The API is
- * fakeApi's table (src/test/auth-helpers.tsx).
+ * The plan list: the cards, the two views kept in the address, and the empty
+ * and error states. The API is fakeApi's table (src/test/auth-helpers.tsx).
  */
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -21,7 +20,6 @@ const planFile = { format: 'atleoplan.plan', version: 1, plan: { name: 'Calisthe
 
 /**
  * The file input of Import plan: hidden, so not found by role.
- * `!`: the test fails at once if it is not there.
  */
 function fileInput(): HTMLInputElement {
   return document.querySelector<HTMLInputElement>('input[type=file]')!
@@ -47,8 +45,7 @@ describe('PlansPage', () => {
     expect(await within(dialog).findByText('Calisthenics')).toBeInTheDocument()
     expect(within(dialog).getByText('2 days · 3 exercises')).toBeInTheDocument()
     expect(within(dialog).getByText('calisthenics.atleoplan.json')).toBeInTheDocument()
-    // mock.calls: every call of the fake fetch, its arguments as a list;
-    // none to the import's address yet
+    // Nothing sent yet
     expect(fake.mock.calls.some(([path]) => path === '/api/plans/import')).toBe(false)
 
     // Import: sent as it is, then the new plan opens
@@ -68,9 +65,9 @@ describe('PlansPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Import plan' }))
     const dialog = await screen.findByRole('dialog', { name: 'Import a plan' })
 
-    // Not JSON, then another app's JSON: said at once, nothing sent. A
-    // .json name, or upload() would refuse it as the browser's picker
-    // does, by the input's `accept`
+    // Not JSON, then another app's JSON: said at once, nothing sent. A. json
+    // name, or upload() would refuse it as the browser's picker does, by the
+    // input's `accept`
     await user.upload(fileInput(), new File(['day;exercise;sets'], 'plan.json', { type: 'application/json' }))
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('it is not even a JSON file')
     await user.upload(fileInput(), new File([JSON.stringify({ ...planFile, format: 'chronovault.export' })], 'other.json', { type: 'application/json' }))

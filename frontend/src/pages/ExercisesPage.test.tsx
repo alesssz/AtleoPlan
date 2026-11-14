@@ -1,7 +1,7 @@
 /*
- * The library's list (docs/design/D1-ui.md D1.4.3): what it shows, what it
- * asks the server for (search, filters, pages), and its empty and error
- * states (D1.6). The API is fakeApi's table (src/test/auth-helpers.tsx).
+ * The library's list: what it shows, what it asks the server for (search,
+ * filters, pages), and its empty and error states. The API is fakeApi's table
+ * (src/test/auth-helpers.tsx).
  */
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -19,7 +19,6 @@ const routes = [
 
 /**
  * The values of one filter in every list request sent so far, in order.
- * @param fake the fake fetch
  * @param name the parameter, such as 'filter[search]'
  */
 function sentFilter(fake: ReturnType<typeof fakeApi>, name: string): (string | null)[] {

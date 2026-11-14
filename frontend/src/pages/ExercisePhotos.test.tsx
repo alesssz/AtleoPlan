@@ -1,7 +1,6 @@
 /*
- * The photos of a personal exercise on its edit page (ExercisePhotoManager,
- * docs/design/D1-ui.md D1.4.5, docs/concepts/C1-frontend.md C1.14.7), and
- * Duplicate as mine on a public exercise's page (D1.4.4).
+ * The photos of a personal exercise on its edit page (ExercisePhotoManager),
+ * and Duplicate as mine on a public exercise's page.
  *
  * Fixtures: fakeApi for the JSON requests, fakeUploads for the uploads,
  * which go through XMLHttpRequest; a fake server that remembers the photos,
@@ -25,7 +24,6 @@ const routes = [
 
 /**
  * A photo as the API sends it.
- * @param id its number
  */
 function photo(id: number): ExercisePhoto {
   return { id, url: `/storage/${id}/conversions/photo-large.webp`, thumb_url: `/storage/${id}/conversions/photo-thumb.webp` }

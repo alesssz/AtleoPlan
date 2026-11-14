@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-// Imports: the model it describes, the request, Laravel's base resource, and Carbon for a date
 use App\Models\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -13,7 +12,7 @@ use Illuminate\Support\Carbon;
  * plan: the keys of what was not loaded are left out (whenLoaded,
  * whenCounted), so the list has `days_count` and the whole plan has `days`.
  *
- * In the list (GET /api/plans; docs/design/D1-ui.md D1.4.6):
+ * In the list (GET /api/plans):
  *
  *     {
  *       "id": "0192f4a7-…",
@@ -28,11 +27,11 @@ use Illuminate\Support\Carbon;
  *       "last_used_at": "2026-11-09T18:00:00.000000Z"
  *     }
  *
- * `last_used_at` is the start of the plan's latest finished workout, null
- * when it was never used (FEAT-3: it waited for the workouts to exist).
+ * `last_used_at` is the start of the plan's latest finished workout, null when
+ * it was never used.
  *
- * The whole plan (GET /api/plans/{plan}; D1.4.7) has the same keys but
- * `days_count` and `last_used_at`, plus `days`: a list of PlanDayResource, each with its items
+ * The whole plan (GET /api/plans/{plan}) has the same keys but `days_count` and
+ * `last_used_at`, plus `days`: a list of PlanDayResource, each with its items
  * (PlanItemResource) and their sets (PlanSetResource).
  *
  * @mixin Plan
@@ -40,9 +39,6 @@ use Illuminate\Support\Carbon;
 class PlanResource extends JsonResource
 {
     /**
-     * The fields to send.
-     *
-     * @param  Request  $request  the current request; its user decides `is_active`
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
@@ -52,27 +48,14 @@ class PlanResource extends JsonResource
             'name' => $this->name,
             'goal' => $this->goal,
             'notes' => $this->notes,
-            // What the editor sends back when saving (D3.5.7)
+            // What the editor sends back when saving
             'version' => $this->version,
-            // Whether it is the user's active plan: the Active badge, and
-            // the list puts it first (D1.4.6). `?->`: null when nobody is
-            // signed in, which never happens under auth:sanctum
             'is_active' => $request->user()?->active_plan_id === $this->id,
-            // A date object, which JSON writes as text in ISO 8601, the
-            // format JavaScript's new Date() reads; null when not archived
             'archived_at' => $this->archived_at,
             'updated_at' => $this->updated_at,
-            // whenCounted(): only when the query asked for the count, with
-            // withCount('days'), which adds a `days_count` column
             'days_count' => $this->whenCounted('days'),
-            // whenHas(): only when the query added the column (withMax in
-            // the list), null included. A subquery's result is the
-            // database's text ("2026-11-09 18:00:00", in UTC), not a date
-            // the model casts: Carbon reads it, toJSON() writes ISO 8601
+            // A subquery's value is the database's text, not a cast date
             'last_used_at' => $this->whenHas('last_used_at', fn (?string $value) => $value === null ? null : Carbon::parse($value)->toJSON()),
-            // collection(): PlanDayResource applied to each day. With the
-            // days not loaded, whenLoaded() gives a "missing" value and the
-            // key is left out
             'days' => PlanDayResource::collection($this->whenLoaded('days')),
         ];
     }

@@ -72,7 +72,6 @@ describe('formValuesFrom', () => {
 })
 
 describe('exerciseFormSchema', () => {
-  // safeParse(): checks without throwing, and says what failed
   it('asks for a name, and refuses a link that is not YouTube', () => {
     const result = exerciseFormSchema(i18n.t).safeParse({ ...emptyFormValues(), youtube_url: 'https://vimeo.com/1' })
 

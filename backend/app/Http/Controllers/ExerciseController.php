@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-// Imports: the two actions (save, duplicate), the three Form Requests, the
-// resource, the model, the request, Gate (asks the policy), the answer types,
-// and the two classes of spatie/laravel-query-builder
 use App\Actions\Exercises\DuplicateExercise;
 use App\Actions\Exercises\SavePersonalExercise;
 use App\Http\Requests\ListExercisesRequest;
@@ -20,128 +17,62 @@ use Illuminate\Support\Facades\Gate;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
-/**
- * The exercise library's API: listing, reading, creating, changing and
- * deleting exercises (docs/design/D1-ui.md D1.4.3–D1.4.5). The routes are one
- * line in routes/api.php, `Route::apiResource('exercises', …)`, which ties
- * each method below to its URL.
- *
- * A thin controller (docs/concepts/C2-backend.md C2.5): each method asks
- * ExercisePolicy (Gate::authorize), lets a Form Request validate, hands the
- * work to the model's scopes or to SavePersonalExercise, and answers with
- * ExerciseResource. Created with
- * `make:controller ExerciseController --api --model=Exercise`, which wrote
- * the five empty methods.
- *
- * Every route here is under `auth:sanctum`, so `$request->user()` is never null.
- */
 class ExerciseController extends Controller
 {
     /**
-     * The relations sent with every exercise, loaded in one query each for
-     * the whole page rather than one per exercise (ExerciseResource explains
-     * why). `media` holds the photos (spatie/laravel-medialibrary).
+     * Eager-loaded with every exercise; `media` holds the photos.
      *
      * @var list<string>
      */
     private const RELATIONS = ['equipment', 'muscles', 'media'];
 
     /**
-     * GET /api/exercises: the library, one page at a time. Public exercises
-     * and the user's own, sorted by name, with the filters of
-     * ListExercisesRequest.
-     *
-     * QueryBuilder::for() wraps a query and reads `filter[...]` from the
-     * request; allowedFilters() lists the filters it accepts, and any other
-     * name gets a 400. Each filter here calls a scope of the model:
-     * `filter[muscle]=chest` calls withPrimaryMuscle('chest'). delimiter('')
-     * stops the package from splitting the search at commas, as it does for
-     * the slugs (docs/concepts/C2-backend.md C2.5.2).
-     *
-     * @param  ListExercisesRequest  $request  the validated request
-     * @return AnonymousResourceCollection the page: `data`, `links` and `meta`
+     * GET /api/exercises: public exercises and the user's own, by name, one
+     * page at a time. Each filter calls a model scope; an unknown filter is a
+     * 400.
      */
     public function index(ListExercisesRequest $request): AnonymousResourceCollection
     {
-        // The query: visible exercises only, filtered, with their relations,
-        // sorted. Nothing is read from the database before paginate()
         $exercises = QueryBuilder::for(Exercise::visibleTo($request->user()))
             ->allowedFilters(
+                // The package would otherwise split the search at commas
                 AllowedFilter::scope('search')->delimiter(''),
-                // The filter's name, then the scope it calls
                 AllowedFilter::scope('muscle', 'withPrimaryMuscle'),
                 AllowedFilter::scope('equipment', 'usingEquipment'),
                 AllowedFilter::scope('source', 'fromSource'),
             )
             ->with(self::RELATIONS)
             ->orderByName()
-            // One page: `?page=2` picks which. It runs two queries: the rows
-            // of the page, and the count of all rows for `meta.total`
             ->paginate($request->perPage())
-            // The links to the other pages keep the filters
             ->withQueryString();
 
-        // collection(): applies ExerciseResource to each exercise. With a
-        // paginator, the answer also has `links` and `meta` (current page,
-        // last page, total) next to `data`
         return ExerciseResource::collection($exercises);
     }
 
-    /**
-     * GET /api/exercises/{exercise}: one exercise, for its details page.
-     *
-     * `Exercise $exercise` is route model binding: Laravel loads the exercise
-     * whose id is in the URL, and answers 404 if there is none or it is
-     * soft-deleted (docs/concepts/C2-backend.md C2.5).
-     *
-     * @param  Exercise  $exercise  the exercise in the URL
-     * @return ExerciseResource the exercise, with its equipment and muscles
-     */
     public function show(Exercise $exercise): ExerciseResource
     {
-        // Someone else's personal exercise: 403
         Gate::authorize('view', $exercise);
 
-        // load(): reads the relations now, on a model already loaded
         return new ExerciseResource($exercise->load(self::RELATIONS));
     }
 
     /**
-     * POST /api/exercises: creates a personal exercise, in the request's
-     * language. Answers 201 with the new exercise.
-     *
-     * The action is a parameter: Laravel's service container sees the type
-     * SavePersonalExercise and builds one ("dependency injection"). The 201
-     * is Laravel's own doing: a resource wrapping a model that was just
-     * created answers 201 instead of 200.
-     *
-     * @param  StoreExerciseRequest  $request  the validated request
-     * @param  SavePersonalExercise  $save  the action that writes it
-     * @return ExerciseResource the new exercise
+     * Always a personal exercise, written in the request's language.
      */
     public function store(StoreExerciseRequest $request, SavePersonalExercise $save): ExerciseResource
     {
-        // No exercise yet, so the policy is asked about the class
         Gate::authorize('create', Exercise::class);
 
-        // validated(): only the fields that passed the rules
         $exercise = $save->create($request->user(), $request->validated());
 
         return new ExerciseResource($exercise->load(self::RELATIONS));
     }
 
     /**
-     * PATCH (or PUT) /api/exercises/{exercise}: changes a personal exercise.
      * Only the fields sent change.
-     *
-     * @param  UpdateExerciseRequest  $request  the validated request
-     * @param  Exercise  $exercise  the exercise in the URL
-     * @param  SavePersonalExercise  $save  the action that writes it
-     * @return ExerciseResource the exercise as it is now
      */
     public function update(UpdateExerciseRequest $request, Exercise $exercise, SavePersonalExercise $save): ExerciseResource
     {
-        // A public exercise, or someone else's: 403
         Gate::authorize('update', $exercise);
 
         $save->update($exercise, $request->validated());
@@ -150,16 +81,8 @@ class ExerciseController extends Controller
     }
 
     /**
-     * DELETE /api/exercises/{exercise}: deletes a personal exercise. Answers
-     * 204, with no body.
-     *
-     * A soft delete (SoftDeletes on the model): the row stays, with
-     * deleted_at filled, so plans and history that point to it keep working
-     * (docs/design/D3-data-model.md D3.7.2). It disappears from the list and
-     * from this API, and its photos stay on disk (D3.4.4).
-     *
-     * @param  Exercise  $exercise  the exercise in the URL
-     * @return Response an empty answer
+     * Soft delete: plans and history that point to it keep working, and its
+     * photos stay on disk.
      */
     public function destroy(Exercise $exercise): Response
     {
@@ -171,25 +94,16 @@ class ExerciseController extends Controller
     }
 
     /**
-     * POST /api/exercises/{exercise}/duplicate: copies a public exercise as
-     * the user's own, photos included, in the request's language
-     * (docs/design/D1-ui.md D1.4.4, docs/concepts/C2-backend.md C2.5.9).
-     * Answers 201 with the copy; the React app then opens its editor.
+     * POST /api/exercises/{exercise}/duplicate: a public exercise copied as the
+     * user's own, photos included, in the request's language.
      *
-     * The 201 is set by hand (`->response()->setStatusCode(201)`): store()
-     * gets it from Laravel because its resource wraps a model just created,
-     * and stating it here does not depend on how the action saves the copy.
-     *
-     * @param  Request  $request  the current request: its user and language
-     * @param  Exercise  $exercise  the exercise in the URL
-     * @param  DuplicateExercise  $duplicate  the action, given by the service container
-     * @return JsonResponse the copy, as an ExerciseResource
+     * The 201 is explicit, so it does not depend on how the action saves the
+     * copy.
      */
     public function duplicate(Request $request, Exercise $exercise, DuplicateExercise $duplicate): JsonResponse
     {
         Gate::authorize('duplicate', $exercise);
 
-        // The copy, in the language set by SetLocaleFromRequest
         $copy = $duplicate->handle($exercise, $request->user(), app()->getLocale());
 
         return (new ExerciseResource($copy->load(self::RELATIONS)))->response()->setStatusCode(201);

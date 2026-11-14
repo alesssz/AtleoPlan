@@ -1,17 +1,6 @@
-/*
- * Textarea: a multi-line text field, styled like Input (input.tsx). Used for
- * the description and the instructions of the exercise editor. Added with
- * `npx shadcn add textarea`; what shadcn/ui is: card.tsx and
- * docs/concepts/C1-frontend.md C1.8.
- *
- * `field-sizing-content` makes it grow with its text, in the browsers that
- * support it; min-h-16 keeps it at least 64 px tall.
- */
-// React's types; cn() joins classes
 import * as React from 'react'
 import { cn } from 'cn'
 
-/** The field. Takes every prop of a <textarea>. */
 function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
   return (
     <textarea

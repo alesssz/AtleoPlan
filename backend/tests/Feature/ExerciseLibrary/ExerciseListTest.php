@@ -1,8 +1,7 @@
 <?php
 
 /**
- * GET /api/exercises, the library's list (docs/design/D1-ui.md D1.4.3,
- * docs/design/D3-data-model.md D3.4.6): who sees what, the language and the
+ * GET /api/exercises, the library's list: who sees what, the language and the
  * order of the names, the four filters, the pages, and the number of queries.
  *
  * Exercises are created with only the languages a scenario needs, so that
@@ -22,11 +21,7 @@ uses(RefreshDatabase::class);
 /**
  * The names of the exercises in the list, in the order received.
  *
- * A helper for this file: a plain function, defined once and called by the
- * tests below. `$this` is the test case, passed in as $test.
- *
  * @param  mixed  $test  the running test ($this)
- * @param  User  $user  who asks
  * @param  string  $query  the query string, without the "?"
  * @param  string  $language  the Accept-Language header
  * @return list<string>
@@ -36,7 +31,6 @@ function listedNames(mixed $test, User $user, string $query = '', string $langua
     return $test->actingAs($user)
         ->getJson("/api/exercises?{$query}", ['Accept-Language' => $language])
         ->assertOk()
-        // json('data.*.name'): every item's name, as a PHP array
         ->json('data.*.name');
 }
 
@@ -250,7 +244,6 @@ it('runs the same number of queries for one exercise or many', function () {
     $this->actingAs(User::factory()->create());
     $barbell = Equipment::factory()->create();
     $chest = Muscle::factory()->create();
-    // A factory "recipe", used twice below
     $exercise = Exercise::factory()->for($barbell)->hasAttached($chest, ['role' => MuscleRole::Primary], 'muscles');
 
     $exercise->create();

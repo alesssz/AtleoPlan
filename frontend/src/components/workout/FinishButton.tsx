@@ -1,19 +1,18 @@
 /*
  * Finish, with a confirmation first: finishing cannot be undone. The question
  * says how many sets were done, and, when finishing early, that the sets not
- * ticked will not be saved (docs/design/D1-ui.md D1.4.9). Used by workout
- * mode, at the top ("Finish", outlined) and at the bottom ("Finish
- * workout", lime), and by the banner of a workout left open on Home and on
- * the plan's page (ResumeBanner). What finishing does is in
- * finish-workout.ts; this file is only the button and its question.
+ * ticked will not be saved. Used by workout mode, at the top ("Finish",
+ * outlined) and at the bottom ("Finish workout", lime), and by the banner of a
+ * workout left open on Home and on the plan's page (ResumeBanner). What
+ * finishing does is in finish-workout.ts; this file is only the button and its
+ * question.
  *
- * Under the question, quieter and in red, **Delete workout**: the way to
- * throw away a workout in progress without finishing it first (a workout
- * started by mistake, or abandoned). The dialog then asks a second question,
- * since nothing will be kept, not even the sets ticked. Finishing and
- * deleting are both "ending the workout", so they share one door: the top
- * bar gets no extra button. How it works: docs/concepts/C1-frontend.md
- * C1.17.12.
+ * Under the question, quieter and in red, **Delete workout**: the way to throw
+ * away a workout in progress without finishing it first (a workout started by
+ * mistake, or abandoned). The dialog then asks a second question, since nothing
+ * will be kept, not even the sets ticked. Finishing and deleting are both
+ * "ending the workout", so they share one door: the top bar gets no extra
+ * button.
  */
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -33,7 +32,6 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { SetCount } from './workout-session'
 
-/** Props of FinishButton. */
 interface FinishButtonProps {
   /** The sets that count, done and in all, for the question. */
   count: SetCount
@@ -61,8 +59,7 @@ export function FinishButton({ count, label, variant = 'default', className, dis
   const { t } = useTranslation()
   // The sets not ticked, warm-ups excluded
   const left = count.total - count.done
-  // Whether the dialog is open: controlled here, so that closing it can
-  // also bring it back to its first question
+  // Controlled, so closing it also brings back the first question
   const [open, setOpen] = useState(false)
   // Which question the dialog asks: finish, or delete
   const [view, setView] = useState<'finish' | 'discard'>('finish')
@@ -93,28 +90,15 @@ export function FinishButton({ count, label, variant = 'default', className, dis
                     {left > 0 && ` ${t('workout.finishLeft', { count: left })}`}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                {/* The answers, in the footer, the dialog's grey band of
-                    buttons. With Delete offered, a column on every screen
-                    (`sm:flex-col-reverse` overrides the footer's row from
-                    640 px): three buttons on one row did not fit the
-                    dialog's 384 px in Spanish or German, and the column
-                    is the phone's layout, already tried
-                    (docs/how-to/H3-frontend.md H3.32.9). cn() joins
-                    classes and, between two Tailwind classes for the same
-                    property, keeps the later one: here ours over the
-                    footer's `sm:flex-row`. `onDiscard && '…'` gives the
-                    class only when Delete is offered (false adds nothing),
-                    docs/concepts/C1-frontend.md C1.8 */}
+                {/* With Delete offered, a column on every screen: three
+                    buttons did not fit the dialog's 384 px in Spanish or
+                    German */}
                 <AlertDialogFooter className={cn(onDiscard && 'sm:flex-col-reverse')}>
-                  {/* Delete workout: inside the footer. After it, it fell
-                      outside the box: the footer is the box's bottom edge
-                      (negative margins, rounded bottom corners), so
-                      anything after it hangs below the card. Plain red
-                      text (ghost), first in the code: the footer is a
-                      reversed column, so it shows last, under Keep going,
-                      away from where the thumb goes to finish. A Button,
-                      not an Action: it does not close the dialog, it turns
-                      it into the second question */}
+                  {/* Inside the footer: after it, it hung below the card.
+                      First in the code, so the reversed column shows it
+                      last, away from where the thumb goes to finish. A
+                      Button, not an Action: it turns the dialog into the
+                      second question rather than closing it */}
                   {onDiscard && (
                     <Button variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setView('discard')}>
                       <Trash2 aria-hidden="true" />

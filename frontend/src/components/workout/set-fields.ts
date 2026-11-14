@@ -1,16 +1,13 @@
 /*
- * The fields of a set in workout mode, by the way its exercise is logged
- * (docs/design/D1-ui.md D1.4.9): weight and reps, the added weight and
- * reps of a bodyweight exercise, seconds, or meters. One list for the row
- * (SetRow.tsx), the titles above the rows, and the big stepper
- * (SetStepper.tsx), so the three always show the same fields in the same
- * order. An exercise counted in reps and done as fast as possible has the
- * reps and the seconds: the weight, if any, stays the plan's or last time's,
- * since the row has no room for three fields beside ▶ and ✓.
+ * The fields of a set in workout mode, by the way its exercise is logged:
+ * weight and reps, the added weight and reps of a bodyweight exercise, seconds,
+ * or meters. One list for the row (SetRow.tsx), the titles above the rows, and
+ * the big stepper (SetStepper.tsx), so the three always show the same fields in
+ * the same order. An exercise counted in reps and done as fast as possible has
+ * the reps and the seconds: the weight, if any, stays the plan's or last
+ * time's, since the row has no room for three fields beside ▶ and ✓.
  *
- * In a file of its own, not in SetRow.tsx: Vite's Fast Refresh, which
- * updates an edited component without reloading the page, works only on
- * files that export components alone (the react-refresh lint rule).
+ * Apart from SetRow.tsx, which may then export only components (Fast Refresh).
  */
 import type { TFunction } from 'i18next'
 import type { LoggingType } from '@/api/exercises'
@@ -36,9 +33,7 @@ export interface FieldSpec {
 /**
  * The fields of a way of logging: weight and reps, reps, seconds or meters.
  * Shared by the rows, their header and the stepper, so they always match.
- * @param loggingType how the exercise is logged
  * @param unit the user's weight unit, the weight's title
- * @param t the translation function
  * @param forTime whether the exercise is done as fast as possible (isForTime)
  */
 export function fieldsFor(loggingType: LoggingType, unit: WeightUnit, t: TFunction, forTime = false): FieldSpec[] {
@@ -64,13 +59,10 @@ export function fieldsFor(loggingType: LoggingType, unit: WeightUnit, t: TFuncti
  * typed and as sent ("870"), but shown as people read a time: "45 s",
  * "2 min", "14:30" (durationText). Any other field, and a time that does
  * not read as a whole number yet (typing), is shown as it is.
- * @param field the field
  * @param value its value, as kept in the set
- * @param language the interface's language
  */
 export function fieldText(field: SetField, value: string, language: string): string {
   if (field !== 'seconds') return value
-  // The seconds as a whole number; null when empty, NaN when not a number
   const seconds = parseWhole(value)
   return seconds === null || Number.isNaN(seconds) ? value : durationText(seconds, language)
 }

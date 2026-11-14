@@ -1,13 +1,12 @@
 <?php
 
 /**
- * The Exercise model and its tables (docs/design/D3-data-model.md D3.4, D3.7):
- * translations with their fallback, the defaults and casts, the muscles with
- * their role, soft deletes, and what Postgres refuses.
+ * The Exercise model and its tables: translations with their fallback, the
+ * defaults and casts, the muscles with their role, soft deletes, and what
+ * Postgres refuses.
  *
  * The refusals are checked inside DB::transaction(): on Postgres, an error
- * ends the transaction a test runs in, and any later query would fail.
- * DB::transaction() opens a nested one (a "savepoint") and undoes only that.
+ * aborts the transaction a test runs in, so it must happen in a savepoint.
  */
 
 use App\Enums\LoggingType;
@@ -34,7 +33,7 @@ it('reads the name in the current language, falling back to English', function (
 });
 
 it('falls back to any language when English is missing too', function () {
-    // A personal exercise, written in one language only (D2.4)
+    // A personal exercise, written in one language only
     $exercise = Exercise::factory()->personal()->create(['name' => ['it' => 'Panca mia']]);
 
     // fallbackAny, set in AppServiceProvider: without it, this would be ''
@@ -79,7 +78,6 @@ it('lists its muscles with their role, and its equipment', function () {
     $triceps = Muscle::factory()->create(['slug' => 'triceps']);
     $exercise = Exercise::factory()->for($barbell)->create();
 
-    // attach() writes a row of exercise_muscle, with the extra column
     $exercise->muscles()->attach($chest, ['role' => MuscleRole::Primary]);
     $exercise->muscles()->attach($triceps, ['role' => MuscleRole::Secondary]);
 
@@ -107,7 +105,7 @@ it('hides a deleted exercise but keeps it for plans and history', function () {
 it('removes the muscle rows when an exercise is deleted for good', function () {
     $exercise = Exercise::factory()->hasAttached(Muscle::factory()->count(2), ['role' => MuscleRole::Secondary], 'muscles')->create();
 
-    // forceDelete() really removes the row; cascadeOnDelete takes its pivot rows
+    // The cascade takes its pivot rows
     $exercise->forceDelete();
 
     $this->assertDatabaseCount('exercise_muscle', 0);

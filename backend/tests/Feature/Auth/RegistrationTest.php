@@ -2,7 +2,7 @@
 
 /**
  * Signing up: POST /api/auth/register, answered by Fortify, with the account
- * created by app/Actions/Fortify/CreateNewUser.php. docs/concepts/C2-backend.md C2.7.3.
+ * created by app/Actions/Fortify/CreateNewUser.php.
  */
 
 use App\Enums\Locale;
@@ -14,7 +14,7 @@ uses(RefreshDatabase::class);
 
 /**
  * A valid sign-up, with the given fields changed: each test states only what
- * it is about. `+` joins two arrays, the left one winning on repeated keys.
+ * it is about.
  *
  * @param  array<string, mixed>  $overrides  the fields to change
  * @return array<string, mixed>
@@ -73,7 +73,6 @@ it('never lets a request make someone an admin', function () {
     expect(User::sole()->fresh()->is_admin)->toBeFalse();
 });
 
-// A dataset runs the test once per entry, with the entry's values as parameters
 it('refuses invalid data', function (array $overrides, string $field) {
     $this->postJson('/api/auth/register', signUpData($overrides))
         ->assertUnprocessable()

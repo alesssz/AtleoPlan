@@ -2,9 +2,9 @@
 
 /**
  * PUT /api/sessions/{id}: a whole workout sent by the phone, late and maybe
- * more than once (docs/design/D3-data-model.md D3.6.5). The five situations of
- * D3.6.5's table, the links to a plan that changed meanwhile, the values that
- * fit how an exercise is logged, and every refusal.
+ * more than once. The five situations a late or repeated send can meet, the
+ * links to a plan that changed meanwhile, the values that fit how an exercise
+ * is logged, and every refusal.
  */
 
 use App\Enums\LoggingType;
@@ -80,7 +80,8 @@ function phoneSession(Exercise $exercise, array $changes = []): array
     ];
 }
 
-// --- The five situations of D3.6.5 -----------------------------------------------
+// --- The five situations
+// ---------------------------------------------------------
 
 it('saves a new workout with the ids of the phone, and answers 201', function () {
     $user = User::factory()->create();
@@ -297,7 +298,7 @@ it('refuses an end before the start, and a feeling of 6', function () {
 });
 
 it('answers 404 to an address that is not a UUID, and 401 to a visitor', function () {
-    // The visitor first: actingAs() signs in for every request after it
+    // The visitor first: actingAs() lasts for every request after it
     $this->putJson('/api/sessions/'.phoneId(), [])->assertUnauthorized();
     $this->actingAs(User::factory()->create())->putJson('/api/sessions/12', [])->assertNotFound();
 });

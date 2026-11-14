@@ -1,23 +1,3 @@
-/*
- * NativeSelect: the browser's own <select>, styled like the other fields.
- * Added with `npx shadcn add native-select`; what shadcn/ui is: card.tsx and
- * docs/concepts/C1-frontend.md C1.8.
- *
- * Used for the library's filters and the exercise editor rather than the
- * Radix Select of select.tsx, because a native list opens the phone's own
- * picker, works with every keyboard and screen reader, and needs no code to
- * position a popup. It is a plain <select>, so it works with `value` and
- * `onChange`, and with react-hook-form's register():
- *
- *   <NativeSelect value={muscle} onChange={event => setMuscle(event.target.value)}>
- *     <NativeSelectOption value="">All muscles</NativeSelectOption>
- *     <NativeSelectOption value="chest">Chest</NativeSelectOption>
- *   </NativeSelect>
- *
- * The <select> sits in a <div> that also draws the arrow; `className` goes on
- * that wrapper, so width classes (w-full) apply to the whole field.
- */
-// React's types; cn() joins classes; the arrow icon from lucide
 import * as React from 'react'
 import { cn } from 'cn'
 import { ChevronDownIcon } from 'lucide-react'
@@ -26,7 +6,6 @@ type NativeSelectProps = Omit<React.ComponentProps<'select'>, 'size'> & {
   size?: 'sm' | 'default'
 }
 
-/** The field: a styled <select> in a wrapper that draws the arrow. `size` is 'default' (32 px) or 'sm'; every other prop goes to the <select>. */
 function NativeSelect({
   className,
   size = 'default',
@@ -52,7 +31,6 @@ function NativeSelect({
   )
 }
 
-/** One choice of the list: an <option>, with the system's colours so it stays readable in both themes. */
 function NativeSelectOption({
   className,
   ...props
@@ -66,7 +44,6 @@ function NativeSelectOption({
   )
 }
 
-/** A named group of choices: an <optgroup>. */
 function NativeSelectOptGroup({
   className,
   ...props

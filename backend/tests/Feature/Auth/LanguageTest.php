@@ -1,8 +1,7 @@
 <?php
 
 /**
- * Error messages and emails arrive in the user's language
- * (docs/design/D2-decisions.md D2.4, docs/concepts/C2-backend.md C2.7.7).
+ * Error messages and emails arrive in the user's language.
  */
 
 use App\Enums\Locale;
@@ -64,13 +63,12 @@ it('has every message in the three translated languages', function (string $lang
 it('writes the password email in the language of the account, whatever the request asks', function () {
     $user = User::factory()->create(['locale' => Locale::It]);
 
-    // The real email: the mail driver of the tests (`array`, phpunit.xml) keeps
-    // it in memory, sent through the whole of Laravel's notification system
+    // The real email, through the whole notification system; the `array`
+    // mailer (phpunit.xml) keeps it in memory
     $this->withHeader('Accept-Language', 'en')
         ->postJson('/api/auth/forgot-password', ['email' => $user->email])
         ->assertOk();
 
-    // The last message the `array` mailer received, with its HTML
     $sent = Mail::mailer('array')->getSymfonyTransport()->messages()->last();
     $html = $sent->getOriginalMessage()->getHtmlBody();
 

@@ -7,25 +7,15 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * The JSON shape of the signed-in user, as the React app receives it
- * (frontend/src/api/auth.ts holds the matching TypeScript type).
- *
- * An API Resource decides which columns leave the server and how they are
- * named (docs/concepts/C2-backend.md C2.5). Listing them one by one means a new column,
- * such as a secret, stays private until someone adds it here. Laravel wraps the
- * answer in a `data` key: { "data": { "id": 1, … } }.
+ * The signed-in user (frontend/src/api/auth.ts holds the matching type).
+ * Fields are listed one by one, so a new column stays private until it is
+ * added here.
  *
  * @mixin User
  */
 class UserResource extends JsonResource
 {
     /**
-     * The fields to send.
-     *
-     * `$this->name` reads the wrapped user's column (the @mixin line above
-     * tells editors so). Enums become their plain string in JSON.
-     *
-     * @param  Request  $request  the current request
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
@@ -35,9 +25,7 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'is_admin' => $this->is_admin,
-            // The admin panel's address, for Profile's link to it; null for
-            // everyone else, so the app shows the link only when it is non-null
-            // (docs/concepts/C2-backend.md C2.8.4)
+            // Profile links to the panel only when this is set
             'admin_url' => $this->is_admin ? config('app.admin_url') : null,
             'locale' => $this->locale,
             'theme' => $this->theme,

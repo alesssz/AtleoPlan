@@ -1,10 +1,6 @@
 /*
- * The two guards (RequireAuth, RequireGuest) with the real router: who gets sent
- * where, and what happens when the server does not answer. docs/concepts/C1-frontend.md C1.13.
- *
- * screen.findBy… waits for an element to appear, because the answers arrive
- * later; a test using it is `async`. getBy… and queryBy… look only at what is
- * there now, and queryBy… gives null rather than failing when there is nothing.
+ * The two guards (RequireAuth, RequireGuest) with the real router: who gets
+ * sent where, and what happens when the server does not answer.
  */
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

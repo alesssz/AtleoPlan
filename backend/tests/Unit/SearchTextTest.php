@@ -1,13 +1,9 @@
 <?php
 
 /**
- * App\Support\SearchText (docs/design/D3-data-model.md D3.4.6): how the
- * exercises' search text and the user's words are normalised, so that case,
- * accents, dashes and dots do not matter.
- *
- * A unit test (tests/Unit): plain Pest functions, no Laravel booted and no
- * database (tests/Pest.php binds Laravel's TestCase to tests/Feature only).
- * SearchText uses only Illuminate\Support\Str, which works without the app.
+ * App\Support\SearchText: how the exercises' search text and the user's words
+ * are normalised, so that case, accents, dashes and dots do not matter. No app
+ * booted: SearchText needs only Str.
  */
 
 use App\Support\SearchText;

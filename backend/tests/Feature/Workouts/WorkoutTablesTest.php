@@ -1,11 +1,11 @@
 <?php
 
 /**
- * The three workout tables, without HTTP (docs/design/D3-data-model.md D3.6,
- * D3.7, D3.8): what survives a deleted plan, what Postgres refuses, the totals
- * worked out by the database, and the suggested day.
+ * The three workout tables, without HTTP: what survives a deleted plan, what
+ * Postgres refuses, the totals worked out by the database, and the suggested
+ * day.
  *
- * A refusal is tested inside DB::transaction() (docs/how-to/H1-database.md H1.10.8).
+ * A refusal is tested inside DB::transaction().
  */
 
 use App\Models\Exercise;
@@ -23,8 +23,8 @@ use Illuminate\Support\Facades\DB;
 uses(RefreshDatabase::class);
 
 /**
- * A finished workout of one exercise: a warm-up of 40 × 10, then 80 × 8 and
- * 80 × 7, as Ada's Monday in D3.10.
+ * A finished workout of one exercise: a warm-up of 40 × 10, then 80 × 8 and 80
+ * × 7.
  *
  * @param  array<string, mixed>  $attributes  columns of the session
  */
@@ -95,7 +95,7 @@ it('works out the totals in the database, warm-ups excluded', function () {
 
     $session = WorkoutSession::query()->withTotals()->first();
 
-    // 80 × 8 + 80 × 7, the 40 × 10 warm-up left out (D3.10)
+    // 80 × 8 + 80 × 7, the 40 × 10 warm-up left out
     expect((float) $session->volume_kg)->toBe(1200.0)
         ->and($session->sets_done)->toBe(2)
         ->and($session->exercises_done)->toBe(1);

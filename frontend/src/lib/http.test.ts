@@ -1,6 +1,6 @@
 /*
  * The one door to the API: what every request carries, how failures become an
- * ApiError, and the second try on an expired CSRF token. docs/concepts/C1-frontend.md C1.6.
+ * ApiError, and the second try on an expired CSRF token.
  */
 import { describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
@@ -9,7 +9,6 @@ import { ApiError, request } from './http'
 
 /**
  * The headers of one call to the fake API.
- * @param fake the fake fetch
  * @param index which call, counting from 0
  */
 function headersOf(fake: ReturnType<typeof fakeApi>, index: number) {
@@ -47,7 +46,6 @@ describe('request', () => {
   it('turns a validation failure into an ApiError with the field messages', async () => {
     fakeApi({ 'POST /api/thing': { status: 422, body: { message: 'Invalid', errors: { email: ['Wrong'] } } } })
 
-    // rejects: the Promise must fail, and with this error
     await expect(request('/api/thing', { method: 'POST' })).rejects.toMatchObject({
       status: 422,
       fieldErrors: { email: ['Wrong'] },

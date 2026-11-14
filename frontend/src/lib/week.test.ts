@@ -1,15 +1,10 @@
 /*
- * Tests of src/lib/week.ts: the Monday-to-Sunday week used by Home's
- * "This week" strip. Vitest basics (describe, it, expect): see
- * src/lib/format.test.ts and docs/concepts/C1-frontend.md C1.10.
+ * The Monday-to-Sunday week of Home's "This week".
  */
 import { describe, expect, it } from 'vitest'
 import { getWeekDays, isBeforeDay, isInWeek, isSameDay } from './week'
 
-/**
- * A date as 'YYYY-MM-DD', readable in test failures. getMonth() counts from
- * 0, hence + 1; padStart(2, '0') turns 5 into '05'.
- */
+/** 'YYYY-MM-DD', readable in test failures. */
 function ymd(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }

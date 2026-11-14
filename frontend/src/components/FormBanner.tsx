@@ -1,27 +1,21 @@
 /*
- * A message at the top of a form: an error about the whole form (no network,
- * too many tries), or a confirmation ("password changed"). Forms:
- * docs/concepts/C1-frontend.md C1.13.
+ * A message about the whole form (no network, too many tries) or a
+ * confirmation.
  */
 import { CircleAlert, CircleCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-/** Props of FormBanner. */
 interface FormBannerProps {
-  /** Which kind of message: red for an error, green for a confirmation. */
   variant: 'error' | 'success'
-  /** The message, already translated. */
   children: string
 }
 
-/** The message in a tinted box. Never colour alone (D1.7): the icon differs too. */
+/** The icon differs too: never colour alone. */
 export function FormBanner({ variant, children }: FormBannerProps) {
-  // A component chosen at runtime goes in a capitalised variable, so JSX reads it as a component
   const Icon = variant === 'error' ? CircleAlert : CircleCheck
 
   return (
-    // role: an error interrupts a screen reader at once (alert), a confirmation
-    // waits for it to finish (status)
+    // An error interrupts a screen reader; a confirmation waits its turn
     <div
       role={variant === 'error' ? 'alert' : 'status'}
       className={cn(

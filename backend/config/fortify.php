@@ -1,54 +1,42 @@
 <?php
 
 /**
- * The settings of Fortify, Laravel's sign-in backend (docs/concepts/C2-backend.md C2.7).
- * How it is connected to this app: app/Providers/FortifyServiceProvider.php.
- * A config file returns an array, read with config('fortify.prefix') (C2.10).
+ * Fortify's settings; the app's hooks are in FortifyServiceProvider.
  */
 
 use Laravel\Fortify\Features;
 
 return [
-    // The session guard: how a signed-in user is remembered between requests.
-    // The same one Sanctum reads (config/sanctum.php) and Filament signs in with
+    // The guard Sanctum reads and the admin panel signs in with too
     'guard' => 'web',
 
-    // The password broker: the settings of reset tokens (config/auth.php)
     'passwords' => 'users',
 
-    // Which fields of a request hold the username and the email
     'username' => 'email',
     'email' => 'email',
 
-    // ANN@x.com and ann@x.com are one account: Postgres compares text exactly,
-    // so emails are turned to lowercase when signing up, in and resetting
+    // Postgres compares text exactly: ANN@x.com and ann@x.com must be one account
     'lowercase_usernames' => true,
 
-    // Where to send a user who is already signed in and opens a guest-only route
     'home' => '/',
 
-    // Every route starts with this: /api/auth/login and so on. Not plain /login,
-    // which is a React page; and Vite and Caddy forward only /api to Laravel
-    // (docs/concepts/C1-frontend.md C1.1).
+    // Not plain /login, which is a React page; Vite and Caddy forward only /api
+    // to Laravel
     'prefix' => 'api/auth',
 
-    // No subdomain of its own
     'domain' => null,
 
-    // The session, its cookies and CSRF protection, as any signed-in web page
     'middleware' => ['web'],
 
-    // The rate limit of signing in, defined in FortifyServiceProvider
+    // Defined in FortifyServiceProvider
     'limiters' => [
         'login' => 'login',
     ],
 
-    // No HTML pages from Fortify: the React app draws every screen, and Fortify
-    // answers in JSON
+    // The React app draws every screen
     'views' => false,
 
-    // What Fortify switches on. The others (email verification, two-factor,
-    // passkeys, profile and password changes) are off until a feature needs them
+    // The rest stays off until a feature needs it
     'features' => [
         Features::registration(),
         Features::resetPasswords(),

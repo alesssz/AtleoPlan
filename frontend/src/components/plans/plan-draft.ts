@@ -1,8 +1,6 @@
 /*
- * The plan editor's draft (docs/design/D1-ui.md D1.4.8): the plan as the
- * user is changing it, before it is saved. Everything the editor does to it
- * is here, as plain functions with no React, tested on their own
- * (plan-draft.test.ts):
+ * The plan editor's draft: the plan as the user is changing it, before it is
+ * saved:
  *
  * - the draft's shape, close to the screen: every number is the text the
  *   user typed ("8-10", "82,5"), as in a form;
@@ -10,9 +8,7 @@
  *   draft to the body of POST or PUT /api/plans (toPlanInput);
  * - the rules checked before sending (validateDraft), and the translation of
  *   the server's field names into the draft's (draftField);
- * - the reducer: one function that, given the draft and an action ("add a
- *   set to this exercise"), returns the next draft. React's useReducer calls
- *   it (src/components/plans/editor/PlanEditor.tsx; docs/concepts/C1-frontend.md C1.16.2).
+ * - the reducer.
  *
  * Positions are never stored: the place of a day, an exercise or a set in
  * its list is its position, as in the API.
@@ -40,9 +36,8 @@ export interface DraftSet {
 
 /** One exercise of a day, while it is being edited. */
 export interface DraftItem {
-  /** Its UUID: the saved one, or made here for a new exercise. */
+  /** The saved UUID, or one made here for a new exercise. */
   id: string
-  /** The exercise itself, for its name, photo and logging type. */
   exercise: Exercise
   /** The superset's number, or null. */
   superset_group: number | null
@@ -55,17 +50,14 @@ export interface DraftItem {
    * browser before this existed has none, which reads as false.
    */
   for_time?: boolean
-  /** Its sets, in order. */
   sets: DraftSet[]
 }
 
 /** One day, while it is being edited. */
 export interface DraftDay {
-  /** Its UUID. */
   id: string
   /** "Day A – Push". */
   name: string
-  /** Its exercises, in order. */
   items: DraftItem[]
 }
 
@@ -81,22 +73,21 @@ export interface PlanDraft {
   goal: string
   /** '' for none. */
   notes: string
-  /** The days, in order. */
   days: DraftDay[]
 }
 
 /** The limits of the backend (PlanRequest), enforced on screen too. */
 export const LIMITS = { days: 14, items: 30, sets: 20 } as const
 
-/** The set types, in the order the list of SetTypeSelect.tsx shows them (D1.4.8). */
+/** The set types, in the order the list of SetTypeSelect.tsx shows them. */
 export const SET_TYPES: readonly SetType[] = ['normal', 'warm_up', 'drop', 'failure']
 
 /** The short sign of each type, shown instead of the set's number: "W" for a warm-up. */
 export const SET_TYPE_SIGNS: Record<SetType, string | null> = { normal: null, warm_up: 'W', drop: 'D', failure: 'F' }
 
 /**
- * A new UUID, made in the browser: the device names its own rows, so a plan
- * can be built with no network (docs/design/D3-data-model.md D3.2.1).
+ * A new UUID, made in the browser: the device names its own rows, so a plan can
+ * be built with no network.
  *
  * crypto.randomUUID() is the browser's own generator, but browsers give it
  * only to pages in a **secure context**: HTTPS, or localhost. The app opened
@@ -106,7 +97,6 @@ export const SET_TYPE_SIGNS: Record<SetType, string | null> = { normal: null, wa
  * from crypto.getRandomValues(), which every page has (randomUuid below).
  */
 export function newId(): string {
-  // typeof … === 'function': present, as on HTTPS and localhost
   return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : randomUuid()
 }
 
@@ -114,20 +104,14 @@ export function newId(): string {
  * A version 4 UUID built by hand, as RFC 9562 describes it: 16 random bytes,
  * of which two carry fixed bits that say "version 4" and "the standard
  * variant", written as 32 hexadecimal digits in groups of 8-4-4-4-12.
- * Exported for its test (plan-draft.test.ts).
- * @returns a UUID such as "3f1c0b9e-6a2d-4c51-9f7e-0d84b2a1c6e3"
  */
 export function randomUuid(): string {
-  // 16 random bytes (0–255 each), from the browser's secure generator
   const bytes = crypto.getRandomValues(new Uint8Array(16))
-  // Byte 6: its first four bits become 0100, the version, 4. `& 0x0f`
-  // keeps the last four bits, `| 0x40` sets the first four to 0100
+  // Byte 6: the version, 0100
   bytes[6] = (bytes[6]! & 0x0f) | 0x40
-  // Byte 8: its first two bits become 10, the variant
+  // Byte 8: the variant, 10
   bytes[8] = (bytes[8]! & 0x3f) | 0x80
-  // Each byte as two hexadecimal digits: 5 → "05", 255 → "ff"
   const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
-  // The groups, 8-4-4-4-12 digits, joined by dashes
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
@@ -135,13 +119,10 @@ export function randomUuid(): string {
 
 /**
  * Reads reps as typed: "8", "8-10", "8–10" or "8 - 10".
- * @param text the field's text
  * @returns the two ends; null for an empty field; 'invalid' for anything else
  */
 export function parseReps(text: string): { min: number, max: number } | null | 'invalid' {
   if (text.trim() === '') return null
-  // A regular expression: digits, then optionally a dash (- or –) and more
-  // digits. The parentheses capture the numbers: match[1], match[2]
   const match = /^\s*(\d+)\s*(?:[-–]\s*(\d+))?\s*$/.exec(text)
   if (!match) return 'invalid'
   const min = Number(match[1])
@@ -152,7 +133,6 @@ export function parseReps(text: string): { min: number, max: number } | null | '
 
 /**
  * Reads a decimal number as typed, with a dot or a comma: "82.5", "82,5".
- * @param text the field's text
  * @returns the number; null for an empty field; NaN when it is not a number
  */
 export function parseDecimal(text: string): number | null {
@@ -165,7 +145,6 @@ export function parseDecimal(text: string): number | null {
 
 /**
  * Reads a whole number as typed: "90".
- * @param text the field's text
  * @returns the number; null for an empty field; NaN when it is not one
  */
 export function parseWhole(text: string): number | null {
@@ -175,9 +154,8 @@ export function parseWhole(text: string): number | null {
 }
 
 /**
- * A weight in the user's unit, in kilograms for the API, rounded to the
- * three decimals the database keeps: 135 lb → 61.235 kg (D3.2.3).
- * @param value the weight as the user typed it
+ * A weight in the user's unit, in kilograms for the API, rounded to the three
+ * decimals the database keeps: 135 lb → 61.235 kg.
  * @param unit the user's unit
  */
 export function toKilograms(value: number, unit: WeightUnit): number {
@@ -190,8 +168,6 @@ export function toKilograms(value: number, unit: WeightUnit): number {
 /**
  * A number for a field, in the user's language and without thousands
  * separators: 82.5 → "82,5" in Italian. At most two decimals.
- * @param value the number
- * @param language a language code such as 'it'
  */
 function numberField(value: number, language: string): string {
   return formatNumber(value, language, { useGrouping: false, maximumFractionDigits: 2 })
@@ -200,7 +176,6 @@ function numberField(value: number, language: string): string {
 /**
  * A new set for an exercise, with a sensible target to start from: 8–10 reps,
  * or a minute for a timed exercise.
- * @param loggingType how the exercise is logged
  */
 export function newSet(loggingType: LoggingType): DraftSet {
   return {
@@ -214,10 +189,9 @@ export function newSet(loggingType: LoggingType): DraftSet {
 }
 
 /**
- * Whether an exercise can be done "as fast as possible": only one that
- * counts reps, so that its reps are the fixed amount and the time the
- * result (D1.4.8). A timed or distance exercise already has one number.
- * @param loggingType how the exercise is logged
+ * Whether an exercise can be done "as fast as possible": only one that counts
+ * reps, so that its reps are the fixed amount and the time the result. A timed
+ * or distance exercise already has one number.
  */
 export function canBeForTime(loggingType: LoggingType): boolean {
   return loggingType === 'weight_reps' || loggingType === 'reps'
@@ -235,7 +209,6 @@ export function newItem(exercise: Exercise): DraftItem {
     rest: '',
     notes: '',
     for_time: false,
-    // Array.from({ length: 3 }, fn): a list of three, each made by fn
     sets: Array.from({ length: 3 }, () => newSet(exercise.logging_type)),
   }
 }
@@ -247,7 +220,6 @@ export function newItem(exercise: Exercise): DraftItem {
  * @returns "A" for 0, "B" for 1…
  */
 export function dayLetter(index: number): string {
-  // String.fromCharCode(65) is "A": 65 + 3 gives "D"
   return String.fromCharCode(65 + index)
 }
 
@@ -267,7 +239,6 @@ export function emptyDraft(dayName: string): PlanDraft {
  * @param language the interface's language, for the decimal separator
  */
 export function draftFromPlan(plan: Plan, unit: WeightUnit, language: string): PlanDraft {
-  // `?? ''`: an empty field for a missing value
   const text = (value: number | null) => (value === null ? '' : numberField(value, language))
   return {
     id: plan.id,
@@ -303,8 +274,6 @@ export function draftFromPlan(plan: Plan, unit: WeightUnit, language: string): P
  * One set for the API. Only the targets that fit how the exercise is logged
  * are sent; a field that does not read as a number is sent empty
  * (validateDraft() stops the save before that happens).
- * @param set the set
- * @param loggingType how its exercise is logged
  * @param unit the user's weight unit
  */
 function setInput(set: DraftSet, loggingType: LoggingType, unit: WeightUnit): PlanSetInput {
@@ -313,7 +282,7 @@ function setInput(set: DraftSet, loggingType: LoggingType, unit: WeightUnit): Pl
   const rpe = parseDecimal(set.rpe)
   const seconds = parseWhole(set.seconds)
   const meters = parseWhole(set.meters)
-  // A number only when it is one: NaN and null both become null
+  // NaN and null both become null
   const valid = (value: number | null) => (value === null || Number.isNaN(value) ? null : value)
   const byReps = loggingType === 'weight_reps' || loggingType === 'reps'
   const range = byReps && reps !== null && reps !== 'invalid' ? reps : null
@@ -329,8 +298,7 @@ function setInput(set: DraftSet, loggingType: LoggingType, unit: WeightUnit): Pl
 }
 
 /**
- * The body of POST or PUT /api/plans, from a draft (C2.5.5).
- * @param draft the draft
+ * The body of POST or PUT /api/plans, from a draft.
  * @param unit the user's weight unit
  */
 export function toPlanInput(draft: PlanDraft, unit: WeightUnit): PlanInput {
@@ -338,7 +306,6 @@ export function toPlanInput(draft: PlanDraft, unit: WeightUnit): PlanInput {
   const orNull = (text: string) => (text.trim() === '' ? null : text.trim())
   return {
     id: draft.id,
-    // `...(cond ? {…} : {})`: the key only when there is a version
     ...(draft.version === null ? {} : { version: draft.version }),
     name: draft.name.trim(),
     goal: orNull(draft.goal),
@@ -368,12 +335,10 @@ export function toPlanInput(draft: PlanDraft, unit: WeightUnit): PlanInput {
  * An exercise of the draft shaped as the API sends one, so that the plan
  * page's summary line (itemSummary, plan-format.ts) can describe it while it
  * is being edited.
- * @param item the exercise of the draft
  * @param unit the user's weight unit
  */
 export function draftItemAsPlanItem(item: DraftItem, unit: WeightUnit): PlanItem {
   const input = toPlanInput({ id: '', version: null, name: '', goal: '', notes: '', days: [{ id: '', name: '', items: [item] }] }, unit)
-  // The one item just converted; `!`: TypeScript cannot know the list is not empty
   const converted = input.days[0]!.items[0]!
   return {
     ...converted,
@@ -399,7 +364,6 @@ export type DraftErrors = Record<string, string>
 /**
  * Checks a draft with the backend's rules (PlanRequest), so that most
  * mistakes are shown before anything is sent.
- * @param draft the draft
  * @param unit the user's weight unit, for the weight's upper limit
  * @returns the errors, empty when the draft can be saved
  */
@@ -456,11 +420,9 @@ const SERVER_FIELDS: Record<string, string> = {
  * The draft's path of a field named by the backend in a 422:
  * `days.0.items.1.sets.2.target_reps_max` → `days.0.items.1.sets.2.reps`.
  * The indexes are the same on both sides, since the order is the position.
- * @param serverField the key of Laravel's `errors`
  */
 export function draftField(serverField: string): string {
   const parts = serverField.split('.')
-  // The last part is the field's own name; .at(-1): the last item
   const last = parts.at(-1) ?? ''
   return [...parts.slice(0, -1), SERVER_FIELDS[last] ?? last].join('.')
 }
@@ -479,7 +441,6 @@ export function draftField(serverField: string): string {
  * @param items a day's exercises, in order
  */
 export function normalizeSupersets(items: DraftItem[]): void {
-  // The groups met so far, and the group of the item before
   const seen = new Set<number>()
   let previous: number | null = null
   for (const item of items) {
@@ -494,7 +455,6 @@ export function normalizeSupersets(items: DraftItem[]): void {
     previous = group
   }
 
-  // How many exercises each group has now
   const sizes = new Map<number, number>()
   for (const item of items) {
     if (item.superset_group !== null) sizes.set(item.superset_group, (sizes.get(item.superset_group) ?? 0) + 1)
@@ -518,11 +478,7 @@ export function normalizeSupersets(items: DraftItem[]): void {
 /** A field of a set that the user types in. */
 export type SetField = 'reps' | 'weight' | 'rpe' | 'seconds' | 'meters'
 
-/**
- * Everything the editor can do to a draft. A "discriminated union": each
- * action is an object whose `type` says which one it is, and TypeScript then
- * knows which other fields it has. `day`, `item` and `set` are indexes.
- */
+/** `day`, `item` and `set` are indexes. */
 export type DraftAction
   = | { type: 'setPlanField', field: 'name' | 'goal' | 'notes', value: string }
     | { type: 'addDay', name: string }
@@ -546,37 +502,22 @@ export type DraftAction
 /**
  * Moves one entry of a list to another place, in place: [a, b, c], 0 → 2
  * gives [b, c, a].
- * @param list the list
- * @param from the entry's index
- * @param to its new index
  */
 function move<T>(list: T[], from: number, to: number): void {
-  // splice(from, 1) takes the entry out and returns it in a list of one
   const [entry] = list.splice(from, 1)
   if (entry !== undefined) list.splice(to, 0, entry)
 }
 
 /**
- * The editor's reducer: the next draft, given the draft and an action.
- *
- * React's rule for state: never change the object it holds, give it a new
- * one, or it will not see the change. So the reducer first makes a deep copy
- * of the draft with structuredClone() (the browser's own copier, every level
- * included), changes the copy, and returns it. The draft it was given stays
- * as it was, which is also what makes "Discard changes" a simple swap.
- *
- * @param draft the current draft
- * @param action what to do
- * @returns the next draft
+ * Works on a structuredClone() of the draft. The draft it was given stays as
+ * it was, which is also what makes "Discard changes" a simple swap.
  */
 export function draftReducer(draft: PlanDraft, action: DraftAction): PlanDraft {
   if (action.type === 'replace') return action.draft
 
   const next = structuredClone(draft)
-  // The day the action is about, when it has one
   const day = 'day' in action ? next.days[action.day] : undefined
 
-  // switch on the action's type: in each case TypeScript knows its fields
   switch (action.type) {
     case 'setPlanField':
       next[action.field] = action.value
@@ -670,7 +611,6 @@ export function draftReducer(draft: PlanDraft, action: DraftAction): PlanDraft {
  * @param indexes the chosen exercises' indexes, at least two
  */
 function joinSuperset(day: DraftDay, indexes: number[]): void {
-  // Sorted, without repeats, only real indexes
   const chosen = [...new Set(indexes)].sort((a, b) => a - b).filter(index => index < day.items.length)
   if (chosen.length < 2) return
   // A number no group of the day uses yet; normalizeSupersets() renumbers

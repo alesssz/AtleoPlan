@@ -6,7 +6,6 @@
 # Runs on a push to any branch, not only main: branches are merged into main
 # on the computer (`make merge`), never through a pull request, so the run
 # of the branch pushed by `make push` is the check that comes before main.
-# How it works and how to read a failed run: docs/how-to/H5-ci.md.
 name: CI
 
 on:

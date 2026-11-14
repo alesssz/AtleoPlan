@@ -15,7 +15,6 @@ const file = {
 
 /**
  * Reads a value as if it were a file's text, of its real size.
- * @param value the file's content
  */
 function read(value: unknown) {
   // The value as a file's text; its length stands for the size in bytes

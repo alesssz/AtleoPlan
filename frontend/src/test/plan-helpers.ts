@@ -1,7 +1,7 @@
 /*
  * What the tests of the plan screens share: plans, days, exercises of a plan
  * and sets, shaped as the backend sends them, to put in fakeApi's table
- * (src/test/auth-helpers.tsx). Tests and checks: docs/concepts/C1-frontend.md C1.10.
+ * (src/test/auth-helpers.tsx).
  *
  * Each builder takes `changes`, the fields to replace:
  * `testPlanSet({ set_type: 'warm_up' })`.
@@ -11,7 +11,6 @@ import { testExercise } from './exercise-helpers'
 
 /**
  * A working set of 8–10 reps at 80 kg.
- * @param changes the fields to change
  */
 export function testPlanSet(changes: Partial<PlanSet> = {}): PlanSet {
   return {
@@ -29,7 +28,6 @@ export function testPlanSet(changes: Partial<PlanSet> = {}): PlanSet {
 /**
  * The bench press in a plan: two warm-ups at 40 kg, then four sets of 8–10
  * at 80 kg, with a 90-second rest.
- * @param changes the fields to change
  */
 export function testPlanItem(changes: Partial<PlanItem> = {}): PlanItem {
   return {
@@ -54,7 +52,6 @@ export function testPlanItem(changes: Partial<PlanItem> = {}): PlanItem {
 
 /**
  * A plan in the list: "Push Pull Legs", active, with three days.
- * @param changes the fields to change
  */
 export function testPlanSummary(changes: Partial<PlanSummary> = {}): PlanSummary {
   return {
@@ -74,7 +71,6 @@ export function testPlanSummary(changes: Partial<PlanSummary> = {}): PlanSummary
 /**
  * A whole plan with two days. Day A: the bench press, then two exercises in
  * a superset (rows and pull-ups). Day B: a squat.
- * @param changes the fields to change
  */
 export function testPlan(changes: Partial<Plan> = {}): Plan {
   return {

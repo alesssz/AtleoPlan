@@ -2,25 +2,19 @@
 
 namespace Database\Factories;
 
-// Imports: the enum of set_type, the models used below, and Laravel's base
-// Factory
 use App\Enums\SetType;
 use App\Models\PlanItem;
 use App\Models\PlanSet;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * Makes fake planned sets for tests: by default a normal set of 8–10 reps at
- * 80 kg. Usually created through an item,
- * `PlanItem::factory()->has(PlanSet::factory()->count(3), 'sets')`.
+ * A normal set of 8–10 reps at 80 kg.
  *
  * @extends Factory<PlanSet>
  */
 class PlanSetFactory extends Factory
 {
     /**
-     * A normal set of 8–10 reps at 80 kg.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -35,9 +29,6 @@ class PlanSetFactory extends Factory
         ];
     }
 
-    /**
-     * A warm-up set: `PlanSet::factory()->warmUp()`.
-     */
     public function warmUp(): static
     {
         return $this->state(fn (array $attributes) => [

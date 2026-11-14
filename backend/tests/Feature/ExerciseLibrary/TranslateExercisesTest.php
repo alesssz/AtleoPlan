@@ -1,10 +1,10 @@
 <?php
 
 /**
- * The translation of the imported exercises (DATA-1, docs/concepts/C2-backend.md
- * C2.14.4): the action TranslateExercise on one exercise, the command
- * `exercises:translate` on small translation files written to a temporary
- * folder, and the real files of the repository, checked for shape.
+ * The translation of the imported exercises: the action TranslateExercise on
+ * one exercise, the command `exercises:translate` on small translation files
+ * written to a temporary folder, and the real files of the repository, checked
+ * for shape.
  */
 
 use App\Actions\Exercises\TranslateExercise;
@@ -134,8 +134,7 @@ it('translates every imported exercise from the files, and sums up', function ()
         ->assertSuccessful();
 
     $squat = Exercise::where('external_id', 'Barbell_Squat')->first();
-    // toEqual(), not toBe(): Postgres's jsonb keeps an object's keys in an
-    // order of its own (shorter first), so only the pairs are compared
+    // jsonb keeps an object's keys in its own order (shorter first)
     expect($squat->getTranslations('name'))->toEqual([
         'en' => 'Barbell Squat',
         'it' => 'Squat con bilanciere',

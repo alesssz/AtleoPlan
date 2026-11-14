@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-// Imports: the model it describes, the request, and Laravel's base resource
 use App\Models\LoggedSet;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -15,16 +14,13 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *       "completed_at": "2026-11-09T17:06:30.000000Z" }
  *
  * The weight is exact text in kilograms, as in a plan's sets (PlanSetResource);
- * the moments are in UTC, which JavaScript's Date reads into the device's zone.
+ * moments are in UTC.
  *
  * @mixin LoggedSet
  */
 class LoggedSetResource extends JsonResource
 {
     /**
-     * The fields to send.
-     *
-     * @param  Request  $request  the current request
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

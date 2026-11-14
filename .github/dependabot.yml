@@ -2,12 +2,10 @@
 # (checkout, setup-node), as one pull request a week. The CI run of its
 # branch is the check; it is merged on the computer like any branch.
 #
-# npm and Composer packages are left out of version updates on purpose:
-# they are updated by hand, a few at a time, with `make check`
-# (docs/how-to/H3-frontend.md H3.7, docs/how-to/H2-backend.md). Their
-# security is watched by Dependabot's alerts and security updates (turned on
-# in the repository's settings, docs/project/P1-conventions.md P1.5.2) and
-# by .github/workflows/audit.yml. How it fits: docs/how-to/H5-ci.md.
+# npm and Composer packages are left out of version updates on purpose: they are
+# updated by hand, a few at a time, with `make check`. Their security is watched
+# by Dependabot's alerts and security updates (turned on in the repository's
+# settings) and by .github/workflows/audit.yml.
 version: 2
 updates:
   - package-ecosystem: github-actions

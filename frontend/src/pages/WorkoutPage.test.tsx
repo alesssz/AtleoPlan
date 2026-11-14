@@ -1,13 +1,11 @@
 /*
- * Workout mode (docs/design/D1-ui.md D1.4.9), used as a person would: a set
- * ticked, the rest timer, Next, pause with ✕, Finish sending the workout and
- * opening its summary,
- * early or from the last exercise, a workout kept on the phone when the
- * network is down, and a free workout, whose exercises are added on the way.
- * Then what came after a real workout (docs/how-to/H3-frontend.md H3.32):
- * the stopwatch docked under the sets, with Pause; a time past a minute
- * written as a clock; the exercise up next, a reminder; "How to do it";
- * removing a set or an exercise added by hand, never the plan's; and
+ * Workout mode, used as a person would: a set ticked, the rest timer, Next,
+ * pause with ✕, Finish sending the workout and opening its summary, early or
+ * from the last exercise, a workout kept on the phone when the network is down,
+ * and a free workout, whose exercises are added on the way. Then what came
+ * after a real workout: the stopwatch docked under the sets, with Pause; a time
+ * past a minute written as a clock; the exercise up next, a reminder; "How to
+ * do it"; removing a set or an exercise added by hand, never the plan's; and
  * deleting the workout in progress from Finish's dialog.
  */
 import { cleanup, screen, within } from '@testing-library/react'
@@ -511,9 +509,8 @@ describe('WorkoutPage', () => {
     expect(screen.queryByText('Last')).not.toBeInTheDocument()
 
     // The stopwatch: the reps to do, the time to beat. The line holds the
-    // set's name in a span of its own, then " · 50 reps · Pushups":
-    // getByText reads an element's own text, without its children's, so a
-    // regular expression (/…/) finds the line by that part
+    // set's name in a span of its own, then " · 50 reps · Pushups", found
+    // by that part
     await user.click(screen.getByRole('button', { name: 'Start the stopwatch: Set 1' }))
     const panel = screen.getByRole('region', { name: 'Stopwatch' })
     expect(within(panel).getByText(/· 50 reps · Pushups/)).toBeInTheDocument()

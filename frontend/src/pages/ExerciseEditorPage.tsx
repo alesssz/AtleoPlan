@@ -1,7 +1,6 @@
 /*
- * The exercise editor (routes `/exercises/new` and `/exercises/:id/edit`,
- * docs/design/D1-ui.md D1.4.5): one page for both, with the form of
- * src/components/exercises/ExerciseForm.tsx.
+ * The exercise editor (routes `/exercises/new` and `/exercises/:id/edit`): one
+ * page for both, with the form of src/components/exercises/ExerciseForm.tsx.
  *
  * - **New:** an empty form; `?name=…` in the address fills in the name, as
  *   the library's "Create «…»" does after a search with no result.
@@ -23,14 +22,11 @@ import { emptyFormValues, formValuesFrom } from '@/components/exercises/exercise
 import { PageHeader } from '@/components/PageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
 
-/** The editor page: new when the address has no id, edit otherwise. */
 export function ExerciseEditorPage() {
-  // The :id of /exercises/:id/edit; undefined on /exercises/new
   const { id } = useParams()
   return id === undefined ? <NewExercise /> : <EditExercise id={Number(id)} />
 }
 
-/** Goes to a saved exercise's page, replacing the editor in the history. */
 function useGoToExercise() {
   const navigate = useNavigate()
   return (exercise: Exercise) => void navigate(`/exercises/${exercise.id}`, { replace: true })
@@ -45,28 +41,23 @@ function NewExercise() {
 
   return (
     <>
-      {/* No eyebrow: the tab bar and the sidebar already name the section
-          (D1.5 "Page header", PageHeader.tsx) */}
+      {/* No eyebrow: the navigation already names the section */}
       <PageHeader title={t('exercises.editor.newTitle')} />
       <ExerciseForm
         defaultValues={emptyFormValues(searchParams.get('name') ?? '')}
-        // mutateAsync(): like mutate(), but returns a Promise of the answer,
-        // which the form awaits (and catches, for the 422 messages)
         save={create.mutateAsync}
         onSaved={goToExercise}
         submitLabel={t('exercises.editor.create')}
         cancelTo="/exercises"
       />
       {/* Photos need the exercise's id, which the server gives at Create:
-          they are added from Edit afterwards (C1.14.7) */}
+          they are added from Edit afterwards */}
       <p className="mt-6 text-sm text-muted-foreground">{t('exercises.editor.photosLater')}</p>
     </>
   )
 }
 
-/** Props of EditExercise. */
 interface EditExerciseProps {
-  /** The exercise's number, from the address. */
   id: number
 }
 
@@ -100,9 +91,8 @@ function EditExercise({ id }: EditExerciseProps) {
   return (
     <>
       <PageHeader title={t('exercises.editor.editTitle')} />
-      {/* The form is drawn only now, with the data there: useForm() reads its
-          defaultValues once, when the form first appears. `key` makes React
-          start a fresh form if another exercise is opened in the same place */}
+      {/* Only with the data there: useForm() reads its defaultValues once.
+          Keyed, so another exercise opened here starts a fresh form */}
       <ExerciseForm
         key={exercise.data.id}
         defaultValues={formValuesFrom(exercise.data)}
@@ -112,7 +102,7 @@ function EditExercise({ id }: EditExerciseProps) {
         cancelTo={`/exercises/${id}`}
       />
       {/* The photos, under the form and apart from it: each change is sent
-          at once, not with Save (C1.14.7) */}
+          at once, not with Save */}
       <div className="mt-8">
         <ExercisePhotoManager exercise={exercise.data} />
       </div>

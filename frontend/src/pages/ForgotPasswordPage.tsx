@@ -1,8 +1,8 @@
 /*
- * "Forgot password" (route `/forgot-password`), docs/design/D1-ui.md D1.4.1, the
- * first of two steps: it asks for the address and sends the email. Its link opens
- * ResetPasswordPage. In development the email is in Mailpit
- * (http://localhost:8525). Built as LoginPage (docs/concepts/C1-frontend.md C1.13).
+ * "Forgot password" (route `/forgot-password`), the first of two steps: it asks
+ * for the address and sends the email. Its link opens ResetPasswordPage. In
+ * development the email is in Mailpit (http://localhost:8525). Built as
+ * LoginPage.
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -16,23 +16,15 @@ import { Button } from '@/components/ui/button'
 import { showRequestError } from '@/lib/form'
 import { forgotPasswordSchema, type ForgotPasswordValues } from './auth-schemas'
 
-/** The screen that asks for the "reset your password" email. */
 export function ForgotPasswordPage() {
   const { t } = useTranslation()
-  // The request that sends the email (src/api/auth.ts); `isSuccess` says it was sent
   const forgotPassword = useForgotPassword()
-  // The form's values and errors (react-hook-form), checked with the schema
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema(t)),
     defaultValues: { email: '' },
   })
-  // The fields' errors
   const { errors } = form.formState
 
-  /**
-   * Runs when the form is submitted and passes the schema.
-   * @param values the fields' values, already checked
-   */
   function onSubmit(values: ForgotPasswordValues) {
     forgotPassword.mutate(values.email, {
       onError: error => showRequestError(error, form.setError, ['email'], t),
@@ -41,9 +33,7 @@ export function ForgotPasswordPage() {
 
   return (
     <>
-      {/* The eyebrow stays on the sign-in screens: they have no tab bar or
-          sidebar saying where the user is (D1.5 "Page header"). PageHeader's
-          own 24 px under it suits them (they used to pass className="mb-6") */}
+      {/* The eyebrow stays: these screens have no navigation saying where the user is */}
       <PageHeader eyebrow={t('auth.forgotPassword.eyebrow')} title={t('auth.forgotPassword.title')} description={t('auth.forgotPassword.description')} />
 
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">

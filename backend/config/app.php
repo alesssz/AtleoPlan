@@ -61,7 +61,7 @@ return [
     |
     | Where the React app is, for links in emails such as "reset your password"
     | (app/Providers/FortifyServiceProvider.php). In development it is Vite's
-    | address; in production the same as APP_URL (docs/start/S1-setup.md S1.4).
+    | address; in production the same as APP_URL.
     |
     */
 
@@ -73,8 +73,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Where the Filament admin panel is, for the React app's link to it and
-    | for coming back from Google to the panel (docs/concepts/C2-backend.md
-    | C2.8.4). In development Laravel's own port, since Vite does not forward
+    | for coming back from Google to the panel. In development Laravel's own
+    | port, since Vite does not forward
     | /admin; in production the same host as the app, APP_URL + /admin.
     |
     */

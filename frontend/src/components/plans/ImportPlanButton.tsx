@@ -1,9 +1,8 @@
 /*
- * Import plan, in the header of the plans' list, beside New plan; only its
- * icon on phones (docs/design/D1-ui.md D1.4.6): a file
- * saved by a plan's Export (ExportPlanButton.tsx), here or on another
- * server, becomes a new plan; its page then opens, saying which exercises
- * had to be created. How it works: docs/concepts/C1-frontend.md C1.15.6.
+ * Import plan, in the header of the plans' list, beside New plan; only its icon
+ * on phones: a file saved by a plan's Export (ExportPlanButton.tsx), here or on
+ * another server, becomes a new plan; its page then opens, saying which
+ * exercises had to be created.
  *
  * In a window, in three steps, so that nothing is sent by surprise:
  * 1. **What is expected,** in words: a file made by Export, ending in
@@ -36,28 +35,18 @@ export interface PlanImportedState {
 
 /** A file chosen and read as a plan: what the preview shows, and what Import sends. */
 interface ChosenFile {
-  /** The file's name, as on the device. */
   fileName: string
-  /** The plan's name, days and exercises. */
   summary: PlanFileSummary
-  /** The file's content, sent as it is. */
+  /** Sent as it is. */
   content: unknown
 }
 
-/** The Import plan button, and its window. */
 export function ImportPlanButton() {
-  // t() translates a key (react-i18next, docs/concepts/C1-frontend.md C1.7)
   const { t } = useTranslation()
-  // A function that opens another page (React Router)
   const navigate = useNavigate()
-  // The request that imports (TanStack Query's mutation, src/api/plans.ts)
   const importPlan = useImportPlan()
-  // The hidden file input, clicked by Choose file. useRef: a box React
-  // keeps between draws, here filled with the <input> element itself by
-  // its `ref` attribute; changing it draws nothing again
+  // The hidden file input, clicked by Choose file
   const input = useRef<HTMLInputElement>(null)
-  // The window's state (useState): open or
-  // not; the file read, once one is; the message of the last problem
   const [open, setOpen] = useState(false)
   const [chosen, setChosen] = useState<ChosenFile | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -80,8 +69,6 @@ export function ImportPlanButton() {
    * @param event the input's change, with the file chosen
    */
   async function choose(event: ChangeEvent<HTMLInputElement>) {
-    // The file chosen: the first of the input's list (one, without
-    // `multiple`); `?.`: undefined when the picker was closed with none
     const file = event.target.files?.[0]
     // Emptied, so that choosing the same file again fires a change too
     event.target.value = ''
@@ -89,13 +76,10 @@ export function ImportPlanButton() {
     setChosen(null)
     setError(null)
 
-    // The file's text. One too big is not even read: its size says
-    // enough, and readPlanFile() does not look at the '' that stands in
+    // One too big is not even read: its size says enough
     const text = file.size <= MAX_PLAN_FILE_BYTES ? await file.text() : ''
-    // The file looked at: its content and summary, or the problem
     const reading = readPlanFile(text, file.size)
     if (reading.ok) setChosen({ fileName: file.name, summary: reading.summary, content: reading.content })
-    // The problem in words: its key built from its name, plans.import.problems.notJson…
     else setError(t(`plans.import.problems.${reading.problem}`))
   }
 
@@ -104,12 +88,8 @@ export function ImportPlanButton() {
     if (!chosen) return
     setError(null)
     try {
-      // The new plan and the exercises created; mutateAsync(): the
-      // mutation as a Promise, which throws when the request fails
       const imported = await importPlan.mutateAsync(chosen.content)
-      // Its page, with the report in the history entry's state.
-      // `satisfies`: TypeScript checks the object has the type's shape,
-      // without changing the type it has
+      // The report travels in the history entry's state
       void navigate(`/plans/${imported.plan.id}`, { state: { createdExercises: imported.createdExercises } satisfies PlanImportedState })
     }
     catch (failure) {
@@ -120,20 +100,10 @@ export function ImportPlanButton() {
   }
 
   return (
-    // shadcn/ui's Dialog (src/components/ui/dialog.tsx, over Radix's;
-    // docs/concepts/C1-frontend.md C1.8): a window over the page that keeps
-    // the focus inside and closes with Escape or the X. Controlled: `open`
-    // comes from this component, and Radix asks to change it through
-    // onOpenChange, so closing can also reset the window. Uncontrolled,
-    // Radix would keep it to itself, and this code would not know
+    // Controlled, so closing can also reset the window
     <Dialog open={open} onOpenChange={changeOpen}>
-      {/* The button on the list, outlined beside New plan, in the page's
-          header. DialogTrigger asChild: it opens the window, drawn as our
-          Button. On phones (max-sm:, below 640 px) only its icon shows, so
-          that it fits on the title's row: the button becomes a 48 px square
-          (w-12, no side padding) and the text is sr-only, still read by
-          screen readers as the button's name. `title`: the same words as a
-          tooltip, for a mouse (docs/project/P1-conventions.md P1.2) */}
+      {/* Icon only on phones, to fit the title's row; the text stays for
+          screen readers and as a tooltip */}
       <DialogTrigger asChild>
         <Button size="xl" variant="outline" title={t('plans.import.button')} className="max-sm:w-12 max-sm:px-0">
           <Upload aria-hidden="true" />
@@ -141,8 +111,6 @@ export function ImportPlanButton() {
         </Button>
       </DialogTrigger>
 
-      {/* The window itself, at most 512 px wide (sm:max-w-lg); its X is
-          named "Close" in the user's language (closeLabel) */}
       <DialogContent closeLabel={t('common.close')} className="flex flex-col gap-4 sm:max-w-lg">
         {/* Step 1: what file is expected, and what happens */}
         <DialogHeader>
@@ -150,8 +118,6 @@ export function ImportPlanButton() {
           <DialogDescription>{t('plans.import.description')}</DialogDescription>
         </DialogHeader>
 
-        {/* The browser's picker, hidden: Choose file opens it. accept:
-            the picker offers JSON files first */}
         <input ref={input} type="file" accept=".json,application/json" className="hidden" onChange={event => void choose(event)} />
 
         {/* Step 3: the preview of the file chosen and read */}
@@ -168,14 +134,10 @@ export function ImportPlanButton() {
           </div>
         )}
 
-        {/* Why the file is not imported */}
         {error !== null && <FormBanner variant="error">{error}</FormBanner>}
 
-        {/* The buttons. Before a file: Choose file, lime, the one thing
-            to do. With one: Import, lime, and Choose another, outlined.
-            DialogFooter is a reversed column on a phone, so the first
-            here, the lime one, is the lowest, under the thumb; a row from
-            640 px (sm:), here from the left (sm:justify-start) */}
+        {/* The footer is a reversed column on a phone: the lime button,
+            first here, is the lowest, under the thumb */}
         <DialogFooter className="gap-3 sm:justify-start">
           {chosen
             ? (
@@ -195,7 +157,6 @@ export function ImportPlanButton() {
                   {t('plans.import.choose')}
                 </Button>
               )}
-          {/* DialogClose: closes the window, as the X does */}
           <DialogClose asChild>
             <Button size="xl" variant="ghost">{t('plans.import.cancel')}</Button>
           </DialogClose>

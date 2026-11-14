@@ -36,21 +36,15 @@ return [
     ],
 
     /*
-     * Sign in with Google (FEAT-9), read by Laravel Socialite: its Google
-     * driver looks for `services.google` and these three keys by name.
-     * docs/concepts/C2-backend.md C2.7.8.
+     * Sign in with Google.
      *
-     * - client_id, client_secret: the OAuth client the owner created in the
-     *   Google Cloud Console (docs/start/S1-setup.md S1.11), written in
-     *   backend/.env on each computer, never committed. Empty here means
-     *   "not set up": GoogleSignInController then sends people back to the
-     *   sign-in page with an error, and says why in the log.
-     * - redirect: where Google sends people back, the React app's address
-     *   plus the callback's path. Built from FRONTEND_URL (set in
-     *   compose.yaml, C2.10) rather than written in .env, so it cannot drift
-     *   from the address given to Google in S1.11.4. env() and not
-     *   config('app.frontend_url'): a config file cannot read another one
-     *   while the configuration is being loaded. Same default as config/app.php.
+     * - client_id, client_secret: from the Google Cloud Console, in
+     *   backend/.env. Empty means "not set up": GoogleSignInController sends
+     *   people back with an error and logs why.
+     * - redirect: built from FRONTEND_URL rather than set in .env, so it cannot
+     *   drift from the address registered with Google. env(), because a config
+     *   file cannot read another while configuration is loading; the same
+     *   default as config/app.php.
      */
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),

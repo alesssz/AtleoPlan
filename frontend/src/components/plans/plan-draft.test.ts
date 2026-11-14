@@ -233,15 +233,12 @@ describe('newId', () => {
     const ids = Array.from({ length: 50 }, () => randomUuid())
 
     for (const id of ids) expect(id).toMatch(UUID_V4)
-    // new Set(): the distinct values; 50 ids, 50 different
     expect(new Set(ids).size).toBe(50)
   })
 
   it('still works where the browser gives no crypto.randomUUID (a page on plain http, not localhost)', () => {
-    // Remove the function, as a phone's browser does on http://192.168.…,
-    // and put it back afterwards whatever happens (finally), so the other
-    // tests keep it. defineProperty: crypto's own properties cannot be
-    // assigned with `=`
+    // As a phone's browser does on http://192.168.…; defineProperty because
+    // crypto's own properties cannot be assigned
     const original = crypto.randomUUID
     Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true })
     try {

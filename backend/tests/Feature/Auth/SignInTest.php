@@ -1,12 +1,9 @@
 <?php
 
 /**
- * Signing in and out, through Fortify's routes (config/fortify.php). These test
- * our app's behaviour, not Fortify's internals: what the React app sends and
- * what it gets back. docs/concepts/C2-backend.md C2.7.2.
- *
- * Every test creates its user with UserFactory, whose password is `password`.
- * RefreshDatabase gives each test empty tables, on atleoplan_test (C2.11).
+ * Signing in and out through Fortify's routes: what the React app sends and
+ * what it gets back, not Fortify's internals. UserFactory's password is
+ * `password`.
  */
 
 use App\Models\User;
@@ -76,7 +73,7 @@ it('does not reveal a disabled account to someone without the password', functio
 it('slows down password guessing', function () {
     User::factory()->create(['email' => 'ann@example.com']);
 
-    // Five attempts a minute are allowed (FortifyServiceProvider); range() gives 1 to 5
+    // Five attempts a minute are allowed (FortifyServiceProvider)
     foreach (range(1, 5) as $attempt) {
         $this->postJson('/api/auth/login', ['email' => 'ann@example.com', 'password' => 'wrong'])
             ->assertUnprocessable();

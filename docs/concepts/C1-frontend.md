@@ -2,7 +2,7 @@
 
 How the React app in `frontend/` is built, why, and how to work on it. It is written for someone who knows little React, TypeScript or modern JavaScript and wants to read the code and change it with confidence. Read [C1.1](#c11-the-pieces)–[C1.4](#c14-react-from-scratch) once, in order: the pieces, the folders, what happens when the app opens, and React's few core ideas. Keep [C1.12](#c112-javascript-and-typescript-you-will-meet) at hand for any syntax that looks strange, and [C1.9](#c19-recipes) while coding. Signing in and forms have a section of their own, [C1.13](#c113-signing-in-and-forms).
 
-Every source file starts with a comment saying what it is for, and the code is commented line by line ([P1.2](../project/P1-conventions.md#p12-code)): the files are meant to be read next to this page. The decisions behind the choices are in [D2.2](../design/D2-decisions.md#d22-stack); the screens they serve in [D1. UI design](../design/D1-ui.md); setup and commands in [S1.7](../start/S1-setup.md#s17-creating-the-react-frontend) and [S1.8](../start/S1-setup.md#s18-everyday-commands).
+The code's comments follow [P1.2](../project/P1-conventions.md#p12-code): a header where a file's role is not obvious, and the reasons behind the code, not what it does. The decisions behind the choices are in [D2.2](../design/D2-decisions.md#d22-stack); the screens they serve in [D1. UI design](../design/D1-ui.md); setup and commands in [S1.7](../start/S1-setup.md#s17-creating-the-react-frontend) and [S1.8](../start/S1-setup.md#s18-everyday-commands).
 
 ## Contents
 
@@ -419,6 +419,7 @@ New screens add their own group (`plans.editor.*`, …).
 **shadcn/ui.** These are not a library imported from `node_modules`. They are source files copied into `src/components/ui/`, and they are ours to change.
 
 - **Adding one:** `npx shadcn@latest add dialog` (from `frontend/`), then `make fix` to bring the generated file to our code style (single quotes, no semicolons).
+- **They keep shadcn's shape:** no header or doc comments of our own; a comment marks only what we changed (the `xl` sizes and `pending` of `button.tsx`, the `closeLabel` of `dialog.tsx` and `sheet.tsx`), so an update from shadcn can be compared.
 - **Their default sizes are for mouse use** (a button is 32 px tall). On touch screens use our `size="xl"` (48 px) or set the height yourself: tap targets are at least 48 px, and 56 px in workout mode ([D1.5](../design/D1-ui.md#d15-design-system)).
 - **`cn()`** (`@/lib/utils`) joins class names, drops false ones, and resolves Tailwind conflicts: `cn('px-2', big && 'px-4')`.
 - **`asChild`** lends a component's look to its child: `<Button asChild><Link to="/">…</Link></Button>` is a real link that looks like a button.
@@ -483,7 +484,7 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 
 **A new shared component:**
 
-1. `src/components/Thing.tsx`, with a header comment, typed props, and doc comments.
+1. `src/components/Thing.tsx`, with typed props; a header and doc comments where [P1.2](../project/P1-conventions.md#p12-code) asks for them.
 2. If it holds logic worth checking, `Thing.test.tsx` next to it.
 
 **Before calling it done:** `make fix`, then `make check`.

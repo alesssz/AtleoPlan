@@ -1,15 +1,13 @@
 <?php
 
 /**
- * The free-exercise-db import (DATA-1, docs/concepts/C2-backend.md C2.14): the
- * action ImportFreeExercise called directly, one exercise at a time, and then
- * the command `exercises:import` on a small dataset.
+ * The free-exercise-db import: the action ImportFreeExercise called directly,
+ * one exercise at a time, and then the command `exercises:import` on a small
+ * dataset.
  *
- * The dataset is not the real one: each test writes a few exercises, in the
- * same shape, to a folder of the system's temporary directory, with tiny
- * JPEG files as photos. Storage::fake('public') replaces the media disk with
- * an empty one in memory, so no file reaches storage/app/public. The real
- * muscles and equipment come from their seeders.
+ * Not the real dataset: each test writes a few exercises in its shape to a
+ * temporary folder, with tiny JPEGs as photos. The muscles and equipment are
+ * the real seeders'.
  */
 
 use App\Actions\Exercises\ImportFreeExercise;
@@ -32,7 +30,7 @@ uses(RefreshDatabase::class);
  */
 const TINY_JPEG = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
 
-// Before each test: the fixed lists the import points to, and a fake media disk
+// The fixed lists the import points to, and a fake media disk
 beforeEach(function () {
     $this->seed([MuscleSeeder::class, EquipmentSeeder::class]);
     Storage::fake('public');
@@ -229,8 +227,6 @@ it('imports the whole dataset and prints a summary', function () {
         sourceExercise(['id' => 'Plank', 'name' => 'Plank', 'equipment' => 'body only', 'images' => ['Plank/0.jpg']]),
     ]);
 
-    // artisan(): runs the command as `php artisan` would. expectsOutputToContain
-    // checks a line of its output; run() executes it and checks the expectations
     $this->artisan('exercises:import', ['--path' => $path])
         ->expectsOutputToContain('Created: 2')
         ->expectsOutputToContain('Photos added: 3')

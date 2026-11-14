@@ -2,14 +2,12 @@
 
 namespace Database\Seeders;
 
-// Imports: the model to write, and Laravel's base Seeder
 use App\Models\Equipment;
 use Illuminate\Database\Seeder;
 
 /**
- * Writes the 12 kinds of equipment of the library, in the four languages of
- * the app (docs/design/D3-data-model.md D3.4.1). The same shape as
- * MuscleSeeder, which explains it; also run on the server.
+ * The kinds of equipment, in the app's four languages. Like MuscleSeeder, it
+ * runs on the server too and can run again.
  *
  * The slugs are free-exercise-db's values with dashes for spaces
  * ("e-z curl bar" → "e-z-curl-bar"), so that the import finds them.
@@ -17,8 +15,6 @@ use Illuminate\Database\Seeder;
 class EquipmentSeeder extends Seeder
 {
     /**
-     * slug => name in each language.
-     *
      * @var array<string, array<string, string>>
      */
     private const EQUIPMENT = [
@@ -36,9 +32,6 @@ class EquipmentSeeder extends Seeder
         'other' => ['en' => 'Other', 'it' => 'Altro', 'es' => 'Otro', 'de' => 'Sonstiges'],
     ];
 
-    /**
-     * Writes the equipment: updated if the slug exists, created if not.
-     */
     public function run(): void
     {
         foreach (self::EQUIPMENT as $slug => $name) {

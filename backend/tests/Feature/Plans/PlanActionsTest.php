@@ -1,9 +1,8 @@
 <?php
 
 /**
- * DELETE /api/plans/{plan} and the three actions on a plan: activate,
- * archive, unarchive (docs/design/D1-ui.md D1.4.6, D1.4.7;
- * docs/design/D2-decisions.md D2.8), with PlanPolicy's refusals.
+ * DELETE /api/plans/{plan} and the three actions on a plan: activate, archive,
+ * unarchive, with PlanPolicy's refusals.
  */
 
 use App\Models\Plan;

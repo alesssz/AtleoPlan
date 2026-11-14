@@ -1,8 +1,6 @@
 /*
- * The four numbers of a finished workout (docs/design/D1-ui.md D1.4.10):
- * time trained, exercises done, sets and reps, warm-up sets excluded from
- * the last two (docs/design/D2-decisions.md D2.8). Plain functions, no
- * React, tested on their own (totals.test.ts).
+ * The four numbers of a finished workout: time trained, exercises done, sets
+ * and reps, warm-up sets excluded from the last two.
  *
  * Reps, not volume (weight × reps): a workout's volume adds up unlike
  * exercises and counts nothing done with the body alone, so it is not a
@@ -19,13 +17,10 @@
  */
 import type { SessionInput, WorkoutSession } from '@/api/sessions'
 
-/** A workout's numbers. */
 export interface Totals {
   /** The time trained, pauses left out, in seconds; null when unknown. */
   durationSeconds: number | null
-  /** Exercises with at least one set done. */
   exercises: number
-  /** Sets done, warm-ups excluded. */
   sets: number
   /** Their reps; a timed or distance set adds 0. */
   reps: number
@@ -36,13 +31,11 @@ export interface Totals {
  * @param input the body of PUT /api/sessions/{id}: only ticked sets
  */
 export function inputTotals(input: SessionInput): Totals {
-  // Every set of every exercise, warm-ups left out
   const counted = input.exercises.flatMap(exercise => exercise.sets).filter(set => set.set_type !== 'warm_up')
   return {
     durationSeconds: input.duration_seconds,
     exercises: input.exercises.filter(exercise => exercise.sets.length > 0).length,
     sets: counted.length,
-    // reduce(): adds up from 0; a set with no reps (timed) adds nothing
     reps: counted.reduce((sum, set) => sum + (set.reps ?? 0), 0),
   }
 }

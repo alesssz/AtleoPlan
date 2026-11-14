@@ -2,7 +2,7 @@
 
 /**
  * Who may open the Filament panel at /admin: admins only, in every environment
- * (User::canAccessPanel(), docs/concepts/C2-backend.md C2.8).
+ * (User::canAccessPanel()).
  */
 
 use App\Models\User;

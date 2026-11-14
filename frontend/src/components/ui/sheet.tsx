@@ -1,30 +1,3 @@
-/*
- * Sheet: shadcn/ui's panel that slides in from an edge of the screen, used
- * by workout mode for the big stepper, from the bottom (docs/design/D1-ui.md
- * D1.4.9). Added with `npx shadcn add sheet`, answering no to overwriting our
- * button.tsx (docs/how-to/H3-frontend.md H3.20); what shadcn/ui is: card.tsx
- * and docs/concepts/C1-frontend.md C1.8.
- *
- *   <Sheet open={open} onOpenChange={setOpen}>
- *     <SheetContent side="bottom" closeLabel={t('common.close')}>
- *       <SheetHeader><SheetTitle>…</SheetTitle></SheetHeader>
- *       …
- *     </SheetContent>
- *   </Sheet>
- *
- * A sheet is a dialog in another place: it is built on the same Radix
- * Dialog as dialog.tsx, so it does what a modal needs (the page behind
- * cannot be reached, the focus moves in and stays, Escape, the X and a tap
- * outside close it, the focus goes back where it was). Only the position
- * and the animation differ: `side` picks the edge, and the panel slides in
- * from it (tw-animate-css's slide-in-from-bottom).
- *
- * Changes from shadcn's file: our style (quotes, no semicolons), the
- * comments, and `closeLabel`, the X's name for screen readers, translated
- * (shadcn wrote the English word "Close").
- */
-// React's types; cn() joins classes; Radix's Dialog, here called a sheet;
-// our Button; the X icon
 import * as React from 'react'
 import { cn } from 'cn'
 import { Dialog as SheetPrimitive } from 'radix-ui'
@@ -32,33 +5,28 @@ import { Dialog as SheetPrimitive } from 'radix-ui'
 import { Button } from '@/components/ui/button'
 import { XIcon } from 'lucide-react'
 
-/** The sheet's state: open or closed, controlled with `open` and `onOpenChange`. */
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
 
-/** The element that opens the sheet; `asChild` lends the behaviour to a Button. */
 function SheetTrigger({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Trigger>) {
   return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
 }
 
-/** An element that closes the sheet. */
 function SheetClose({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Close>) {
   return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
 }
 
-/** Draws the sheet at the end of <body>, above everything else. */
 function SheetPortal({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
   return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
 }
 
-/** The dimmed layer over the page. */
 function SheetOverlay({
   className,
   ...props
@@ -76,9 +44,8 @@ function SheetOverlay({
 }
 
 /**
- * The panel itself, against one edge, with the X in its corner.
- * `side` is the edge it slides in from; `closeLabel` the X's name for
- * screen readers, already translated.
+ * `closeLabel` (ours): the X's name for screen readers, translated, where
+ * shadcn wrote "Close".
  */
 function SheetContent({
   className,
@@ -95,8 +62,6 @@ function SheetContent({
   return (
     <SheetPortal>
       <SheetOverlay />
-      {/* data-side carries the edge; the classes read it with
-          data-[side=bottom]:…, one set of rules per edge */}
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}
@@ -124,7 +89,6 @@ function SheetContent({
   )
 }
 
-/** The title and the description, at the top. */
 function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -135,7 +99,6 @@ function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-/** The buttons, at the bottom. */
 function SheetFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -146,7 +109,6 @@ function SheetFooter({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-/** The sheet's title: also its name for screen readers. */
 function SheetTitle({
   className,
   ...props
@@ -163,7 +125,6 @@ function SheetTitle({
   )
 }
 
-/** One or two sentences under the title. */
 function SheetDescription({
   className,
   ...props

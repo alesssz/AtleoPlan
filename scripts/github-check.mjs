@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 /**
  * Checks the repository's settings on GitHub against the ones the project
- * decided (docs/project/P1-conventions.md P1.5.2, docs/how-to/H5-ci.md
- * H5.3), and the state of its checks: the last CI and Audit runs, the open
- * alerts. Changes nothing: every call is a read. Run with
- * `make github-check`.
+ * decided, and the state of its checks: the last CI and Audit runs, the open
+ * alerts. Changes nothing: every call is a read. Run with `make github-check`.
  *
- * Needs GitHub's command line, `gh`, signed in once with `gh auth login`
- * (docs/how-to/H5-ci.md H5.3). It asks GitHub's REST API through
- * `gh api`, which adds the signed-in account's token by itself; the token
- * is never printed. Some answers need the repository's owner: another
- * account gets "Not Found" there, reported as a failure.
+ * Needs GitHub's command line, `gh`, signed in once with `gh auth login`. It
+ * asks GitHub's REST API through `gh api`, which adds the signed-in account's
+ * token by itself; the token is never printed. Some answers need the
+ * repository's owner: another account gets "Not Found" there, reported as a
+ * failure.
  *
  * Exit code 1 when at least one check fails, 0 otherwise (warnings included).
  */
@@ -103,7 +101,7 @@ ok(`signed in, repository ${name}`)
 /** The API path of the repository. */
 const repo = `repos/${name}`
 
-// --- Actions (H5.3) ----------------------------------------------------------------
+// --- Actions ----------------------------------------------------------------
 console.log('Actions')
 const permissions = api(`${repo}/actions/permissions`)
 expect(permissions?.enabled === true && permissions.allowed_actions === 'selected', 'Actions on, only selected actions allowed', 'Settings → Actions → General → Actions permissions')
@@ -114,7 +112,7 @@ expect(token?.default_workflow_permissions === 'read' && token.can_approve_pull_
 const forks = api(`${repo}/actions/permissions/fork-pr-contributor-approval`)
 expect(forks?.approval_policy === 'all_external_contributors', 'approval required for all external contributors', 'Settings → Actions → General → Approval for running fork pull request workflows')
 
-// --- Code security (P1.5.2) --------------------------------------------------------
+// --- Code security --------------------------------------------------------
 console.log('Code security')
 /** The repository, for its visibility and its security features. */
 const info = api(repo)
@@ -128,7 +126,7 @@ expect(api(`${repo}/private-vulnerability-reporting`)?.enabled === true, 'privat
 const codeql = api(`${repo}/code-scanning/default-setup`)
 expect(codeql?.state === 'configured', `CodeQL default setup on${codeql?.languages?.length ? ` (${codeql.languages.join(', ')})` : ''}`, 'Settings → Advanced Security → CodeQL analysis → Default setup')
 
-// --- The ruleset of main (P1.5.2) ---------------------------------------------------
+// --- The ruleset of main ---------------------------------------------------
 console.log('Ruleset')
 /** The branch rulesets, by summary; then the active one on the default branch, in full. */
 const summaries = api(`${repo}/rulesets`) ?? []
@@ -162,7 +160,7 @@ if (code === null) warn('CodeQL alerts could not be read (none yet before its fi
 else if (code === 0) ok('no open CodeQL alert')
 else warn(`${code} open CodeQL alert(s)`, 'Security → Code scanning (docs/how-to/H5-ci.md H5.5)')
 
-// --- The last runs (H5.1) ----------------------------------------------------------
+// --- The last runs ----------------------------------------------------------
 console.log('Last runs on main')
 for (const workflow of ['ci.yml', 'audit.yml']) {
   // The newest finished run of the workflow on main: its conclusion and when

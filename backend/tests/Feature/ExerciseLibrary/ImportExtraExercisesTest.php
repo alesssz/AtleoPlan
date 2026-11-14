@@ -1,10 +1,10 @@
 <?php
 
 /**
- * The extra exercises (docs/how-to/H1-database.md H1.17): the file
- * database/data/extra-exercises.json, the command `exercises:import-extra`
- * that adds them to the public library, and their translations, written by
- * `exercises:translate` from the same files as free-exercise-db's.
+ * The extra exercises: the file database/data/extra-exercises.json, the command
+ * `exercises:import-extra` that adds them to the public library, and their
+ * translations, written by `exercises:translate` from the same files as
+ * free-exercise-db's.
  *
  * The real file of the repository is imported, not a sample: a mistake in it
  * (a muscle we do not have, a logging type misspelt, a missing translation)
@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\File;
 
 uses(RefreshDatabase::class);
 
-// Before each test: the fixed lists the exercises point to
+// The fixed lists the exercises point to
 beforeEach(function () {
     $this->seed([MuscleSeeder::class, EquipmentSeeder::class]);
 });

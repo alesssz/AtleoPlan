@@ -2,8 +2,7 @@
  * The new password (route `/reset-password`), the second step of "forgot
  * password": the email's link opens this screen, with the token and the address
  * in the query string (?token=…&email=…). The backend builds that link in
- * app/Providers/FortifyServiceProvider.php. Built as LoginPage
- * (docs/concepts/C1-frontend.md C1.13).
+ * app/Providers/FortifyServiceProvider.php. Built as LoginPage.
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -17,29 +16,22 @@ import { Button } from '@/components/ui/button'
 import { showRequestError } from '@/lib/form'
 import { resetPasswordSchema, type ResetPasswordValues } from './auth-schemas'
 
-/** The screen that sets a new password. */
 export function ResetPasswordPage() {
   const { t } = useTranslation()
-  // The address's query string; the first item is what reads it
   const [searchParams] = useSearchParams()
-  // The two values from the link; null when the address has been cut short
+  // null when the address has been cut short
   const token = searchParams.get('token')
   const email = searchParams.get('email')
-  // Moves to another screen from code
   const navigate = useNavigate()
-  // The request that sets the password (src/api/auth.ts)
   const resetPassword = useResetPassword()
-  // The form's values and errors (react-hook-form), checked with the schema
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema(t)),
     defaultValues: { password: '', password_confirmation: '' },
   })
-  // The fields' errors
   const { errors } = form.formState
 
   /**
-   * Runs when the form is submitted and passes the schema. On success it goes to
-   * /login, leaving a note in the router's state for the confirmation there.
+   * On success, /login, with a note in the router's state for the confirmation.
    * An expired token comes back on `email`, which is not a visible field, so
    * showRequestError puts its message at the top.
    * @param values the fields' values, already checked
@@ -53,14 +45,11 @@ export function ResetPasswordPage() {
     })
   }
 
-  // A link with something missing cannot work: say so, rather than draw a form
-  // that can only fail
+  // Said at once, rather than a form that can only fail
   if (!token || !email) {
     return (
       <>
-        {/* The eyebrow stays on the sign-in screens: they have no tab bar or
-            sidebar saying where the user is (D1.5 "Page header"). PageHeader's
-            own 24 px under it suits them (they used to pass className="mb-6") */}
+        {/* The eyebrow stays: these screens have no navigation saying where the user is */}
         <PageHeader eyebrow={t('auth.resetPassword.eyebrow')} title={t('auth.resetPassword.invalidTitle')} description={t('auth.resetPassword.invalidText')} />
         <Button asChild size="xl" className="w-full">
           <Link to="/forgot-password">{t('auth.resetPassword.askAgain')}</Link>

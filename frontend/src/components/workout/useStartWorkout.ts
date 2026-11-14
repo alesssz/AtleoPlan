@@ -1,13 +1,8 @@
 /*
  * useStartWorkout: the one way a workout starts, shared by the plan's page
- * (Start this day) and Home (Start, and Free workout). It builds the workout
- * on the phone (workout-session.ts), keeps it there (session-storage.ts)
- * and opens workout mode at /session/:id (docs/concepts/C1-frontend.md
- * C1.17, C1.18).
- *
- * A custom hook (a function whose name starts with `use` and that calls
- * other hooks) so that both screens share the steps, the user's settings
- * and the "starting…" state, instead of each repeating them.
+ * (Start this day) and Home (Start, and Free workout). It builds the workout on
+ * the phone (workout-session.ts), keeps it there (session-storage.ts) and opens
+ * workout mode at /session/:id.
  *
  * Starting a plan's day:
  * 1. the whole plan, which Home does not have (its answer lists the days
@@ -33,7 +28,6 @@ import { startFreeSession, startSession, type ActiveSession } from './workout-se
  */
 export const FALLBACK_REST_SECONDS = 90
 
-/** What useStartWorkout gives back. */
 export interface StartWorkout {
   /** True from the tap until workout mode opens. */
   starting: boolean
@@ -41,14 +35,10 @@ export interface StartWorkout {
   failed: boolean
   /**
    * Starts a day of a plan already loaded (the plan's page).
-   * @param plan the whole plan
-   * @param day the day
    */
   startDay: (plan: Plan, day: PlanDay) => Promise<void>
   /**
    * Starts a day of a plan known by its id only (Home): reads the plan first.
-   * @param planId the plan's UUID
-   * @param dayId the day's UUID
    */
   startPlanDay: (planId: string, dayId: string) => Promise<void>
   /** Starts a workout with no plan and no exercises yet (Home's Free workout). */
@@ -62,18 +52,15 @@ export function useStartWorkout(): StartWorkout {
   const navigate = useNavigate()
   // TanStack Query's cache, for the plan Home does not have
   const queryClient = useQueryClient()
-  // The user's unit and default rest. Already in the cache: RequireAuth
-  // asked for it before any page opened
+  // Already cached: RequireAuth asked before any page opened
   const { data: user } = useCurrentUser()
   const [starting, setStarting] = useState(false)
   const [failed, setFailed] = useState(false)
-  // The settings every start needs
   const unit = user?.weight_unit ?? 'kg'
   const defaultRestSeconds = user?.default_rest_seconds ?? FALLBACK_REST_SECONDS
 
   /**
    * Keeps the new workout on the phone and opens it.
-   * @param session the workout just built
    */
   function open(session: ActiveSession) {
     storeActiveSession(session)
@@ -91,9 +78,8 @@ export function useStartWorkout(): StartWorkout {
     setStarting(true)
     setFailed(false)
     try {
-      // fetchQuery(): the cached plan when it is fresh (the plan's page
-      // opened a moment ago), otherwise a request, whose answer goes into
-      // the cache for the plan's page too. Same key and function as usePlan()
+      // The cached plan when fresh, else a request whose answer the plan's
+      // page reuses: same key and function as usePlan()
       const plan = await queryClient.fetchQuery({
         queryKey: planKeys.detail(planId, i18n.language),
         queryFn: ({ signal }) => fetchPlan(planId, signal),

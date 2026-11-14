@@ -1,13 +1,10 @@
 /*
- * The arithmetic of workout mode's big stepper (docs/design/D1-ui.md D1.4.9,
- * SetStepper.tsx): how much − and + move each field of a set, and the
- * field's next text after a tap. Plain functions with no React, tested on
- * their own (stepper.test.ts).
+ * The arithmetic of workout mode's big stepper (SetStepper.tsx): how much − and
+ * + move each field of a set, and the field's next text after a tap.
  *
  * The fields stay text, as typed ("82,5" in Italian): the stepper reads the
  * text, adds the step, and writes the text back in the user's language, so
- * typing and tapping can be mixed freely. How it works:
- * docs/concepts/C1-frontend.md C1.17.7.
+ * typing and tapping can be mixed freely.
  */
 import { parseDecimal } from '@/components/plans/plan-draft'
 import { formatNumber } from '@/lib/format'
@@ -29,7 +26,6 @@ export const FALLBACK_WEIGHT_STEP = 2.5
 
 /**
  * How much one tap of − or + moves a field.
- * @param field the set's field
  * @param weightStep the user's `weight_step`, as the API sends it ("2.50"),
  *   or undefined while the user is loading
  */
@@ -50,18 +46,15 @@ export function fieldStep(field: SetField, weightStep: string | undefined): numb
  *   +, gives 10 (the backend takes whole numbers only).
  * - The weight is written with at most two decimals, which also rounds it:
  *   in JavaScript 0.1 + 0.2 is 0.30000000000000004, written "0.3".
- * - Nothing goes below 0. A weight that reaches 0 becomes empty: no weight,
- *   the body alone (D1.4.9), which is what an empty weight already means.
+ * - Nothing goes below 0. A weight that reaches 0 becomes empty: no weight, the
+ *   body alone, which is what an empty weight already means.
  * @param text the field's text, as typed or as the last tap left it
- * @param field which field it is
  * @param delta the step, negative for −
  * @param language the interface's language, for the decimal separator
  */
 export function stepValue(text: string, field: SetField, delta: number, language: string): string {
-  // The number now: 0 when empty or unreadable (NaN)
   const current = parseDecimal(text)
   const start = current === null || Number.isNaN(current) ? 0 : current
-  // The number after the tap; whole, but for the weight
   const sum = start + delta
   const next = field === 'weight' ? sum : Math.round(sum)
   if (next <= 0) return field === 'weight' ? '' : '0'

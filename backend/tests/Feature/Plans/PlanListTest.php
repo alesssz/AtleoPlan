@@ -1,8 +1,8 @@
 <?php
 
 /**
- * GET /api/plans and GET /api/plans/{plan}: the plan list and one whole plan
- * (docs/design/D1-ui.md D1.4.6, D1.4.7), with who may see what.
+ * GET /api/plans and GET /api/plans/{plan}: the plan list and one whole plan,
+ * with who may see what.
  */
 
 use App\Enums\MuscleRole;
@@ -31,7 +31,7 @@ it('answers 401 to a visitor', function () {
 
 it('lists only my plans, the active one first, then the most recently changed', function () {
     $user = User::factory()->create();
-    // travel(): moves the clock, so that updated_at differs between plans
+    // So that updated_at differs between plans
     $old = Plan::factory()->for($user)->create(['name' => 'Old']);
     $this->travel(1)->hours();
     $active = Plan::factory()->for($user)->create(['name' => 'Active']);
@@ -148,8 +148,7 @@ it('reads a whole plan in the same number of queries, whatever its size', functi
         ->has(PlanDay::factory()->count(4)->has(PlanItem::factory()->count(5)->has(PlanSet::factory()->count(4), 'sets'), 'items'), 'days')
         ->create();
 
-    // How many queries one request runs. enableQueryLog() makes Laravel
-    // remember every query; flushQueryLog() forgets those of the setup
+    // The setup's queries do not count
     $count = function (Plan $plan) use ($user): int {
         DB::enableQueryLog();
         DB::flushQueryLog();

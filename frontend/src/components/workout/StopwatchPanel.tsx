@@ -1,8 +1,7 @@
 /*
- * The stopwatch of a timed set (docs/design/D1-ui.md D1.4.9): opened by ▶ on
- * a set of an exercise logged by time (SetRow.tsx), for a hold ("30 s dead
- * hang") and for a race against the clock ("50 push-ups, as fast as
- * possible") alike.
+ * The stopwatch of a timed set: opened by ▶ on a set of an exercise logged by
+ * time (SetRow.tsx), for a hold ("30 s dead hang") and for a race against the
+ * clock ("50 push-ups, as fast as possible") alike.
  *
  * A panel docked at the bottom of workout mode, where the rest bar goes
  * (RestBar.tsx), not a full screen: the time is big enough to read from the
@@ -17,19 +16,18 @@
  *   and vibration) and says "Target reached". With no target, the bar fills
  *   once a minute, as a stopwatch's hand goes round.
  * - **Last time**, under the time, to beat.
- * - **A race** (`race`: an exercise counted in reps, done as fast as
- *   possible, C1.17.9): the reps to do after the set's name, "50 reps";
- *   the target is a time to beat, "To beat 1:12", then "0:05 over" once
- *   past it, with the bar in red and no signal: reaching it is not the goal.
+ * - **A race** (`race`: an exercise counted in reps, done as fast as possible):
+ *   the reps to do after the set's name, "50 reps"; the target is a time to
+ *   beat, "To beat 1:12", then "0:05 over" once past it, with the bar in red
+ *   and no signal: reaching it is not the goal.
  * - **Pause** stops the count, **Resume** takes it up again; the time paused
  *   is not counted (stopwatchSeconds, workout-session.ts).
  * - **Stop** writes the time into the set and ticks it, which starts the
  *   rest as ✓ does; **Cancel** throws the time away.
  *
- * The time is worked out from the moment of the start and the pauses, kept
- * in the workout (`session.stopwatch`, workout-session.ts): with the screen
- * off, or the app closed and opened again, it is still right. How it works:
- * docs/concepts/C1-frontend.md C1.17.8.
+ * The time is worked out from the moment of the start and the pauses, kept in
+ * the workout (`session.stopwatch`, workout-session.ts): with the screen off,
+ * or the app closed and opened again, it is still right.
  */
 import { Pause, Play, Square } from 'lucide-react'
 import { useEffect, useRef } from 'react'
@@ -42,7 +40,6 @@ import { clock } from './clock'
 import { WORKOUT_COLUMN } from './layout'
 import { stopwatchSeconds, stopwatchTargetAt, type Stopwatch } from './workout-session'
 
-/** Props of StopwatchPanel. */
 interface StopwatchPanelProps {
   /** The stopwatch running (or paused). */
   stopwatch: Stopwatch
@@ -89,12 +86,10 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
   // How much of the bar is filled, 0 to 1: the share of the target, or
   // the seconds of the current minute when there is none
   const share = target !== null ? Math.min(1, seconds / target) : (seconds % 60) / 60
-  // Stop, to give it the focus when the panel appears: ▶, which opened it,
-  // is disabled meanwhile, and a keyboard user would be left nowhere.
-  // useRef keeps the button across draws (C1.17.7)
+  // The focus goes to Stop: ▶, which opened the panel, is disabled meanwhile,
+  // and a keyboard user would be left nowhere
   const stopButton = useRef<HTMLButtonElement>(null)
 
-  // Once, when the panel appears: the focus on Stop
   useEffect(() => {
     stopButton.current?.focus()
   }, [])
@@ -118,11 +113,8 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
   }, [stopwatch, sound, vibration, isRace])
 
   return (
-    // A region named "Stopwatch", as the rest bar is named "Rest": screen
-    // readers can jump to it. The card's colour and the line on top set it
-    // apart from the table above. `relative` keeps the hidden "Target
-    // reached" text (sr-only, absolutely positioned) inside the panel
-    // (docs/how-to/H3-frontend.md H3.15.11)
+    // A named region, as the rest bar is. `relative` keeps the sr-only "Target
+    // reached" inside the panel
     <section aria-label={t('workout.stopwatch.title')} className="relative border-t bg-card py-4">
       <div className={WORKOUT_COLUMN}>
         {/* The bar: lime up to the target; red once a race's time to beat
@@ -134,12 +126,10 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
           />
         </div>
 
-        {/* The set, then the exercise, cut with "…" when long (truncate).
-            The set first: a long name would otherwise cut it off on a
-            phone, and the exercise is on screen above anyway.
-            Cancel on the right, quiet: it is not what a tired hand should
-            find first. Its visible word starts its spoken name, so a
-            voice command "Cancel" still finds it */}
+        {/* The set first: a long exercise name would otherwise cut it off
+            on a phone, and the exercise is on screen above anyway. Cancel
+            is quiet: not what a tired hand should find first. Its visible
+            word starts its spoken name, so a voice command still finds it */}
         <div className="flex items-center gap-2">
           <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{setName}</span>
@@ -154,8 +144,7 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
         {/* The time with what it is measured against, then Pause and Stop */}
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            {/* The time, large. The timer role: a clock screen readers do
-                not read every second. Greyed and pulsing while paused */}
+            {/* role="timer": screen readers do not read it every second */}
             <span role="timer" className={cn('block font-heading text-5xl leading-none font-extrabold tabular-nums', paused && 'animate-pulse text-muted-foreground')}>
               {clock(seconds)}
             </span>
@@ -166,11 +155,9 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
             )}
             {lastText !== null && <span className="block text-sm text-muted-foreground">{t('workout.stopwatch.last', { time: lastText })}</span>}
           </div>
-          {/* Pause / Resume: an outlined square as tall as Stop */}
           <Button variant="outline" size="icon-xl" className="size-14 shrink-0 rounded-2xl" aria-label={paused ? t('workout.stopwatch.resume') : t('workout.stopwatch.pause')} onClick={() => onPause(!paused)}>
             {paused ? <Play aria-hidden="true" className="fill-current" /> : <Pause aria-hidden="true" className="fill-current" />}
           </Button>
-          {/* Stop: lime, the one thing to do at the end of the set */}
           <Button ref={stopButton} size="xl" className="h-14 shrink-0 rounded-2xl px-5 text-lg" onClick={onStop}>
             <Square aria-hidden="true" className="fill-current" />
             {t('workout.stopwatch.stop')}

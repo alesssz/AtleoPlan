@@ -1,12 +1,8 @@
-# =============================================================================
-# AtleoPlan — project commands
-# Usage: make <command>     (make help for the full list)
-# Backend commands run in the Docker containers (compose.yaml); frontend
-# commands run with this computer's Node in frontend/. Ports: docs/start/S1-setup.md S1.4.
-# On Windows, run make from Git Bash: the recipes need bash, grep and cp (S1.2).
-# Commands that take a value get it as a variable, because Make reads anything
-# after the target as more targets: make artisan c="route:list".
-# =============================================================================
+# AtleoPlan's commands: `make help` lists them. Backend commands run in the
+# containers, frontend ones with this computer's Node. On Windows, run make from
+# Git Bash: the recipes need bash, grep and cp. Values are passed as variables,
+# since Make reads anything after the target as more targets: make artisan
+# c="route:list".
 
 SHELL := bash
 .DEFAULT_GOAL := help
@@ -16,18 +12,13 @@ SHELL := bash
         test pint pint-check lint lint-fix typecheck fe-test fix check audit github-check toc toc-check \
         branch sync push merge
 
-# docker compose, and the two ways into the backend container
 DC      := docker compose
 ARTISAN := $(DC) exec backend php artisan
-# The same, with the photos' conversions made at once instead of queued
-# (QUEUE_CONVERSIONS_BY_DEFAULT, config of spatie/laravel-medialibrary):
-# for commands that add or convert many photos, which `queue:listen`, starting
-# Laravel again for each job, would take long to work through
-# (docs/concepts/C2-backend.md C2.5.9).
+# Photo conversions made at once rather than queued: for commands that add many
+# photos, which `queue:listen`, booting Laravel for every job, would take long
+# to work through
 ARTISAN_NOW := $(DC) exec -e QUEUE_CONVERSIONS_BY_DEFAULT=false backend php artisan
-# npm, always run inside frontend/
 NPM     := npm --prefix frontend
-# The branch checked out, for push
 BRANCH  := $(shell git branch --show-current)
 
 help: ## Show this list
@@ -40,15 +31,15 @@ help: ## Show this list
 doctor: ## Check this computer and clone (Docker, disk, Node, npm cache, Git identity, ports…) and print the fixes
 	node scripts/doctor.mjs
 
-# The order matters on a new clone (docs/start/S1-setup.md S1.5):
+# The order matters on a new clone:
 # - backend/.env comes first: without it Laravel believes it is in production
 #   and `migrate` stops to ask for confirmation.
 # - Composer runs before the stack starts: without vendor/ the queue worker
 #   crashes and keeps restarting until the packages arrive. They go into the
-#   `vendor` Docker volume, and Composer then copies them to backend/vendor/
-#   for the editor (docs/how-to/H2-backend.md H2.18); about 20 s on Windows.
-# - The key is generated only when empty, because replacing it would invalidate
-#   existing sessions. grep -q tests the file and prints nothing: it holds secrets.
+#   `vendor` Docker volume, and Composer then copies them to backend/vendor/ for
+#   the editor; about 20 s on Windows.
+# - The key is generated only when empty: replacing it would invalidate
+#   existing sessions. grep -q prints nothing: the file holds secrets.
 # - The fixed lists (muscles, equipment) come right after the migrations: the
 #   app and the exercise import both need them (reference-data below).
 setup: ## New clone, or after a pull: Git hook, backend/.env and its key, image, packages, containers, test database, migrations, muscles and equipment
@@ -63,7 +54,7 @@ setup: ## New clone, or after a pull: Git hook, backend/.env and its key, image,
 	$(ARTISAN) migrate
 	$(MAKE) --no-print-directory reference-data
 	# public/storage → storage/app/public: the web server can then serve the
-	# photos, at /storage/… (docs/how-to/H3-frontend.md H3.12)
+	# photos, at /storage/…
 	$(ARTISAN) storage:link
 	@echo ""
 	@echo "✔ Ready. Laravel: http://localhost:8500 · React: make dev (http://localhost:5673)"
@@ -115,14 +106,9 @@ composer: ## Any Composer command: make composer c="require vendor/package"
 	@test -n "$(c)" || { echo 'Usage: make composer c="<command>"'; exit 1; }
 	$(DC) exec backend composer $(c)
 
-# The packages the app runs on live in the `vendor` Docker volume, not in the
-# folder shared with the computer, so that requests are fast
-# (docs/how-to/H2-backend.md H2.18). backend/vendor/ on the computer is a copy,
-# for the editor: Composer refreshes it by itself after every install,
-# require, update and remove, through the script docker/php/sync-vendor.sh.
-# This target runs that script by hand, for when the copy is missing (a clone
-# whose packages were installed before the volume existed) or was touched.
-# rsync sends only what differs, so running it again is safe.
+# backend/vendor/ is the editor's copy of the `vendor` volume, refreshed by
+# Composer after every change. By hand, for when the copy is missing or was
+# touched; only what differs is sent.
 vendor: ## Copy the Composer packages to backend/vendor/ for the editor (Composer does it by itself)
 	$(DC) exec backend sync-vendor
 
@@ -161,21 +147,15 @@ db-restore: ## Replace the development database with a dump: make db-restore f=b
 	$(DC) exec -T postgres psql -U atleoplan -q -v ON_ERROR_STOP=1 atleoplan < $(f) > /dev/null
 	@echo "✔ Restored $(f)"
 
-# The public exercise library (DATA-1, docs/how-to/H1-database.md H1.12). The
-# dataset is cloned once into backend/storage/app/, which Git ignores, and the
-# container sees it there through the ./backend volume. --depth 1: only the
-# latest version, without the repository's history. Options of the command go
-# in o="…": make exercises-import o="--limit=5", o="--update".
+# The public exercise library. The dataset is cloned once into
+# backend/storage/app/, which Git ignores. Options of the command go in o="…":
+# make exercises-import o="--limit=5". The translation runs last; a language an
+# exercise already has is kept, so running it again never undoes a correction
+# made by hand.
 FREE_EXERCISE_DB := backend/storage/app/free-exercise-db
 
-# After the import, the translation: the Italian, Spanish and German texts
-# kept in backend/database/data/exercise-translations (docs/how-to/H1-database.md
-# H1.14). A language an exercise already has is kept, so running both again
-# never undoes a correction made by hand.
-# The muscles and the equipment, the fixed lists every exercise points to
-# (docs/design/D3-data-model.md D3.4.1). Their seeders use updateOrCreate(),
-# so running them again changes nothing: setup and exercises-import call this
-# every time, and a database emptied without --seed is covered too.
+# The seeders upsert, so setup and exercises-import run this every time, and a
+# database emptied without --seed is covered too.
 reference-data: ## Muscles and equipment, the lists the library points to; safe to run again (setup and exercises-import do it)
 	$(ARTISAN) db:seed --class=MuscleSeeder
 	$(ARTISAN) db:seed --class=EquipmentSeeder
@@ -188,38 +168,29 @@ exercises-import: ## Fill the public exercise library from free-exercise-db (dow
 	$(ARTISAN) exercises:import-extra
 	$(ARTISAN) exercises:translate
 
-# The project's own exercises, those free-exercise-db lacks (calisthenics),
-# kept in backend/database/data/extra-exercises.json with their translations
-# (docs/how-to/H1-database.md H1.17). exercises-import does this too; alone,
-# it adds the extras to a library imported before they existed, in seconds.
+# The project's own exercises, those free-exercise-db lacks (calisthenics).
+# exercises-import does this too; alone, it adds them to a library imported
+# before they existed.
 exercises-extra: ## Add the extra exercises (calisthenics) to the library, then translate them; safe to run again
 	$(MAKE) --no-print-directory reference-data
 	$(ARTISAN) exercises:import-extra
 	$(ARTISAN) exercises:translate
 
-# The logging types the import guesses wrong (Plank, held for a time, guessed
-# as reps), corrected from backend/database/data/logging-type-corrections.json
-# (DATA-3, docs/how-to/H1-database.md H1.19). exercises-import does this too;
+# The logging types the import guessed wrong. exercises-import does this too;
 # alone, it puts right a library imported before the list existed. Only
 # exercises still on the guess and not yet in a plan or a workout change.
 exercises-correct: ## Correct the logging types the import guessed wrong (Plank as time); safe to run again
 	$(ARTISAN) exercises:correct-logging-types
 
-# The small (400 px) and large (1600 px) WebP copies of every photo
-# (feat/exercise-media, docs/how-to/H2-backend.md H2.17). New photos get them
-# by themselves; this makes them for photos added before they existed, such
-# as a library imported earlier. --only-missing: those already made are kept,
-# so running it again only does what is left.
+# For photos added before the conversions existed; running it again only does
+# what is left.
 exercises-thumbnails: ## Make the missing small and large copies of the exercises' photos (a library imported before them)
 	$(ARTISAN_NOW) media-library:regenerate --only-missing
 
 exercises-translate: ## Translate the imported exercises into it, es, de; options in o="…": make exercises-translate o="--locale=it --force"
 	$(ARTISAN) exercises:translate $(o)
 
-# Two example plans for every user who has none (FEAT-2,
-# docs/how-to/H3-frontend.md H3.13.1), to look at the plan screens and the
-# editor without building a plan by hand. Development only; needs the
-# library imported first.
+# Development only; needs the library imported first.
 plans-demo: ## Give every user with no plans two example plans (after exercises-import)
 	$(ARTISAN) db:seed --class=DemoPlanSeeder
 
@@ -228,13 +199,11 @@ plans-demo: ## Give every user with no plans two example plans (after exercises-
 dev: ## Start the React dev server (http://localhost:5673)
 	$(NPM) run dev
 
-# adb, Android's tool for talking to a phone over USB: the one on the PATH, or
-# the copy unzipped into the home folder (docs/how-to/H3-frontend.md H3.8.2).
-# $(shell …) runs a command when the Makefile is read; `a || b` runs b when a
-# fails. Git Bash finds adb.exe from the name without .exe
+# The adb on the PATH, or the copy unzipped into the home folder. Git Bash finds
+# adb.exe without the .exe
 ADB := $(shell command -v adb 2>/dev/null || echo "$(HOME)/platform-tools/adb")
 
-phone: ## Android phone on USB: its own localhost:5673 opens this computer's dev app (H3.8.2)
+phone: ## Android phone on USB: its own localhost:5673 opens this computer's dev app
 	@"$(ADB)" devices -l
 	@"$(ADB)" reverse tcp:5673 tcp:5673 >/dev/null && echo "✔ On the phone, in Chrome: http://localhost:5673 (until the cable is unplugged)"
 
@@ -274,24 +243,21 @@ check: pint-check test lint typecheck fe-test toc-check ## Everything before a m
 # --- Docs ---------------------------------------------------------------------
 
 # The "Contents" list at the top of each doc is generated from its headings
-# (scripts/docs-toc.mjs, docs/project/P1-conventions.md P1.3).
+# (scripts/docs-toc.mjs).
 toc: ## Rebuild the contents list at the top of every doc, after changing a heading
 	node scripts/docs-toc.mjs
 
 toc-check: ## Fail if a doc's contents list is out of date (part of make check)
 	node scripts/docs-toc.mjs --check
 
-# The leading "-" lets the second audit run when the first finds something.
-# npm's goes through scripts/npm-audit.mjs, which leaves out the advisories
-# reviewed in frontend/package.json (auditIgnore), as the Audit workflow
-# does (.github/workflows/audit.yml, docs/how-to/H5-ci.md H5.4).
+# "-": the second audit runs even when the first finds something. npm's leaves
+# out the advisories reviewed in frontend/package.json (auditIgnore), as the
+# Audit workflow does.
 audit: ## Known vulnerabilities in the Composer and npm packages (report only, changes nothing)
 	-$(DC) exec backend composer audit
 	-node scripts/npm-audit.mjs
 
-# Reads the repository's settings on GitHub through gh (signed in once with
-# `gh auth login`) and compares them with the ones decided; changes nothing
-# (scripts/github-check.mjs, docs/how-to/H5-ci.md H5.3).
+# Read-only, through gh.
 github-check: ## The repository's settings on GitHub and its last runs, against the ones decided (needs gh)
 	node scripts/github-check.mjs
 

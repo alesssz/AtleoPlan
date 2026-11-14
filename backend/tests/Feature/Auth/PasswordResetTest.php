@@ -2,7 +2,7 @@
 
 /**
  * "Forgot password", in its two steps: asking for the email, then choosing a
- * new password with the token it holds. docs/concepts/C2-backend.md C2.7.5.
+ * new password with the token it holds.
  */
 
 use App\Models\User;
@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Password;
 uses(RefreshDatabase::class);
 
 it('emails a link that opens the React screen', function () {
-    // Notification::fake() keeps emails from being sent, and records them
     Notification::fake();
     $user = User::factory()->create(['email' => 'ann+gym@example.com']);
 

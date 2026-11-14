@@ -1,7 +1,7 @@
 /*
- * Profile: shows the account, signs out, and saves the workout's
- * preferences. The guards around it are the real ones, so signing out really
- * ends on the sign-in form (docs/concepts/C1-frontend.md C1.13).
+ * Profile: shows the account, signs out, and saves the workout's preferences.
+ * The guards around it are the real ones, so signing out really ends on the
+ * sign-in form.
  */
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -24,7 +24,6 @@ const health = { status: 200, body: { status: 'ok' } }
 
 /**
  * Every body sent to PATCH /api/user/preferences, in order.
- * @param fake the fake fetch
  */
 function preferencesSent(fake: ReturnType<typeof fakeApi>): unknown[] {
   return fake.mock.calls

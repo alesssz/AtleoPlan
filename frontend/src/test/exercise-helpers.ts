@@ -2,7 +2,7 @@
  * What the tests of the exercise library share: exercises, pages and the two
  * fixed lists, shaped as the backend sends them, to put in fakeApi's table
  * (src/test/auth-helpers.tsx); and a fake XMLHttpRequest for the photos'
- * uploads (fakeUploads). Tests and checks: docs/concepts/C1-frontend.md C1.10.
+ * uploads (fakeUploads).
  */
 import { vi } from 'vitest'
 import type { Equipment } from '@/api/equipment'
@@ -25,7 +25,6 @@ export const testEquipment: Equipment[] = [
 
 /**
  * A public exercise, with two photos; `{ ...changes }` replaces some fields.
- * @param changes the fields to change
  */
 export function testExercise(changes: Partial<Exercise> = {}): Exercise {
   return {
@@ -49,7 +48,6 @@ export function testExercise(changes: Partial<Exercise> = {}): Exercise {
 
 /**
  * One page of GET /api/exercises.
- * @param exercises the page's exercises
  * @param meta where the page sits; one page of these exercises by default
  */
 export function exercisePage(exercises: Exercise[], meta: { current_page?: number, last_page?: number, total?: number } = {}): FakeAnswer {
@@ -91,50 +89,28 @@ export interface SentUpload {
  * @returns the list of uploads sent, filled as they happen
  */
 export function fakeUploads(answer: FakeAnswer | 'network' | (() => FakeAnswer | 'network')): SentUpload[] {
-  // Every upload sent, in order, for the test to read
   const sent: SentUpload[] = []
 
   /** The fake: only what upload() uses. */
   class FakeXhr {
-    /** The status of the answer, once it has come. */
     status = 0
-    /** The body of the answer, as text. */
     responseText = ''
-    /** The progress of the sending, as XMLHttpRequest.upload has it. */
     upload: { onprogress: ((event: { lengthComputable: boolean, loaded: number, total: number }) => void) | null } = { onprogress: null }
-    /** Called when the answer has come. */
     onload: (() => void) | null = null
-    /** Called when there is no answer at all. */
     onerror: (() => void) | null = null
-    /** The address and headers of this request. */
     private path = ''
     private headers: Record<string, string> = {}
 
-    /**
-     * Opens the request: remembers the address.
-     * @param _method the method, always POST here
-     * @param path the address
-     */
     open(_method: string, path: string) {
       this.path = path
     }
 
-    /**
-     * Sets a header.
-     * @param name the header's name
-     * @param value its value
-     */
     setRequestHeader(name: string, value: string) {
       this.headers[name] = value
     }
 
-    /**
-     * Sends the form: records it, reports progress, then answers.
-     * @param form the form
-     */
     send(form: FormData) {
       sent.push({ path: this.path, form, headers: this.headers })
-      // The answer for this upload: the fixed one, or the function's
       const result = typeof answer === 'function' ? answer() : answer
       this.upload.onprogress?.({ lengthComputable: true, loaded: 50, total: 100 })
       this.upload.onprogress?.({ lengthComputable: true, loaded: 100, total: 100 })
@@ -150,8 +126,7 @@ export function fakeUploads(answer: FakeAnswer | 'network' | (() => FakeAnswer |
     }
   }
 
-  // vi.stubGlobal(): replaces a global of the browser for this test;
-  // src/test/setup.ts puts the real one back after each test (vi.unstubAllGlobals())
+  // Restored after each test by src/test/setup.ts
   vi.stubGlobal('XMLHttpRequest', FakeXhr)
   return sent
 }
