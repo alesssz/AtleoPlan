@@ -3,13 +3,10 @@
 namespace App\Enums;
 
 /**
- * What a set of an exercise records, the values of `exercises.logging_type`
- * (docs/design/D3-data-model.md D3.4.2). It decides which fields workout mode
- * shows for each set (D3.6.3): a bench press logs a weight and reps, a plank
- * logs a time.
- *
- * What an enum is: app/Enums/Locale.php. The migration lists the same values,
- * and Postgres refuses any other.
+ * What a set of an exercise records, the values of `exercises.logging_type`. It
+ * decides which fields workout mode shows for each set: a bench press logs a
+ * weight and reps, a plank logs a time. A check constraint in the migration
+ * holds the same values.
  */
 enum LoggingType: string
 {

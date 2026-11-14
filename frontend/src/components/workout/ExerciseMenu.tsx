@@ -1,7 +1,7 @@
 /*
- * The exercise's menu in workout mode (docs/design/D1-ui.md D1.4.9): a "⋯"
- * beside the exercise's name, opening a panel from the bottom with up to five
- * actions, each a row 48 px tall:
+ * The exercise's menu in workout mode: a "⋯" beside the exercise's name,
+ * opening a panel from the bottom with up to five actions, each a row 48 px
+ * tall:
  *
  * - **Swap exercise**: the library's picker, filtered by the exercise's
  *   main muscle, opens (WorkoutScreen); only before a set is ticked;
@@ -14,10 +14,9 @@
  *   a question first, since its sets, ticked ones included, go with it.
  *   The plan's exercises have Skip instead: the day stays whole.
  *
- * A panel from the bottom rather than a small drop-down menu: rows as wide
- * as the phone are easy to hit mid-workout, and it is the same Sheet as the
- * stepper's (src/components/ui/sheet.tsx). How it works:
- * docs/concepts/C1-frontend.md C1.17.7.
+ * A panel from the bottom rather than a small drop-down menu: rows as wide as
+ * the phone are easy to hit mid-workout, and it is the same Sheet as the
+ * stepper's (src/components/ui/sheet.tsx).
  */
 import { ArrowLeftRight, CirclePlay, Ellipsis, NotebookPen, SkipForward, Trash2, Undo2 } from 'lucide-react'
 import { useId, useState } from 'react'
@@ -34,7 +33,6 @@ const NOTE_MAX = 500
 /** The classes of the menu's rows: as wide as the panel, text on the left. */
 const ROW = 'w-full justify-start px-3 text-base'
 
-/** Props of ExerciseMenu. */
 interface ExerciseMenuProps {
   /** The exercise on screen. */
   item: WorkoutExercise
@@ -48,17 +46,15 @@ interface ExerciseMenuProps {
   onRemove?: () => void
 }
 
-/** The "⋯" button and the panel it opens. */
 export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: ExerciseMenuProps) {
   const { t } = useTranslation()
-  // Whether the panel is open, controlled here so the actions can close it
+  // Controlled, so the actions can close it
   const [open, setOpen] = useState(false)
   // What the panel shows: the actions, the note's text box, or the
   // question before removing the exercise
   const [view, setView] = useState<'menu' | 'note' | 'remove'>('menu')
-  // The note while it is written; kept by Save only
+  // Kept by Save only
   const [draft, setDraft] = useState('')
-  // Links the note's label to its text box
   const noteId = useId()
   // A set already ticked: the exercise can no longer be swapped
   const started = item.sets.some(set => set.done)
@@ -74,7 +70,6 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
 
   /**
    * Runs an action and closes the panel.
-   * @param action what the row does
    */
   function act(action: () => void) {
     change(false)
@@ -129,9 +124,7 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
                 {item.notes ? t('workout.editNote') : t('workout.addNote')}
               </Button>
 
-              {/* The video, only when there is one: a link that looks like
-                  a row (Button asChild, C1.8), opening YouTube in a new tab.
-                  rel="noreferrer": the new tab gets no handle on this page */}
+              {/* rel="noreferrer": the new tab gets no handle on this page */}
               {item.exercise.youtube_url && (
                 <Button asChild variant="ghost" size="xl" className={ROW}>
                   <a href={item.exercise.youtube_url} target="_blank" rel="noreferrer" onClick={() => change(false)}>
@@ -141,10 +134,7 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
                 </Button>
               )}
 
-              {/* Remove, only on an exercise added by hand; red, last, and
-                  asking first: the panel turns into the question. The
-                  classes: the rows' own (ROW), then the red, joined in a
-                  template literal (backticks, ${…} inserts a value) */}
+              {/* Last, red, and asking first: the panel turns into the question */}
               {onRemove && (
                 <Button variant="ghost" size="xl" className={`${ROW} text-destructive hover:text-destructive`} onClick={() => setView('remove')}>
                   <Trash2 aria-hidden="true" />

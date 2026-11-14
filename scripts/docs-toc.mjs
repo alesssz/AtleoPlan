@@ -3,7 +3,7 @@
  * Writes the "Contents" list at the top of every Markdown document, built from
  * its headings. Run with `make toc` after adding, renaming or removing a
  * heading; `make check` runs it with --check and fails if a list is out of
- * date (docs/project/P1-conventions.md P1.3).
+ * date.
  *
  * Which files: README.md and every .md under docs/ with at least two "##"
  * headings. Which headings: "##" and "###", nested; headings inside code
@@ -104,12 +104,9 @@ function withContents(source) {
   const found = headings(lines)
   if (found.filter(heading => heading.level === 2).length < 2) return null
 
-  // One list item per heading; "###" ones indented under their "##". In the
-  // link's text, "[", "]" and "\" get a backslash before them ("$&" is the
-  // character found), so Markdown reads them as text: an unescaped "]"
-  // would end the link early, and a "\" left alone would escape whatever
-  // follows it. The backslash was first forgotten, which CodeQL reported
-  // as js/incomplete-sanitization (docs/how-to/H5-ci.md H5.7.4)
+  // "###" indented under its "##". "[", "]" and "\" are escaped in the link's
+  // text: an unescaped "]" would end the link early, a lone "\" would escape
+  // what follows (CodeQL's js/incomplete-sanitization)
   const items = found.map(({ level, text, slug }) => `${level === 3 ? '  ' : ''}- [${text.replace(/[\\[\]]/g, '\\$&')}](#${slug})`)
 
   // Before the first "##", or before the "---" right above it

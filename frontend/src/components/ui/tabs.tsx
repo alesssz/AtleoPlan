@@ -1,35 +1,8 @@
-/*
- * Tabs: shadcn/ui's tabs, used for the days of a plan
- * (docs/design/D1-ui.md D1.4.7: "Days as tabs"). Added with
- * `npx shadcn add tabs`; what shadcn/ui is: card.tsx and
- * docs/concepts/C1-frontend.md C1.8.
- *
- *   <Tabs value={day} onValueChange={setDay}>
- *     <TabsList>
- *       <TabsTrigger value="a">Day A</TabsTrigger>
- *       <TabsTrigger value="b">Day B</TabsTrigger>
- *     </TabsList>
- *     <TabsContent value="a">…</TabsContent>
- *     <TabsContent value="b">…</TabsContent>
- *   </Tabs>
- *
- * Built on Radix's Tabs, which does what tabs need for keyboards and screen
- * readers: the roles tablist, tab and tabpanel, each tab linked to its panel
- * (aria-controls), the arrow keys moving between tabs, and only the open
- * panel drawn. `value` and `onValueChange` make it controlled: the page
- * decides which tab is open (docs/concepts/C1-frontend.md C1.15.3).
- *
- * The open tab carries `data-state="active"`, which Tailwind reads with the
- * `data-active:` variant to style it. `variant="line"` on TabsList swaps the
- * grey pill for an underline.
- */
-// React's types; cva for the variants (button.tsx); cn() joins classes; Radix's Tabs
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
 import { Tabs as TabsPrimitive } from 'radix-ui'
 
-/** The box holding the tab list and the panels; `orientation` sets the arrow keys. */
 function Tabs({
   className,
   orientation = 'horizontal',
@@ -48,7 +21,6 @@ function Tabs({
   )
 }
 
-/** The looks of the tab list: a grey pill (`default`) or an underline (`line`). */
 const tabsListVariants = cva(
   'group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none',
   {
@@ -64,7 +36,6 @@ const tabsListVariants = cva(
   },
 )
 
-/** The row of tabs, with role="tablist". */
 function TabsList({
   className,
   variant = 'default',
@@ -81,7 +52,6 @@ function TabsList({
   )
 }
 
-/** One tab: a button that opens the panel with the same `value`. */
 function TabsTrigger({
   className,
   ...props
@@ -101,7 +71,6 @@ function TabsTrigger({
   )
 }
 
-/** One panel, drawn only while its tab is open. */
 function TabsContent({
   className,
   ...props

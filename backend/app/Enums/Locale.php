@@ -3,14 +3,8 @@
 namespace App\Enums;
 
 /**
- * The languages of the app (docs/design/D2-decisions.md D2.4), the values of the
- * `users.locale` column.
- *
- * An enum is a type with a fixed list of values. `: string` makes it "backed":
- * each case has the plain string stored in the database, read with
- * `Locale::It->value`. Compared with bare strings, a typo such as
- * `Locale::Itt` is an error at once (docs/design/D3-data-model.md D3.2.4). The frontend
- * has the same list in src/i18n/languages.ts.
+ * The app's languages, stored in `users.locale`. The frontend has the same list
+ * in src/i18n/languages.ts.
  */
 enum Locale: string
 {
@@ -20,8 +14,8 @@ enum Locale: string
     case De = 'de';
 
     /**
-     * Every language code, English first: the order the browser's languages
-     * are matched in, so English is the answer when none of them is ours.
+     * English first: the browser's languages are matched in this order, so
+     * English wins when none of them is supported.
      *
      * @return list<string>
      */

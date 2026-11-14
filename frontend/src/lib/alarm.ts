@@ -1,21 +1,12 @@
 /*
- * The end of a rest, felt and heard (docs/design/D1-ui.md D1.4.9): a
- * vibration and a short beep, each when the user wants it (Profile:
- * timer_vibration, timer_sound).
- *
- * The beep is made by the browser's Web Audio API, with no sound file: an
- * oscillator plays a tone for a third of a second, twice. The vibration is
- * navigator.vibrate(), which phones with Android support and iPhones ignore.
- * Both are guarded: a browser, or a test, without them gets nothing.
+ * The end of a rest, felt and heard, as the user's timer_vibration and
+ * timer_sound ask. The beep is synthesised, with no sound file; iPhones ignore
+ * navigator.vibrate(). Both are guarded, so a browser or a test without them
+ * gets nothing.
  */
 
-/**
- * Plays the end of a rest.
- * @param options what the user wants: sound, vibration
- */
 export function restOver(options: { sound: boolean, vibration: boolean }): void {
   if (options.vibration && typeof navigator.vibrate === 'function') {
-    // Vibrate 200 ms, pause 100 ms, vibrate 200 ms
     navigator.vibrate([200, 100, 200])
   }
   if (options.sound && typeof AudioContext === 'function') {
@@ -23,18 +14,15 @@ export function restOver(options: { sound: boolean, vibration: boolean }): void 
       beep(new AudioContext())
     }
     catch {
-      // No sound allowed now (a page that was never touched): nothing to do
+      // Audio is refused on a page that was never touched
     }
   }
 }
 
-/**
- * Two short beeps.
- * @param audio the browser's audio context
- */
+/** Two short beeps. */
 function beep(audio: AudioContext): void {
   for (const start of [0, 0.4]) {
-    // An oscillator makes the tone; a gain node fades it, so it does not click
+    // The fade keeps the tone from clicking
     const tone = audio.createOscillator()
     const volume = audio.createGain()
     tone.frequency.value = 880

@@ -1,27 +1,3 @@
-/*
- * Dialog: shadcn/ui's modal window, used by the plan editor to pick
- * exercises from the library (docs/design/D1-ui.md D1.4.8). Added with
- * `npx shadcn add dialog`, answering no to overwriting our button.tsx
- * (docs/how-to/H3-frontend.md H3.14.2); what shadcn/ui is: card.tsx and
- * docs/concepts/C1-frontend.md C1.8.
- *
- *   <Dialog open={open} onOpenChange={setOpen}>
- *     <DialogTrigger asChild><Button>Add exercises</Button></DialogTrigger>
- *     <DialogContent closeLabel={t('common.close')}>
- *       <DialogHeader><DialogTitle>…</DialogTitle></DialogHeader>
- *       …
- *     </DialogContent>
- *   </Dialog>
- *
- * Built on Radix's Dialog, which does what a modal needs: the page behind
- * cannot be reached, the focus moves into the window and stays there, Escape
- * and the X close it, and the focus returns to the button that opened it.
- * Unlike AlertDialog, a click outside closes it too.
- *
- * One change from shadcn's file: the X's hidden text was the English word
- * "Close"; DialogContent now takes `closeLabel`, so it is translated.
- */
-// React's types; cn() joins classes; Radix's Dialog; our Button; the X icon
 import * as React from 'react'
 import { cn } from 'cn'
 import { Dialog as DialogPrimitive } from 'radix-ui'
@@ -29,35 +5,30 @@ import { Dialog as DialogPrimitive } from 'radix-ui'
 import { Button } from '@/components/ui/button'
 import { XIcon } from 'lucide-react'
 
-/** The dialog's state: open or closed, controlled with `open` and `onOpenChange`. */
 function Dialog({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-/** The element that opens the dialog; `asChild` lends the behaviour to a Button. */
 function DialogTrigger({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
 
-/** Draws the dialog at the end of <body>, above everything else. */
 function DialogPortal({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
 }
 
-/** An element that closes the dialog. */
 function DialogClose({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
-/** The dimmed layer over the page. */
 function DialogOverlay({
   className,
   ...props
@@ -75,8 +46,8 @@ function DialogOverlay({
 }
 
 /**
- * The window itself, centred, with the X in its corner.
- * `closeLabel` is the X's name for screen readers, already translated.
+ * `closeLabel` (ours): the X's name for screen readers, translated, where
+ * shadcn wrote "Close".
  */
 function DialogContent({
   className,
@@ -117,7 +88,6 @@ function DialogContent({
   )
 }
 
-/** The title and the description, at the top. */
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -128,7 +98,6 @@ function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-/** The buttons, at the bottom, on a grey band. */
 function DialogFooter({
   className,
   showCloseButton = false,
@@ -156,7 +125,6 @@ function DialogFooter({
   )
 }
 
-/** The dialog's title: also its name for screen readers. */
 function DialogTitle({
   className,
   ...props
@@ -173,7 +141,6 @@ function DialogTitle({
   )
 }
 
-/** One or two sentences under the title. */
 function DialogDescription({
   className,
   ...props

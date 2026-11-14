@@ -12,7 +12,6 @@ import { durationText, formatSeconds, groupSupersets, itemSummary, warmUpCount, 
 let options: SummaryOptions
 
 beforeEach(() => {
-  // i18n.t: the same translate function the components get from useTranslation()
   options = { language: 'en', weightUnit: 'kg', defaultRestSeconds: 90, t: i18n.t }
 })
 

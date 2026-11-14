@@ -9,8 +9,8 @@
 # left out, each with its reason, are in frontend/package.json (auditIgnore)
 # and backend/composer.json (config.audit.ignore).
 #
-# The run's summary also lists the outdated packages, to plan updates; that
-# list never fails the run. How it works: docs/how-to/H5-ci.md.
+# The run's summary also lists the outdated packages, to plan updates; that list
+# never fails the run.
 name: Audit
 
 on:

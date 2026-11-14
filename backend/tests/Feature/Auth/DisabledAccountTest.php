@@ -2,9 +2,8 @@
 
 /**
  * A user disabled by an admin while signed in is signed out at their next
- * request (BE-2, the middleware SignOutDisabledAccount,
- * docs/concepts/C2-backend.md C2.7.9). Signing in again is refused, as
- * SignInTest and GoogleSignInTest check.
+ * request (the middleware SignOutDisabledAccount). Signing in again is refused,
+ * as SignInTest and GoogleSignInTest check.
  *
  * The scenarios sign in through the real route, as the React app does, then
  * an admin disables the account (here: the column set directly), then the
@@ -12,7 +11,6 @@
  * driver of phpunit.xml), kept from one request to the next.
  */
 
-// Imports: the model, and the trait that empties the database
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -28,10 +26,9 @@ it('signs out a user disabled since signing in', function () {
 
     // What the panel's Disable does (ChangeUserAccess)
     $user->forceFill(['disabled_at' => now()])->save();
-    // A real request starts a new PHP process, which reads the user from the
-    // database. A test keeps one app for all its requests, and its guards
-    // keep the user they read at sign-in, still enabled: forgetGuards()
-    // drops them, so the next request reads the user again, as a real one does
+    // A test keeps one app across requests, and its guards keep the user
+    // they read at sign-in, still enabled; a real request would read the
+    // user again
     $this->app['auth']->forgetGuards();
 
     // 401: the React app reads it as "the session has ended" and opens sign-in

@@ -2,16 +2,16 @@
  * Global styles of the app: Tailwind CSS, the design system's colour tokens
  * for the dark and light themes, the font, and a few base rules.
  *
- * How it works (docs/concepts/C1-frontend.md C1.8):
+ * How it works:
  * - Colours are CSS variables ("tokens") such as --primary. Components never
  *   use a colour directly: they use Tailwind classes made from the tokens
  *   (bg-primary, text-muted-foreground…). Switching theme only changes the
  *   variables' values, here below, and every component follows.
  * - The light values sit on :root; the dark values on .dark, a class put on
- *   <html> by the theme code (src/theme/). Dark is the default
- *   (docs/design/D1-ui.md D1.1, principle 5).
+ *   <html> by the theme code (src/theme/). Dark is the default: easier to read
+ *   on a phone lying on the bench.
  * - The token names are shadcn/ui's, so its components work unchanged; the
- *   values are AtleoPlan's (docs/design/D1-ui.md D1.5).
+ *   values are AtleoPlan's.
  */
 
 /* Tailwind itself: its reset ("preflight") and every utility class */
@@ -21,7 +21,7 @@
 /* shadcn/ui's own helper styles */
 @import "shadcn/tailwind.css";
 /* Inter, served from the app itself rather than Google Fonts, so it also
-   works offline (the PWA, docs/design/D2-decisions.md D2.7) */
+   works offline (the PWA) */
 @import "@fontsource-variable/inter";
 
 /* `dark:` classes apply inside an element with the .dark class (our <html>),
@@ -72,13 +72,13 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* AtleoPlan's own tokens (docs/design/D1-ui.md D1.5): bg-timer, text-success… */
+  /* AtleoPlan's own tokens: bg-timer, text-success… */
   --color-timer: var(--timer);
   --color-success: var(--success);
   --color-warning: var(--warning);
 
   /* Corner radii, all derived from --radius (8 px): rounded-lg = 8 px for
-     buttons and inputs, rounded-xl ≈ 12 px for cards (D1.5) */
+     buttons and inputs, rounded-xl ≈ 12 px for cards */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -95,7 +95,7 @@
   /* App background and text */
   --background: #FFFFFF;
   --foreground: #0B0B0F;
-  /* "surface" in D1.5: cards, sheets, menus */
+  /* The design's "surface": cards, sheets, menus */
   --card: #F4F4F6;
   --card-foreground: #0B0B0F;
   --popover: #FFFFFF;
@@ -106,7 +106,7 @@
   /* Secondary buttons */
   --secondary: #E8E8EC;
   --secondary-foreground: #0B0B0F;
-  /* "muted" in D1.5 is the secondary *text*; shadcn's --muted is a quiet
+  /* The design's "muted" is the secondary *text*; shadcn's --muted is a quiet
      background, its text colour is --muted-foreground */
   --muted: #EDEDF0;
   --muted-foreground: #6B6B78;
@@ -203,14 +203,14 @@
   body {
     @apply bg-background text-foreground antialiased;
     /*
-     * The energetic look (docs/design/D1-ui.md D1.5, "Visual style"): two soft
-     * glows of colour fading into the background, lime from the top centre
-     * and the timer's blue from the top right. Each radial-gradient() is an
-     * ellipse of colour that turns transparent towards its edge.
-     * color-mix(in oklab, X 14%, transparent) is "colour X at 14% strength",
-     * so the glow follows the theme: bright lime on dark, a faint olive on
-     * light. `fixed`: the glow stays put while the page scrolls (browsers
-     * that ignore it, such as iOS Safari, simply scroll it with the page).
+     * The energetic look: two soft glows of colour fading into the background,
+     * lime from the top centre and the timer's blue from the top right. Each
+     * radial-gradient() is an ellipse of colour that turns transparent towards
+     * its edge. color-mix(in oklab, X 14%, transparent) is "colour X at 14%
+     * strength", so the glow follows the theme: bright lime on dark, a faint
+     * olive on light. `fixed`: the glow stays put while the page scrolls
+     * (browsers that ignore it, such as iOS Safari, simply scroll it with the
+     * page).
      */
     background-image:
       radial-gradient(ellipse 90% 55% at 50% -12%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%),
@@ -220,9 +220,8 @@
 }
 
 /*
- * Our own Tailwind utilities. `@utility name { … }` creates a class that
- * works like Tailwind's built-in ones (also with prefixes: `lg:text-gradient-primary`).
- * docs/concepts/C1-frontend.md C1.8.
+ * Our own Tailwind utilities, usable with prefixes like the built-in ones
+ * (`lg:text-gradient-primary`).
  */
 
 /* Text painted with a lime gradient, for the highlighted word of a big

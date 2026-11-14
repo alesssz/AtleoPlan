@@ -1,17 +1,7 @@
-/*
- * Label: shadcn/ui's field label, built on Radix (a library of accessible,
- * unstyled components). Linked to its field through `htmlFor`, so a tap on the
- * label focuses the field and screen readers read them together.
- * Copied into the project by shadcn/ui: docs/concepts/C1-frontend.md C1.8.
- */
 import * as React from 'react'
 import { cn } from 'cn'
 import { Label as LabelPrimitive } from 'radix-ui'
 
-/**
- * A styled <label>. `typeof LabelPrimitive.Root` is the type of Radix's
- * component; ComponentProps gives the props it accepts.
- */
 function Label({
   className,
   ...props

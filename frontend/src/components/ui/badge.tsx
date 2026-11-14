@@ -1,17 +1,3 @@
-/*
- * Badge: shadcn/ui's small rounded label, such as the **Mine** badge on a
- * personal exercise (docs/design/D1-ui.md D1.4.3). Added with
- * `npx shadcn add badge`; what shadcn/ui is: card.tsx and
- * docs/concepts/C1-frontend.md C1.8.
- *
- *   <Badge>Mine</Badge>                      lime, the default
- *   <Badge variant="secondary">…</Badge>     quieter
- *
- * Its looks come from cva, like the Button's (button.tsx explains it): one
- * set of classes per `variant`. `asChild` lends the badge's look to its
- * child, such as a link.
- */
-// React's types; cva for the variants (button.tsx); cn() joins classes; Radix's Slot for asChild
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from 'cn'
@@ -40,7 +26,6 @@ const badgeVariants = cva(
   },
 )
 
-/** A small rounded label. Takes every prop of a <span>, plus `variant` and `asChild`. */
 function Badge({
   className,
   variant = 'default',

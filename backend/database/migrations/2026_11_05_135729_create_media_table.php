@@ -5,65 +5,32 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The `media` table of spatie/laravel-medialibrary: one row per photo or video
- * attached to any model (an exercise's photos and videos, later a user's
- * avatar). The files live on a Laravel disk; this row says where, and which
- * resized versions exist (docs/design/D2-decisions.md D2.5).
- *
- * Published from the package (vendor:publish --tag=medialibrary-migrations),
- * with comments added; the columns are the package's own and must stay as
- * they are, since the package reads and writes them. Already applied, too:
- * a change to this table is a new migration. How migrations work (up(),
- * Schema, Blueprint): see the header of
- * 0001_01_01_000000_create_users_table.php and docs/concepts/C2-backend.md C2.6.
- *
- * The file returns an object of an anonymous class (a class with no name)
- * that extends Laravel's Migration, so two migrations never clash over a
- * class name.
+ * spatie/laravel-medialibrary's table, as published by the package: one row per
+ * photo or video of any model. The package reads and writes these columns, so
+ * they stay as they are.
  */
 return new class extends Migration
 {
-    /**
-     * Creates the `media` table (`php artisan migrate`).
-     *
-     * Schema::create is a facade call: a static-looking call that Laravel
-     * passes to the database's schema builder. Each `$table->...()` adds a
-     * column to the Blueprint, the description of the new table.
-     *
-     * There is no down(): `php artisan migrate:rollback` skips this migration
-     * and leaves the table in place.
-     */
     public function up(): void
     {
         Schema::create('media', function (Blueprint $table) {
-            // Auto-incrementing big integer, the primary key
             $table->id();
 
-            // The model the file belongs to: model_type (class) + model_id
             $table->morphs('model');
-            // Stable public identifier of the file, used in URLs instead of the id
             $table->uuid()->nullable()->unique();
-            // Group inside the model, e.g. "photos" or "videos" of an exercise
             $table->string('collection_name');
-            // Display name, and the file's name on the disk
             $table->string('name');
             $table->string('file_name');
             $table->string('mime_type')->nullable();
-            // Laravel disk of the original, and of the converted versions if different
             $table->string('disk');
             $table->string('conversions_disk')->nullable();
-            // Size of the original in bytes
             $table->unsignedBigInteger('size');
-            // Package bookkeeping: edits asked, free properties, conversions
-            // already generated (WebP, thumbnail, video poster), responsive sizes
             $table->json('manipulations');
             $table->json('custom_properties');
             $table->json('generated_conversions');
             $table->json('responsive_images');
-            // Position within the collection, for drag-and-drop ordering
             $table->unsignedInteger('order_column')->nullable()->index();
 
-            // created_at and updated_at, both allowed to be NULL
             $table->nullableTimestamps();
         });
     }

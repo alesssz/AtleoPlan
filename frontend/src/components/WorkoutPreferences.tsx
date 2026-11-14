@@ -1,13 +1,11 @@
 /*
- * The workout preferences on Profile (docs/design/D1-ui.md D1.4.14, UI-7):
- * six rows of the settings list, five read by workout mode and one by the
- * plan editor.
+ * The workout preferences on Profile: six rows of the settings list, five read
+ * by workout mode and one by the plan editor.
  *
- * - **Weight unit**, kg or lb: how weights are shown and typed. They are
- *   kept in kilograms (docs/design/D3-data-model.md D3.2.3), so changing
- *   it converts nothing on the server. Not while a workout is in progress:
- *   its fields hold text typed in the old unit, and would be read in the
- *   new one at Finish.
+ * - **Weight unit**, kg or lb: how weights are shown and typed. They are kept
+ *   in kilograms, so changing it converts nothing on the server. Not while a
+ *   workout is in progress: its fields hold text typed in the old unit, and
+ *   would be read in the new one at Finish.
  * - **Default rest**: the rest timer's length when a plan's exercise sets
  *   none; "No timer" is 0.
  * - **Weight step**: how much the big stepper's − and + move the weight
@@ -17,11 +15,8 @@
  * - **RPE in plans**: whether the plan editor shows the RPE field beside each
  *   set's reps (src/components/plans/editor/EditorSet.tsx). Off by default.
  *
- * Each change is saved at once, one field per request, through the same
- * hook as the language and the theme (useUpdatePreferences, src/api/auth.ts),
- * which writes it into the cached user first: every screen reading the user
- * follows without waiting. How it works: docs/concepts/C1-frontend.md
- * C1.13.4; how it was built: docs/how-to/H3-frontend.md H3.21.
+ * Each change is saved at once, optimistically, like the language and the
+ * theme.
  */
 import { Gauge, SlidersHorizontal, Timer, Vibrate, Volume2, Weight } from 'lucide-react'
 import { useId, useState } from 'react'
@@ -34,14 +29,9 @@ import { Switch } from '@/components/ui/switch'
 import { loadActiveSession } from '@/components/workout/session-storage'
 import { formatWeight } from '@/lib/format'
 
-/**
- * The unit, as the account keeps it: 'kg' or 'lb'. `User['weight_unit']` is
- * an **indexed access type**: the type of the field `weight_unit` of `User`,
- * taken from there rather than written again, so the two never disagree.
- */
 type WeightUnit = User['weight_unit']
 
-/** The rests offered, in seconds: none (no timer), then 30 s to 5 min. */
+/** 0: no timer. */
 const REST_CHOICES = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
 
 /**
@@ -60,45 +50,26 @@ const STEP_CHOICES: Record<WeightUnit, number[]> = {
  */
 const DEFAULT_STEP: Record<WeightUnit, number> = { kg: 2.5, lb: 5 }
 
-/**
- * A step as the API takes and gives it, two decimals: 1.25 → "1.25",
- * 5 → "5.00". The same text the account holds, so the Select finds it.
- * @param step the step, a number
- */
+/** Two decimals, as the account holds it, so the Select finds it: 5 → "5.00". */
 function stepValue(step: number): string {
   return step.toFixed(2)
 }
 
 /**
- * A list of choices with the current value added, in order, when it is not
- * one of them (a value saved by an older version, or by hand), so the
- * Select can always show it.
- * @param choices the values offered
- * @param current the account's value
+ * The account's value added in order when it is not offered (saved by an
+ * older version, or by hand), so the Select can always show it.
  */
 function withCurrent(choices: number[], current: number): number[] {
-  // [...choices, current]: a new list, the old one left as it is. sort()
-  // with no function would compare numbers as text (10 before 2); the
-  // function says how two compare: negative when a goes first
   return choices.includes(current) ? choices : [...choices, current].sort((a, b) => a - b)
 }
 
-/** The card with the six workout preferences. */
 export function WorkoutPreferences() {
-  // t() translates a key; i18n holds the current language
   const { t, i18n } = useTranslation()
-  // The interface's language, for "90 s" and "2,5 kg"
   const language = i18n.language
-  // The account; RequireAuth around Profile has already waited for it
   const { data: user } = useCurrentUser()
-  // The request that saves a change, the same as the language's
   const updatePreferences = useUpdatePreferences()
-  // A workout in progress on this phone, read once: the unit cannot change
-  // while it runs. useState(() => …) takes a function, called on the first
-  // draw only: localStorage is not read again at every draw. Only the value
-  // is kept (`[busy]`), never changed here
+  // The unit is locked while a workout is in progress on this phone
   const [busy] = useState(() => loadActiveSession() !== null)
-  // One id per control, linking each row's label to it (SettingRow)
   const unitId = useId()
   const restId = useId()
   const stepId = useId()
@@ -106,19 +77,13 @@ export function WorkoutPreferences() {
   const vibrationId = useId()
   const rpeId = useId()
 
-  // No user yet: nothing to show. This early return comes after every hook
-  // above, never before: React needs the same hooks, in the same order, at
-  // every draw (the rules of hooks)
   if (!user) return null
-  // The account's unit, and the step as a number ("2.50" → 2.5)
   const unit = user.weight_unit
   const step = Number(user.weight_step)
 
   /**
-   * A new unit, with the step that suits it (DEFAULT_STEP), in one
-   * request: a step of 2.5 chosen in kilograms means 2.5 lb, a much finer
-   * step, once the unit is pounds.
-   * @param next the unit chosen
+   * With the step that suits the new unit, in one request: 2.5 chosen in
+   * kilograms would be a much finer 2.5 lb.
    */
   function changeUnit(next: WeightUnit) {
     if (next === unit) return
@@ -126,14 +91,10 @@ export function WorkoutPreferences() {
   }
 
   return (
-    // The same card as the Preferences above it (ProfilePage)
     <section aria-labelledby="workout-prefs-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
       <h2 id="workout-prefs-title" className="font-heading text-lg font-extrabold tracking-tight">{t('preferences.workoutTitle')}</h2>
       <div className="divide-y divide-border">
-        {/* The unit; the hint says why it is locked during a workout */}
         <SettingRow icon={Weight} label={t('preferences.unit')} description={busy ? t('preferences.unitBusy') : t('preferences.unitHint')} controlId={unitId}>
-          {/* The Select hands back a plain string: `as WeightUnit` tells
-              TypeScript it is one of ours, which holds: only kg and lb are offered */}
           <Select value={unit} disabled={busy} onValueChange={value => changeUnit(value as WeightUnit)}>
             <SelectTrigger id={unitId} className="h-11 w-full rounded-xl sm:w-56">
               <SelectValue />
@@ -145,8 +106,6 @@ export function WorkoutPreferences() {
           </Select>
         </SettingRow>
 
-        {/* The default rest. A Select's values are text: String() going
-            in, Number() coming out */}
         <SettingRow icon={Timer} label={t('preferences.rest')} description={t('preferences.restHint')} controlId={restId}>
           <Select value={String(user.default_rest_seconds)} onValueChange={value => updatePreferences.mutate({ default_rest_seconds: Number(value) })}>
             <SelectTrigger id={restId} className="h-11 w-full rounded-xl sm:w-56">
@@ -162,7 +121,6 @@ export function WorkoutPreferences() {
           </Select>
         </SettingRow>
 
-        {/* The stepper's weight step, in the unit chosen above: "2,5 kg" */}
         <SettingRow icon={SlidersHorizontal} label={t('preferences.step')} description={t('preferences.stepHint')} controlId={stepId}>
           <Select value={stepValue(step)} onValueChange={value => updatePreferences.mutate({ weight_step: value })}>
             <SelectTrigger id={stepId} className="h-11 w-full rounded-xl sm:w-56">
@@ -176,7 +134,6 @@ export function WorkoutPreferences() {
           </Select>
         </SettingRow>
 
-        {/* Sound and vibration: on/off switches, saved on each tap */}
         <SettingRow icon={Volume2} label={t('preferences.sound')} description={t('preferences.soundHint')} controlId={soundId}>
           <Switch id={soundId} size="lg" checked={user.timer_sound} onCheckedChange={checked => updatePreferences.mutate({ timer_sound: checked })} />
         </SettingRow>
@@ -184,7 +141,6 @@ export function WorkoutPreferences() {
           <Switch id={vibrationId} size="lg" checked={user.timer_vibration} onCheckedChange={checked => updatePreferences.mutate({ timer_vibration: checked })} />
         </SettingRow>
 
-        {/* The plan editor's RPE field, shown or hidden */}
         <SettingRow icon={Gauge} label={t('preferences.rpe')} description={t('preferences.rpeHint')} controlId={rpeId}>
           <Switch id={rpeId} size="lg" checked={user.show_rpe} onCheckedChange={checked => updatePreferences.mutate({ show_rpe: checked })} />
         </SettingRow>

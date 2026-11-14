@@ -1,14 +1,14 @@
 /*
- * One set in workout mode (docs/design/D1-ui.md D1.4.9): its number, which
- * opens the list of set types (W, D, F: SetTypeSelect.tsx); what the set in the same place did last time;
- * the fields, filled with last time's values or the plan's targets; and ✓,
- * which completes it and starts the rest. SetHeader is the row of titles
- * above the sets, with the same widths, so each number sits under its name.
+ * One set in workout mode: its number, which opens the list of set types (W, D,
+ * F: SetTypeSelect.tsx); what the set in the same place did last time; the
+ * fields, filled with last time's values or the plan's targets; and ✓, which
+ * completes it and starts the rest. SetHeader is the row of titles above the
+ * sets, with the same widths, so each number sits under its name.
  *
  * The fields are buttons, not text boxes: a tap opens the big stepper
- * (SetStepper.tsx), with − and + as large as a thumb, rather than the
- * phone's keyboard, slow with sweaty hands (D1.4.9). The stepper still has
- * a text box, for a value far from the one shown.
+ * (SetStepper.tsx), with − and + as large as a thumb, rather than the phone's
+ * keyboard, slow with sweaty hands. The stepper still has a text box, for a
+ * value far from the one shown.
  *
  * An exercise logged by time has one more button before ✓: ▶, which opens
  * the stopwatch (StopwatchPanel.tsx, docked at the bottom, under the table);
@@ -38,7 +38,6 @@ import { fieldsFor, fieldText } from './set-fields'
 import { loggedSetText } from './set-text'
 import { canComplete, type SetField, type SetNumber, type WorkoutSet } from './workout-session'
 
-/** Props of SetHeader. */
 interface SetHeaderProps {
   /** How the exercise is logged: decides the columns. */
   loggingType: LoggingType
@@ -49,11 +48,8 @@ interface SetHeaderProps {
 }
 
 /**
- * The titles above the sets: Set, Last, then one per field (kg, Reps…), and
- * an empty place above ✓ (and above ▶, for a timed exercise). The widths
- * are the rows' own: w-12 for the number's 48 px button, w-16 for Last,
- * flex-1 for each field, w-12 for ▶ and ✓.
- * Hidden from screen readers, which hear each field's own name instead.
+ * The titles above the sets, with the rows' own widths. Hidden from screen
+ * readers, which hear each field's own name instead.
  */
 export function SetHeader({ loggingType, unit, forTime }: SetHeaderProps) {
   const { t } = useTranslation()
@@ -71,7 +67,6 @@ export function SetHeader({ loggingType, unit, forTime }: SetHeaderProps) {
   )
 }
 
-/** Props of SetRow. */
 interface SetRowProps {
   /** The set. */
   set: WorkoutSet
@@ -100,10 +95,8 @@ interface SetRowProps {
   stopwatch?: 'this' | 'other' | null
 }
 
-/** A row of the sets' table. */
 export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOpenStepper, onTypeChange, onStartStopwatch, stopwatch = null }: SetRowProps) {
   const { t, i18n } = useTranslation()
-  // The interface's language, for the decimal separator
   const language = i18n.language
   // The set's name for screen readers: "Set 1", "Warm-up 2"
   const name = number.warmUp ? t('workout.warmUpName', { number: number.number }) : t('workout.setName', { number: number.number })
@@ -118,7 +111,6 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
     // stopwatch at the bottom and the table (aria-current says it to
     // screen readers)
     <li aria-current={stopwatch === 'this' ? 'true' : undefined} className={cn('flex items-center gap-2 rounded-xl p-1 sm:gap-3', set.done && 'bg-primary/10', stopwatch === 'this' && 'ring-2 ring-primary')}>
-      {/* The number, or the type's letter: a tap opens the list of types */}
       <SetTypeSelect
         value={set.set_type}
         onChange={onTypeChange}
@@ -127,12 +119,10 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
         variant="ghost"
       />
 
-      {/* Last time, in the column of the same name */}
       {!forTime && <span className="w-16 shrink-0 text-center text-sm text-muted-foreground tabular-nums">{lastText}</span>}
 
-      {/* Each field: a button that looks like the text box it replaced
-          (the Input's border and background), showing the value, or a dash
-          when empty. Its name says the value too: "Set 1, kg: 80" */}
+      {/* Buttons that look like text boxes; the name says the value too:
+          "Set 1, kg: 80" */}
       {fieldsFor(loggingType, unit, t, forTime).map(({ field, spoken, placeholder }) => (
         <button
           key={field}
@@ -156,8 +146,6 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
             </Button>
           ))}
 
-      {/* ✓. aria-pressed says whether the set is done, in words for screen
-          readers; the colour says it for the eyes */}
       <Button
         size="icon-xl"
         variant={set.done ? 'default' : 'outline'}

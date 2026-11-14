@@ -1,20 +1,13 @@
 <?php
 
 /**
- * Signing in with Google (FEAT-9): the two routes of
+ * Signing in with Google: the two routes of
  * app/Http/Controllers/GoogleSignInController.php and the cases of
- * app/Actions/Auth/SignInWithSocialAccount.php. docs/concepts/C2-backend.md C2.7.8.
+ * app/Actions/Auth/SignInWithSocialAccount.php.
  *
- * Google is never called. Socialite::fake('google', $user) swaps the real
- * Google driver for a fake one: its redirect() goes to
- * https://socialite.fake/google/authorize, and its user() returns the person
- * we give it, or runs the function we give it. So these tests cover our code,
- * what to do with what Google says, not Google's.
- *
- * SocialiteUser::fake() builds such a person; the keys given also land in
- * getRaw(), which is where `email_verified` is read from, as from Google.
- *
- * RefreshDatabase gives each test empty tables, on atleoplan_test (C2.11).
+ * Google is never called: Socialite::fake() stands in for it, so these tests
+ * cover what the app does with Google's answer. The keys given to
+ * SocialiteUser::fake() also land in getRaw(), where `email_verified` is read.
  */
 
 use App\Enums\Locale;
@@ -29,8 +22,7 @@ use Laravel\Socialite\Two\User as SocialiteUser;
 
 uses(RefreshDatabase::class);
 
-// Runs before every test of this file. The credentials are set here so the
-// tests do not depend on what is (or is not) in backend/.env on this computer
+// So the tests do not depend on this computer's backend/.env
 beforeEach(function () {
     config([
         'services.google.client_id' => 'test-client-id',
@@ -80,8 +72,7 @@ describe('the way to Google', function () {
             ->assertRedirect('https://socialite.fake/google/authorize')
             ->assertSessionHas('google_sign_in', ['from' => null, 'locale' => null, 'admin' => false]);
     })->with([
-        // `with` runs the test once for each value: each one would lead
-        // the browser to another site after signing in
+        // Each would lead the browser to another site after signing in
         'another site' => 'https://evil.example/plans',
         'two slashes' => '//evil.example',
         'a backslash' => '/\\evil.example',
@@ -100,7 +91,7 @@ describe('back from Google', function () {
     it('creates an account for a new address and signs it in', function () {
         Socialite::fake('google', googlePerson(['email' => 'Ann@Example.com']));
 
-        // withSession(): what the first stop would have kept
+        // What the first stop would have kept
         $this->withSession(['google_sign_in' => ['from' => '/plans', 'locale' => 'it']])
             ->get('/auth/google/callback')
             ->assertRedirect(frontend('/plans'));
@@ -219,8 +210,7 @@ describe('back from Google', function () {
     });
 
     it('says something went wrong when Socialite refuses the visit', function () {
-        // A function given to fake() runs instead of returning a person: here
-        // the error Socialite throws when the state does not match (a visit
+        // What Socialite throws when the state does not match (a visit
         // opened twice, expired, or started on another site)
         Socialite::fake('google', fn () => throw new InvalidStateException);
 
@@ -231,9 +221,8 @@ describe('back from Google', function () {
     });
 });
 
-// The admin panel's login page has its own "Continue with Google", for an
-// admin with no password (docs/concepts/C2-backend.md C2.8.4): the same two
-// stops, with to=admin
+// The admin panel's login page has its own "Continue with Google", for an admin
+// with no password: the same two stops, with to=admin
 describe('from the admin panel', function () {
     it('remembers that the visit started on the panel, from the exact word only', function (string $to, bool $admin) {
         Socialite::fake('google');

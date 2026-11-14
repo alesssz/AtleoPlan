@@ -1,11 +1,9 @@
 <?php
 
 /**
- * The correction of the logging types the import guessed wrong (DATA-3,
- * docs/concepts/C2-backend.md C2.14.6, docs/how-to/H1-database.md H1.19): the
- * file database/data/logging-type-corrections.json, the action
- * CorrectLoggingType with its rules, and the command
- * `exercises:correct-logging-types`.
+ * The correction of the logging types the import guessed wrong: the file
+ * database/data/logging-type-corrections.json, the action CorrectLoggingType
+ * with its rules, and the command `exercises:correct-logging-types`.
  *
  * The exercises are made by the factory with an external_id, as the import
  * would leave them, instead of importing the whole dataset: the rules are
@@ -14,9 +12,6 @@
  * guess), time (the correction) and distance (a third type, chosen by hand).
  */
 
-// Imports: the two actions (the one under test, and the import whose guess
-// the file must match), the two enums, the three models the tests write,
-// the trait that empties the database, and the File facade
 use App\Actions\Exercises\CorrectLoggingType;
 use App\Actions\Exercises\ImportFreeExercise;
 use App\Enums\CorrectionOutcome;
@@ -27,16 +22,11 @@ use App\Models\SessionExercise;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 
-// RefreshDatabase: every test starts from empty tables, on the
-// atleoplan_test database (docs/concepts/C2-backend.md C2.11)
 uses(RefreshDatabase::class);
 
 /**
- * The corrections of the repository, decoded.
- *
- * A function at the top of a Pest file is a global PHP function, shared by
- * every test file: its name must not be used by another one
- * (docs/how-to/H1-database.md H1.19.4).
+ * The corrections of the repository, decoded. Pest helpers are global
+ * functions: the name must be unique across test files.
  *
  * @return list<array{id: string, from: string, to: string, why: string}>
  */
@@ -53,15 +43,11 @@ function loggingTypeCorrections(): array
  */
 function guessedExercise(string $externalId, LoggingType $type): Exercise
 {
-    // The factory fills the columns not in #[Fillable] too: factories
-    // assign attributes with mass-assignment protection off
+    // Factories bypass mass-assignment protection
     return Exercise::factory()->create(['external_id' => $externalId, 'logging_type' => $type]);
 }
 
-// Scenario: Plank as the import leaves it, on reps, used by nobody.
-// app() asks Laravel's service container for an object of the class, built
-// with whatever its constructor needs, as the command receives it in handle()
-// (docs/concepts/C2-backend.md C2.5.3)
+// Scenario: Plank as the import leaves it, on reps, used by nobody
 it('corrects an exercise still on the guess', function () {
     // Plank, still on the guess
     $plank = guessedExercise('Plank', LoggingType::Reps);
@@ -69,8 +55,6 @@ it('corrects an exercise still on the guess', function () {
     // What the action says it did
     $outcome = app(CorrectLoggingType::class)->correct('Plank', LoggingType::Reps, LoggingType::Time);
 
-    // fresh() reads the row again from the database: $plank is the object
-    // made before, and would still say reps whatever the table holds
     expect($outcome)->toBe(CorrectionOutcome::Corrected)
         ->and($plank->fresh()->logging_type)->toBe(LoggingType::Time);
 });
@@ -94,8 +78,7 @@ it('keeps a type an admin chose', function () {
 });
 
 // Scenario: Plank on the guess, but someone already has it in a plan, or
-// did it in a workout. The test runs twice, once per value of ->with() below
-// (a Pest "dataset"), each value passed as $usedBy
+// did it in a workout
 it('leaves alone an exercise already in a plan or a workout', function (string $usedBy) {
     // Plank, still on the guess
     $plank = guessedExercise('Plank', LoggingType::Reps);
@@ -110,20 +93,19 @@ it('leaves alone an exercise already in a plan or a workout', function (string $
         ->and($plank->fresh()->logging_type)->toBe(LoggingType::Reps);
 })->with(['plan', 'workout']);
 
-// Scenario: an admin deleted Plank (a soft delete, docs/design/D3-data-model.md D3.7.2)
+// Scenario: an admin deleted Plank (a soft delete)
 it('does not bring back an exercise deleted by an admin', function () {
     // Plank, on the guess, then deleted: the row stays, with deleted_at set
     $plank = guessedExercise('Plank', LoggingType::Reps);
     $plank->delete();
 
-    // withTrashed() finds the deleted row, to check that it was not touched
     expect(app(CorrectLoggingType::class)->correct('Plank', LoggingType::Reps, LoggingType::Time))
         ->toBe(CorrectionOutcome::NotFound)
         ->and(Exercise::withTrashed()->find($plank->id)->logging_type)->toBe(LoggingType::Reps);
 });
 
 // Scenario: a library just imported, every exercise of the file on its
-// guess; the real command, run twice ($this->artisan(), docs/concepts/C2-backend.md C2.14.2)
+// guess; the real command, run twice
 it('corrects every exercise of the file from the command', function () {
     // The file's entries, each made as the import leaves it
     $rows = loggingTypeCorrections();
@@ -141,8 +123,6 @@ it('corrects every exercise of the file from the command', function () {
         ->expectsOutputToContain("Already right: {$count}")
         ->assertSuccessful();
 
-    // value() reads one column of the first row; the model's cast still
-    // applies, so it gives the enum's case, not the string "time"
     expect(Exercise::where('external_id', 'Plank')->value('logging_type'))->toBe(LoggingType::Time);
 });
 
@@ -181,13 +161,10 @@ it('has a file whose "from" is what the import guesses', function () {
     $rows = loggingTypeCorrections();
 
     // The same exercises in the file and here, in any order
-    // (toEqualCanonicalizing sorts both lists before comparing)
     expect(array_column($rows, 'id'))->toEqualCanonicalizing(array_keys($source));
     foreach ($rows as $row) {
-        // `[$a, $b] = …`: the two values of the pair, in two variables
         [$category, $equipment] = $source[$row['id']];
-        // Each "from" the guess, each "to" a real change; the second argument
-        // of toBe() is the message shown when it fails: the exercise's id
+        // Each "from" the guess, each "to" a real change
         expect(ImportFreeExercise::loggingTypeFor($category, $equipment)->value)->toBe($row['from'], $row['id'])
             ->and(LoggingType::from($row['to']))->not->toBe(LoggingType::from($row['from']));
     }

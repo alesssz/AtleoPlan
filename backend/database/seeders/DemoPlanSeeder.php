@@ -2,38 +2,29 @@
 
 namespace Database\Seeders;
 
-// Imports: the action that saves a whole plan, the models it reads, and
-// Laravel's base Seeder
 use App\Actions\Plans\SavePlan;
 use App\Models\Exercise;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * Gives every user with no plans two example plans, for trying the plan
- * screens on the development database (docs/how-to/H3-frontend.md H3.13.1):
+ * Gives every user with no plans two example plans, for trying the plan screens
+ * on the development database:
  *
  * - **Push Pull Legs**, three days, made the active plan: warm-ups, ranges
  *   of reps, a superset on two of the days, a pyramid, pull-ups to failure;
  * - **Full body**, one day, archived.
  *
- * Development data only, never run on the server. It is not called by
- * DatabaseSeeder: it needs the public library, which `make exercises-import`
- * fills after `make fresh`. Run it by hand, after the import:
+ * Development data only, run by `make plans-demo`. Not called by
+ * DatabaseSeeder: it needs the public library, imported after `make fresh`.
  *
- *     make plans-demo
- *
- * which is `make artisan c="db:seed --class=DemoPlanSeeder"`.
- *
- * It writes through SavePlan, the action behind POST /api/plans, so the
- * plans are exactly what the API would have saved (docs/concepts/C2-backend.md
- * C2.5.5). It can run again: users who already have a plan are skipped.
+ * Written through SavePlan, so the plans are exactly what the API would have
+ * saved. Users who already have a plan are skipped, so it can run again.
  */
 class DemoPlanSeeder extends Seeder
 {
     /**
-     * The exercises the plans use, by their id in free-exercise-db
-     * (exercises.external_id): the name used below => that id.
+     * Short name => free-exercise-db id (exercises.external_id).
      *
      * @var array<string, string>
      */
@@ -56,35 +47,20 @@ class DemoPlanSeeder extends Seeder
         'row' => 'Bent_Over_Barbell_Row',
     ];
 
-    /**
-     * Writes the two plans for each user who has none.
-     *
-     * Laravel calls run(), and fills its parameters from the service
-     * container, as it does for a controller's: SavePlan arrives built.
-     *
-     * @param  SavePlan  $save  the action that saves a whole plan
-     */
     public function run(SavePlan $save): void
     {
-        // The exercises' ids in this database: external_id => id.
-        // pluck('id', 'external_id') reads two columns into such an array
         $ids = Exercise::query()->whereIn('external_id', self::EXERCISES)->pluck('id', 'external_id');
 
-        // array_diff(): the external ids not found. With any missing, nothing
-        // is written: the library has not been imported yet
+        // Any missing: the library has not been imported yet
         $missing = array_diff(self::EXERCISES, $ids->keys()->all());
         if ($missing !== []) {
-            // $this->command: the Artisan command running the seeder, to
-            // print with; warn() prints in yellow
             $this->command->warn('The exercise library is not imported: run `make exercises-import` first. Missing: '.implode(', ', $missing));
 
             return;
         }
 
-        // The id of each exercise by the short name used in the plans
         $exercise = fn (string $name): int => $ids[self::EXERCISES[$name]];
 
-        // doesntHave('plans'): only the users with no plan at all
         foreach (User::query()->doesntHave('plans')->get() as $user) {
             $ppl = $save->create($user, $this->pushPullLegs($exercise));
             $user->activePlan()->associate($ppl)->save();
@@ -98,8 +74,6 @@ class DemoPlanSeeder extends Seeder
     }
 
     /**
-     * The body of "Push Pull Legs", as the plan editor would send it.
-     *
      * @param  callable(string): int  $exercise  an exercise's id by its short name
      * @return array<string, mixed>
      */
@@ -139,8 +113,6 @@ class DemoPlanSeeder extends Seeder
     }
 
     /**
-     * The body of "Full body", one day of three exercises.
-     *
      * @param  callable(string): int  $exercise  an exercise's id by its short name
      * @return array<string, mixed>
      */
@@ -161,17 +133,11 @@ class DemoPlanSeeder extends Seeder
     }
 
     /**
-     * One exercise of a day, as the editor sends it.
+     * Each set is [fewest reps, most reps, kilograms, type], the type
+     * `normal` when left out: [8, 10, 80] is 8–10 reps at 80 kg.
      *
-     * Each set is a short list, [fewest reps, most reps, kilograms, type],
-     * the type `normal` when left out: [8, 10, 80] is 8–10 reps at 80 kg.
-     * The named arguments (`rest: 120`) say which optional value is which.
-     *
-     * @param  int  $exerciseId  the exercise's id
-     * @param  list<array{0: int|null, 1: int|null, 2: int|float|null, 3?: string}>  $sets  the sets
-     * @param  int|null  $rest  the rest after each set, in seconds; null: the user's default
-     * @param  int|null  $superset  the superset's number; null: not in one
-     * @param  string|null  $notes  the user's notes
+     * @param  list<array{0: int|null, 1: int|null, 2: int|float|null, 3?: string}>  $sets
+     * @param  int|null  $rest  null: the user's default
      * @return array<string, mixed>
      */
     private function item(int $exerciseId, array $sets, ?int $rest = 90, ?int $superset = null, ?string $notes = null): array
@@ -181,7 +147,6 @@ class DemoPlanSeeder extends Seeder
             'superset_group' => $superset,
             'rest_seconds' => $rest,
             'notes' => $notes,
-            // array_map(): the same function on each set, giving a new list
             'sets' => array_map(fn (array $set) => [
                 'set_type' => $set[3] ?? 'normal',
                 'target_reps_min' => $set[0],

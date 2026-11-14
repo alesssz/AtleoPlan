@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Validation messages (docs/concepts/C2-backend.md C2.7.7): only the rules the app uses so
- * far, the others fall back to English. A new rule in a Form Request adds its
- * message to the three languages. :attribute is filled from the attributes list below.
+ * Validation messages: only the rules the app uses so far, the others fall back
+ * to English. A new rule in a Form Request adds its message to the three
+ * languages. :attribute is filled from the attributes list below.
  */
 return [
     'array' => 'Il campo :attribute deve essere un elenco.',

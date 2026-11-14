@@ -2,10 +2,7 @@
  * The account's hooks, on their own. The one worth testing apart is
  * useUpdatePreferences: two changes close together once made the language jump
  * back, because the server's answer to the second carried the old value of the
- * first. docs/concepts/C1-frontend.md C1.13.
- *
- * renderHook runs a hook without drawing any screen. Its `wrapper` is what would
- * surround the hook in the app; here, the provider of the cache.
+ * first.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
@@ -16,7 +13,6 @@ import { authKeys, fetchCurrentUser, useUpdatePreferences, type User } from './a
 
 /**
  * A cache already holding the signed-in user, and the wrapper that provides it.
- * @param user what the cache starts with
  */
 function setUp(user: User) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -73,7 +69,6 @@ describe('useUpdatePreferences', () => {
     const saved = { ...testUser }
     // Set below: lets the held request finish
     let finishFirst = () => {}
-    // The first parameter is the path, not needed here: `_` says so on purpose
     const fake = vi.fn(async (_path: string, init?: RequestInit) => {
       if (init?.method === 'PATCH') {
         const change = JSON.parse(String(init.body)) as Partial<User>

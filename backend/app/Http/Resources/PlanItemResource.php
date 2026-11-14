@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-// Imports: the model it describes, the request, and Laravel's base resource
 use App\Models\PlanItem;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,9 +31,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class PlanItemResource extends JsonResource
 {
     /**
-     * The fields to send.
-     *
-     * @param  Request  $request  the current request
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
@@ -42,15 +38,11 @@ class PlanItemResource extends JsonResource
         return [
             'id' => $this->id,
             'exercise_id' => $this->exercise_id,
-            // Items of a day with the same number form a superset (D3.5.3)
             'superset_group' => $this->superset_group,
             // null: the user's default rest
             'rest_seconds' => $this->rest_seconds,
             'notes' => $this->notes,
-            // As fast as possible: the stopwatch in workout mode (D3.5.3)
             'for_time' => $this->for_time,
-            // new …Resource(…) for one row; whenLoaded() leaves the key out
-            // when the controller did not load the exercise
             'exercise' => new ExerciseResource($this->whenLoaded('exercise')),
             'sets' => PlanSetResource::collection($this->whenLoaded('sets')),
         ];

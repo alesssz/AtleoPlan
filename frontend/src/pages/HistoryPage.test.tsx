@@ -1,8 +1,7 @@
 /*
- * History and a workout's page in it (docs/design/D1-ui.md D1.4.11), and
- * Progress with the latest workouts (D1.4.12): the list by month with Show
- * more, a workout's sets and its comparison, Delete, a workout that is not
- * there, and the empty states.
+ * History and a workout's page in it, and Progress with the latest workouts:
+ * the list by month with Show more, a workout's sets and its comparison,
+ * Delete, a workout that is not there, and the empty states.
  */
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -24,8 +23,6 @@ const routes = [
 
 /**
  * One page of GET /api/sessions.
- * @param sessions the page's workouts
- * @param page its number
  * @param lastPage the number of the last page
  */
 function sessionPage(sessions: WorkoutSession[], page = 1, lastPage = 1) {

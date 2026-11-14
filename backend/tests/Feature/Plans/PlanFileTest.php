@@ -1,10 +1,10 @@
 <?php
 
 /**
- * A plan as a file and back: GET /api/plans/{plan}/export and
- * POST /api/plans/import (app/Actions/Plans/ExportPlan.php, ImportPlan.php;
- * docs/design/D3-data-model.md D3.5.8). What the file holds, how the import
- * finds or creates each exercise, and what it refuses.
+ * A plan as a file and back: GET /api/plans/{plan}/export and POST
+ * /api/plans/import (app/Actions/Plans/ExportPlan.php, ImportPlan.php). What
+ * the file holds, how the import finds or creates each exercise, and what it
+ * refuses.
  */
 
 use App\Enums\LoggingType;
@@ -46,7 +46,6 @@ function planToExport(User $owner): Plan
     $race = PlanItem::factory()->for($day, 'day')->for($pushups)->create(['position' => 0, 'superset_group' => 1, 'for_time' => true, 'rest_seconds' => 60]);
     PlanSet::factory()->for($race, 'item')->create(['position' => 0, 'set_type' => SetType::Normal, 'target_reps_min' => 50, 'target_reps_max' => 50, 'target_weight_kg' => null]);
     $hold = PlanItem::factory()->for($day, 'day')->for($frog)->create(['position' => 1, 'superset_group' => 1, 'rest_seconds' => null, 'notes' => 'Hands wide']);
-    // sequence(): each of the two sets gets the next values, positions 0 and 1
     PlanSet::factory()->for($hold, 'item')->count(2)->sequence(['position' => 0], ['position' => 1])->create(['set_type' => SetType::Normal, 'target_reps_min' => null, 'target_reps_max' => null, 'target_weight_kg' => null, 'target_duration_seconds' => 30]);
 
     return $plan;
@@ -205,8 +204,7 @@ it('refuses a file that is not a plan, or names an exercise it does not describe
     $owner = User::factory()->create();
     $file = $this->actingAs($owner)->getJson('/api/plans/'.planToExport($owner)->id.'/export')->json();
 
-    // array_replace_recursive(): the real file, with the dataset's change
-    // written over it, key by key at every depth
+    // The real file, with the dataset's change written over it
     $this->actingAs($owner)->postJson('/api/plans/import', array_replace_recursive($file, $change))
         ->assertUnprocessable()
         ->assertJsonValidationErrors([$field]);

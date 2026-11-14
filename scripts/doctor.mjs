@@ -3,12 +3,12 @@
  * Checks that this computer and this clone are ready for AtleoPlan, and prints
  * the fix for whatever is not. Changes nothing. Run with `make doctor`.
  *
- * Checks, in order: Docker (installed, running, disk space), Node (the major
- * of .nvmrc) and npm's cache, the Git identity and hook, the dependencies of
- * both apps, the backend's .env (only that it exists: it holds secrets), the
- * ports, and the test database. The problems met while setting the project
- * up are among them: docs/start/S1-setup.md S1.10. Works on macOS, Linux and Windows;
- * the npm cache check does not apply to Windows and is skipped there.
+ * Checks, in order: Docker (installed, running, disk space), Node (the major of
+ * .nvmrc) and npm's cache, the Git identity and hook, the dependencies of both
+ * apps, the backend's .env (only that it exists: it holds secrets), the ports,
+ * and the test database: the problems met while setting the project up. Works
+ * on macOS, Linux and Windows; the npm cache check does not apply to Windows
+ * and is skipped there.
  *
  * Exit code 1 when at least one check fails, 0 otherwise (warnings included).
  */
@@ -21,9 +21,9 @@ import { fileURLToPath } from 'node:url'
 
 /** The repository root (this file is in scripts/). */
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-/** The only email allowed in commits (docs/start/S1-setup.md S1.3). */
+/** The only email allowed in commits. */
 const NOREPLY = '32982604+alesssz@users.noreply.github.com'
-/** Host ports of the stack, standard + 500 (docs/start/S1-setup.md S1.4), with what owns them. */
+/** Host ports of the stack, standard + 500, with what owns them. */
 const PORTS = { 8500: 'Laravel', 5932: 'Postgres', 8525: 'Mailpit', 5673: 'Vite' }
 /** Below this many free GB on Docker's disk, builds start failing in odd ways. */
 const MIN_DOCKER_FREE_GB = 5
@@ -181,12 +181,12 @@ else {
 
 // --- The apps ----------------------------------------------------------------------
 console.log('Apps')
-// The Composer packages exist twice (docs/how-to/H2-backend.md H2.18): the
-// ones the app runs on, in the `vendor` Docker volume, checked further down
-// once the containers are known to run; and this copy on the computer, which
-// only the editor reads. vendor/autoload.php is the file every PHP request
-// loads first, so its presence means the copy is complete, not just begun.
-// A missing copy is only a warning: the app works without it.
+// The Composer packages exist twice: the ones the app runs on, in the `vendor`
+// Docker volume, checked further down once the containers are known to run; and
+// this copy on the computer, which only the editor reads. vendor/autoload.php
+// is the file every PHP request loads first, so its presence means the copy is
+// complete, not just begun. A missing copy is only a warning: the app works
+// without it.
 if (existsSync(join(ROOT, 'backend/vendor/autoload.php'))) ok('backend packages copied for the editor')
 else warn('backend/vendor/ empty: the editor cannot see the packages', 'make vendor (make setup on a new clone)')
 // Existence only: the file holds secrets and is never read here
@@ -207,19 +207,17 @@ for (const [port, service] of Object.entries(PORTS)) {
   else warn(`${port} (${service}) taken by another program`, `${portOwnerCommand(port)}; or change the port (docs/start/S1-setup.md S1.4)`)
 }
 
-// The test database, when Postgres runs (docs/start/S1-setup.md S1.6)
+// The test database, when Postgres runs
 const testDb = run('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', 'atleoplan', '-tAc', "select 1 from pg_database where datname = 'atleoplan_test'"])
 if (testDb === null) warn('Postgres not running, test database not checked', 'make up')
 else if (testDb === '1') ok('test database atleoplan_test exists')
 else fail('test database atleoplan_test missing', 'make test-db')
 
-// The packages the app runs on, in the `vendor` Docker volume, when the
-// backend runs (docs/how-to/H2-backend.md H2.18). The volume is inside Docker's
-// virtual machine, where this script cannot look, so the question goes to the
-// container: `test -f` succeeds when the file exists, and `a && b || c`
-// prints yes after a success, no after a failure. The answer is never empty
-// when the container answers, so null (run() failed) means it is not running.
-// An empty volume, as after `make down-v`, is a failure: every request errors.
+// The packages the app runs on, in the `vendor` Docker volume, when the backend
+// runs. The volume is inside Docker's virtual machine, where this script cannot
+// look, so the question goes to the container. Its answer is never empty, so
+// null means it is not running. An empty volume, as after `make down-v`, is a
+// failure: every request errors.
 /** "yes" or "no" from the container, or null when the backend is not running. */
 const packages = run('docker', ['compose', 'exec', '-T', 'backend', 'sh', '-c', 'test -f vendor/autoload.php && echo yes || echo no'])
 if (packages === null) warn('backend not running, its packages not checked', 'make up')

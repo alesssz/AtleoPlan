@@ -1,9 +1,9 @@
 /*
- * The workout in progress (workout-session.ts), without React: starting from
- * a plan's day with last time's values, ticking sets, the rest timer, the
+ * The workout in progress (workout-session.ts), without React: starting from a
+ * plan's day with last time's values, ticking sets, the rest timer, the
  * supersets, the clock with its pauses, and the body sent at the end; the
- * stopwatch with its pauses, the exercise up next, and removing what was
- * added by hand (docs/how-to/H3-frontend.md H3.32).
+ * stopwatch with its pauses, the exercise up next, and removing what was added
+ * by hand.
  */
 import { describe, expect, it } from 'vitest'
 import type { LastSets } from '@/api/sessions'
@@ -44,7 +44,6 @@ function dayA(): ActiveSession {
 /**
  * Runs actions in turn, as the screen does one at a time.
  * @param start the first state
- * @param actions the actions
  */
 function run(start: ActiveSession, ...actions: WorkoutAction[]): ActiveSession {
   return actions.reduce(workoutReducer, start)

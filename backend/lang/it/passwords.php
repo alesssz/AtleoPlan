@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Messages of resetting a password (docs/concepts/C2-backend.md C2.7.5), keyed by the
- * status the password broker answers with.
+ * Messages of resetting a password, keyed by the status the password broker
+ * answers with.
  */
 return [
     'reset' => 'La password è stata reimpostata.',

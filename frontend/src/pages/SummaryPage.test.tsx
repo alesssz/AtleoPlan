@@ -1,9 +1,8 @@
 /*
- * The summary after Finish (docs/design/D1-ui.md D1.4.10), used as a person
- * would: the numbers and each exercise against last time, worked out on the
- * phone with no request, Save with the feeling and the notes,
- * Save with nothing to add, Delete (sent or still waiting), and an address
- * whose workout is not on this phone.
+ * The summary after Finish, used as a person would: the numbers and each
+ * exercise against last time, worked out on the phone with no request, Save
+ * with the feeling and the notes, Save with nothing to add, Delete (sent or
+ * still waiting), and an address whose workout is not on this phone.
  */
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -38,7 +37,6 @@ const lastBench: LastSets = {
  * (80 × 8, the plan's target) of the bench press ticked, kept on the phone
  * as Finish keeps it.
  * @param outcome what happened when it was sent at Finish
- * @returns the workout's id and its body
  */
 function finishDayA(outcome: WorkoutOutcome): { id: string, input: SessionInput } {
   const plan = testPlan()

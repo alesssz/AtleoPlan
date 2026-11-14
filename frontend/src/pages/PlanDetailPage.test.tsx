@@ -1,7 +1,7 @@
 /*
- * One plan's page (docs/design/D1-ui.md D1.4.7): what it shows of each day,
- * the day tabs kept in the address, the actions (set as active, archive,
- * restore, delete), and a plan that is not there.
+ * One plan's page: what it shows of each day, the day tabs kept in the address,
+ * the actions (set as active, archive, restore, delete), and a plan that is not
+ * there.
  */
 import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -44,16 +44,14 @@ describe('PlanDetailPage', () => {
       return 'blob:test'
     })
     URL.revokeObjectURL = vi.fn()
-    // spyOn() on the prototype: every link's click(), the one made by the
-    // code too; mockImplementation() replaces it with a function that does
-    // nothing. `this: HTMLAnchorElement` only names, for TypeScript, the
-    // object the method is called on; the spy records it in mock.contexts
+    // On the prototype, so the link made by the code is caught too; the spy
+    // keeps it in mock.contexts
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {})
     renderRoutes(routes, '/plans/plan-ppl')
 
     await userEvent.click(await screen.findByRole('button', { name: 'Export' }))
 
-    // The request is awaited first: waitFor() retries until the click came
+    // The request comes first
     await vi.waitFor(() => expect(click).toHaveBeenCalledTimes(1))
     // The link that was clicked, made by downloadJson()
     const link = click.mock.contexts[0] as HTMLAnchorElement
@@ -240,7 +238,6 @@ describe('PlanDetailPage', () => {
 
 /**
  * Draws the test plan's page, the plan and the user answered by the fake API.
- * @param path the address to start at
  */
 function renderPlan(path = '/plans/plan-ppl') {
   fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })

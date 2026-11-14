@@ -1,22 +1,19 @@
 /*
- * One plan (route `/plans/:id`, docs/design/D1-ui.md D1.4.7): its name,
- * goal and notes, its days as tabs, and in each day the exercises summed up
- * as "4 × 8–10 · 80 kg · 90 s", warm-ups apart, supersets joined by a bar.
- * The actions: Edit (the plan editor), Set as active, Archive or Restore,
- * Delete. After a save, the editor may say through the navigation's state
- * that the plan had been changed elsewhere: the page shows the warning of
- * docs/design/D3-data-model.md D3.5.7.
+ * One plan (route `/plans/:id`): its name, goal and notes, its days as tabs,
+ * and in each day the exercises summed up as "4 × 8–10 · 80 kg · 90 s",
+ * warm-ups apart, supersets joined by a bar. The actions: Edit (the plan
+ * editor), Set as active, Archive or Restore, Delete. After a save, the editor
+ * may say through the navigation's state that the plan had been changed
+ * elsewhere: the page then warns about it.
  *
- * Each day has **Start this day**, which starts workout mode
- * (docs/design/D1-ui.md D1.4.9; StartDayButton below). A workout in progress
- * is shown at the top with Resume. After Finish, the workout's summary
- * opens, then Home (src/pages/SummaryPage.tsx).
+ * Each day has **Start this day**, which starts workout mode (StartDayButton
+ * below). A workout in progress is shown at the top with Resume. After Finish,
+ * the workout's summary opens, then Home (src/pages/SummaryPage.tsx).
  *
  * Not here yet: Share and Duplicate (phase 2).
  *
  * The open day lives in the address, `?day=2` (from 1), so a reload or Back
- * from an exercise's page returns to the same day. How it was built:
- * docs/how-to/H3-frontend.md H3.13.
+ * from an exercise's page returns to the same day.
  */
 import { Archive, ArchiveRestore, ArrowLeft, Pencil, Play, Star, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -50,11 +47,9 @@ import { ExportPlanButton } from '@/components/plans/ExportPlanButton'
 import type { PlanImportedState } from '@/components/plans/ImportPlanButton'
 import type { PlanSavedState } from '@/pages/PlanEditorPage'
 
-/** The plan page (route `/plans/:id`). */
 export function PlanDetailPage() {
   const { t, i18n } = useTranslation()
-  // The :id of the address: the plan's UUID. `?? ''`: useParams() types
-  // every parameter as possibly missing, though the route always has it
+  // The route always has it; useParams() types it as optional
   const id = useParams().id ?? ''
   const plan = usePlan(id, i18n.language)
 
@@ -69,8 +64,7 @@ export function PlanDetailPage() {
   }
 
   if (plan.isError) {
-    // 404 (no such plan) and 403 (someone else's): the same message, since
-    // for the user both mean "not here". Any other error offers to try again
+    // 404 and 403 alike: for the user both mean "not here"
     const missing = plan.error instanceof ApiError && [403, 404].includes(plan.error.status)
     return (
       <div role="alert" className="flex flex-col items-start gap-4">
@@ -85,40 +79,30 @@ export function PlanDetailPage() {
   return <PlanDetail plan={plan.data} />
 }
 
-/** Props of PlanDetail. */
 interface PlanDetailProps {
   /** The plan, loaded. */
   plan: Plan
 }
 
-/** The page's content, once the plan has arrived. */
 function PlanDetail({ plan }: PlanDetailProps) {
   const { t } = useTranslation()
-  // The signed-in user, for the weight unit and the default rest. Already
-  // in the cache: RequireAuth asked for it before any page opened
+  // Already cached: RequireAuth asked before any page opened
   const { data: user } = useCurrentUser()
   const action = usePlanAction(plan.id)
   const [searchParams, setSearchParams] = useSearchParams()
   const archived = plan.archived_at !== null
-  // What the editor passed when it opened this page after a save; null when
-  // the page was opened any other way. useLocation(): the current address,
-  // with the `state` given to navigate()
-  // An import (ImportPlanButton) passes the exercises it created instead.
-  // Partial<T>: T with every field optional, since either may be there;
-  // `&` joins the two types into one with the fields of both
+  // From the editor after a save, or from an import with the exercises it
+  // created
   const state = useLocation().state as (Partial<PlanSavedState> & Partial<PlanImportedState>) | null
-  // The workout in progress on this phone, if any, read once; dropped
-  // (setActive(null)) when the banner deletes it, so Start works again
+  // Dropped when the banner deletes it, so Start works again
   const [active, setActive] = useState(loadActiveSession)
 
-  // The open day, from `?day=` (1 for the first). Anything that is not one
-  // of the plan's days, a hand-typed ?day=9 say, opens the first
+  // A hand-typed ?day=9 opens the first
   const requested = Number(searchParams.get('day') ?? '1')
   const dayIndex = Number.isInteger(requested) && requested >= 1 && requested <= plan.days.length ? requested - 1 : 0
 
   /**
-   * Opens another day, in the address. Tabs give their value as text: the
-   * day's index. `replace: true`: Back leaves the plan, not the last tab.
+   * Replaces the history entry: Back leaves the plan, not the last tab.
    * @param value the tab's value, "0" for the first day
    */
   function openDay(value: string) {
@@ -127,23 +111,19 @@ function PlanDetail({ plan }: PlanDetailProps) {
 
   return (
     <>
-      {/* Back to the list the plan belongs to */}
       <Link to={archived ? '/plans?archived=1' : '/plans'} className="mb-4 inline-flex min-h-12 items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground">
         <ArrowLeft aria-hidden="true" className="size-4" />
         {t('plans.detail.back')}
       </Link>
 
-      {/* No eyebrow: the tab bar and the sidebar already name the section
-          (D1.5 "Page header", PageHeader.tsx). `?? undefined`: PageHeader
-          leaves the description out when there is none */}
+      {/* No eyebrow: the navigation already names the section */}
       <PageHeader title={plan.name} description={plan.goal ?? undefined} />
 
       <div className="flex flex-col gap-6">
-        {/* Saved over a version changed elsewhere: the last change won (D3.5.7) */}
+        {/* Saved over a version changed elsewhere: the last change won */}
         {state?.changedElsewhere && <FormBanner variant="error">{t('plans.detail.changedElsewhere')}</FormBanner>}
 
-        {/* Just imported from a file: said, with the exercises that were
-            not here and are now the user's own (C1.15.6) */}
+        {/* With the exercises the import created */}
         {state?.createdExercises && (
           <FormBanner variant="success">
             {state.createdExercises.length > 0
@@ -152,10 +132,8 @@ function PlanDetail({ plan }: PlanDetailProps) {
           </FormBanner>
         )}
 
-        {/* A workout left in progress on this phone, of any plan: Resume */}
         {active && <ResumeBanner session={active} onDiscarded={() => setActive(null)} />}
 
-        {/* Its state, in words */}
         {(plan.is_active || archived) && (
           <div className="flex flex-wrap items-center gap-2">
             {plan.is_active && <Badge>{t('plans.active')}</Badge>}
@@ -164,13 +142,10 @@ function PlanDetail({ plan }: PlanDetailProps) {
           </div>
         )}
 
-        {/* The actions. Which ones depends on the plan's state:
-            an archived plan cannot be made active (PlanPolicy::activate) */}
+        {/* An archived plan cannot be made active (PlanPolicy::activate) */}
         <div className="flex flex-wrap items-center gap-3">
           {!plan.is_active && !archived && (
-            // The two buttons share one mutation: both wait while it runs,
-            // and the spinner goes on the one pressed (`variables`: what
-            // mutate() was given, C1.20)
+            // One mutation for both: the spinner goes on the one pressed
             <Button size="xl" disabled={action.isPending} pending={action.isPending && action.variables === 'activate'} onClick={() => action.mutate('activate')}>
               <Star aria-hidden="true" />
               {t('plans.detail.setActive')}
@@ -186,7 +161,6 @@ function PlanDetail({ plan }: PlanDetailProps) {
             {archived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}
             {archived ? t('plans.detail.unarchive') : t('plans.detail.archive')}
           </Button>
-          {/* Export: the plan saved as a file (C1.15.6) */}
           <ExportPlanButton plan={plan} />
           <DeletePlanButton plan={plan} />
         </div>
@@ -199,15 +173,12 @@ function PlanDetail({ plan }: PlanDetailProps) {
           </section>
         )}
 
-        {/* The days as tabs (src/components/ui/tabs.tsx). Controlled: the
-            open tab comes from the address, and a click writes it there */}
+        {/* Controlled by the address */}
         {plan.days.length === 0
           ? <p className="text-muted-foreground">{t('plans.detail.noDays')}</p>
           : (
               <Tabs value={String(dayIndex)} onValueChange={openDay}>
-                {/* The tab row scrolls sideways when the days do not fit,
-                    as on a phone with six days. h-auto and the larger tabs:
-                    48 px, the smallest a finger hits reliably (D1.5) */}
+                {/* Scrolls sideways when the days do not fit; 48 px tabs */}
                 <div className="-mx-1 overflow-x-auto px-1 pb-1">
                   <TabsList aria-label={t('plans.detail.daysLabel')} className="h-auto! rounded-xl p-1">
                     {plan.days.map((day, index) => (
@@ -234,34 +205,24 @@ function PlanDetail({ plan }: PlanDetailProps) {
   )
 }
 
-/** Props of StartDayButton. */
 interface StartDayButtonProps {
   /** The plan. */
   plan: Plan
-  /** The day to start. */
   day: PlanDay
   /** True when a workout is already in progress on this phone. */
   busy: boolean
 }
 
 /**
- * Start this day: builds the workout on the phone and opens workout mode,
- * through useStartWorkout (src/components/workout/useStartWorkout.ts), the
- * same steps as Home's Start. Last time's sets are asked first; offline, the
- * workout starts with the plan's targets alone.
- *
- * While another workout is in progress it is disabled, with the reason: one
- * workout at a time on a phone, and none is lost by starting another.
+ * The same steps as Home's Start (useStartWorkout). Disabled, with the
+ * reason, while another workout is in progress: one at a time on a phone.
  */
 function StartDayButton({ plan, day, busy }: StartDayButtonProps) {
   const { t } = useTranslation()
-  // The shared steps, and whether they are running
   const { starting, startDay } = useStartWorkout()
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3">
-      {/* disabled: why it cannot start (another workout, an empty day);
-          pending: it is starting, last time's sets being read (C1.20) */}
       <Button size="xl" disabled={busy || day.items.length === 0} pending={starting} onClick={() => void startDay(plan, day)}>
         <Play aria-hidden="true" />
         {t('workout.start')}
@@ -271,15 +232,13 @@ function StartDayButton({ plan, day, busy }: StartDayButtonProps) {
   )
 }
 
-/** Props of DeletePlanButton. */
 interface DeletePlanButtonProps {
-  /** The plan to delete. */
   plan: Plan
 }
 
 /**
- * Delete, with a confirmation first: a plan deleted cannot be brought back
- * (D1.6). Archive is the gentle alternative. After it, the plan list.
+ * Delete, with a confirmation first: a plan deleted cannot be brought back.
+ * Archive is the gentle alternative. After it, the plan list.
  */
 function DeletePlanButton({ plan }: DeletePlanButtonProps) {
   const { t } = useTranslation()
@@ -302,9 +261,8 @@ function DeletePlanButton({ plan }: DeletePlanButtonProps) {
         {remove.isError && <FormBanner variant="error">{t('plans.detail.deleteError')}</FormBanner>}
         <AlertDialogFooter>
           <AlertDialogCancel>{t('plans.detail.cancel')}</AlertDialogCancel>
-          {/* preventDefault() keeps the dialog open until the request is
-              done (ExerciseDetailPage explains it); `replace: true`: Back
-              does not return to the deleted plan */}
+          {/* Open until the request is done; Back must not return to the
+              deleted plan */}
           <AlertDialogAction
             variant="destructive"
             pending={remove.isPending}

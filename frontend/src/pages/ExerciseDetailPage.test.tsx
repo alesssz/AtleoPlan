@@ -1,7 +1,6 @@
 /*
- * One exercise's page (docs/design/D1-ui.md D1.4.4): what it shows, the
- * owner's actions, deleting with a confirmation, and an exercise that is not
- * there.
+ * One exercise's page: what it shows, the owner's actions, deleting with a
+ * confirmation, and an exercise that is not there.
  */
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

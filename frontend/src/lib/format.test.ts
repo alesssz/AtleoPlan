@@ -1,22 +1,12 @@
 /*
- * Tests of src/lib/format.ts: the number formats of each language
- * (docs/design/D2-decisions.md D2.4), the decimal comma in Italian, Spanish and
- * German, the point in English. Run with `npm test` (Vitest); how tests
- * are organised: docs/concepts/C1-frontend.md C1.10.
- *
- * The three Vitest functions used everywhere:
- * - describe('name', fn): a group of related tests, shown together in the report;
- * - it('does something', fn): one test; it fails if anything inside throws;
- * - expect(actual).toBe(expected): a check ("matcher") that throws when
- *   the two differ. toBe compares with ===, toEqual compares contents.
+ * Each language's formats: the decimal comma in Italian, Spanish and German,
+ * the point in English.
  */
 import { describe, expect, it } from 'vitest'
 import { formatDayParts, formatDaysAgo, formatDuration, formatLongDate, formatNumber, formatWeight } from './format'
 
 describe('formatWeight', () => {
-  // it.each([...rows])(name, fn): the same test once per row; each row's
-  // values become fn's parameters, and %s in the name shows the first one.
-  // Row: [language, what 82.5 kg must look like]
+  // [language, what 82.5 kg must look like]
   it.each([
     ['it', '82,5 kg'],
     ['es', '82,5 kg'],

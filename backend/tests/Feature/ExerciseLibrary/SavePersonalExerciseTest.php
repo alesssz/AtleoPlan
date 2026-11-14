@@ -4,11 +4,8 @@
  * The action SavePersonalExercise, called directly, without HTTP: the rules
  * of saving a personal exercise (one language, muscles as a whole list,
  * partial changes). The API tests (ExerciseApiTest.php) check that the
- * endpoints call it; this file checks what it does.
- *
- * app(SavePersonalExercise::class) asks Laravel's service container for one,
- * as the controller's parameter does. app()->setLocale() stands in for the
- * Accept-Language header of a request.
+ * endpoints call it; this file checks what it does. app()->setLocale() stands
+ * in for the request's Accept-Language.
  */
 
 use App\Actions\Exercises\SavePersonalExercise;

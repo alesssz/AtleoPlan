@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-// Imports: the model it describes, the request, and Laravel's base resource
 use App\Models\WorkoutSession;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -25,7 +24,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * - The four totals are there when the query asked for them
  *   (WorkoutSession::withTotals()): worked out by the database, warm-ups
- *   excluded, never stored (docs/design/D3-data-model.md D3.8).
+ *   excluded, never stored.
  * - `volume_kg` is text with three decimals, exact like every weight, and
  *   always in kilograms: the app converts to pounds for showing.
  * - `exercises` is there when the whole session was loaded.
@@ -35,9 +34,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class WorkoutSessionResource extends JsonResource
 {
     /**
-     * The fields to send.
-     *
-     * @param  Request  $request  the current request
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
@@ -54,13 +50,12 @@ class WorkoutSessionResource extends JsonResource
             'feeling' => $this->feeling,
             'notes' => $this->notes,
             'updated_at' => $this->updated_at,
-            // whenHas(): only when the row has that column, which it does
-            // when the query added it with withTotals()
+            // Present when the query used withTotals()
             'exercises_done' => $this->whenHas('exercises_done', fn () => (int) $this->exercises_done),
             'sets_done' => $this->whenHas('sets_done', fn () => (int) $this->sets_done),
             'reps_done' => $this->whenHas('reps_done', fn () => (int) $this->reps_done),
-            // Postgres gives the product of two numeric(7,3) with six
-            // decimals ("5240.000000"): three are kept, as for every weight
+            // The product of two numeric(7,3) has six decimals: three are
+            // kept, as for every weight
             'volume_kg' => $this->whenHas('volume_kg', fn () => number_format((float) $this->volume_kg, 3, '.', '')),
             'exercises' => SessionExerciseResource::collection($this->whenLoaded('sessionExercises')),
         ];

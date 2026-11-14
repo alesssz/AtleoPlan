@@ -3,11 +3,8 @@
 namespace App\Enums;
 
 /**
- * What the free-exercise-db import did with one exercise of the source
- * (app/Actions/Exercises/ImportFreeExercise.php, docs/concepts/C2-backend.md C2.14).
- *
- * What an enum is: app/Enums/Locale.php. This one is never stored in the
- * database: the import command counts the outcomes and prints the totals.
+ * What ImportFreeExercise did with one exercise of the source. Never stored:
+ * the command counts the outcomes and prints the totals.
  */
 enum ImportOutcome: string
 {

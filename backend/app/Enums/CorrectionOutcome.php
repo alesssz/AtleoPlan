@@ -3,13 +3,8 @@
 namespace App\Enums;
 
 /**
- * What the correction of a guessed logging type did with one exercise
- * (app/Actions/Exercises/CorrectLoggingType.php, DATA-3,
- * docs/concepts/C2-backend.md C2.14.6).
- *
- * What an enum is: app/Enums/Locale.php. Like ImportOutcome, it is never
- * stored: the command `exercises:correct-logging-types` counts the outcomes
- * and prints the totals.
+ * What CorrectLoggingType did with one exercise. Never stored: the command
+ * counts the outcomes and prints the totals.
  */
 enum CorrectionOutcome: string
 {

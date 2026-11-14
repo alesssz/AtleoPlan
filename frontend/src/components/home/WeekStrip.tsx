@@ -1,56 +1,41 @@
 /*
- * "This week" on Home (docs/design/D1-ui.md D1.4.2): the seven days, Monday
- * to Sunday, with today highlighted and the days trained marked: a lime
- * tint and a dot under the number, and the words "workout done" for screen
- * readers. Home works the days out from the recent workouts
- * (week-summary.ts).
- * Day names and numbers come from Intl in the user's language
- * (src/lib/format.ts); the week itself from src/lib/week.ts.
+ * "This week" on Home: the seven days, Monday to Sunday, with today highlighted
+ * and the days trained marked: a lime tint and a dot under the number, and the
+ * words "workout done" for screen readers. Home works the days out from the
+ * recent workouts (week-summary.ts). Day names and numbers come from Intl in
+ * the user's language (src/lib/format.ts); the week itself from
+ * src/lib/week.ts.
  */
 import { useTranslation } from 'react-i18next'
 import { formatDayParts } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { getWeekDays, isBeforeDay, isSameDay } from '@/lib/week'
 
-/** Props of WeekStrip. */
 interface WeekStripProps {
-  /** "Today", passed in so tests can fix a date; the real now by default. */
+  /** Passed in so tests can fix a date. */
   today?: Date
   /** The days with a workout this week; none by default. */
   trainedDays?: Date[]
 }
 
 export function WeekStrip({ today = new Date(), trainedDays = [] }: WeekStripProps) {
-  // i18n.language: the current language, for the day names
   const { t, i18n } = useTranslation()
-  // The seven dates of this week
   const days = getWeekDays(today)
 
   return (
-    // An ordered list of seven equal columns, 8 px apart. A list, so screen
-    // readers announce "list, 7 items"
+    // A list, so screen readers announce "list, 7 items"
     <ol className="grid grid-cols-7 gap-2">
       {days.map((day) => {
-        // Today, a past day, or a day still to come: each looks different
         const isToday = isSameDay(day, today)
         const isPast = isBeforeDay(day, today)
-        // A workout was finished on this day
         const trained = trainedDays.some(done => isSameDay(done, day))
-        // "gio" and "5" in Italian, "Thu" and "5" in English
         const { weekday, day: dayNumber } = formatDayParts(day, i18n.language)
 
         return (
-          // toISOString() gives a unique text per day, a good `key`.
-          // aria-current="date" tells screen readers which item is today
           <li key={day.toISOString()} aria-current={isToday ? 'date' : undefined} className="flex flex-col items-center gap-2">
-            {/* The weekday's short name, small capitals, muted (lime for today) */}
             <span className={cn('text-[11px] font-bold tracking-wider uppercase', isToday ? 'text-primary' : 'text-muted-foreground')}>
               {weekday}
             </span>
-            {/* The day number in a circle: today filled with lime and
-                glowing, a day trained tinted lime with a lime ring, other
-                past days on a faint surface, future days with a dashed
-                outline (still to come). tabular-nums: same-width digits */}
             <span
               className={cn(
                 'grid aspect-square w-full max-w-11 place-items-center rounded-full text-sm font-bold tabular-nums',
@@ -62,11 +47,9 @@ export function WeekStrip({ today = new Date(), trainedDays = [] }: WeekStripPro
             >
               {dayNumber}
             </span>
-            {/* A lime dot under a day trained, an empty space of the same
-                size under the others, so every column stays the same height */}
+            {/* An empty space under the others keeps the columns even */}
             <span aria-hidden="true" className={cn('size-1.5 rounded-full', trained ? 'bg-primary' : 'bg-transparent')} />
-            {/* Spoken only: "today" and "workout done", since colour alone
-                must never carry meaning (D1.7) */}
+            {/* Colour alone must never carry meaning */}
             {isToday && <span className="sr-only">{t('home.today')}</span>}
             {trained && <span className="sr-only">{t('home.trained')}</span>}
           </li>

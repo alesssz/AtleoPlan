@@ -1,9 +1,9 @@
 <?php
 
 /**
- * GET /api/home: everything Home shows (docs/design/D1-ui.md D1.4.2), with no
- * active plan and with one: the days, their estimate, the suggested day, the
- * session left open, the recent workouts.
+ * GET /api/home: everything Home shows, with no active plan and with one: the
+ * days, their estimate, the suggested day, the session left open, the recent
+ * workouts.
  */
 
 use App\Actions\Workouts\HomeSummary;

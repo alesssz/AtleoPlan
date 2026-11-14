@@ -8,8 +8,6 @@ import { bestSet, compareExercise, compareWorkout, countVerdicts, exerciseVolume
 /**
  * A normal set by reps, with a weight or none.
  * @param weight kilograms, as a number or as the API's text; null for none
- * @param reps the reps
- * @param type its type
  */
 function set(weight: number | string | null, reps: number, type: SetValues['set_type'] = 'normal'): SetValues {
   return { set_type: type, weight_kg: weight, reps, duration_seconds: null, distance_meters: null }

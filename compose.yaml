@@ -1,73 +1,36 @@
-# AtleoPlan — local development stack.
+# The local development stack: the Laravel backend and its queue worker,
+# Postgres and Mailpit. The React app runs on the computer with Vite, which
+# forwards /api, /sanctum and /auth to the backend, so the browser sees one
+# origin, as in production.
 #
-# Runs here: the Laravel backend (FrankenPHP, see the Dockerfile), its queue
-# worker, Postgres and Mailpit. The React frontend runs on the computer with
-# `npm run dev` (Vite), which forwards /api and /sanctum to the backend, so the
-# browser sees a single address, as it will in production (docs/design/D2-decisions.md D2.6).
-#
-# Ports on the computer are each service's standard port + 500, so they never clash
-# with other projects that use the standard ones (Chronovault uses + 100):
-#   Laravel 8000 → 8500 · Postgres 5432 → 5932 · Mailpit 8025 → 8525
-#   (Vite, on the computer: 5173 → 5673)
-# Inside the containers the standard ports stay. Each can still be changed
-# with a variable, e.g. `APP_PORT=8600 docker compose up -d`.
-#
-# First start, while ./backend does not exist yet:
-#   docker compose build
-#   docker compose run --rm backend composer create-project laravel/laravel .
-#   docker compose up -d
+# Host ports are each service's standard port + 500, so they never clash with
+# other projects: Laravel 8500, Postgres 5932, Mailpit 8525, Vite 5673. Each
+# can be changed with a variable, e.g. `APP_PORT=8600 docker compose up -d`.
 name: atleoplan
 
-# --- Shared settings of the backend and the queue worker ----------------------
-# Both run the same image on the same code; only their command differs.
+# Shared by the backend and the queue worker: same image, same code
 x-backend: &backend
   build:
     context: .
     target: dev
   image: atleoplan-backend:dev
-  # What the containers see of the outside, each line `source:path inside`.
-  # Two kinds (docs/how-to/H2-backend.md H2.18.2):
-  # - a BIND MOUNT, when the source is a path (./backend): a folder of the
-  #   computer, shared with the container; both see the same files at once.
-  #   Docker Desktop runs Linux in a virtual machine, on the Mac and on
-  #   Windows, so every file read through it crosses from one system to the
-  #   other: fine for a few files, slow for a thousand.
-  # - a NAMED VOLUME, when the source is a name (vendor): a folder Docker
-  #   keeps on the virtual machine's own disk, declared under `volumes:` at
-  #   the end of this file. As fast as Linux's own disk; the computer does
-  #   not see it, and it survives `docker compose down` (not `down -v`).
-  # When two lines cover the same place, the deeper path wins: /app/vendor
-  # below hides the vendor/ folder of ./backend inside the container.
   volumes:
-    # The Laravel code, live: edits on the computer are seen at once in the container.
     - ./backend:/app
-    # The Composer packages, in a named volume over the folder above. A
-    # request reads about a thousand package files, and PHP's OPcache checks
-    # their dates again after every pause of two seconds: through the shared
-    # folder that took over a second, from the volume about a tenth
-    # (docs/concepts/C2-backend.md C2.4). The packages change only through
-    # Composer, so nothing is lost by not seeing them live; the app's own
-    # code stays shared.
+    # vendor/ in a named volume over the bind mount: reading a thousand package
+    # files through the shared folder took over a second per request after a
+    # pause, from the volume a tenth
     - vendor:/app/vendor
-    # The computer's backend/vendor/ again, at another place in the
-    # container: Composer copies the volume onto it after every change
-    # (docker/php/sync-vendor.sh), so the editor on the computer still sees
-    # the packages. The app never reads it. The queue worker gets it too,
-    # because both services share this list; it never runs Composer.
+    # Composer copies the volume here after every change
+    # (docker/php/sync-vendor.sh), so the editor still sees the packages
     - ./backend/vendor:/vendor-host
-    # Composer's download cache, kept between containers (COMPOSER_CACHE_DIR).
     - composer-cache:/composer-cache
   environment:
-    # These win over backend/.env: in Laravel a real environment variable is
-    # never overwritten by the .env file. They point the app at the services
-    # below, whatever a fresh .env says (a new Laravel app defaults to SQLite).
-    # The app's name, shown in the emails it sends.
+    # A real environment variable wins over backend/.env, so these hold
+    # whatever a fresh .env says
     APP_NAME: AtleoPlan
-    # Where the React app is, for the links in emails (Vite, docs/start/S1-setup.md S1.4).
+    # The React app (Vite), for links in emails
     FRONTEND_URL: http://localhost:5673
-    # Where the admin panel is, for the React app's link and the way back
-    # from Google: Laravel's own port, since Vite does not forward /admin
-    # (docs/concepts/C2-backend.md C2.8.4).
+    # Laravel's own port: Vite does not forward /admin
     ADMIN_URL: http://localhost:${APP_PORT:-8500}/admin
     DB_CONNECTION: pgsql
     DB_HOST: postgres
@@ -75,46 +38,36 @@ x-backend: &backend
     DB_DATABASE: atleoplan
     DB_USERNAME: atleoplan
     DB_PASSWORD: atleoplan
-    # Every email (password reset, invitations) is caught by Mailpit.
     MAIL_MAILER: smtp
     MAIL_HOST: mailpit
     MAIL_PORT: 1025
-    # Queued jobs are stored in a Postgres table: no Redis to run.
+    # No Redis to run
     QUEUE_CONNECTION: database
-    # The React app's address in development (Vite, docs/start/S1-setup.md S1.4):
-    # Sanctum logs its requests in with the session cookie instead of a token.
+    # Requests from this origin authenticate with the session cookie
     SANCTUM_STATEFUL_DOMAINS: localhost:5673
   depends_on:
-    # Waits until Postgres accepts connections (its healthcheck), not just
-    # until its container has started.
     postgres:
       condition: service_healthy
     mailpit:
       condition: service_started
 
 services:
-  # Laravel: the API and the Filament admin panel, at http://localhost:8500.
   backend:
     <<: *backend
     ports:
       - "127.0.0.1:${APP_PORT:-8500}:8000"
     restart: unless-stopped
 
-  # Runs the queued jobs: video conversion with ffmpeg, emails.
-  # `queue:listen` loads the code again for every job, so a change applies
-  # without a restart (slower than `queue:work`, which production will use).
-  # --timeout leaves five minutes for a video to be converted.
+  # queue:listen reloads the code for every job, so changes apply without a
+  # restart; production will use queue:work. Five minutes for a video.
   queue:
     <<: *backend
     command: ["php", "artisan", "queue:listen", "--tries=3", "--timeout=300"]
-    # The image's healthcheck asks the Caddy web server, which does not run in
-    # the worker: it would always report "unhealthy" although the worker is fine.
+    # The image's healthcheck asks Caddy, which does not run in the worker
     healthcheck:
       disable: true
     restart: unless-stopped
 
-  # The database. Reachable from the computer (TablePlus, DBeaver…) at
-  # localhost:5932, user, password and database all `atleoplan`.
   postgres:
     image: postgres:18-alpine
     environment:
@@ -122,14 +75,11 @@ services:
       POSTGRES_USER: atleoplan
       POSTGRES_PASSWORD: atleoplan
     ports:
-      # Bound to 127.0.0.1: reachable from this computer only, not from the network.
       - "127.0.0.1:${DB_FORWARD_PORT:-5932}:5432"
     volumes:
-      # The data survives `docker compose down`; `down -v` deletes it.
-      # Postgres 18 images keep their data under /var/lib/postgresql.
+      # Postgres 18 images keep their data under /var/lib/postgresql
       - postgres-data:/var/lib/postgresql
-      # Scripts run once, on an empty volume: they create the test database
-      # `atleoplan_test` next to the development one.
+      # Creates `atleoplan_test` on an empty volume
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U atleoplan -d atleoplan"]
@@ -138,9 +88,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # Catches every email the app sends and shows it at http://localhost:8525.
-  # Nothing ever leaves the computer. Its SMTP port (1025) is used by Laravel inside
-  # Docker only, so it is not opened on the computer.
+  # Catches every email; nothing leaves the computer
   mailpit:
     image: axllent/mailpit:latest
     ports:
@@ -149,10 +97,6 @@ services:
 
 volumes:
   postgres-data:
-  # The backend's Composer packages, shared by `backend` and `queue`
-  # (docs/how-to/H2-backend.md H2.18). It starts empty: `make setup` fills it
-  # with `composer install`. Docker names it after the project,
-  # `atleoplan_vendor` (`docker volume ls`). `down -v` deletes it with the
-  # database; `make setup` then installs the packages again.
+  # Starts empty: `make setup` fills it
   vendor:
   composer-cache:

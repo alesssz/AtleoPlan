@@ -1,9 +1,8 @@
 /*
- * Home (docs/design/D1-ui.md D1.4.2), used as a person would: the active
- * plan's card with the suggested day, Start, another day chosen with its
- * chip, the workout in progress (resumed, finished or deleted from its
- * banner), Free workout, this week, and Home without an active plan or
- * without the network.
+ * Home, used as a person would: the active plan's card with the suggested day,
+ * Start, another day chosen with its chip, the workout in progress (resumed,
+ * finished or deleted from its banner), Free workout, this week, and Home
+ * without an active plan or without the network.
  */
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -32,7 +31,6 @@ function today(changes: Partial<WorkoutSession> = {}): WorkoutSession {
 /**
  * The answer of GET /api/home: the test plan active, Day A done last, Day B
  * suggested; changed as asked.
- * @param changes the fields to change
  */
 function homeAnswer(changes: Partial<HomeData> = {}) {
   const data: HomeData = {

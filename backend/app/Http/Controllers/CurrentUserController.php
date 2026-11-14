@@ -8,20 +8,14 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * The signed-in user's own account: reading it and changing its preferences.
- *
- * Its routes are in routes/api.php, under `auth:sanctum`, so `$request->user()`
- * is never null here. It only ever touches the user asking, which is why no
- * policy is needed. A thin controller: docs/concepts/C2-backend.md C2.5.
+ * The signed-in user's own account. It only touches the user asking, so no
+ * policy is involved.
  */
 class CurrentUserController extends Controller
 {
     /**
-     * GET /api/user: who is signed in. The React app asks at start-up, and the
-     * answer decides which screens may open (src/routes/RequireAuth.tsx).
-     *
-     * @param  Request  $request  the current request, passed in by Laravel
-     * @return UserResource the user, as JSON
+     * GET /api/user: asked at start-up; the answer decides which screens may
+     * open (src/routes/RequireAuth.tsx).
      */
     public function show(Request $request): UserResource
     {
@@ -29,20 +23,11 @@ class CurrentUserController extends Controller
     }
 
     /**
-     * PATCH /api/user/preferences: saves the language, the theme or a workout
-     * preference (unit, default rest, weight step, timer sound and
-     * vibration) on the account (docs/design/D1-ui.md D1.4.14).
+     * PATCH /api/user/preferences.
      *
-     * Having the Form Request as a parameter is what makes Laravel validate
-     * first. validated() holds only the fields that passed its rules, so nothing
-     * else can be changed through this endpoint.
-     *
-     * It answers 204 with no body, rather than the updated user: with two changes
-     * close together, that user could hold the old value of the other one, and
-     * the React app would show it (docs/concepts/C1-frontend.md C1.13).
-     *
-     * @param  UpdatePreferencesRequest  $request  the validated request
-     * @return Response an empty answer
+     * 204 rather than the updated user: with two changes close together, the
+     * first answer could carry the old value of the second, and the app would
+     * show it.
      */
     public function updatePreferences(UpdatePreferencesRequest $request): Response
     {

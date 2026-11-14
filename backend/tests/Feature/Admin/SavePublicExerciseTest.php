@@ -1,17 +1,15 @@
 <?php
 
 /**
- * The rules of a public exercise saved from the admin panel (BE-1,
- * docs/concepts/C2-backend.md C2.8.2): the action SavePublicExercise called
- * directly, without Filament, as SavePersonalExerciseTest does for the API.
+ * The rules of a public exercise saved from the admin panel: the action
+ * SavePublicExercise called directly, without Filament, as
+ * SavePersonalExerciseTest does for the API.
  *
  * Fixtures: the real muscles and equipment, from their seeders; the form's
  * state built by publicExerciseForm(), with every language filled and
  * reviewed unless a test changes it.
  */
 
-// Imports: the action, the enums, the models, the trait that empties the
-// database, the seeders of the fixed lists, and PHP's exception class
 use App\Actions\Exercises\SavePublicExercise;
 use App\Enums\LoggingType;
 use App\Enums\MuscleRole;
@@ -22,10 +20,8 @@ use Database\Seeders\EquipmentSeeder;
 use Database\Seeders\MuscleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
-// Every test starts from empty tables (docs/concepts/C2-backend.md C2.11)
 uses(RefreshDatabase::class);
 
-// Before each test: the 17 muscles and 12 kinds of equipment
 beforeEach(function () {
     $this->seed([MuscleSeeder::class, EquipmentSeeder::class]);
 });
@@ -45,7 +41,6 @@ beforeEach(function () {
 function overForm(array $base, array $changes): array
 {
     foreach ($changes as $key => $value) {
-        // array_is_list(): true for [0 => …, 1 => …], false for named keys
         $base[$key] = is_array($value) && ! array_is_list($value) && is_array($base[$key] ?? null)
             ? overForm($base[$key], $value)
             : $value;
@@ -136,8 +131,7 @@ it('removes a language left empty, and keeps the others', function () {
         'translations' => ['de' => ['name' => '  ', 'instructions' => ['', ' ']]],
     ]));
 
-    // toEqualCanonicalizing: in any order. Postgres stores jsonb with its
-    // keys sorted its own way, so they come back as en, es, it
+    // jsonb keeps its keys in its own order: en, es, it
     expect(array_keys($exercise->fresh()->getTranslations('name')))->toEqualCanonicalizing(['en', 'it', 'es'])
         ->and(array_keys($exercise->fresh()->getTranslations('instructions')))->toEqualCanonicalizing(['en', 'it', 'es']);
 });

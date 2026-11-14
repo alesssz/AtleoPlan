@@ -1,23 +1,12 @@
 <?php
 
 /**
- * The admin panel's exercise library screen (BE-1,
- * docs/concepts/C2-backend.md C2.8.2, docs/how-to/H2-backend.md H2.16).
- *
- * The pages are Livewire components, so they are tested as Livewire does:
- * Livewire::test(ListExercises::class) renders the page in memory, as the
- * admin signed in with actingAs() would see it, and Filament adds methods
- * to read its table and fill its form: assertCanSeeTableRecords(),
- * searchTable(), filterTable(), fillForm(), call('save')…
- * (https://filamentphp.com/docs, "Testing").
+ * The admin panel's exercise library screen.
  *
  * Fixtures: an admin signed in, the real muscles and equipment, and
  * exercises made by the factory.
  */
 
-// Imports: the resource and the pages tested, the enums, the models, the trait that empties
-// the database, the seeders of the fixed lists, a fake upload, the Storage
-// facade, and Livewire's test entry
 use App\Enums\LoggingType;
 use App\Filament\Resources\Exercises\ExerciseResource;
 use App\Filament\Resources\Exercises\Pages\CreateExercise;
@@ -37,7 +26,7 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-// Before each test: the fixed lists, and an admin signed in, in English
+// The fixed lists, and an admin signed in, in English
 beforeEach(function () {
     $this->seed([MuscleSeeder::class, EquipmentSeeder::class]);
     $this->admin = User::factory()->admin()->create(['locale' => 'en']);
@@ -156,13 +145,11 @@ it('opens an exercise by language and saves a reviewed translation', function ()
 
 // Scenario: the admin adds a photo to a public exercise with the plugin's field
 it('adds photos to a public exercise', function () {
-    // An empty fake disk, and a public exercise with no photos
+    // A public exercise with no photos
     Storage::fake('public');
     $plank = libraryExercise('Plank', 'Plank');
 
     Livewire::test(EditExercise::class, ['record' => $plank->getRouteKey()])
-        // A file field's state is a list of files; Livewire takes the fake
-        // upload as if the browser had sent it
         ->fillForm(['photos' => [UploadedFile::fake()->image('plank.jpg', 800, 600)]])
         ->call('save')
         ->assertHasNoFormErrors();

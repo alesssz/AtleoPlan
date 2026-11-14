@@ -1,9 +1,8 @@
 <?php
 
 /**
- * DemoPlanSeeder: the two example plans of the development database
- * (docs/how-to/H3-frontend.md H3.13.1). What it writes, that it waits for
- * the exercise library, and that it can run again.
+ * DemoPlanSeeder: the two example plans of the development database. What it
+ * writes, that it waits for the exercise library, and that it can run again.
  */
 
 use App\Models\Exercise;
@@ -20,7 +19,7 @@ uses(RefreshDatabase::class);
  */
 function seedDemoExercises(): void
 {
-    // ReflectionClassConstant reads a private constant from outside the class
+    // The seeder's private list, so the two cannot drift
     $externalIds = (new ReflectionClassConstant(DemoPlanSeeder::class, 'EXERCISES'))->getValue();
     foreach ($externalIds as $externalId) {
         Exercise::factory()->create(['external_id' => $externalId]);
@@ -53,8 +52,6 @@ it('leaves alone a user who already has a plan, so it can run again', function (
 it('writes nothing, and says why, before the library is imported', function () {
     User::factory()->create();
 
-    // artisan(): runs a command as from the terminal; expectsOutputToContain()
-    // checks what it prints
     $this->artisan('db:seed', ['--class' => DemoPlanSeeder::class])
         ->expectsOutputToContain('run `make exercises-import` first')
         ->assertSuccessful();

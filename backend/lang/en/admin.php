@@ -1,14 +1,9 @@
 <?php
 
 /**
- * The admin panel's own texts: the labels of our screens, fields, filters
- * and actions (docs/concepts/C2-backend.md C2.8). Filament's built-in texts
- * (Save, Cancel, Search…) come translated with the package.
- *
- * The panel is shown in the signed-in admin's language, `users.locale`
- * (app/Http/Middleware/SetPanelLocale.php), so this file exists in the four
- * languages, with the same keys. Read with __('admin.exercises.label');
- * `:count` and the like are placeholders, filled by __('…', ['count' => 3]).
+ * The admin panel's own texts; Filament's built-in ones come translated with
+ * the package. The panel follows the admin's `users.locale`, so the four
+ * languages share these keys.
  */
 return [
     // The languages, each written in itself: the tabs of the exercise form

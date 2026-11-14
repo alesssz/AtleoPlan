@@ -1,22 +1,8 @@
-/*
- * Checkbox: shadcn/ui's tick box, built on Radix UI's Checkbox, which gives it
- * the keyboard (Space toggles it), the focus ring and what screen readers
- * need (role="checkbox", aria-checked). Used for the secondary muscles of the
- * exercise editor. Added with `npx shadcn add checkbox`; what shadcn/ui and
- * Radix are: select.tsx and docs/concepts/C1-frontend.md C1.8.
- *
- * It is a button, not an <input>: it is controlled with `checked` and
- * `onCheckedChange(checked)`, and labelled by a <label htmlFor={id}>.
- * The `after:` classes enlarge the area that reacts to a tap without
- * enlarging the box.
- */
-// React's types; cn() joins classes; Radix's Checkbox; the tick icon from lucide
 import * as React from 'react'
 import { cn } from 'cn'
 import { Checkbox as CheckboxPrimitive } from 'radix-ui'
 import { CheckIcon } from 'lucide-react'
 
-/** The tick box. Takes every prop of Radix's Checkbox.Root: `checked`, `onCheckedChange`, `id`, `disabled`… */
 function Checkbox({
   className,
   ...props

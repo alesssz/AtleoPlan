@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources;
 
-// Imports: the model it describes, the request, and Laravel's base resource
 use App\Models\PlanDay;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -20,9 +19,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class PlanDayResource extends JsonResource
 {
     /**
-     * The fields to send.
-     *
-     * @param  Request  $request  the current request
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array

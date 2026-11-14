@@ -1,16 +1,11 @@
 /*
- * How a plan's exercises are summed up on its page (docs/design/D1-ui.md
- * D1.4.7): one line per exercise, such as "4 × 8–10 · 80 kg · 90 s", with
- * the warm-up sets counted apart ("+ 2 warm-up"), and the supersets as runs
- * of neighbouring exercises.
+ * How a plan's exercises are summed up on its page: one line per exercise, such
+ * as "4 × 8–10 · 80 kg · 90 s", with the warm-up sets counted apart ("+ 2
+ * warm-up"), and the supersets as runs of neighbouring exercises.
  *
- * Plain functions, no React: they take data and give text, so they are
- * tested on their own (plan-format.test.ts) and the components stay short.
- * Numbers and units are written by the browser's Intl API in the user's
- * language, through src/lib/format.ts: "82,5 kg" in Italian, "90 Sek." in
- * German (docs/concepts/C1-frontend.md C1.7). A time past a minute that is
- * not whole minutes is written as a clock, "14:30" (durationText), as
- * workout mode's stopwatch writes it.
+ * Numbers and units follow the user's language (src/lib/format.ts). A time past
+ * a minute that is not whole minutes is written as a clock, "14:30", as the
+ * stopwatch writes it.
  */
 import type { TFunction } from 'i18next'
 import type { LoggingType } from '@/api/exercises'
@@ -18,7 +13,7 @@ import type { PlanItem, PlanSet, SetType } from '@/api/plans'
 import { clock } from '@/components/workout/clock'
 import { formatNumber, formatWeight, type WeightUnit } from '@/lib/format'
 
-/** How many kilograms make a pound, exactly (docs/design/D3-data-model.md D3.2.3). */
+/** How many kilograms make a pound, exactly. */
 export const KG_PER_LB = 0.45359237
 
 /**
@@ -36,10 +31,8 @@ export function weightIn(kg: number, unit: WeightUnit): number {
  * anything else as seconds. 60 → "1 min", 90 → "90 s" (it), "90 sec" (en),
  * "90 Sek." (de): each language's own short unit.
  * @param seconds the time, in seconds
- * @param language a language code such as 'it'
  */
 export function formatSeconds(seconds: number, language: string): string {
-  // `%` gives the remainder of a division: 0 for a whole number of minutes
   if (seconds >= 60 && seconds % 60 === 0) {
     return formatNumber(seconds / 60, language, { style: 'unit', unit: 'minute', unitDisplay: 'short' })
   }
@@ -54,7 +47,6 @@ export function formatSeconds(seconds: number, language: string): string {
  * the time written in the set. Rests keep formatSeconds() ("90 s"): there
  * the gym counts in seconds.
  * @param seconds the time, in seconds
- * @param language a language code such as 'it'
  */
 export function durationText(seconds: number, language: string): string {
   return seconds > 60 && seconds % 60 !== 0 ? clock(seconds) : formatSeconds(seconds, language)
@@ -64,7 +56,6 @@ export function durationText(seconds: number, language: string): string {
  * A distance: meters under a kilometer, kilometers from there. 400 → "400 m",
  * 1500 → "1.5 km" (en), "1,5 km" (it).
  * @param meters the distance, in meters
- * @param language a language code such as 'it'
  */
 export function formatDistance(meters: number, language: string): string {
   return meters < 1000
@@ -74,12 +65,8 @@ export function formatDistance(meters: number, language: string): string {
 
 /**
  * The sets that count: every set but the warm-ups, which count neither for
- * volume nor in the summary (docs/design/D2-decisions.md D2.8).
- *
- * Generic: `T extends { set_type: SetType }` accepts any list of objects that
- * have a set_type, the API's sets and the editor's draft sets alike, and
- * gives back a list of the same kind.
- * @param sets an exercise's sets
+ * volume nor in the summary. For the API's sets and the editor's draft sets
+ * alike.
  */
 export function workingSets<T extends { set_type: SetType }>(sets: T[]): T[] {
   return sets.filter(set => set.set_type !== 'warm_up')
@@ -87,7 +74,6 @@ export function workingSets<T extends { set_type: SetType }>(sets: T[]): T[] {
 
 /**
  * How many warm-up sets an exercise has, for "+ 2 warm-up".
- * @param sets an exercise's sets
  */
 export function warmUpCount(sets: { set_type: SetType }[]): number {
   return sets.length - workingSets(sets).length
@@ -96,9 +82,6 @@ export function warmUpCount(sets: { set_type: SetType }[]): number {
 /**
  * What one set asks for, depending on how the exercise is logged: the reps
  * ("8–10", or "8" when both ends are the same), a time, or a distance.
- * @param set the set
- * @param loggingType how the exercise is logged
- * @param language a language code such as 'it'
  * @returns the target, or null when the set has none
  */
 export function formatSetTarget(set: PlanSet, loggingType: LoggingType, language: string): string | null {
@@ -113,19 +96,14 @@ export function formatSetTarget(set: PlanSet, loggingType: LoggingType, language
   const { target_reps_min: min, target_reps_max: max } = set
   if (min === null && max === null) return null
   if (min === null || max === null || min === max) return formatNumber((min ?? max) as number, language)
-  // An en dash (–), the typographic sign for a range
   return `${formatNumber(min, language)}–${formatNumber(max, language)}`
 }
 
-/** What itemSummary() needs besides the exercise. */
 export interface SummaryOptions {
-  /** The interface's language. */
   language: string
-  /** The user's weight unit (Profile). */
   weightUnit: WeightUnit
   /** The user's rest when the exercise sets none, in seconds. */
   defaultRestSeconds: number
-  /** The translate function, from useTranslation(). */
   t: TFunction
 }
 
@@ -149,30 +127,25 @@ export interface SummaryOptions {
 export function itemSummary(item: PlanItem, options: SummaryOptions): string {
   const { language, weightUnit, defaultRestSeconds, t } = options
   const working = workingSets(item.sets)
-  // The pieces of the line, in order
   const parts: string[] = []
 
   if (working.length > 0) {
-    // Each set's target, or null
     const targets = working.map(set => formatSetTarget(set, item.exercise.logging_type, language))
     if (targets.every(target => target === null)) {
       parts.push(t('plans.detail.setsCount', { count: working.length }))
     }
     else {
-      // new Set(): the distinct values; one means every set asks the same
+      // One distinct value: every set asks the same
       const distinct = new Set(targets)
       const shown = distinct.size === 1 ? targets[0] : targets.map(target => target ?? t('plans.detail.max')).join('/')
       parts.push(`${formatNumber(working.length, language)} × ${shown ?? t('plans.detail.max')}`)
     }
   }
 
-  // The weights asked for, in the user's unit; the empty ones left out.
-  // Number() turns the backend's exact text "80.000" into 80
   const weights = item.exercise.logging_type === 'weight_reps'
     ? working.flatMap(set => (set.target_weight_kg === null ? [] : [weightIn(Number(set.target_weight_kg), weightUnit)]))
     : []
   if (weights.length > 0) {
-    // Math.min(...list): the smallest; `...` spreads the list into arguments
     const lightest = Math.min(...weights)
     const heaviest = Math.max(...weights)
     parts.push(lightest === heaviest
@@ -180,15 +153,13 @@ export function itemSummary(item: PlanItem, options: SummaryOptions): string {
       : `${formatNumber(lightest, language, { maximumFractionDigits: 2 })}–${formatWeight(heaviest, language, weightUnit)}`)
   }
 
-  // The RPE, only when every working set asks for the same one
   const rpes = new Set(working.map(set => set.target_rpe))
   const [rpe] = rpes
   if (rpes.size === 1 && rpe !== null && rpe !== undefined) {
     parts.push(t('plans.detail.rpe', { value: formatNumber(Number(rpe), language) }))
   }
 
-  // Done as fast as possible: the reps above are fixed, the time is the
-  // result. `=== true`: a plan item read before the field existed has none
+  // `=== true`: a plan item read before the field existed has none
   if (item.for_time === true) parts.push(t('plans.detail.forTime'))
 
   parts.push(formatSeconds(item.rest_seconds ?? defaultRestSeconds, language))
@@ -201,9 +172,7 @@ export function itemSummary(item: PlanItem, options: SummaryOptions): string {
  * its own (group null).
  */
 export interface ItemBlock {
-  /** The superset's number, or null for an exercise on its own. */
   group: number | null
-  /** The exercises of the run, in order. */
   items: PlanItem[]
 }
 
@@ -220,7 +189,6 @@ export interface ItemBlock {
 export function groupSupersets(items: PlanItem[]): ItemBlock[] {
   const blocks: ItemBlock[] = []
   for (const item of items) {
-    // The block being built, the last one; `.at(-1)` reads from the end
     const last = blocks.at(-1)
     if (item.superset_group !== null && last?.group === item.superset_group) {
       last.items.push(item)

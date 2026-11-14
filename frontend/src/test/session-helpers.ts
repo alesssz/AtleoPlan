@@ -9,7 +9,6 @@ import { testExercise } from './exercise-helpers'
 /**
  * A finished workout of the list, with its totals: Day A of Push Pull Legs,
  * on Monday 9 November 2026 at 18:00 UTC, 45 minutes, 7 sets, 56 reps.
- * @param changes the fields to change
  */
 export function testWorkoutSession(changes: Partial<WorkoutSession> = {}): WorkoutSession {
   return {
@@ -34,7 +33,6 @@ export function testWorkoutSession(changes: Partial<WorkoutSession> = {}): Worko
 /**
  * A whole workout, with its exercises: the bench press (a warm-up of
  * 40 × 10, then 80 × 8 twice) and pull-ups skipped.
- * @param changes the fields to change
  */
 export function testSessionDetail(changes: Partial<SessionDetail> = {}): SessionDetail {
   /** A set at 18:05, the values as given. */

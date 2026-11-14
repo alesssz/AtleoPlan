@@ -1,28 +1,23 @@
 /*
- * The library's select mode, for the plan editor (docs/design/D1-ui.md
- * D1.4.3: "a checkbox on every row and a bar at the bottom, 'Add (3)'"): a
- * window with a search box and the library's exercises, each with a tick
- * box. "Add (n)" puts the ticked ones in the day, in the order they were
- * ticked.
+ * The library's select mode, for the plan editor: a window with a search box
+ * and the library's exercises, each with a tick box. "Add (n)" puts the ticked
+ * ones in the day, in the order they were ticked.
  *
  * Workout mode uses it twice: Add exercises, as here, and **Swap exercise**
- * from the exercise's menu (UI-6), where `replacing` turns it into a
- * one-tap choice: no tick boxes and no Add, a tap on a row picks it, and the
- * list starts filtered by the replaced exercise's main muscle, with a chip
- * to show every muscle. That window is opened by the menu, not by a
- * button of its own: `open` and `onOpenChange` let the screen control it.
+ * from the exercise's menu, where `replacing` turns it into a one-tap choice:
+ * no tick boxes and no Add, a tap on a row picks it, and the list starts
+ * filtered by the replaced exercise's main muscle, with a chip to show every
+ * muscle. That window is opened by the menu, not by a button of its own: `open`
+ * and `onOpenChange` let the screen control it.
  *
- * It reads the library with the same hook as the Exercises page,
- * useExercises() (src/api/exercises.ts), so a search typed here and one typed
- * there share the cache, and the same search box (ExerciseSearchBox), whose
- * spinner turns while the list is not yet the one typed for (C1.20). The
- * window is shadcn/ui's Dialog (src/components/ui/dialog.tsx).
+ * The same hook and search box as the Exercises page, so the two share the
+ * cache and the spinner.
  *
  * **Create «…»**: after a search, a button under the list opens the exercise
- * editor's form (ExerciseForm) inside the window, the search as the name.
- * The exercise it creates is the user's own, and goes straight into the day
- * with the ticked ones (or replaces the exercise, when swapping), without
- * leaving the plan (docs/concepts/C1-frontend.md C1.16.8).
+ * editor's form (ExerciseForm) inside the window, the search as the name. The
+ * exercise it creates is the user's own, and goes straight into the day with
+ * the ticked ones (or replaces the exercise, when swapping), without leaving
+ * the plan.
  */
 import { ArrowLeft, Dumbbell, Plus, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -36,14 +31,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
-// cn() joins classes and skips the false ones: the list's dimming is a
-// class only while searching (src/lib/utils.ts)
 import { cn } from '@/lib/utils'
 
-/** How long the search waits after the last key, as on the Exercises page. */
 const SEARCH_DELAY_MS = 300
 
-/** Props of ExercisePicker. */
 interface ExercisePickerProps {
   /** The button that opens it, drawn by the day; none when `open` is given. */
   trigger?: ReactNode
@@ -62,15 +53,12 @@ interface ExercisePickerProps {
   onAdd: (exercises: Exercise[]) => void
 }
 
-/** The button, and the window it opens. */
 export function ExercisePicker({ trigger, open: openProp, onOpenChange, disabled = false, replacing, onAdd }: ExercisePickerProps) {
   const { t } = useTranslation()
-  // Whether the window is open, kept here unless the caller passes `open`
-  // ("controlled"): `??` takes the caller's when there is one
+  // The caller's `open` when given
   const [ownOpen, setOwnOpen] = useState(false)
   const open = openProp ?? ownOpen
-  // True while the window shows the form of a new exercise instead of the
-  // list. Kept here, not in PickerBody, because the window's title changes too
+  // Here, not in PickerBody, because the window's title changes too
   const [creating, setCreating] = useState(false)
 
   /**
@@ -84,8 +72,6 @@ export function ExercisePicker({ trigger, open: openProp, onOpenChange, disabled
     onOpenChange?.(next)
   }
 
-  // The window's title and line under it: the new exercise's, or the
-  // search's when swapping or adding
   const title = creating ? t('exercises.editor.newTitle') : replacing ? t('workout.swapTitle') : t('plans.editor.picker.title')
   const description = creating
     ? t('plans.editor.picker.createDescription')
@@ -94,16 +80,13 @@ export function ExercisePicker({ trigger, open: openProp, onOpenChange, disabled
   return (
     <Dialog open={open} onOpenChange={change}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      {/* sm:max-w-lg: wider than shadcn's default on a computer.
-          max-h and the flex column: the list scrolls inside the window,
-          and the Add button stays in sight */}
+      {/* The list scrolls inside, so Add stays in sight */}
       <DialogContent closeLabel={t('common.close')} className="flex max-h-[85vh] flex-col gap-4 sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-heading text-xl font-extrabold">{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        {/* The content is drawn only while open: closing forgets the
-            search and the ticks, so the next opening starts afresh */}
+        {/* Drawn only while open: closing forgets the search and the ticks */}
         {open && (
           <PickerBody
             replacing={replacing}
@@ -120,7 +103,6 @@ export function ExercisePicker({ trigger, open: openProp, onOpenChange, disabled
   )
 }
 
-/** Props of PickerBody. */
 interface PickerBodyProps {
   /** The exercise being swapped; undefined when adding. */
   replacing?: Exercise
@@ -132,13 +114,11 @@ interface PickerBodyProps {
   onAdd: (exercises: Exercise[]) => void
 }
 
-/** The search, the list with its tick boxes, and the Add button; or the form that creates one. */
 function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBodyProps) {
   const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
-  // POST /api/exercises; afterwards the library's lists are read again
   const create = useCreateExercise()
-  // The ticked exercises, in the order they were ticked
+  // In the order they were ticked
   const [chosen, setChosen] = useState<Exercise[]>([])
   // Swapping: the replaced exercise's first main muscle, the filter the
   // list starts with; the chip turns it off and on
@@ -146,24 +126,19 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
   const [sameMuscle, setSameMuscle] = useState(muscle !== undefined)
   const debounced = useDebouncedValue(search, SEARCH_DELAY_MS)
   const list = useExercises({ search: debounced, muscle: sameMuscle ? muscle?.slug : undefined }, i18n.language)
-  // The list on screen is not yet the one asked for: while typing, or while
-  // the new one loads behind the old (isPlaceholderData). The search box
-  // turns a spinner and the rows are dimmed, as on the Exercises page (C1.20)
+  // While typing, or while the new list loads behind the old
   const searching = search !== debounced || list.isPlaceholderData
-  // Every exercise read so far, the pages one after the other; the one
-  // being swapped left out
+  // The one being swapped left out
   const exercises = (list.data?.pages.flatMap(page => page.data) ?? []).filter(exercise => exercise.id !== replacing?.id)
 
   /**
    * Ticks or unticks an exercise.
-   * @param exercise the exercise
    * @param tick true to tick
    */
   function toggle(exercise: Exercise, tick: boolean) {
     setChosen(current => (tick ? [...current, exercise] : current.filter(other => other.id !== exercise.id)))
   }
 
-  // What was typed, without spaces around: the new exercise's name
   const typed = search.trim()
 
   // Creating: the exercise editor's form, in place of the list. The search
@@ -194,11 +169,8 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
 
   return (
     <>
-      {/* The search box, the Exercises page's one, spinner included */}
       <ExerciseSearchBox value={search} onChange={setSearch} searching={searching} />
 
-      {/* Swapping: the muscle filter, as a chip. aria-pressed says whether
-          it is on; pressed, its X says it can be taken off */}
       {muscle && (
         <Button variant={sameMuscle ? 'secondary' : 'outline'} aria-pressed={sameMuscle} onClick={() => setSameMuscle(!sameMuscle)} className="self-start rounded-full">
           {t('workout.sameMuscle', { muscle: muscle.name })}
@@ -206,7 +178,6 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
         </Button>
       )}
 
-      {/* The list scrolls; min-h-0 lets it shrink inside the flex column */}
       <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
         {list.isPending && (
           <div role="status" className="flex flex-col gap-2">
@@ -217,10 +188,8 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
         {list.isError && <p role="alert">{t('exercises.loadError')}</p>}
         {list.isSuccess && exercises.length === 0 && <p className="text-muted-foreground">{t('exercises.noResultsText')}</p>}
 
-        {/* Dimmed while the list of a new search loads, as on the Exercises page */}
         <ul className={cn('flex flex-col gap-1 transition-opacity', searching && 'opacity-60')}>
           {exercises.map((exercise) => {
-            // The first photo, drawn from its small copy (thumb_url)
             const cover = exercise.photos[0]
             const ticked = chosen.some(other => other.id === exercise.id)
             return (
@@ -234,9 +203,7 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
                     <span className="min-w-0 flex-1 truncate font-semibold">{exercise.name}</span>
                   </button>
                 )}
-                {/* Adding: the whole row is the tick box's label: a tap anywhere on
-                    it ticks. Radix's Checkbox is a button, so the label
-                    names it for screen readers too */}
+                {/* The whole row is the tick box's label */}
                 {!replacing && (
                   <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl p-2 hover:bg-muted">
                     <Checkbox checked={ticked} onCheckedChange={value => toggle(exercise, value === true)} aria-label={t('plans.editor.picker.choose', { name: exercise.name })} className="size-5" />

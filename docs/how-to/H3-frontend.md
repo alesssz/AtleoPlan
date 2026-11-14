@@ -1134,7 +1134,7 @@ npx eslint src/components/ui/{badge,checkbox,native-select,textarea,alert-dialog
   77 errors and 0 warnings potentially fixable with the `--fix` option.
 ```
 
-`npx eslint --fix` on the same files corrected all 77; then each file got its header comment and a line on each function, on the model of `card.tsx`.
+`npx eslint --fix` on the same files corrected all 77. The files keep shadcn's shape, with no comments of our own ([C1.8](../concepts/C1-frontend.md#c18-styles-and-theme)).
 
 **Why `native-select`.** The library's filters and the editor use the browser's own `<select>`, styled: on a phone it opens the system's picker, it needs no code to place a popup, and `register()` and `userEvent.selectOptions()` work on it as on any field.
 
@@ -1327,7 +1327,7 @@ npx eslint src/components/ui/tabs.tsx
   20 errors and 0 warnings potentially fixable with the `--fix` option.
 ```
 
-`npx eslint --fix` corrected all 20. The generated file imports `cn` from `'cn'`, like every other file in `components/ui/`: not a mistake, `cn` is a small package by the authors of shadcn/ui, in `package.json`, which `src/lib/utils.ts` re-exports for the rest of the app. A header comment and a line on each export were added, as for the other components.
+`npx eslint --fix` corrected all 20. The generated file imports `cn` from `'cn'`, like every other file in `components/ui/`: not a mistake, `cn` is a small package by the authors of shadcn/ui, in `package.json`, which `src/lib/utils.ts` re-exports for the rest of the app.
 
 ### H3.13.3 The API file and the line of an exercise
 

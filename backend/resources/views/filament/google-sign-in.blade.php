@@ -1,44 +1,31 @@
 {{--
-    "Continue with Google" under the admin panel's login form
-    (docs/concepts/C2-backend.md C2.8.4), for an admin who has no password:
-    one who signed up with Google.
+    "Continue with Google" under the admin panel's login form, for an admin
+    who signed up with Google and has no password. Inserted by a render hook in AdminPanelProvider.
 
-    A Blade view: HTML with {{ }} for values (escaped) and @if / @endif for
-    conditions, drawn by Laravel on the server. Filament inserts it under its
-    login form through a "render hook", a named place in its pages where an
-    app may add HTML (AdminPanelProvider, PanelsRenderHook::AUTH_LOGIN_FORM_AFTER).
+    `to=admin` brings an admin back to the panel; an error comes back here as
+    ?google_error=<reason>.
 
-    The button is a link to the same first stop as the React app's
-    (GoogleSignInController::redirect), with `to=admin`: back from Google, an
-    admin lands on the panel, and an error comes back here as
-    ?google_error=<reason>, shown above the button.
-
-    Filament's own stylesheet is already built, so Tailwind classes that it
-    does not use would have no effect here: the few styles are written inline,
-    with Filament's colour variables (var(--gray-500)…).
+    Filament's stylesheet is prebuilt, so Tailwind classes it does not use
+    would have no effect: the styles are inline, with Filament's variables.
 --}}
 @if (filled(config('services.google.client_id')))
-    {{-- The reason of a failed attempt, from the address; only our four known
-         reasons are shown, anything else typed in the address is ignored --}}
+    {{-- Only the four known reasons: anything else typed in the address is ignored --}}
     @php($error = in_array(request()->query('google_error'), ['cancelled', 'failed', 'unverified', 'disabled'], true) ? request()->query('google_error') : null)
 
     <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
         @if ($error)
-            {{-- role="alert": read out by screen readers as soon as it appears --}}
             <p role="alert" style="font-size: 0.875rem; color: var(--danger-600);">
                 {{ __("admin.google.errors.{$error}") }}
             </p>
         @endif
 
-        {{-- "or", between two lines --}}
         <div style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; color: var(--gray-500);">
             <span style="flex: 1; height: 1px; background: var(--gray-200);"></span>
             {{ __('admin.google.or') }}
             <span style="flex: 1; height: 1px; background: var(--gray-200);"></span>
         </div>
 
-        {{-- Filament's button component, drawn as a link (tag="a"). The
-             language of the page goes along, for a new account. --}}
+        {{-- The page's language goes along, for a new account --}}
         <x-filament::button
             tag="a"
             :href="'/auth/google/redirect?to=admin&locale=' . app()->getLocale()"
@@ -47,8 +34,7 @@
             size="lg"
         >
             <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                {{-- Google's "G", the same drawing as the React app's
-                     (frontend/src/components/GoogleSignIn.tsx) --}}
+                {{-- The same mark as frontend/src/components/GoogleSignIn.tsx --}}
                 <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
                     <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />

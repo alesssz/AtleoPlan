@@ -3,10 +3,8 @@
 namespace App\Enums;
 
 /**
- * The unit a user sees weights in, the values of the `users.weight_unit`
- * column. It only changes how weights are shown and read: they are always
- * stored in kilograms (docs/design/D3-data-model.md D3.2.3). What an enum is:
- * app/Enums/Locale.php.
+ * The unit weights are shown and typed in, in `users.weight_unit`. Weights are
+ * always stored in kilograms.
  */
 enum WeightUnit: string
 {

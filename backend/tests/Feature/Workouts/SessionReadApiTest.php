@@ -1,9 +1,9 @@
 <?php
 
 /**
- * GET /api/sessions, GET and DELETE /api/sessions/{id}, and
- * GET /api/sessions/last-sets: listing, reading and deleting workouts, and the
- * sets of last time for workout mode (docs/design/D1-ui.md D1.4.9, D1.4.11).
+ * GET /api/sessions, GET and DELETE /api/sessions/{id}, and GET
+ * /api/sessions/last-sets: listing, reading and deleting workouts, and the sets
+ * of last time for workout mode.
  */
 
 use App\Models\Exercise;

@@ -33,7 +33,7 @@ Ports on your computer are each service's standard port + 500, so they never cla
 | Admin panel, for admins (also Profile → Administration in the app) | http://localhost:8500/admin |
 | Postgres | `localhost:5932`, user, password and database `atleoplan` |
 | Mailpit (caught emails) | http://localhost:8525 |
-| Vite (React, once it exists) | http://localhost:5673 |
+| Vite (React app) | http://localhost:5673 |
 
 ```sh
 make setup        # first time on a new clone
@@ -57,7 +57,7 @@ Everything lives in [`docs/`](docs), grouped by what you are looking for. **[doc
 | [`docs/start/`](docs/start) (S) | install and start the project, solve setup problems |
 | [`docs/design/`](docs/design) (D) | know what the app does and why: screens, decisions, tables |
 | [`docs/concepts/`](docs/concepts) (C) | understand how the React and Laravel code works |
-| [`docs/how-to/`](docs/how-to) (H) | do something step by step, with the commands and their output |
+| [`docs/how-to/`](docs/how-to) (H) | follow a recipe: the commands in order, the files, how to check, the common mistakes |
 | [`docs/project/`](docs/project) (P) | know how we work (conventions) and what comes next (backlog) |
 
-Each document has a code: its folder's letter and a number, such as `H2`. Its sections follow it, so a reference such as "see H2.3", in these pages or in a code comment, points to section 3 of `docs/how-to/H2-backend.md`.
+Each document has a code: its folder's letter and a number, such as `H2`. Its sections follow it, so a reference such as "see H2.3" points to section 3 of `docs/how-to/H2-backend.md`.

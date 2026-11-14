@@ -1,13 +1,11 @@
 <?php
 
 /**
- * The four plan tables and users.active_plan_id, without HTTP
- * (docs/design/D3-data-model.md D3.5, D3.7): the ids, the order of the rows,
- * what happens on delete, and what Postgres refuses.
+ * The four plan tables and users.active_plan_id, without HTTP: the ids, the
+ * order of the rows, what happens on delete, and what Postgres refuses.
  *
- * A refusal is tested inside DB::transaction(): on Postgres an error ends the
- * test's own transaction, and every query after it would fail
- * (docs/how-to/H1-database.md H1.10.8).
+ * A refusal is tested inside DB::transaction(), so the Postgres error aborts
+ * only a savepoint.
  */
 
 use App\Enums\SetType;
@@ -47,8 +45,7 @@ it('makes a UUID for a plan, or keeps the one sent by the device', function () {
 
 it('reads days, items and sets in the order of their position', function () {
     $plan = Plan::factory()->create();
-    // sequence(): each row made takes the next values, here the positions
-    // in the opposite order of creation
+    // Positions in the opposite order of creation
     PlanDay::factory()->for($plan)->count(3)
         ->sequence(['name' => 'C', 'position' => 2], ['name' => 'A', 'position' => 0], ['name' => 'B', 'position' => 1])
         ->create();

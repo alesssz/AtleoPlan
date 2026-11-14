@@ -1,20 +1,14 @@
 <?php
 
 /**
- * The photos of a personal exercise (BE-1, docs/concepts/C2-backend.md
- * C2.5.9): adding one, its conversions, the limits, removing one, the order,
- * and who may do it; then Duplicate as mine, which copies the photos too.
+ * The photos of a personal exercise: adding one, its conversions, the limits,
+ * removing one, the order, and who may do it; then Duplicate as mine, which
+ * copies the photos too.
  *
- * Fixtures: Storage::fake('public') replaces the disk the photos go to with
- * an empty one in a temporary folder, so no file reaches storage/app/public;
- * UploadedFile::fake()->image() makes a real, small JPEG or PNG for each
- * upload. The queue runs jobs at once in the tests (QUEUE_CONNECTION=sync,
- * phpunit.xml), so the conversions exist as soon as the request ends.
+ * The queue is synchronous in the tests (phpunit.xml), so the conversions
+ * exist as soon as the request ends.
  */
 
-// Imports: the models, the seeder of the muscles, the trait that empties the
-// database, Laravel's fake upload, the Storage facade, and the type of a
-// test's response
 use App\Models\Exercise;
 use App\Models\Muscle;
 use App\Models\User;
@@ -26,7 +20,7 @@ use Illuminate\Testing\TestResponse;
 
 uses(RefreshDatabase::class);
 
-// Before each test: an empty fake disk, and Ann signed in with an exercise of her own
+// Ann signed in, with an exercise of her own
 beforeEach(function () {
     Storage::fake('public');
     $this->ann = User::factory()->create();
@@ -35,13 +29,10 @@ beforeEach(function () {
 });
 
 /**
- * Uploads one fake photo to an exercise, as the React app does.
+ * A multipart upload, as the React app sends it; postJson() cannot carry a
+ * file.
  *
- * postJson() cannot send a file; post() with an UploadedFile sends a
- * multipart form, and the Accept header asks for JSON answers and errors.
- *
- * @param  Exercise  $exercise  where to add it
- * @param  UploadedFile|null  $file  the file; a 1200 × 900 JPEG when null
+ * @param  UploadedFile|null  $file  a 1200 × 900 JPEG when null
  */
 function uploadPhoto(Exercise $exercise, ?UploadedFile $file = null): TestResponse
 {
@@ -97,10 +88,10 @@ describe('adding', function () {
 
         expect($this->mine->fresh()->getMedia('photos'))->toHaveCount(0);
     })->with([
-        // GD cannot read HEIC, and an iPhone's browser sends a JPEG anyway (D2.5)
+        // GD cannot read HEIC, and an iPhone's browser sends a JPEG anyway
         'a HEIC photo' => fn () => UploadedFile::fake()->create('IMG_1.heic', 500, 'image/heic'),
         'a PDF' => fn () => UploadedFile::fake()->create('plan.pdf', 100, 'application/pdf'),
-        // size() is in kilobytes: 11 MB, over the 10 MB of D2.5
+        // 11 MB, over the limit of 10
         'a photo over 10 MB' => fn () => UploadedFile::fake()->image('big.jpg')->size(11 * 1024),
     ]);
 

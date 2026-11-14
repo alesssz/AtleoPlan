@@ -8,9 +8,7 @@ import { weekSummary } from './week-summary'
 
 /**
  * A finished workout with its totals, as GET /api/home sends it.
- * @param started when it started
  * @param sets the sets done, warm-ups excluded
- * @param seconds the time trained
  */
 function workout(started: Date, sets: number, seconds: number): WorkoutSession {
   return { id: `w-${started.getTime()}`, plan_id: null, day_name: null, started_at: started.toISOString(), finished_at: started.toISOString(), sets_done: sets, duration_seconds: seconds }

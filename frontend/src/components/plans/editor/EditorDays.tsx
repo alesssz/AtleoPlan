@@ -1,12 +1,11 @@
 /*
- * The plan editor's second step (docs/design/D1-ui.md D1.4.8): the way back
- * to the first step (EditorOverview, the plan's details and days), then the
- * days as tabs, and under the open tab that day's exercises (EditorDay).
+ * The plan editor's second step: the way back to the first step
+ * (EditorOverview, the plan's details and days), then the days as tabs, and
+ * under the open tab that day's exercises (EditorDay).
  *
  * The open tab is in the address, `?day=2`, as on the plan's page
- * (PlanDetailPage): PlanEditor reads it and passes it here, and a tap on a
- * tab asks PlanEditor to change it. How the two steps fit together:
- * docs/concepts/C1-frontend.md C1.16.7.
+ * (PlanDetailPage): PlanEditor reads it and passes it here, and a tap on a tab
+ * asks PlanEditor to change it.
  */
 import { ArrowLeft } from 'lucide-react'
 import type { Dispatch } from 'react'
@@ -16,7 +15,6 @@ import type { WeightUnit } from '@/lib/format'
 import { dayLetter, type DraftAction, type PlanDraft } from '../plan-draft'
 import { EditorDay } from './EditorDay'
 
-/** Props of EditorDays. */
 interface EditorDaysProps {
   /** The whole draft: its days are the tabs. */
   draft: PlanDraft
@@ -42,16 +40,14 @@ interface EditorDaysProps {
   onBack: () => void
 }
 
-/** The editor's second step: the days as tabs, each with its exercises. */
 export function EditorDays(props: EditorDaysProps) {
   const { draft, openDay, dispatch, errorOf, hasErrors, unit, showRpe, defaultRestSeconds, language, onOpenDay, onBack } = props
   const { t } = useTranslation()
 
   return (
     <div className="flex flex-col gap-4">
-      {/* The way back to the first step, styled as the plan page's own
-          "All plans" link; a button, since where it goes depends on how this
-          step was opened (PlanEditor's backToPlan) */}
+      {/* A button: where it goes depends on how this step was opened
+          (PlanEditor's backToPlan) */}
       <button
         type="button"
         onClick={onBack}
@@ -61,18 +57,15 @@ export function EditorDays(props: EditorDaysProps) {
         {t('plans.editor.backToPlan')}
       </button>
 
-      {/* The days as tabs. Tabs give their value as text: the day's index */}
       <Tabs value={String(openDay)} onValueChange={value => onOpenDay(Number(value))}>
-        {/* On a phone six tabs do not fit: their row scrolls sideways */}
+        {/* Six tabs do not fit a phone: the row scrolls sideways */}
         <div className="-mx-1 max-w-full overflow-x-auto px-1 pb-1">
           <TabsList aria-label={t('plans.editor.daysLabel')} className="h-auto! rounded-xl p-1">
             {draft.days.map((day, index) => (
               <TabsTrigger key={day.id} value={String(index)} className="min-h-12 flex-none rounded-lg px-4 text-sm">
-                {/* A day with no name yet still needs a tab to tap */}
                 {day.name.trim() || t('plans.editor.defaultDayName', { letter: dayLetter(index) })}
-                {/* A dot on a day whose exercises have an error, with its
-                    meaning in words for screen readers. Only the exercises:
-                    an error in the day's name shows in the first step */}
+                {/* Only the exercises' errors: one in the day's name shows
+                    in the first step */}
                 {hasErrors(`days.${index}.items.`) && (
                   <span className="size-2 rounded-full bg-destructive">
                     <span className="sr-only">{t('plans.editor.invalid')}</span>
@@ -83,7 +76,6 @@ export function EditorDays(props: EditorDaysProps) {
           </TabsList>
         </div>
 
-        {/* Radix draws only the open tab's content */}
         {draft.days.map((day, index) => (
           <TabsContent key={day.id} value={String(index)} className="pt-4 text-base">
             <EditorDay

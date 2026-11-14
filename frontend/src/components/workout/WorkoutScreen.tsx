@@ -1,11 +1,9 @@
 /*
- * Workout mode (docs/design/D1-ui.md D1.4.9), full screen: the day's name and
- * the time trained at the top, then one exercise at a time with its sets,
- * the rest timer at the bottom when it runs, and Previous and Next. How it
- * works: docs/concepts/C1-frontend.md C1.17.
+ * Workout mode, full screen: the day's name and the time trained at the top,
+ * then one exercise at a time with its sets, the rest timer at the bottom when
+ * it runs, and Previous and Next.
  *
- * The workout is held with useReducer and workoutReducer
- * (workout-session.ts), and written to the phone after every change
+ * The workout is written to the phone after every change
  * (session-storage.ts): closing the app loses nothing, and ✕ only pauses.
  * Finishing has two buttons, and only one is lime at a time: Finish at the
  * top, outlined, to stop early at any moment; and Finish workout at the
@@ -23,15 +21,15 @@
  * from its stepper (canRemoveExercise, canRemoveSet in workout-session.ts).
  * The plan's exercises and sets stay; they can be skipped or left unticked.
  *
- * Three panels from the bottom: the big stepper, opened by a tap on a
- * set's value (SetStepper.tsx), and the exercise's menu, behind the "⋯"
- * beside its name (ExerciseMenu.tsx): swap, skip, a note, the video (UI-6);
- * and "How to do it", opened by a tap on the exercise's photo or name
- * (ExerciseInfoSheet.tsx): its photos, muscles and steps. The stopwatch of
- * a timed set, opened by its ▶, is docked at the bottom where the rest bar
- * goes (StopwatchPanel.tsx), so the sets stay in sight. Under the sets, the
- * "Up next" card names the exercise that follows (UpNextCard.tsx), as does
- * the rest bar once the exercise on screen is done.
+ * Three panels from the bottom: the big stepper, opened by a tap on a set's
+ * value (SetStepper.tsx), and the exercise's menu, behind the "⋯" beside its
+ * name (ExerciseMenu.tsx): swap, skip, a note, the video; and "How to do it",
+ * opened by a tap on the exercise's photo or name (ExerciseInfoSheet.tsx): its
+ * photos, muscles and steps. The stopwatch of a timed set, opened by its ▶, is
+ * docked at the bottom where the rest bar goes (StopwatchPanel.tsx), so the
+ * sets stay in sight. Under the sets, the "Up next" card names the exercise
+ * that follows (UpNextCard.tsx), as does the rest bar once the exercise on
+ * screen is done.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Dumbbell, Info, Link2, ListPlus, Plus, X } from 'lucide-react'
@@ -64,72 +62,47 @@ import { FALLBACK_REST_SECONDS } from './useStartWorkout'
 import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, canRemoveExercise, canRemoveSet, findSet, hasWorkLeft, isForTime, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, upNext, workoutReducer, type ActiveSession, type SetField, type WorkoutExercise } from './workout-session'
 
 /**
- * The one touch the two "add" buttons, Add set and Add exercises, have
- * beyond the app's outlined buttons: a lime ＋, the signal that something
- * can be added. `[&_svg]:` styles the elements inside, here the icon.
- * Otherwise they are the standard outline buttons, as Previous and Next,
- * for a coherent screen (docs/how-to/H3-frontend.md H3.20.7).
+ * Add set and Add exercises are standard outline buttons, as Previous and Next,
+ * with one touch: a lime ＋, the signal that something can be added.
  */
 const ADD_ICON = '[&_svg]:text-primary'
 
-/** Props of WorkoutScreen. */
 interface WorkoutScreenProps {
-  /** The workout, as kept on the phone. */
   initial: ActiveSession
 }
 
-/** The workout in progress. */
 export function WorkoutScreen({ initial }: WorkoutScreenProps) {
-  // t() translates a key; i18n.language is the interface's language
   const { t, i18n } = useTranslation()
-  // A function that opens another page
   const navigate = useNavigate()
-  // TanStack Query's cache, to have the lists of workouts read again
   const queryClient = useQueryClient()
-  // The signed-in user: unit, default rest, sound and vibration
   const { data: user } = useCurrentUser()
-  // The weight unit the fields are in
   const unit = user?.weight_unit ?? 'kg'
-  // The workout; dispatch(action) asks workoutReducer for the next one
   const [session, dispatch] = useReducer(workoutReducer, initial)
-  // The current moment, every second: the clock and the rest timer
   const now = useNow(1000)
   // Shown for a few seconds when a rest ends, and read out (aria-live)
   const [announce, setAnnounce] = useState('')
-  // True while Finish is sending
   const [finishing, setFinishing] = useState(false)
-  // The big stepper: whether it is open, and on which set and field of the
-  // exercise on screen. Kept apart, so the panel keeps its content while it
-  // slides away
+  // Kept apart from `open`, so the panel keeps its content while it slides away
   const [stepperOpen, setStepperOpen] = useState(false)
   const [stepping, setStepping] = useState<{ set: number, field: SetField }>({ set: 0, field: 'weight' })
-  // The picker of Swap exercise, opened from the exercise's menu
   const [swapOpen, setSwapOpen] = useState(false)
-  // "How to do it", opened by a tap on the exercise's photo or name
   const [infoOpen, setInfoOpen] = useState(false)
 
-  // The screen stays on (Wake Lock API) for the whole workout
   useWakeLock(true)
 
-  // Opening a paused workout starts its clock again. Once, on the first
-  // draw: the empty list of dependencies
+  // Opening a paused workout starts its clock again
   useEffect(() => {
     dispatch({ type: 'resume', now: new Date().toISOString() })
   }, [])
 
-  // Every change is written to the phone
   useEffect(() => {
     storeActiveSession(session)
   }, [session])
 
-  // The end of the rest: a timer set for the moment it ends. When it fires,
-  // a vibration and a beep, as the user wants, a message read out, and the
-  // timer cleared. A new rest (or ±15 s) sets a new timer: the clean-up
-  // clears the old one. The state changes in the timer's function, not in
-  // the effect itself, which React's rules ask for
+  // A timer for the moment the rest ends: the signal, a message read out,
+  // and the rest cleared. A new rest (or ±15 s) replaces it
   useEffect(() => {
     if (session.rest === null) return
-    // Milliseconds until the end; 0 when it is already past
     const delay = Math.max(0, Date.parse(session.rest.ends_at) - Date.now())
     const timer = setTimeout(() => {
       restOver({ sound: user?.timer_sound ?? true, vibration: user?.timer_vibration ?? true })
@@ -139,35 +112,25 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
     return () => clearTimeout(timer)
   }, [session.rest, t, user])
 
-  // The seconds of rest left, for the bar
   const left = restLeft(session, now)
 
-  // The exercise on screen: its position, the exercise, how many there are,
-  // and its first photo (drawn from the small copy, thumb_url)
   const index = session.current
   const item = session.exercises[index]
   const total = session.exercises.length
   const cover = item?.exercise.photos[0]
-  // The exercises of its superset, in order; just itself when alone
   const superset = supersetOf(session, index)
-  // Whether it is done as fast as possible: reps and seconds, the stopwatch
   const forTime = item ? isForTime(item) : false
-  // The on-screen numbers of its sets: W W 1 2 3, warm-ups counted apart
+  // W W 1 2 3: warm-ups counted apart
   const numbers = setNumbers(item?.sets ?? [])
-  // The sets that count, done and in all, for the Finish dialog
   const count = countSets(session)
-  // What the two Finish buttons share: the count, busy, the two endings
-  // their dialog offers, finish or delete
   const finishProps = { count, disabled: finishing, onFinish: () => void finish(), onDiscard: discard }
-  // Time to finish: the last exercise, or nothing left to tick. The bottom
-  // bar then offers Finish workout instead of Next. Never with no exercise
-  // at all: a free workout just started has nothing to finish
-  // In a superset, where to go on: its next exercise with a set left
-  // (supersetNext); null on an exercise on its own, or a superset done.
-  // The bottom bar then offers it, "Next: Lateral Raise": the screen never
-  // moves by itself after a tick (H3.15.16)
+  // Time to finish: the last exercise, or nothing left to tick. The bottom bar
+  // then offers Finish workout instead of Next. Never with no exercise at all:
+  // a free workout just started has nothing to finish In a superset, where to
+  // go on: its next exercise with a set left (supersetNext); null on an
+  // exercise on its own, or a superset done. The bottom bar then offers it,
+  // "Next: Lateral Raise": the screen never moves by itself after a tick
   const supersetTarget = supersetNext(session, index)
-  // Its name, for the button
   const supersetName = supersetTarget === null ? '' : (session.exercises[supersetTarget]?.exercise.name ?? '')
   const finishTime = supersetTarget === null && total > 0 && (index >= total - 1 || allSetsDone(session))
   // The right-hand button needs the bar's room: Finish workout, or the
@@ -175,7 +138,6 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const wide = finishTime || supersetTarget !== null
   // A free workout with no exercise yet: the screen shows only how to add one
   const empty = total === 0
-  // The name of the set in the stepper: "Set 1", "Warm-up 2"
   const stepNumber = numbers[stepping.set]
   const stepName = stepNumber?.warmUp ? t('workout.warmUpName', { number: stepNumber.number }) : t('workout.setName', { number: stepNumber?.number ?? stepping.set + 1 })
   // The stopwatch running, and its set: where it is, the exercise, the
@@ -197,18 +159,15 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   /**
    * Where the running stopwatch is, from a row's point of view: on its
    * set, on another set, or none (SetRow's `stopwatch` prop).
-   * @param setId the row's set
    */
   const stopwatchFor = (setId: string) => (stopwatch === null ? null : stopwatch.set_id === setId ? 'this' : 'other')
   /**
    * What the plan asks of an exercise, "4 × 8–10 · 80 kg · 90 s"; null for
    * one added on the way, which has no plan item.
-   * @param exercise the exercise
    */
   const planSummary = (exercise: WorkoutExercise) => (exercise.plan_item
     ? itemSummary(exercise.plan_item, { language: i18n.language, weightUnit: unit, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS, t })
     : null)
-  // The settings an added exercise needs
   const addOptions = { unit, language: i18n.language, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS }
 
   /**
@@ -217,7 +176,6 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
    * @param exercises the exercises ticked, in order
    */
   async function addExercises(exercises: Exercise[]) {
-    // Last time's sets of these exercises; an empty list offline
     const lastSets = await fetchLastSets(exercises.map(exercise => exercise.id)).catch(() => [])
     dispatch({ type: 'addExercises', exercises: exercises.map(exercise => exerciseFrom(exercise, lastSets, addOptions)) })
   }
@@ -225,22 +183,20 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   /**
    * Swap, from the exercise's menu: the exercise on screen gives its place
    * to the one picked, with that one's sets of last time (none offline).
-   * @param exercise the exercise picked
    */
   async function swap(exercise: Exercise) {
     if (!item) return
-    // Last time's sets of the new exercise; an empty list offline
     const lastSets = await fetchLastSets([exercise.id]).catch(() => [])
     dispatch({ type: 'swapExercise', exercise: index, replacement: swappedExercise(item, exercise, lastSets, addOptions) })
   }
 
   /**
-   * Delete workout, from the Finish dialog, and Cancel workout on an empty
-   * free workout: the workout is forgotten, and nothing is sent. Nothing
-   * needs undoing on the server: a workout reaches it only at Finish
-   * (C1.17.5), so until then it lives on this phone alone. Then the plan's
-   * page, or Home for a free workout, as ✕ does; `replace`: Back does not
-   * return to a workout that no longer exists.
+   * Delete workout, from the Finish dialog, and Cancel workout on an empty free
+   * workout: the workout is forgotten, and nothing is sent. Nothing needs
+   * undoing on the server: a workout reaches it only at Finish, so until then
+   * it lives on this phone alone. Then the plan's page, or Home for a free
+   * workout, as ✕ does; `replace`: Back does not return to a workout that no
+   * longer exists.
    */
   function discard() {
     storeActiveSession(null)
@@ -265,15 +221,12 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   }
 
   return (
-    // The whole screen: a column whose middle scrolls, header and footer fixed
     <div className="flex h-dvh flex-col bg-background">
-      {/* The top: ✕, the day, the time trained, Finish */}
       <header className="border-b pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 sm:pt-[max(1rem,env(safe-area-inset-top))] sm:pb-4">
         <div className={cn(WORKOUT_COLUMN, 'flex items-center gap-2')}>
           <Button variant="ghost" size="icon-xl" aria-label={t('workout.close')} onClick={pauseAndLeave}>
             <X aria-hidden="true" />
           </Button>
-          {/* The day's name; a free workout has none */}
           <h1 className="min-w-0 flex-1 truncate font-heading text-lg font-extrabold">{session.day_name ?? t('workout.free')}</h1>
           <p className="font-semibold text-muted-foreground tabular-nums">
             <span className="sr-only">{`${t('workout.clock')}: `}</span>
@@ -284,11 +237,9 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         </div>
       </header>
 
-      {/* The middle, which scrolls, alone: the bars stay put, as in an app.
-          `relative` keeps the hidden "Rest over" text (sr-only, which is
-          absolutely positioned) inside it: without it, that text sat below
-          the end of a long exercise and made the whole page taller than the
-          screen (docs/how-to/H3-frontend.md H3.15.11) */}
+      {/* Only the middle scrolls. `relative` keeps the absolutely positioned
+          sr-only "Rest over" inside it, or the page grew taller than the
+          screen */}
       <main className="relative flex-1 overflow-y-auto py-5 sm:py-6">
         <div className={WORKOUT_COLUMN}>
           {/* A free workout with no exercise yet: what to do, and the way
@@ -330,21 +281,17 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                       <button
                         type="button"
                         aria-label={exercise.skipped ? t('workout.jumpToSkipped', { number: position + 1, name: exercise.exercise.name }) : t('workout.jumpTo', { number: position + 1, name: exercise.exercise.name })}
-                        // aria-current="step": the step being done, for screen readers
                         aria-current={position === index ? 'step' : undefined}
                         onClick={() => dispatch({ type: 'goTo', exercise: position })}
                         className={cn(
                           'size-3 rounded-full',
-                          // On screen; with a set done; skipped (greyer); not yet
                           position === index ? 'bg-primary ring-2 ring-primary/40' : exercise.sets.some(set => set.done) ? 'bg-primary/60' : exercise.skipped ? 'bg-muted-foreground/30' : 'bg-muted',
                         )}
                       />
                     </li>
                   ))}
                 </ol>
-                {/* On the right of the row (ml-auto), with its words: a ＋
-                    alone was not understood. The same outlined button as
-                    Add set */}
+                {/* With its words: a ＋ alone was not understood */}
                 <ExercisePicker
                   trigger={(
                     <Button variant="outline" size="xl" className={cn('ml-auto px-4', ADD_ICON)}>
@@ -364,11 +311,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
               {/* The exercise: photo, name, what was planned, the plan's
                   notes, the user's own note, and its menu (⋯) on the right */}
               <div className="mb-6 flex gap-4">
-                {/* The photo, a button: "How to do it" (ExerciseInfoSheet).
-                    A small ⓘ in its corner says it can be tapped. Named in
-                    words for screen readers, the photo itself being
-                    decoration (alt=""). aria-haspopup="dialog": it opens
-                    a panel, said before the tap */}
+                {/* Opens "How to do it"; the ⓘ in its corner says it can be
+                    tapped. The photo is decoration: the button is named */}
                 <button
                   type="button"
                   aria-label={t('workout.howTo.open', { name: item.exercise.name })}
@@ -384,10 +328,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   </span>
                 </button>
                 <div className="min-w-0 flex-1">
-                  {/* The name, a button too, for the same panel: the
-                      larger target. Inside the heading, so the heading
-                      keeps the exercise's name; the text looks as before,
-                      with a dotted underline that says it opens something */}
+                  {/* The larger target for the same panel, inside the heading
+                      so the heading keeps the exercise's name */}
                   <h2 id="exercise-name" className="font-heading text-xl font-extrabold">
                     <button
                       type="button"
@@ -421,7 +363,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   onSwap={() => setSwapOpen(true)}
                   onSkip={skipped => dispatch({ type: 'skipExercise', exercise: index, skipped })}
                   onSaveNote={notes => dispatch({ type: 'setNote', exercise: index, notes })}
-                  // Only for an exercise added by hand; undefined hides the row
+                  // Only for an exercise added by hand
                   onRemove={canRemoveExercise(item) ? () => dispatch({ type: 'removeExercise', exercise: index }) : undefined}
                 />
               </div>
@@ -437,7 +379,6 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                 </div>
               )}
 
-              {/* The sets: the column titles, then a row each */}
               <SetHeader loggingType={item.exercise.logging_type} unit={unit} forTime={forTime} />
               <ol className={cn('flex flex-col gap-2 sm:gap-3', item.skipped && 'opacity-60')}>
                 {item.sets.map((set, position) => (
@@ -472,8 +413,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                 weightStep={user?.weight_step}
                 focus={stepping.field}
                 onChange={(field, value) => dispatch({ type: 'setField', exercise: index, set: stepping.set, field, value })}
-                // Only for a set added by hand: the panel closes first, as
-                // the set it shows is about to be gone
+                // The panel closes first: the set it shows is about to go
                 onRemove={canRemoveSet(item, stepping.set)
                   ? () => {
                       setStepperOpen(false)
@@ -481,18 +421,13 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                     }
                   : undefined}
               />
-              {/* Swap exercise's picker: opened by the menu, one tap picks */}
               <ExercisePicker open={swapOpen} onOpenChange={setSwapOpen} replacing={item.exercise} onAdd={exercises => void (exercises[0] && swap(exercises[0]))} />
-              {/* Add set: the row closing the table, as in D1.4.9's
-                  drawing, for the set more than planned (a good day, a
-                  back-off set). An outlined button as wide as the rows, as
-                  the app's other secondary actions, with a lime ＋.
-                  The new set copies the last one's values */}
+              {/* For the set more than planned (a good day, a back-off set);
+                  it copies the last one's values */}
               <Button variant="outline" size="xl" onClick={() => dispatch({ type: 'addSet', exercise: index })} className={cn('mt-2 w-full sm:mt-3', ADD_ICON)}>
                 <Plus aria-hidden="true" />
                 {t('plans.editor.addSet')}
               </Button>
-              {/* "How to do it": opened by the photo or the name above */}
               <ExerciseInfoSheet open={infoOpen} onOpenChange={setInfoOpen} exercise={item.exercise} />
               {/* Up next: a reminder of the exercise after this one, not a
                   way to go there (the bottom bar is). None on the last
@@ -501,7 +436,6 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
             </section>
           )}
 
-          {/* Read out when it changes: "Rest over" */}
           <p aria-live="polite" className="sr-only">{announce}</p>
         </div>
       </main>
@@ -537,25 +471,18 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         />
       )}
 
-      {/* Previous and Next; not on an empty free workout, with nowhere to go */}
       {!empty && (
         <footer className="border-t pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className={cn(WORKOUT_COLUMN, 'flex justify-between gap-2')}>
-            {/* Previous and Next are outlined, as the app's other actions that
-              are not the main one; lime is kept for Finish workout.
-              Previous: on a phone, when Finish workout needs the room, an
-              arrow alone: its word is hidden below 640 px only
-              (max-sm:sr-only), and screen readers still hear it */}
+            {/* Outlined: lime is kept for Finish workout. On a phone, when
+                Finish workout needs the room, Previous is an arrow alone */}
             <Button variant="outline" size="xl" className={cn('px-4', wide && 'max-sm:px-3.5')} disabled={index === 0} onClick={() => dispatch({ type: 'goTo', exercise: index - 1 })}>
               <ChevronLeft aria-hidden="true" />
               <span className={cn(wide && 'max-sm:sr-only')}>{t('workout.previous')}</span>
             </Button>
-            {/* In a superset, its next exercise by name, with a lime border:
-                where the round goes on. Otherwise Next, or, when it is
-                time, Finish workout. The wide ones go across the bar on a
-                phone (flex-1), their own width from 640 px (sm:flex-none),
-                where a button as wide as a laptop's window would be absurd;
-                a long name is cut with "…" (truncate) */}
+            {/* In a superset, its next exercise by name: where the round goes
+                on. Otherwise Next, or Finish workout. Across the bar on a
+                phone, its own width from 640 px */}
             {supersetTarget !== null
               ? (
                   <Button variant="outline" size="xl" className="min-w-0 flex-1 border-primary/70 px-4 sm:flex-none" onClick={() => dispatch({ type: 'goTo', exercise: supersetTarget })}>

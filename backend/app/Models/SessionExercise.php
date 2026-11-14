@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// Imports: the attribute and traits used below, and the types of the relations
 use Database\Factories\SessionExerciseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -12,12 +11,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * One exercise as done in one session: one row of `session_exercises`
- * (docs/design/D3-data-model.md D3.6.2). A skipped exercise is a row with no
- * sets; a swapped one has another exercise_id and the same plan_item_id
- * (D3.6.4).
+ * An exercise as done in one session. A skipped exercise is a row with no sets;
+ * a swapped one has another exercise_id and the same plan_item_id.
  *
- * workout_session_id is set by the code (SaveWorkoutSession), not fillable.
+ * workout_session_id is set by SaveWorkoutSession, never mass-assigned.
  */
 #[Fillable(['id', 'exercise_id', 'plan_item_id', 'position', 'superset_group', 'notes'])]
 class SessionExercise extends Model
@@ -26,8 +23,6 @@ class SessionExercise extends Model
     use HasFactory, HasUuids;
 
     /**
-     * The whole numbers, read as such.
-     *
      * @return array<string, string>
      */
     protected function casts(): array
@@ -39,20 +34,15 @@ class SessionExercise extends Model
     }
 
     /**
-     * The session it belongs to.
-     *
      * @return BelongsTo<WorkoutSession, $this>
      */
     public function session(): BelongsTo
     {
-        // The method is session(), so the column is given: Laravel would
-        // look for session_id
         return $this->belongsTo(WorkoutSession::class, 'workout_session_id');
     }
 
     /**
-     * The exercise, also when it has been deleted since: history must keep
-     * showing it (docs/design/D3-data-model.md D3.11).
+     * withTrashed(): history keeps showing an exercise deleted since.
      *
      * @return BelongsTo<Exercise, $this>
      */
@@ -62,7 +52,7 @@ class SessionExercise extends Model
     }
 
     /**
-     * The plan's slot it filled; null when added on the fly.
+     * The plan's slot it filled; null for an exercise added during the workout.
      *
      * @return BelongsTo<PlanItem, $this>
      */
@@ -72,8 +62,6 @@ class SessionExercise extends Model
     }
 
     /**
-     * Its completed sets, in order.
-     *
      * @return HasMany<LoggedSet, $this>
      */
     public function sets(): HasMany
