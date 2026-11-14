@@ -29,7 +29,7 @@ export function ExportPlanButton({ plan }: ExportPlanButtonProps) {
   // t() translates a key (react-i18next, docs/concepts/C1-frontend.md C1.7)
   const { t } = useTranslation()
   // Two pieces of state (useState: a value React keeps between draws, and
-  // a function to change it, which draws again; docs/learn/L2-react.md L2.7).
+  // a function to change it, which draws again).
   // While the file is asked for: the button waits
   const [busy, setBusy] = useState(false)
   // Whether the last try failed (offline, server down)

@@ -59,6 +59,5 @@ Everything lives in [`docs/`](docs), grouped by what you are looking for. **[doc
 | [`docs/concepts/`](docs/concepts) (C) | understand how the React and Laravel code works |
 | [`docs/how-to/`](docs/how-to) (H) | do something step by step, with the commands and their output |
 | [`docs/project/`](docs/project) (P) | know how we work (conventions) and what comes next (backlog) |
-| [`docs/learn/`](docs/learn) (L) | learn Laravel and React themselves, lesson by lesson, with exercises |
 
 Each document has a code: its folder's letter and a number, such as `H2`. Its sections follow it, so a reference such as "see H2.3", in these pages or in a code comment, points to section 3 of `docs/how-to/H2-backend.md`.

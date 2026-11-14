@@ -197,7 +197,7 @@ export function ExercisesPage() {
         {list.isSuccess && total > 0 && (
           // The list. Dimmed while the list of new filters loads
           // (`searching`: typing, or isPlaceholderData, the old one still
-          // shown, docs/learn/L2-react.md L2.12), so the screen does not jump
+          // shown), so the screen does not jump
           // at each letter typed and still shows it is working
           <div className={cn('transition-opacity', searching && 'opacity-60')}>
             {/* How many match: "876 exercises". aria-live: screen readers

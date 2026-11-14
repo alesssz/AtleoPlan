@@ -2,8 +2,6 @@
 
 How the Laravel backend in `backend/` works, written for someone who knows little PHP or Laravel and wants to read the code and change it with confidence. Read [C2.1](#c21-the-pieces)–[C2.4](#c24-the-life-of-a-request) once, in order: they explain the pieces and the path a request takes. The other sections explain one topic each, and [C2.12](#c212-recipes) holds the step-by-step recipes to keep open while coding.
 
-**New to Laravel itself?** [L1. Laravel course](../learn/L1-laravel.md) teaches the framework lesson by lesson, keeping apart what is Laravel and what this project adds; this page is about how the app is built with it.
-
 Every PHP file starts with a comment saying what it is and points to the section of this page that explains its concepts ([P1.2](../project/P1-conventions.md#p12-code)). The choices behind the stack are in [D2.2](../design/D2-decisions.md#d22-stack); the setup in [S1.6](../start/S1-setup.md#s16-creating-the-laravel-backend); the React side in [C1. Frontend](C1-frontend.md).
 
 ## Contents

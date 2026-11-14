@@ -105,7 +105,7 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
 
   // Keeps the draft in the browser after every change, and forgets it when
   // it is back to the plan as opened. An effect: it runs after React has
-  // drawn, every time `draft` changes (docs/learn/L2-react.md L2.9)
+  // drawn, every time `draft` changes
   useEffect(() => {
     if (dirty) storeDraft(storageKey, draft)
     else clearDraft(storageKey)

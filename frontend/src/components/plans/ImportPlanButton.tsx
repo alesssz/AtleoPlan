@@ -56,7 +56,7 @@ export function ImportPlanButton() {
   // keeps between draws, here filled with the <input> element itself by
   // its `ref` attribute; changing it draws nothing again
   const input = useRef<HTMLInputElement>(null)
-  // The window's state (useState, docs/learn/L2-react.md L2.7): open or
+  // The window's state (useState): open or
   // not; the file read, once one is; the message of the last problem
   const [open, setOpen] = useState(false)
   const [chosen, setChosen] = useState<ChosenFile | null>(null)
