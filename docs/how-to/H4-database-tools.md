@@ -2,11 +2,7 @@
 
 How to look inside the Postgres database with a program: browse tables, read rows, run SQL. It covers the tool used on this project, **TablePlus**, the quicker ways from the terminal, and the alternatives.
 
-**How to read this page:**
-
-- First time: [H4.1](#h41-the-connection-details), then [H4.2](#h42-tableplus-the-tool-we-use).
-- It does not connect: [H4.5](#h45-when-it-does-not-connect).
-- How to write the queries themselves, and the tables' structure: [H1.6](H1-database.md#h16-looking-at-the-data) and [D3. Data model](../design/D3-data-model.md).
+Writing the queries themselves, and the tables' structure: [H1.6](H1-database.md#h16-looking-at-the-data) and [D3. Data model](../design/D3-data-model.md).
 
 ## Contents
 
@@ -75,13 +71,9 @@ TablePlus is a desktop program for Mac and Windows, at https://tableplus.com. Th
 
 ### H4.2.2 Looking at the data
 
-- **The tables** are in the left sidebar. A click opens one in a tab, with its rows.
-- **The two views** of a table are at the bottom of the window: **Data** shows the rows, **Structure** shows the columns, their types, the indexes and the foreign keys.
-- **Filtering:** the bar above the rows works without SQL. Choose a column, an operator (`=`, `contains`, `is null`…) and a value. For example: `email` · `contains` · `example`.
-- **Sorting:** click a column's name.
-- **A whole row:** select it. The panel on the right (the *row detail*, toggled with the button at the top right) shows every column, long values included.
-- **JSON columns** (`jsonb`, such as the translated names of [D3.4.5](../design/D3-data-model.md#d345-translations)) appear as text in the cell. The row detail shows them formatted.
-- **After a change made elsewhere**, by the app or by `make migrate`, reload with `Cmd+R`. TablePlus does not refresh by itself.
+- **Structure** (bottom of the window) shows a table's columns, indexes and foreign keys, to compare with [D3](../design/D3-data-model.md).
+- **JSON columns** (`jsonb`, such as the translated names of [D3.4.5](../design/D3-data-model.md#d345-translations)) read best in the row detail panel, which formats them.
+- **TablePlus does not refresh by itself:** after a change made by the app or by `make migrate`, `Cmd+R`.
 
 ### H4.2.3 Running SQL
 
@@ -96,14 +88,11 @@ SELECT migration, batch FROM migrations ORDER BY id;
 ```
 
 - **`Cmd+Enter`** runs the query under the cursor, or the selected text. The results appear below.
-- **Saved queries:** the editor's text stays with the connection until you delete it. Handy for the queries you reuse.
-- **Queries on the tables to come** (sessions, sets, volumes per week) are in [D3](../design/D3-data-model.md) and [H1.6](H1-database.md#h16-looking-at-the-data).
+- The editor's text stays with the connection: a place for the queries you reuse.
 
 ### H4.2.4 Changing data, carefully
 
-You can edit a cell with a double-click, add a row with the **Row** button at the bottom, and delete a row with `Delete`.
-
-**Nothing is saved until `Cmd+S`.** TablePlus collects the changes, shown in colour, and sends them all together. Until then, the **Discard** button throws them away. This saves you from many mistakes, but not from all of them:
+**Nothing is saved until `Cmd+S`;** **Discard** throws the pending changes away. The rules:
 
 - **It is the real development data.** A deleted row does not come back. `make db-dump` saves a copy before risky changes, and `make db-restore f=…` puts it back.
 - **Prefer changing data through the app, or with tinker.** A change made in TablePlus skips Laravel completely:

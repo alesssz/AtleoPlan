@@ -59,8 +59,8 @@ The how-to guides and the concepts go in pairs: H2 is the recipe for an endpoint
 | [H1. Database](how-to/H1-database.md) | Recipes: a new table from start to finish, migrations (keys, check constraints, changing a table, filling a new column), models, factories and seeders, looking at the data, testing database code, the commands that fill the exercise library, common errors |
 | [H2. Backend](how-to/H2-backend.md) | Recipes: an endpoint that reads and one that changes data, a body shaped as a tree, writes from a phone that may be offline, an admin screen, a background job, translated messages, settings, packages, finding out what is going on, common errors |
 | [H3. Frontend](how-to/H3-frontend.md) | Recipes: a new page, data from a new endpoint, a form that saves, testing a page, translations, npm packages (and `overrides` for a vulnerable one deep in the tree), the browser's tools, the three widths and a real Android phone, shadcn/ui components, common errors |
-| [H4. Opening the database](how-to/H4-database-tools.md) | The connection details, TablePlus step by step (connecting, browsing, SQL, editing safely, shortcuts), the terminal's ways, the alternatives (DBeaver, pgAdmin, Adminer…), connection errors |
-| [H5. Continuous integration](how-to/H5-ci.md) | What GitHub checks on every push and every week (CI, the dependency audit, Dependabot for the actions), the workflows, the settings on GitHub and `make github-check` (reading them with `gh`), CodeQL, the advisories reviewed, reading a failed run, the same checks on the computer, as built |
+| [H4. Opening the database](how-to/H4-database-tools.md) | The connection details, TablePlus (connecting, browsing, SQL, editing safely, shortcuts), the terminal's ways, the alternatives (DBeaver, pgAdmin, Adminer…), connection errors |
+| [H5. Continuous integration](how-to/H5-ci.md) | What GitHub checks on every push and every week (CI, the dependency audit, Dependabot for the actions), the workflows, the settings on GitHub and `make github-check` (reading them with `gh`), CodeQL, the advisories reviewed, reading a failed run, the same checks on the computer |
 
 ### P · Project
 

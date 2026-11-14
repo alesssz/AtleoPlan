@@ -27,43 +27,16 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 
 ## S1.1 Where the project stands
 
-**Done:**
+Both apps run locally; nothing is deployed yet ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)). What the app does today is in the [README](../../README.md); what comes next in the [backlog](../project/backlog.md).
 
-- **Design docs:** UI ([D1](../design/D1-ui.md)), decisions ([D2](../design/D2-decisions.md)), conventions ([P1](../project/P1-conventions.md)), data model ([D3](../design/D3-data-model.md)), how-to guides for the database ([H1](../how-to/H1-database.md)), the backend ([H2](../how-to/H2-backend.md)), the frontend ([H3](../how-to/H3-frontend.md)) and opening the database ([H4](../how-to/H4-database-tools.md)), [backlog](../project/backlog.md).
-- **Git:** repository on GitHub (`alesssz/AtleoPlan`) with the personal GitHub identity, and a hook that refuses any other email ([S1.3](#s13-git-identity)).
-- **Docker stack for development:** [`Dockerfile`](../../Dockerfile), [`compose.yaml`](../../compose.yaml), [`docker/php/dev.ini`](../../docker/php/dev.ini). Four services:
+The development stack ([`Dockerfile`](../../Dockerfile), [`compose.yaml`](../../compose.yaml), [`docker/php/dev.ini`](../../docker/php/dev.ini)) has four services; the React app runs on the computer ([S1.7](#s17-creating-the-react-frontend)):
 
 | Service | What it is |
 |---|---|
 | `backend` | Laravel on FrankenPHP (PHP 8.4 inside the Caddy web server), with Composer, ffmpeg and the PHP extensions the app needs |
-| `queue` | Same image, runs the queued jobs (video conversion, emails) |
+| `queue` | Same image, runs the queued jobs (the photos' converted copies) |
 | `postgres` | PostgreSQL 18, data kept in the `postgres-data` volume |
 | `mailpit` | Catches every email the app sends and shows it in a web page |
-
-- **Laravel app** in `backend/` ([S1.6](#s16-creating-the-laravel-backend)): Laravel 13 on Postgres, Sanctum (`install:api`), Filament 5 with its admin panel at `/admin`, spatie/laravel-medialibrary, laravel-query-builder and laravel-translatable, Pest 4. The default migrations have run and the two example tests pass.
-- **React app** in `frontend/` ([S1.7](#s17-creating-the-react-frontend), guide in [C1](../concepts/C1-frontend.md)): React 19, TypeScript 6, Vite 8 on port 5673 with the proxy to Laravel; React Router, TanStack Query, i18next in four languages, Tailwind and shadcn/ui with the design system's colours, a dark / light theme; the app's frame (tab bar on phones, sidebar wider) in the energetic style of D1.5, empty states on the pages not built yet, a working Profile page with the language, the theme and the workout's preferences; Vitest and ESLint with the code style. Node 24 pinned in `.nvmrc`.
-
-- **The logo:** a heavy italic A with a tick cut out of it, in the app, the browser tab and the README ([D1.5](../design/D1-ui.md#d15-design-system)).
-- **Signing in:** sign up, in and out, and resetting a password, with Fortify and four React screens; route guards; language and theme saved on the account; only admins open `/admin` ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum), [C1.13](../concepts/C1-frontend.md#c113-signing-in-and-forms)).
-- **Exercise library, tables** (first part of BE-1): `muscles` and `equipment` filled with free-exercise-db's 17 muscles and 12 kinds of equipment in four languages, `exercises` and `exercise_muscle`, with their models, relations and tests ([D3.4](../design/D3-data-model.md#d34-exercise-library)).
-- **Exercise library, API** (second part of BE-1): the list with search, filters and pages, reading, creating, changing and deleting personal exercises ([C2.5.4](../concepts/C2-backend.md#c254-the-exercise-librarys-endpoints)).
-- **Exercise library, screens** (UI-1): the list with search and filters, an exercise's page, the editor of personal exercises, with the imported photos ([C1.14](../concepts/C1-frontend.md#c114-the-exercise-library-screens)).
-- **Exercise library, photos** (last part of BE-1): photos of personal exercises uploaded, ordered and removed in the editor, of public ones in the admin panel; a 400 px and a 1600 px WebP copy of each; Duplicate as mine ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise), [C1.14.7](../concepts/C1-frontend.md#c1147-uploading-photos-and-duplicate-as-mine)).
-- **Exercise library, import and translation** (DATA-1): `make exercises-import` downloads free-exercise-db and fills the public library with its exercises, their muscles, equipment and photos ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)), adds the project's own extra exercises (calisthenics, [H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)), then writes their names, other names and steps in Italian, Spanish and German from the files of the repository ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)).
-- **Plans, tables and API** (first part of FEAT-2): `plans`, `plan_days`, `plan_items`, `plan_sets` and the user's active plan; the API lists, reads, creates and saves a whole plan, deletes, activates and archives ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints)). After pulling it: `make migrate`.
-- **Plans, screens** (second part of FEAT-2): the plan list and a plan's page, its days as tabs; `make plans-demo` gives every user two example plans ([C1.15](../concepts/C1-frontend.md#c115-the-plan-screens)).
-- **Plans, editor** (last part of FEAT-2): days, exercises from the library, sets and their types, supersets, drag and drop, the draft kept in the browser ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)).
-- **Workouts, tables and API** (first part of FEAT-3): saving a workout sent by the phone, history with totals, the sets of last time, Home's data with the suggested day ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)). After pulling it: `make migrate`.
-- **Workout mode** (second part of FEAT-3): Start on a plan's day, sets ticked one tap each with last time's values, the rest timer with beep and vibration, supersets, the screen kept on; the workout kept on the phone and sent at Done, or as soon as the network returns ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)).
-- **The stepper and the exercise menu** (UI-6): a tap on a set's value opens a big − / + panel; "⋯" beside an exercise swaps it for another of the same muscle, skips it, or adds a note ([C1.17.7](../concepts/C1-frontend.md#c1177-the-big-stepper-and-the-exercises-menu)).
-- **Workout preferences** (UI-7): Profile's Workout card, with the weight unit, the default rest, the stepper's weight step, the timer's sound and vibration ([C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)).
-- **Home** (third part of FEAT-3): the active plan with the suggested day and Start, a chip per day, Resume for a workout left open, a free workout with its exercises added on the way, this week's days and numbers ([C1.18](../concepts/C1-frontend.md#c118-home)).
-- **Sign in with Google** (FEAT-9): "Continue with Google" on the sign-in and sign-up pages, with Laravel Socialite; an address already registered is linked, a new one gets an account without a password ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google), [C1.13.7](../concepts/C1-frontend.md#c1137-continue-with-google)). It needs the Google credentials in `backend/.env` on each computer ([S1.11](#s111-sign-in-with-google-the-credentials)). After pulling it: `make setup` (a new Composer package, two migrations).
-- **Summary and history** (FEAT-4): after Finish, the workout's numbers, the comparison with last time, how it felt and notes; history by month under Progress, each workout with its sets, deletable ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)).
-- **Tests** run on their own Postgres database, `atleoplan_test`, never on the development one ([S1.6](#s16-creating-the-laravel-backend)).
-- **Sanctum in SPA mode** for the React app at `localhost:5673`, and the **`media` table** of spatie/laravel-medialibrary.
-
-**Not yet:** the app's features, in the order of the [backlog](../project/backlog.md) (the library's admin screen, where translations are reviewed, and photo uploads, the app working offline). The remaining frontend libraries come with the feature that needs them ([C1.11](../concepts/C1-frontend.md#c111-known-limits)). Deployment is postponed: everything runs locally for now ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)).
 
 ---
 
@@ -186,13 +159,7 @@ The `backend` and `queue` services start only once the Laravel app exists ([S1.6
 
 How the backend is built: [C2. Backend](../concepts/C2-backend.md).
 
-**How it works.** There is no need to go inside the container: commands are typed in your computer's terminal, from the project folder, and Docker runs them in the container. The container is a computer with PHP and Composer installed, working on your computer's `backend/` folder:
-
-1. `docker compose run --rm backend <command>` starts a container from the `backend` image and runs the command in it.
-2. Inside the container, `/app` **is** your computer's `./backend` folder (a bind mount in `compose.yaml`): what the command writes there appears on your computer at once, and what is edited in VS Code is seen at once by the container.
-3. `--rm` deletes the container when the command ends; the files stay.
-
-`run --rm` is for when the stack is stopped (as now, before Laravel exists); once it runs, `docker compose exec backend <command>` uses the container already started, which is faster ([S1.8](#s18-everyday-commands)).
+Backend commands run through the container: `docker compose run --rm backend <command>` while the stack is stopped, `docker compose exec backend <command>` once it runs; `/app` is the bind-mounted `./backend`.
 
 For `create-project`, `./backend` must be empty (or missing: Docker creates it). With today's `compose.yaml` it never is: Docker creates `backend/vendor/` as the place where the `vendor` volume is mounted, and Composer stops with `Project directory "/app/." is not empty.` To create the app again from scratch, comment out the two `vendor` lines under the `x-backend` block's `volumes:` for that one command ([H2.12](../how-to/H2-backend.md#h212-when-something-goes-wrong)).
 
@@ -300,7 +267,7 @@ export default defineConfig({
       '/api': 'http://localhost:8500',
       '/sanctum': 'http://localhost:8500',
       '/storage': 'http://localhost:8500',
-      '/auth/': 'http://localhost:8500',   // added later, for Google (FEAT-9)
+      '/auth/': 'http://localhost:8500',   // Sign in with Google
     },
   },
 })
@@ -321,10 +288,7 @@ npm install react-hook-form zod @hookform/resolvers      # forms, with signing i
 npx shadcn@latest add input label
 ```
 
-The others of [D2.2](../design/D2-decisions.md#d22-stack) come with the feature that needs them:
-- dnd-kit with the plan editor (FEAT-2);
-- vite-plugin-pwa with the offline work (FEAT-3); workout mode itself needed no package;
-- Recharts with the progress charts (phase 2).
+The others of [D2.2](../design/D2-decisions.md#d22-stack) come with the feature that needs them: dnd-kit with the plan editor (installed), vite-plugin-pwa with the offline work, Recharts with the progress charts (phase 2).
 
 How the frontend is built and how to work on it: [C1. Frontend](../concepts/C1-frontend.md).
 
@@ -420,8 +384,8 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | What | Address |
 |---|---|
 | Laravel | http://localhost:8500 |
-| Filament admin (once installed) | http://localhost:8500/admin |
-| React app (once created) | http://localhost:5673 |
+| Filament admin | http://localhost:8500/admin |
+| React app | http://localhost:5673 |
 | Mailpit | http://localhost:8525 |
 | Postgres, from a database program | `127.0.0.1:5932`, database, user and password `atleoplan` ([H4](../how-to/H4-database-tools.md)) |
 
@@ -440,7 +404,7 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | Pest | https://pestphp.com/docs |
 | FrankenPHP | https://frankenphp.dev/docs/ |
 | Docker Compose | https://docs.docker.com/compose/ |
-| React | https://react.dev/learn |
+| React | https://react.dev |
 | Vite | https://vite.dev/guide/ |
 | TanStack Query | https://tanstack.com/query/latest/docs/framework/react/overview |
 | React Router | https://reactrouter.com |
