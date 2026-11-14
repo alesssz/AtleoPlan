@@ -415,7 +415,7 @@ export function MusclesPage() {
 }
 ```
 
-- **`{condition && <X />}`** draws `X` only when the condition is true ([C1.4](../concepts/C1-frontend.md#c14-react-from-scratch)).
+- **`{condition && <X />}`** draws `X` only when the condition is true ([C1.4](../concepts/C1-frontend.md#c14-component-conventions)).
 - **The data is cached.** Leaving the page and coming back shows the list at once, and it is refreshed in the background.
 - **An empty list** deserves an `EmptyState`, as on the other pages ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)).
 
@@ -423,7 +423,7 @@ export function MusclesPage() {
 
 ## H3.4 A form that saves
 
-How forms work here, in depth: [C1.13.3](../concepts/C1-frontend.md#c1133-a-form-step-by-step). The example is a one-field form to rename a muscle, shown to admins only.
+How forms work here, in depth: [C1.13.3](../concepts/C1-frontend.md#c1133-anatomy-of-a-form). The example is a one-field form to rename a muscle, shown to admins only.
 
 ### H3.4.1 The mutation
 
@@ -2389,7 +2389,7 @@ Free workout starts with no exercises, so the workout screen needed a way to add
 
 - **`startFreeSession(now)`** returns the empty workout. `startSession()` now starts from the same `emptySession(now)`, adding the plan's day.
 - **`exerciseFrom(exercise, lastSets, options)`** turns a library exercise into a workout exercise: one set per set of last time, else one empty set.
-- **The action `addExercises`** receives exercises already built. A first idea was to pass the library's exercises and build them inside the reducer; but building makes UUIDs (`newId()`), and a reducer called twice with the same action must give the same result: StrictMode calls it twice in development to check ([C1.4](../concepts/C1-frontend.md#c14-react-from-scratch)).
+- **The action `addExercises`** receives exercises already built. A first idea was to pass the library's exercises and build them inside the reducer; but building makes UUIDs (`newId()`), and a reducer called twice with the same action must give the same result: StrictMode calls it twice in development to check ([C1.4](../concepts/C1-frontend.md#c14-component-conventions)).
 - **On screen,** `ExercisePicker` is the plan editor's own, reused as is: `trigger` is the button that opens it, `onAdd` receives the exercises ticked. With no exercise yet, the screen shows only **Add exercises** and **Cancel workout**; `finishTime` was changed to be false with no exercise, otherwise an empty free workout offered **Finish workout** at once (`index >= total - 1` is `0 >= -1`, true).
 
 ### H3.16.4 The errors met
@@ -4777,7 +4777,7 @@ Not looked at by the assistant: the development server could not be reached from
 
 ## H3.32 Workout mode after a real workout, as built
 
-`feat/workout-mode-feedback`: requests made after the app was used for a whole workout, five at first, then one at a time as each was tried. How each works: [C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set) (the stopwatch), [C1.17.10](../concepts/C1-frontend.md#c11710-after-a-real-workout-times-up-next-how-to-do-it) (times, up next, how to do it), [C1.17.11](../concepts/C1-frontend.md#c11711-removing-what-was-added-by-hand) (removing what was added), [C1.17.12](../concepts/C1-frontend.md#c11712-deleting-a-workout-in-progress) (deleting a workout in progress); what they look like: [D1.4.9](../design/D1-ui.md#d149-workout-mode).
+`feat/workout-mode-feedback`: requests made after the app was used for a whole workout, five at first, then one at a time as each was tried. How each works: [C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set) (the stopwatch), [C1.17.10](../concepts/C1-frontend.md#c11710-times-up-next-how-to-do-it) (times, up next, how to do it), [C1.17.11](../concepts/C1-frontend.md#c11711-removing-what-was-added-by-hand) (removing what was added), [C1.17.12](../concepts/C1-frontend.md#c11712-deleting-a-workout-in-progress) (deleting a workout in progress); what they look like: [D1.4.9](../design/D1-ui.md#d149-workout-mode).
 
 **How to read this section.** H3.32.1 to H3.32.5 are the first five requests, built together; each later subsection is one more round, with its own files, commands, errors and checks, in the order they came. A round that changes something built earlier says so; the earlier subsection is left as it was, since its steps still teach.
 

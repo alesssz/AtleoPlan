@@ -1,6 +1,6 @@
 # C1. Frontend
 
-How the React app in `frontend/` is built, why, and how to work on it. It is written for someone who knows little React, TypeScript or modern JavaScript and wants to read the code and change it with confidence. Read [C1.1](#c11-the-pieces)–[C1.4](#c14-react-from-scratch) once, in order: the pieces, the folders, what happens when the app opens, and React's few core ideas. Keep [C1.12](#c112-javascript-and-typescript-you-will-meet) at hand for any syntax that looks strange, and [C1.9](#c19-recipes) while coding. Signing in and forms have a section of their own, [C1.13](#c113-signing-in-and-forms).
+The architecture of the React app in `frontend/`: its pieces, how data flows, the conventions each layer follows, and the decisions behind each feature's screens. [C1.1](#c11-the-pieces)–[C1.12](#c112-typescript-conventions) cover the whole app; [C1.13](#c113-signing-in-and-forms) onwards, one feature each.
 
 The code's comments follow [P1.2](../project/P1-conventions.md#p12-code): a header where a file's role is not obvious, and the reasons behind the code, not what it does. The decisions behind the choices are in [D2.2](../design/D2-decisions.md#d22-stack); the screens they serve in [D1. UI design](../design/D1-ui.md); setup and commands in [S1.7](../start/S1-setup.md#s17-creating-the-react-frontend) and [S1.8](../start/S1-setup.md#s18-everyday-commands).
 
@@ -9,7 +9,7 @@ The code's comments follow [P1.2](../project/P1-conventions.md#p12-code): a head
 - [C1.1 The pieces](#c11-the-pieces)
 - [C1.2 Folder structure](#c12-folder-structure)
 - [C1.3 What happens when the app opens](#c13-what-happens-when-the-app-opens)
-- [C1.4 React from scratch](#c14-react-from-scratch)
+- [C1.4 Component conventions](#c14-component-conventions)
 - [C1.5 Routing](#c15-routing)
 - [C1.6 Server data](#c16-server-data)
 - [C1.7 Translations](#c17-translations)
@@ -17,11 +17,11 @@ The code's comments follow [P1.2](../project/P1-conventions.md#p12-code): a head
 - [C1.9 Recipes](#c19-recipes)
 - [C1.10 Tests and checks](#c110-tests-and-checks)
 - [C1.11 Known limits](#c111-known-limits)
-- [C1.12 JavaScript and TypeScript you will meet](#c112-javascript-and-typescript-you-will-meet)
+- [C1.12 TypeScript conventions](#c112-typescript-conventions)
 - [C1.13 Signing in and forms](#c113-signing-in-and-forms)
   - [C1.13.1 The one idea: who is signed in is server data](#c1131-the-one-idea-who-is-signed-in-is-server-data)
   - [C1.13.2 The guards](#c1132-the-guards)
-  - [C1.13.3 A form, step by step](#c1133-a-form-step-by-step)
+  - [C1.13.3 Anatomy of a form](#c1133-anatomy-of-a-form)
   - [C1.13.4 Preferences on the account](#c1134-preferences-on-the-account)
   - [C1.13.5 Details that are easy to miss](#c1135-details-that-are-easy-to-miss)
   - [C1.13.6 Testing a screen with the API](#c1136-testing-a-screen-with-the-api)
@@ -62,7 +62,7 @@ The code's comments follow [P1.2](../project/P1-conventions.md#p12-code): a head
   - [C1.17.7 The big stepper and the exercise's menu](#c1177-the-big-stepper-and-the-exercises-menu)
   - [C1.17.8 The stopwatch of a timed set](#c1178-the-stopwatch-of-a-timed-set)
   - [C1.17.9 Exercises done as fast as possible](#c1179-exercises-done-as-fast-as-possible)
-  - [C1.17.10 After a real workout: times, up next, how to do it](#c11710-after-a-real-workout-times-up-next-how-to-do-it)
+  - [C1.17.10 Times, up next, how to do it](#c11710-times-up-next-how-to-do-it)
   - [C1.17.11 Removing what was added by hand](#c11711-removing-what-was-added-by-hand)
   - [C1.17.12 Deleting a workout in progress](#c11712-deleting-a-workout-in-progress)
 - [C1.18 Home](#c118-home)
@@ -85,19 +85,20 @@ The code's comments follow [P1.2](../project/P1-conventions.md#p12-code): a head
 
 | Piece | Role | Where |
 |---|---|---|
-| **React 19** | Draws the interface out of components, functions that turn data into markup | everywhere |
-| **TypeScript 6** | Types on top of JavaScript: mistakes show in the editor before the app runs | `tsconfig.app.json` (strict) |
-| **Vite 8** | Development server (instant reload) and production build | `vite.config.ts` |
-| **React Router 8** | Which screen each address shows, without reloading the page | `src/router.tsx` |
-| **TanStack Query 5** | Fetches server data, caches it, keeps it fresh | `src/lib/query-client.ts`, `src/api/` |
-| **react-hook-form + zod** | Forms: react-hook-form holds the fields, zod says what is valid ([C1.13](#c113-signing-in-and-forms)) | `src/pages/auth-schemas.ts`, `src/lib/form.ts` |
-| **i18next + react-i18next** | Every text in four languages | `src/i18n/` |
-| **Tailwind CSS 4** | Styling with utility classes in the markup | `src/index.css` |
-| **shadcn/ui** (Radix base, Nova preset) | Ready-made components (buttons, selects, cards) whose code lives in the project | `src/components/ui/` |
-| **Lucide** | Icons, as React components | `lucide-react` |
-| **Inter** | The font, served by the app itself (works offline) | `@fontsource-variable/inter` |
-| **Vitest + Testing Library** | Tests of functions and components | `*.test.ts(x)` next to the code |
-| **ESLint** (with stylistic rules) | Likely bugs and one code style, no Prettier | `eslint.config.js` |
+| **React 19** | The interface; StrictMode in development | everywhere |
+| **TypeScript 6** | Strict mode | `tsconfig.app.json` |
+| **Vite 8** | Dev server with the API proxy, production build | `vite.config.ts` |
+| **React Router 8** | Data router (`createBrowserRouter`), guards as parent routes | `src/router.tsx` |
+| **TanStack Query 5** | Every piece of server data, the signed-in user included | `src/lib/query-client.ts`, `src/api/` |
+| **react-hook-form + zod** | Forms: fields and errors, rules with translated messages ([C1.13](#c113-signing-in-and-forms)) | `src/pages/auth-schemas.ts`, `src/lib/form.ts` |
+| **i18next + react-i18next** | Every text in four languages, keys type-checked | `src/i18n/` |
+| **Tailwind CSS 4** | Styling, with the design's tokens as CSS variables | `src/index.css` |
+| **shadcn/ui** (Radix base, Nova preset) | Accessible primitives, copied into the project | `src/components/ui/` |
+| **dnd-kit** | Drag and drop in the plan editor | `components/plans/editor/` |
+| **Lucide** | Icons | `lucide-react` |
+| **Inter** | The font, bundled with the app (works offline) | `@fontsource-variable/inter` |
+| **Vitest + Testing Library** | Unit and component tests, on jsdom | `*.test.ts(x)` next to the code |
+| **ESLint** (with stylistic rules) | Lint and code style, no Prettier | `eslint.config.js` |
 
 How a request travels in development (in production Caddy takes Vite's place, [D2.6](../design/D2-decisions.md#d26-hosting)):
 
@@ -106,7 +107,7 @@ Browser ── http://localhost:5673 ──▶ Vite ──┬── /api/*, /san
                                             └── everything else ──▶ the React app (index.html + JS)
 ```
 
-One address for both is what lets Sanctum's login cookie work without CORS.
+One origin for both is what lets Sanctum's session cookie work without CORS.
 
 ---
 
@@ -189,113 +190,43 @@ frontend/
 6. **`AppLayout`** draws the navigation and an `<Outlet />`; the router puts `ProfilePage` there.
 7. **`ProfilePage`** draws its cards. `ServerStatus` inside it calls `useHealth()`. TanStack Query starts `GET /api/health`, and the component shows its loading skeleton. When the answer arrives, the component draws itself again with "Connected".
 
-**Moving around.** A click on a `NavLink` does not load a new page: the router changes the address with the browser's History API and swaps the component in the `<Outlet />`. The frame, the cache and the state stay where they are.
+Navigation never reloads the page: the frame, the query cache and component state survive moving between screens.
 
 ---
 
-## C1.4 React from scratch
+## C1.4 Component conventions
 
-React draws the interface out of **components**. Five ideas cover almost everything in the code: components, JSX, props, state and effects. Hooks and context build on them.
+**Where state lives.**
 
-**1. A component is a function that returns what to draw.**
+| Kind | Where | Example |
+|---|---|---|
+| Server data, the signed-in user included | TanStack Query's cache, never copied into `useState` | `useCurrentUser()`, `usePlan()` |
+| State the address should keep (filters, open tab, editor step) | The query string, through `useSearchParams()` | `?q=panca`, `?day=2` |
+| A screen's own workflow (the plan draft, the workout) | `useReducer` over a pure reducer in a plain module | `plan-draft.ts`, `workout-session.ts` |
+| Local UI state (a dialog's view, a chosen chip) | `useState` | `FinishButton`, `ActivePlanCard` |
+| Values the whole tree needs | Context, only for the theme | `src/theme/` |
+| What must survive a reload | `localStorage`, behind one module per kind of data | `draft-storage.ts`, `session-storage.ts` |
 
-```tsx
-export function PageHeader({ title, description }: PageHeaderProps) {
-  return (
-    <header className="mb-6">
-      <h1>{title}</h1>
-      {description && <p>{description}</p>}
-    </header>
-  )
-}
-```
+**Logic lives outside components.** Anything worth testing on its own (conversions, rules, scoring, formatting) is a plain function in a `.ts` module next to the components that use it, with no React: `plan-format.ts`, `compare.ts`, `stepper.ts`, `week-summary.ts`. Components stay thin, and the tests of these modules draw nothing.
 
-- **The name starts with a capital letter,** and the component is used like an HTML tag: `<PageHeader title="Plans" />`.
-- **Components nest:** a page is made of smaller components, which are made of smaller ones. The whole app is one tree, starting from `<App />`.
+**Reducers are pure.** They never read the clock, make ids or touch storage: "now" arrives in the action (`{ type: 'toggleSet', now }`), and anything that makes new UUIDs (`exerciseFrom()`, `swappedExercise()`) is built before dispatching. StrictMode calls reducers twice in development; a reducer that made ids would make two.
 
-**2. JSX is the HTML-like part.** It looks like HTML but it is JavaScript, turned into function calls by Vite. The differences that matter:
+**Effects only talk to the world outside React:** the `<html>` element, timers, browser events, storage. Values derived from props or state are computed while rendering. A timer that changes state does so from its callback, never synchronously in the effect body.
 
-| In JSX | Why |
-|---|---|
-| `className="…"` instead of `class` | `class` is a reserved word in JavaScript |
-| `{expression}` | Inserts any JavaScript value: `{title}`, `{t('nav.home')}`, `{count + 1}` |
-| `{cond && <X />}` | Draws X only when `cond` is true (there is no `if` inside JSX) |
-| `{cond ? <A /> : <B />}` | A or B |
-| `{list.map(item => <Row key={item.id} … />)}` | One element per item; `key` is required and unique among siblings, so React can tell items apart when the list changes |
-| `onClick={() => save()}` | Events: a function to call, not a string |
-| `<>…</>` | A Fragment: groups elements without adding a `<div>` |
-| `{/* comment */}` | A comment inside JSX |
-| `<Icon />` | Every tag must be closed; tags without content close themselves |
+**Controlled where the parent needs to know.** Dialogs a parent opens from elsewhere (the swap picker, "How to do it", Finish's two views) take `open` and `onOpenChange`; self-contained ones keep their own state. `ExercisePicker` supports both (`open ?? ownOpen`).
 
-**3. Props are a component's inputs.** They are the attributes written on the tag (`<PageHeader title="Plans" />`), and they arrive as one object. Our code takes the object apart in the parameter list: `({ title, description })`. An `interface` above the component lists them with their types. A component never changes its own props: it receives them from its parent. Whatever sits between the opening and closing tag arrives as the special prop `children`; `ThemeProvider` uses it.
+**Optional callbacks as switches.** A prop such as `onRemove?: () => void` both enables a control and says what it does: the parent passes it only when the action is allowed, and the child draws the button only when it is there.
 
-**4. State is a component's memory.**
-
-```tsx
-const [theme, setTheme] = useState<Theme>('dark')
-```
-
-- **`useState` returns two things:** the current value, and a function that changes it.
-- **Calling the setter makes React render again.** React calls the component function once more with the new value, and updates only the parts of the page that changed.
-- **Never change state directly** (`theme = 'light'` does nothing visible). Always call the setter.
-- **The new value appears on the next render, not in the current one.** After `setCount(count + 1)`, `count` is still the old value until React calls the component again.
-- **Server data is not kept in state:** TanStack Query keeps it ([C1.6](#c16-server-data)).
-
-**5. Effects run code after drawing.**
-
-```tsx
-useEffect(() => {
-  applyTheme(theme)                                  // runs after each render where `theme` changed
-  return () => { /* cleanup: undo what the effect set up */ }
-}, [theme])                                           // the dependency list
-```
-
-- **When it runs:** after React has drawn the screen, and again whenever a value in the dependency list changes.
-- **What it is for:** talking to the world outside React, such as the page's `<html>` element, timers, or browser events.
-- **The cleanup** is the function the effect returns. React runs it before the next run and when the component disappears, so listeners and timers do not pile up.
-- **Most code needs no effect.** Values computed from props or state are computed directly in the function body.
-
-**Hooks** are the functions whose name starts with `use`. Some are React's (`useState`, `useEffect`, `useMemo`, `useContext`, `useId`), some come from libraries (`useTranslation`, `useQuery`, `useNavigate`), some are ours (`useTheme`, `useHealth`). They have two rules, which ESLint enforces:
-
-- **Call them only at the top level of a component or of another hook.** Never inside an `if`, a loop, or an event handler. React tells hooks apart by the order of the calls, so the order must be the same on every render.
-- **Give `useEffect` and `useMemo` the complete list of values they use.** A missing value means stale data.
-
-**Context** shares a value with a whole part of the tree without passing it through every component's props:
-- a **provider** puts the value in, as `<ThemeContext value={…}>` does in `ThemeProvider`;
-- any component below reads it with `useContext`, wrapped in our own hook `useTheme()`.
-
-`src/theme/` is the complete example. In React 19 the context itself is the provider; older code and tutorials write `<ThemeContext.Provider value={…}>`.
-
-**Controlled components.** A form control does not keep its value by itself. React gives it the value and is told about every change, which the component then applies: `<Select value={theme} onValueChange={setTheme}>`. `LanguageSelect` and `ThemeSelect` work this way.
-
-**Things that surprise newcomers:**
-
-- **Everything in the component's body runs on every render,** so keep it cheap and free of side effects. Code that touches the outside world goes in effects or event handlers.
-- **StrictMode runs components and effects twice in development** (`main.tsx`), on purpose, to expose code that is not safe to repeat. A `console.log` printed twice in development is expected. Production runs everything once.
-- **Objects and functions created in the body are new on every render.** Handed to a context or a dependency list, they cause extra renders. `useMemo` keeps them the same (`ThemeProvider`).
-
-**If you know Vue,** the same ideas map one to one:
-
-| Vue | React |
-|---|---|
-| `v-if` / `v-for` | `{cond && …}` / `{list.map(…)}` |
-| `:prop` / `@click` | `prop={…}` / `onClick={…}` |
-| `ref()` | `useState` |
-| `computed()` | a plain variable, or `useMemo` |
-| `watch()` / `onMounted()` | `useEffect` |
-| `provide` / `inject` | context |
-| composables | hooks |
-| `v-model` | `value` + `onChange` |
-| `<router-view>` | `<Outlet />` |
+**Components:** named exports, one main component per file, props typed by an `interface` next to it.
 
 ---
 
 ## C1.5 Routing
 
-- **The table** is `src/router.tsx`, made with `createBrowserRouter([...])`. A route has a `path` and an `element`. `children` nest routes inside a parent, which draws them at its `<Outlet />`. `index: true` marks the parent's own address.
+- **The table** is `src/router.tsx` (`createBrowserRouter`).
 - **The frames and the guards:** `AppLayout` is the parent of every signed-in page, inside the guard `RequireAuth`. The sign-in screens have `AuthLayout`, inside `RequireGuest` ([C1.13](#c113-signing-in-and-forms)). Workout mode, full screen, is a sibling of `AppLayout` inside `RequireAuth`: signed in, with no navigation around it ([C1.17](#c117-workout-mode)). The public shared plan, also full screen, will be a sibling of these branches. Comments in the file mark where.
-- **Links:** use `<Link to="/plans">`. Use `<NavLink>` in navigation: it knows whether it is the current page and then gets `aria-current="page"`. Use `useNavigate()` to move in code, for example after saving.
-- **Parameters:** a route `exercises/:id` gives the page `const { id } = useParams()`, a string: `Number(id)` for a number (`ExerciseDetailPage`). A plan's id is a UUID, and stays a string (`PlanDetailPage`). `plans/new` and `plans/:id/edit` open the plan editor (C1.16); `session/:id` a workout in progress (C1.17), `session/:id/summary` its summary, `progress/history/:id` a past workout (C1.19).
+- **Navigation** uses `NavLink`, which sets `aria-current="page"`. Links that leave the React app (Google sign-in, the admin panel) are plain `<a>`.
+- **Parameters:** exercise ids are numbers (`Number(id)`), plan and workout ids UUIDs, kept as strings. `plans/new` and `plans/:id/edit` open the plan editor (C1.16); `session/:id` a workout in progress (C1.17), `session/:id/summary` its summary, `progress/history/:id` a past workout (C1.19).
 - **A tab stays lit on the pages under it:** `NavLink` is active on every address that *starts* with its own, so history lives at `/progress/history` and the Progress tab stays lit there (`end` turns this off, as Home's `/` needs).
 - **The query string** (`?q=panca`) is read and written with `useSearchParams()` ([C1.14.3](#c1143-filters-in-the-address)): the library's filters, the plan list's view (`?archived=1`), a plan's open day (`?day=2`).
 - **A fixed segment wins over a parameter:** `exercises/new` and `exercises/:id` can both exist, and `/exercises/new` opens the editor, whatever their order in the table.
@@ -306,7 +237,7 @@ useEffect(() => {
 
 ## C1.6 Server data
 
-**`src/lib/http.ts`: the only door to the API.** `request<T>(path, { method, body, signal })` wraps `fetch` and:
+**`src/lib/http.ts` is the only door to the API.** `request<T>(path, { method, body, signal })` wraps `fetch` and:
 
 - sends `Accept: application/json`, so Laravel answers errors as JSON, and `Accept-Language`, so it answers in the user's language;
 - for `POST`, `PUT`, `PATCH` and `DELETE`, makes sure Sanctum's `XSRF-TOKEN` cookie exists (calling `/sanctum/csrf-cookie` if not) and sends it back in the `X-XSRF-TOKEN` header. That is Sanctum's CSRF protection;
@@ -315,46 +246,27 @@ useEffect(() => {
   - `status` is 0 when there was no answer (offline, server down), otherwise the HTTP status;
   - `fieldErrors` carries Laravel's validation messages for a 422, per field.
 
-**TanStack Query: server data in components.** Server data is never copied into `useState`. Components ask the query cache:
+**TanStack Query.** Server data is never copied into `useState`.
 
-```ts
-const health = useQuery({ queryKey: ['health'], queryFn: ({ signal }) => fetchHealth(signal) })
-// health.isPending · health.isError · health.data · health.refetch()
-```
-
-- The **query key** names a piece of data in the cache. Every component that uses the same key shares one request and one copy.
+- **Keys** are built by each resource's `xxxKeys` object, and include the language wherever the server translates the answer.
 - **Freshness:** data younger than 30 seconds (`staleTime`, `query-client.ts`) is served from the cache without asking again. Older data is shown at once and refreshed in the background, also when the tab regains focus.
 - **Retries:** a failed request is retried twice, but only for network and 5xx errors. A 401, 403, 404 or 422 would fail the same way again.
-- **Changing data** uses `useMutation`, as in `src/api/auth.ts`. On success it calls `queryClient.invalidateQueries({ queryKey })`, so the lists that show that data reload.
+- **Mutations** invalidate the keys whose data they change, broadly (`['plans']`, not one plan): the server's answer is the truth, and no screen patches the cache by hand except the optimistic preferences ([C1.13.4](#c1134-preferences-on-the-account)).
 - **A 401 on any request** means the session has ended: `src/lib/query-client.ts` marks the user as signed out, and the guards go to `/login` ([C1.13](#c113-signing-in-and-forms)).
 
-**The `src/api/` pattern.** One file per API resource, holding:
-
-1. the TypeScript types of what the endpoint returns;
-2. its cache keys (`healthKeys`);
-3. the plain function that calls it (`fetchHealth`);
-4. the hooks components use (`useHealth`).
-
-`health.ts` is the model to copy.
+**The `src/api/` pattern.** One file per API resource, holding the types of what the endpoints return, the cache keys, the plain `fetchX` functions (usable outside React, as `fetchQuery` does in [C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)) and the hooks. `health.ts` is the smallest.
 
 **Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success. `ServerStatus` shows all three ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). A request that runs while content is already on screen (a save, a new search) shows a small spinner instead: [C1.20](#c120-showing-that-something-is-loading).
 
-**Seeing the cache:** in development, the TanStack Query Devtools button (top-right corner) opens a panel. It lists every query, its key, state and data.
+The TanStack Query Devtools are mounted in development only.
 
 ---
 
 ## C1.7 Translations
 
-**No text is written in a component** ([D2.4](../design/D2-decisions.md#d24-languages)): every text comes from `src/i18n/locales/<language>.json` through `t()`:
+**No text is written in a component** ([D2.4](../design/D2-decisions.md#d24-languages)): every text comes from `src/i18n/locales/<language>.json` through `t()`. Plain modules that produce text (`set-text.ts`) call `i18n.t()` with an explicit `lng`, so they stay testable without React.
 
-```tsx
-const { t, i18n } = useTranslation()
-t('nav.plans')                          // "Schede" in Italian
-t('preferences.languageHint', { weight })      // fills {{weight}} in the text
-i18n.changeLanguage('de')               // switches every text at once
-```
-
-**The files** are nested by area, and the dotted key follows the nesting (`nav.plans` is `"nav": { "plans": … }`):
+**The files** are nested by area:
 
 | Group | Holds |
 |---|---|
@@ -376,26 +288,15 @@ New screens add their own group (`plans.editor.*`, …).
 
 **Numbers and dates** follow the language through `Intl`, never string concatenation. Use `src/lib/format.ts`: `formatWeight(82.5, i18n.language)` gives "82,5 kg" in Italian, Spanish and German, and "82.5 kg" in English. `formatLongDate` and `formatDayParts` do the same for dates ("giovedì 5 novembre"); add more there, such as durations, as screens need them.
 
-**Markup inside a translation,** such as one highlighted word, uses `<Trans>`: the text holds a tag of our own (`"Ready to <hl>train</hl>?"`) and the component says what it becomes: `<Trans i18nKey="home.hero" components={{ hl: <span className="text-gradient-primary" /> }} />`. Each language places the tag on its own word.
+**Markup inside a translation** uses `<Trans>` with a tag of our own (`"Ready to <hl>train</hl>?"`), so each language places the highlight on its own word. **Plurals** use i18next's `_one` / `_other` suffixes.
 
-**Plurals,** when a screen needs them, use i18next's suffixes: `"sets_one": "{{count}} set"` and `"sets_other": "{{count}} sets"`, called with `t('sets', { count })`.
-
-**Adding a language:**
-
-1. Add its code to `SUPPORTED_LANGUAGES` and `LANGUAGE_NAMES` (`languages.ts`).
-2. Add `locales/<code>.json`.
-3. Import it in `i18n/index.ts` and in the test.
+**Adding a language:** its code in `SUPPORTED_LANGUAGES` and `LANGUAGE_NAMES` (`languages.ts`), `locales/<code>.json`, the import in `i18n/index.ts` and in `locales.test.ts`.
 
 ---
 
 ## C1.8 Styles and theme
 
-**Tailwind.** Styling is written as classes in the markup: `className="flex items-center gap-2 text-sm"`. A few rules:
-
-- **Mobile first.** Unprefixed classes apply everywhere; `sm:` from 640 px, `lg:` from 1024 px. For example, `hidden sm:flex` means hidden on phones, shown from tablets. These are the breakpoints of [D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility).
-- **`dark:`** applies with the dark theme. It is rarely needed, because the tokens already change.
-- **Arbitrary values** go in brackets when no class exists, for example `pb-[env(safe-area-inset-bottom)]` for the iPhone's home bar.
-- **The VS Code extension "Tailwind CSS IntelliSense"** autocompletes classes and shows their CSS on hover. Worth installing.
+**Tailwind, mobile first.** Unprefixed classes are the phone layout; `sm:` from 640 px and `lg:` from 1024 px are the breakpoints of [D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility). `dark:` is rarely needed, since the tokens change with the theme. Components laid out inside windows of varying width use container queries instead ([C1.16.8](#c1168-creating-an-exercise-from-the-picker)).
 
 **Colour tokens.** Never write a colour in a component; use the token's class. The values are in `src/index.css`, one set per theme, from [D1.5](../design/D1-ui.md#d15-design-system):
 
@@ -416,13 +317,12 @@ New screens add their own group (`plans.editor.*`, …).
 - **Where the choice is saved:** on the account, so it follows the user, and in this browser (`localStorage`, key `atleoplan.theme`), so `index.html` can apply it before anything is drawn ([C1.13.4](#c1134-preferences-on-the-account)).
 - **To read it from a component:** `useTheme()`. **To change it:** `useUpdatePreferences()` (`src/api/auth.ts`).
 
-**shadcn/ui.** These are not a library imported from `node_modules`. They are source files copied into `src/components/ui/`, and they are ours to change.
+**shadcn/ui.** The components are source files in `src/components/ui/`, ours to change.
 
 - **Adding one:** `npx shadcn@latest add dialog` (from `frontend/`), then `make fix` to bring the generated file to our code style (single quotes, no semicolons).
 - **They keep shadcn's shape:** no header or doc comments of our own; a comment marks only what we changed (the `xl` sizes and `pending` of `button.tsx`, the `closeLabel` of `dialog.tsx` and `sheet.tsx`), so an update from shadcn can be compared.
 - **Their default sizes are for mouse use** (a button is 32 px tall). On touch screens use our `size="xl"` (48 px) or set the height yourself: tap targets are at least 48 px, and 56 px in workout mode ([D1.5](../design/D1-ui.md#d15-design-system)).
-- **`cn()`** (`@/lib/utils`) joins class names, drops false ones, and resolves Tailwind conflicts: `cn('px-2', big && 'px-4')`.
-- **`asChild`** lends a component's look to its child: `<Button asChild><Link to="/">…</Link></Button>` is a real link that looks like a button.
+- **`cn()`** (`@/lib/utils`) merges class names and resolves Tailwind conflicts.
 - **`pending`** is ours, not shadcn's: `<Button pending={save.isPending}>` while the button's request runs. The button is disabled, a spinner takes the place of its icon, and `aria-busy` tells screen readers it is working. Every button that sends a request uses it, so no tap goes unanswered ([C1.20](#c120-showing-that-something-is-loading)).
 
 **Our own style tools.** The energetic style of [D1.5](../design/D1-ui.md#d15-design-system) ("Visual style") is built from a few pieces, to reuse rather than reinvent:
@@ -439,20 +339,15 @@ New screens add their own group (`plans.editor.*`, …).
 | `WorkoutPreferences` | Profile's Workout card: the unit, the default rest, the weight step (Selects), the timer's sound and vibration (Switches) | Profile ([C1.13.4](#c1134-preferences-on-the-account)) |
 | `BrandMark`, `Wordmark` | The logo | sidebar, phone header |
 
-Utilities like these are written in `index.css` with `@utility name { … }` and then work like Tailwind's own classes, prefixes included (`lg:border-glow`, `group-aria-[current=page]:glow-primary`).
+The utilities are defined in `index.css` with `@utility`, so prefixes work on them (`lg:border-glow`, `group-aria-[current=page]:glow-primary`).
 
-**Seeing the result.** Screen size changes the layout: test every change at phone width (the browser's device toolbar, about 390 px wide, [H3.8.1](../how-to/H3-frontend.md#h381-phone-tablet-and-desktop-widths)) and on a wide screen, in both themes (Profile → Theme).
-
-**Icons** come from Lucide: `import { Dumbbell } from 'lucide-react'`, used as `<Dumbbell aria-hidden="true" className="size-5" />`.
-
-- An icon next to a text is decoration: `aria-hidden`.
-- An icon alone in a button needs a label ([P1.2](../project/P1-conventions.md#p12-code)).
+**Icons** (Lucide) next to a text are `aria-hidden`; an icon alone in a button has an `aria-label` ([P1.2](../project/P1-conventions.md#p12-code)).
 
 ---
 
 ## C1.9 Recipes
 
-The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a real page step by step: data from the API, a form, tests, translations, packages, the browser's tools and the common errors.
+The shape of each common change; the commands and the easy mistakes are in [H3. Frontend](../how-to/H3-frontend.md).
 
 **A new page:**
 
@@ -467,7 +362,7 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 2. **Frontend:** `src/api/thing.ts`, copying `health.ts`, with the type, the keys, `fetchThing`, and `useThing`.
 3. In the component, `const thing = useThing()`, handling `isPending` (a `Skeleton`), `isError` (a message and Retry) and `data`.
 
-**A form that saves,** copying `src/pages/LoginPage.tsx` ([C1.13.3](#c1133-a-form-step-by-step)):
+**A form that saves,** copying `src/pages/LoginPage.tsx` ([C1.13.3](#c1133-anatomy-of-a-form)):
 
 1. A zod schema for the rules, built by a function taking `t`, with its messages in the four locale files.
 2. `useForm` with `zodResolver`, and a `FormField` per field.
@@ -493,36 +388,12 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
 
 ## C1.10 Tests and checks
 
-- **Vitest** runs the tests. `jsdom` simulates a browser, so components can be rendered.
-- **Testing Library** looks at the result the way a user would: `screen.getByRole('link', { name: 'Plans' })`. Query by role and visible text, never by CSS class. The test then also checks accessibility: if a test cannot find a button by its name, a screen reader cannot either.
-- **Where they live:** next to the code (`*.test.ts(x)`). `src/test/setup.ts` runs first: it adds matchers such as `toBeInTheDocument()`, sets English, and cleans up after each test, including cookies, `localStorage` and a replaced `fetch`.
-- **Screens that call the API** use a fake one ([C1.13.6](#c1136-testing-a-screen-with-the-api)).
+Two layers, both with Vitest on jsdom, next to the code (`*.test.ts(x)`):
 
-**The tests so far:**
+- **Plain modules** (`plan-draft.ts`, `workout-session.ts`, `compare.ts`, `plan-format.ts`, `week.ts`, `http.ts`…) are tested as functions: every reducer action, every rule, every format, with the moment passed in.
+- **Pages** are rendered with the real router and a fake API ([C1.13.6](#c1136-testing-a-screen-with-the-api)) and used as a person would, through `userEvent`. Queries go by role and accessible name, never by CSS class, so a control a test cannot find by its name is one a screen reader cannot find either.
 
-| File | What it checks |
-|---|---|
-| `i18n/locales.test.ts` | the four languages have the same keys and placeholders, none empty |
-| `lib/format.test.ts` | weights, numbers and dates in each language's format |
-| `lib/week.test.ts` | the Monday-to-Sunday week, across months and years |
-| `components/layout/BottomTabBar.test.tsx` | five tabs, the current one marked, labels translated (the model of a component test) |
-| `lib/http.test.ts` | what every request carries, how failures become an `ApiError`, the second try on an expired token |
-| `api/auth.test.tsx` | a visitor is not an error, and two preference changes close together both survive |
-| `routes/guards.test.tsx` | who is sent where, and a server that is down not being taken for signed out |
-| `pages/auth-pages.test.tsx` | the four sign-in screens, used as a person would (the model of a form's test) |
-| `pages/ProfilePage.test.tsx` | shows the account, signs out |
-| `pages/ExercisesPage.test.tsx` | the library: rows, search after a pause, filters in the address and the request, pages, empty states, an error |
-| `pages/ExerciseDetailPage.test.tsx` | an exercise's facts and photos, the owner's actions, deleting after a confirmation |
-| `pages/ExerciseEditorPage.test.tsx` | creating and changing an exercise, the form's and the server's messages |
-| `components/exercises/exercise-form.test.ts` | the editor's conversions and rules, without React |
-| `pages/PlansPage.test.tsx` | the plan cards, the two views in the address and the request, the empty states, an error |
-| `pages/PlanDetailPage.test.tsx` | a day's exercises summed up, the day tabs in the address, the weight unit, activate, archive, delete, a plan not found; starting a workout, resuming one, the message after Done |
-| `components/plans/plan-format.test.ts` | the line that sums up an exercise, in two languages and two units; the supersets |
-| `components/plans/plan-draft.test.ts` | the editor's draft without React: reading what is typed, to and from the API, the rules, every action of the reducer |
-| `pages/PlanEditorPage.test.tsx` | creating from the library, saving with the version and the ids, the rules and the server's messages, the warning of a plan changed elsewhere, the draft kept and discarded, supersets, the number of days and its dialog, the two steps and Back between them, an exercise created from the picker |
-| `components/workout/workout-session.test.ts` | the workout without React: starting from a day with last time's values, ticking, the rest, supersets, the clock with its pauses, the body sent |
-| `lib/pending-sessions.test.ts` | the queue of finished workouts: what leaves it on each answer of the server, what stays |
-| `pages/WorkoutPage.test.tsx` | workout mode used as a person would: a set ticked and kept on the phone, the rest timer, Next and the dots, ✕ pausing, Done sending, the network down |
+`src/test/setup.ts` sets English and cleans up after each test: the DOM, cookies, `localStorage` and a stubbed `fetch`. `locales.test.ts` keeps the four languages' keys and placeholders identical.
 
 **Commands:**
 
@@ -547,54 +418,17 @@ The short versions. [H3. Frontend: how to](../how-to/H3-frontend.md) builds a re
   - charts (phase 2).
 - **`fsevents`'s install script** is blocked by npm's install-scripts guard. It is an optional macOS file watcher that Vite does not need. Leave it blocked.
 
-
 ---
 
-## C1.12 JavaScript and TypeScript you will meet
+## C1.12 TypeScript conventions
 
-The syntax used in the code, with where to see it. TypeScript is JavaScript plus **types**: labels saying what kind of value a variable holds. They are checked by `npm run typecheck` and in the editor, and removed when the code runs.
-
-**JavaScript**
-
-| Syntax | Meaning | Seen in |
-|---|---|---|
-| `import { A } from 'pkg'` | A **named** import: takes what the file exported as `A` | everywhere |
-| `import A from './a'` | A **default** import: the file's one main export, named freely | `import i18n from '@/i18n'` |
-| `import './index.css'` | Runs a file for its effect only | `main.tsx` |
-| `export function X` / `export const Y` | Makes X, Y importable by other files | everywhere |
-| `const x = 1` / `let y = 2` | A variable never reassigned / one that is. Prefer `const`. | |
-| `(a, b) => a + b` | An **arrow function**: a short way to write a function | `onClick={() => …}` |
-| `const { t } = useTranslation()` | **Destructuring**: takes properties out of an object by name | every component |
-| `const [theme, setTheme] = useState()` | Destructuring an array: takes items by position | `ThemeProvider` |
-| `{ ...props }` / `[...list]` | **Spread**: copies all properties or items into a new object or array | shadcn components |
-| `` `nav.${key}` `` | **Template literal**: a string with values inserted | `BottomTabBar` |
-| `a?.b` | **Optional chaining**: `undefined` instead of an error when `a` is null or undefined | `theme.ts` |
-| `a ?? b` | **Nullish coalescing**: `a`, or `b` when `a` is null or undefined | `http.ts` |
-| `cond ? a : b` | One of two values | JSX |
-| `list.map(x => …)`, `.filter`, `.find`, `.includes` | Array methods: transform, keep some, find one, test membership | everywhere |
-| `async function` / `await promise` | A **Promise** is a value that arrives later, such as a server's answer. `await` waits for it inside an `async` function. | `http.ts` |
-| `void promise` | Starts something asynchronous without waiting for it (and tells ESLint that is on purpose) | `LanguageSelect` |
-| `try { … } catch { … }` | Runs code and handles its errors | `theme.ts` |
-| `class X extends Error` | A class; here, our own kind of error | `ApiError` |
-
-**TypeScript**
-
-| Syntax | Meaning | Seen in |
-|---|---|---|
-| `x: number`, `(a: string): boolean` | The type of a variable, a parameter, a return value | everywhere |
-| `interface Props { title: string; description?: string }` | The shape of an object. `?` marks an optional field. | every component's props |
-| `type Theme = 'dark' \| 'light'` | A named type; `\|` is a **union**: one of these | `theme.ts` |
-| `Record<K, V>` | An object with keys of type K and values of type V | `LANGUAGE_NAMES` |
-| `function f<T>(…): Promise<T>` | **Generics**: a type chosen by the caller, here the shape of the answer | `request<T>` in `http.ts` |
-| `['it', 'en'] as const` | Keeps exact values (`'it' \| 'en'`) instead of just `string` | `languages.ts` |
-| `(typeof LIST)[number]` | The type of the items of LIST | `Language`, `Theme` |
-| `value is Language` | A **type guard**: when the function returns true, TypeScript knows `value` is a Language | `isLanguage` |
-| `x as Theme` | Tells TypeScript the type of a value it cannot know (use sparingly) | `ThemeSelect` |
-| `x!` | "Not null, trust me" (use sparingly) | `main.tsx` |
-| `import type { X }` | Imports a type only; removed from the running code | `i18next.d.ts` |
-| `.d.ts` file | Types only, no code; here it adds our types to a library's | `i18next.d.ts` |
-
-**Learning more:** React's own tutorial at https://react.dev/learn (start with *Describing the UI* and *Adding Interactivity*); TypeScript's handbook at https://www.typescriptlang.org/docs/handbook/intro.html; modern JavaScript at https://javascript.info.
+- **Strict mode,** no `any`. `as` and `!` only where the type system cannot know (a Select's string value back to its union, `#root` in `main.tsx`).
+- **Closed lists are `as const` arrays,** their type derived from them: `LOGGING_TYPES`, `SET_TYPES`, `SUPPORTED_LANGUAGES` give `LoggingType`, `SetType`, `Language`. One source for the values and the type, iterable for selects and tests.
+- **Anything from outside is checked, not cast.** Values from the address, `localStorage`, a chosen file or `i18n.resolvedLanguage` go through a type guard (`isLanguage()`, `isObject()`) or a fallback before use.
+- **Results and actions are discriminated unions:** `readPlanFile()` returns `{ ok: true, … } | { ok: false, problem }`, the reducers take `DraftAction` and `WorkoutAction`. A misspelt action type is a compile error.
+- **API types mirror the Resources**, in `src/api/`; decimals the backend sends as exact text (`"80.000"`) stay `string` in the type and are read with `Number()` where computed.
+- **Optional fields for data kept on the phone.** Anything added to a stored shape (`stopwatch?`, `paused_ms?`, `notes?`, `for_time?`) is optional, because a workout or draft saved by an older version lacks it; readers default it (`?? 0`).
+- **Translation keys are typed** (`i18next.d.ts` from `en.json`): a missing key is a type error.
 
 ---
 
@@ -641,11 +475,11 @@ A **guard** is a parent route that decides whether its children may open (`src/r
 
 **A guard is not security.** Anyone can change the code running in their own browser. The protection is on the server, where `auth:sanctum` refuses the data; the guard only decides what to show.
 
-### C1.13.3 A form, step by step
+### C1.13.3 Anatomy of a form
 
-Every form is built from the same four pieces. `src/pages/LoginPage.tsx` is the model:
+Every form is built from the same four pieces. `src/pages/LoginPage.tsx` is the reference:
 
-**1. The rules: a zod schema** (`src/pages/auth-schemas.ts`). It says what is valid and what to say otherwise. A function taking `t` gives messages in the current language, and the type of the values is derived from it, so the two cannot drift apart:
+**1. The rules: a zod schema** (`src/pages/auth-schemas.ts`), built by a function taking `t` so its messages are translated; the values' type is derived from it:
 
 ```ts
 export function signInSchema(t: TFunction) {
@@ -657,7 +491,7 @@ export function signInSchema(t: TFunction) {
 export type SignInValues = z.infer<ReturnType<typeof signInSchema>>
 ```
 
-**2. The fields: react-hook-form.** It holds the values and the errors, and checks the schema on submit:
+**2. The fields: react-hook-form** with `zodResolver`:
 
 ```tsx
 const form = useForm<SignInValues>({
@@ -671,11 +505,9 @@ const form = useForm<SignInValues>({
 </form>
 ```
 
-- `register('email')` returns what connects a field to the form (`name`, `ref`, `onChange`, `onBlur`), and the spread hands it all over.
-- `handleSubmit` calls `onSubmit` only when the fields are valid.
-- `noValidate` turns off the browser's own bubbles, which would appear in the browser's language.
+`noValidate` turns off the browser's own bubbles, which would appear in the browser's language rather than the app's.
 
-**3. The request: a mutation** (`src/api/auth.ts`), TanStack Query's tool for requests that change something. It runs when `mutate` is called, and reports `isPending`, true until the answer, which the button shows through its `pending` prop: disabled, with a spinner in place of its icon ([C1.20](#c120-showing-that-something-is-loading)):
+**3. The request: a mutation** (`src/api/auth.ts`); its `isPending` drives the button's `pending` ([C1.20](#c120-showing-that-something-is-loading)):
 
 ```tsx
 function onSubmit(values: SignInValues) {
@@ -689,7 +521,7 @@ function onSubmit(values: SignInValues) {
 
 **4. What the server refuses: `showRequestError`** (`src/lib/form.ts`). A message about a field on the screen goes under it. Any other goes at the top of the form (`errors.root`, shown with `FormBanner`): no connection, too many tries, or an error on a field that is not visible, such as the email in the reset link.
 
-**Why validate twice.** The browser's check is for speed and comfort, in the user's language. The server's is the real one, because a browser can be made to send anything. Keep their rules the same: `PASSWORD_MIN_LENGTH` here matches `Password::default()` there.
+**Validated twice.** The browser's check is for speed and the user's language; the server's is the one that counts. Their rules are kept the same: `PASSWORD_MIN_LENGTH` here matches `Password::default()` there.
 
 `FormField` (`src/components/FormField.tsx`) draws the label, the 48 px input and the error, linked for screen readers through `htmlFor`, `aria-invalid` and `aria-describedby`.
 
@@ -707,7 +539,7 @@ WorkoutPreferences ──▶ useUpdatePreferences ──▶ the cache ──▶ 
 
 The pickers only change the account, and `useAccountPreferences`, called by `RequireAuth`, applies the account to the page. A device with no saved choice therefore gets the account's as soon as it signs in. A visitor uses the browser's language, and whatever this browser last saved.
 
-**An example of a real race, and how it was found.** Each save is a request, and two can be in flight together. The first version wrote each answer into the cache:
+**A race to avoid.** Each save is a request, and two can be in flight together. Writing each answer into the cache loses a change:
 
 | Step | Language request | Theme request | Cache |
 |---|---|---|---|
@@ -715,15 +547,15 @@ The pickers only change the account, and `useAccountPreferences`, called by `Req
 | 2. The theme's request is handled first | not saved yet | answers: `de`, dark | **`de`**, dark |
 | 3. The screen jumps back to German | | | |
 
-The tests passed, because the fake API answered in order. A test in a real browser caught it. The fix follows TanStack Query's recommended pattern (`useUpdatePreferences`):
+A fake API answering in order never shows it. `useUpdatePreferences` follows TanStack Query's optimistic-update pattern instead:
 
 - the answer is never written into the cache, so the endpoint answers 204;
 - `onMutate` cancels any read in flight, which could hold old values;
 - `onSettled` reads from the server again, only when the last request has finished.
 
-`src/api/auth.test.tsx` reproduces it, with one request held back. **The lesson for any optimistic update:** an answer can describe the past.
+`src/api/auth.test.tsx` reproduces the race with one request held back. For any optimistic update: an answer can describe the past.
 
-**The workout's six** (`components/WorkoutPreferences.tsx`, UI-7) need no `useAccountPreferences`: nothing outside React must be told, as i18next and the theme are. Workout mode and the plan editor read them from the cached user (`useCurrentUser()`), so a change shows at the next draw.
+**The workout's preferences** (`components/WorkoutPreferences.tsx`) need no `useAccountPreferences`: nothing outside React must be told, as i18next and the theme are. Workout mode and the plan editor read them from the cached user (`useCurrentUser()`), so a change shows at the next draw.
 
 | Row | Control | Saved as | Read by |
 |---|---|---|---|
@@ -755,15 +587,15 @@ Tests never call a real server. `src/test/auth-helpers.tsx` gives them:
 
 `src/pages/auth-pages.test.tsx` uses them with `userEvent`, typing and clicking as a person would. Prefer `findBy…`, which waits, when the element appears after an answer.
 
-**A fake that remembers.** When a test changes the server's state, the fake must change its answers too, or the app sees a server that contradicts itself. Signing out was tested with `GET /api/user` always answering the user: the sign-in page, reading the user again as it mounts, found them still signed in and went back to Profile, sometimes before `findByText` had seen the form. The test failed now and then in a full run (three times over two branches), never alone. A variable the answers read fixes it: `'GET /api/user': () => (signedOut ? visitor : signedInAs())`, with `signedOut = true` set by the logout's answer (`src/pages/ProfilePage.test.tsx`).
+**A fake that remembers.** When a test changes the server's state, the fake's answers must change with it, or the app sees a server that contradicts itself and the test turns flaky (the sign-in page re-reading a user who has signed out). The answers read a variable the mutating answer sets: `'GET /api/user': () => (signedOut ? visitor : signedInAs())` (`src/pages/ProfilePage.test.tsx`).
 
-**What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers. Before calling a feature done, try it in a browser against the real stack, as [C1.13.4](#c1134-preferences-on-the-account) shows.
+**What a fake API cannot catch** is anything about the real path: cookies, CSRF, the proxy, the order of answers ([C1.13.4](#c1134-preferences-on-the-account)). Features are also checked in a browser against the real stack.
 
 ### C1.13.7 Continue with Google
 
-The React side of [C2.7.8](C2-backend.md#c278-signing-in-with-google) is small, because React takes no part in the conversation with Google: `src/components/GoogleSignIn.tsx` gives a link and reads an error. How it was built: [H3.28](../how-to/H3-frontend.md#h328-continue-with-google-as-built).
+The React side of [C2.7.8](C2-backend.md#c278-signing-in-with-google) is small, because React takes no part in the conversation with Google: `src/components/GoogleSignIn.tsx` gives a link and reads an error.
 
-- **A link, not a request.** Every other form here calls the API with `fetch()` and stays on the page. Signing in with Google means the browser leaves the app for Google's page and comes back, so the button is a plain `<a href="/auth/google/redirect?…">`, styled with `<Button asChild>`. Not React Router's `<Link>`, which changes the page inside React and would look for a React route at `/auth`.
+- **A link, not a request.** The browser leaves the app for Google and comes back, so the button is a plain `<a href="/auth/google/redirect?…">` (styled with `<Button asChild>`), not a router `<Link>`.
 - **Vite forwards `/auth/`** to Laravel, beside `/api`, `/sanctum` and `/storage` (`vite.config.ts`), so the whole journey stays on `localhost:5673`, the address Google knows and the cookies belong to.
 - **What the link carries:** the app's language, for a new account, and `from`, the page RequireAuth remembered. The router's `state` does not survive a trip to another site, so `from` travels through Laravel's session instead, and Laravel sends the browser straight to it.
 - **Coming back signed in,** the app starts from scratch: `GET /api/user` finds the session ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)), and nothing else is needed. No token, no message between pages.
@@ -774,8 +606,7 @@ The React side of [C2.7.8](C2-backend.md#c278-signing-in-with-google) is small, 
 
 An admin sees on Profile one more card, **Administration**, with **Open**: the admin panel, a Filament site served by Laravel ([C2.8.4](C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). The address comes with the user, `admin_url` of `GET /api/user`, `null` for anyone else, and the card is drawn only when it is there: `{user?.admin_url && (<section>…</section>)}`.
 
-- **A plain `<a>`, not React Router's `<Link>`:** `<Link>` changes page inside the React app; the panel is another site, which the browser must load.
-- **In a new tab,** `target="_blank"`, so the app stays where it was; `rel="noopener"` stops the new tab from reaching back into this one through `window.opener`.
+- **A plain `<a>` in a new tab** (`target="_blank" rel="noopener"`): the panel is another application, and the app stays where it was.
 - **Hiding is not protecting.** The card only saves admins a typed address; the panel itself refuses anyone who is not an admin (`canAccessPanel()`), whatever the app shows.
 - **The test** (`ProfilePage.test.tsx`) gives the fake user `is_admin: true` and an `admin_url`, and finds the link by role inside the card named by its heading: `within(card).getByRole('link', { name: 'Open' })`.
 
@@ -783,7 +614,7 @@ An admin sees on Profile one more card, **Administration**, with **Open**: the a
 
 ## C1.14 The exercise library screens
 
-The first feature screens of the app (UI-1, [D1.4.3](../design/D1-ui.md#d143-exercise-library)–[D1.4.5](../design/D1-ui.md#d145-exercise-editor)), on the API of [C2.5.4](C2-backend.md#c254-the-exercise-librarys-endpoints) and the 876 exercises imported from free-exercise-db. How they were built, with the real output: [H3.12](../how-to/H3-frontend.md#h312-the-exercise-library-screens-as-built).
+[D1.4.3](../design/D1-ui.md#d143-exercise-library)–[D1.4.5](../design/D1-ui.md#d145-exercise-editor), on the API of [C2.5.4](C2-backend.md#c254-the-exercise-librarys-endpoints) and the 876 exercises imported from free-exercise-db.
 
 ### C1.14.1 The pages and their pieces
 
@@ -793,43 +624,25 @@ The first feature screens of the app (UI-1, [D1.4.3](../design/D1-ui.md#d143-exe
 | `/exercises/:id` | `ExerciseDetailPage` | `ExercisePhotos`, the facts as a description list, `AlertDialog` to confirm a delete; `useExercise()`, `useDeleteExercise()` |
 | `/exercises/new`, `/exercises/:id/edit` | `ExerciseEditorPage` | `ExerciseForm`, with the rules and conversions of `exercise-form.ts`; `useCreateExercise()`, `useUpdateExercise()` |
 
-**What is not here yet,** with the feature that brings it: "Add to plan" ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)), the "My history" tab ([FEAT-7](../project/backlog.md#feat-7-an-exercises-own-history)), videos (phase 2), the buttons disabled offline (FEAT-3). Photo uploads and "Duplicate as mine" came with `feat/exercise-media` ([C1.14.7](#c1147-uploading-photos-and-duplicate-as-mine)).
+**Not here yet:** "Add to plan" ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)), the "My history" tab ([FEAT-7](../project/backlog.md#feat-7-an-exercises-own-history)), videos (phase 2), the buttons disabled offline ([FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home)).
 
 ### C1.14.2 A list one page at a time
 
-The library has 876 exercises; the API sends 50 per page ([C2.5.2](C2-backend.md#c252-lists-filters-and-pages)). `useExercises()` uses **`useInfiniteQuery`**, TanStack Query's hook for a list read in pages:
+The library has 876 exercises; the API sends 50 per page ([C2.5.2](C2-backend.md#c252-lists-filters-and-pages)). `useExercises()` is a `useInfiniteQuery` whose next page comes from Laravel's pagination `meta`.
 
-```ts
-useInfiniteQuery({
-  queryKey: exerciseKeys.list(filters, language),
-  queryFn: ({ pageParam, signal }) => fetchExercisePage(filters, pageParam, signal),
-  initialPageParam: 1,                                            // the first page read
-  getNextPageParam: last => (last.meta.current_page < last.meta.last_page
-    ? last.meta.current_page + 1 : undefined),                    // undefined: no more pages
-  placeholderData: keepPreviousData,
-})
-```
-
-- **`data.pages`** holds every page read so far; the page joins their rows with `pages.flatMap(page => page.data)`.
-- **`fetchNextPage()`** reads the next one; `hasNextPage` says whether there is one. The page shows a **Show more** button rather than an endless scroll: the end of the page stays reachable, for the keyboard and the tab bar.
+- **Show more,** not an endless scroll: the end of the page stays reachable, for the keyboard and the tab bar.
 - **`placeholderData: keepPreviousData`** keeps the old list on screen while the list of new filters loads, with `isPlaceholderData` true; the page dims it and turns a spinner in the search box ([C1.20](#c120-showing-that-something-is-loading)). Without it every letter typed would flash a skeleton.
 - **The language is part of every key** (`['exercises', 'list', 'it', {…}]`), because the names arrive translated: switching language reads the library again instead of showing Italian names to an English reader. `useMuscles()` and `useEquipment()` do the same.
 - **After a change,** the mutations invalidate `['exercises']`: every list and every exercise, in every language, is marked old.
 
 ### C1.14.3 Filters in the address
 
-The filters live in the address: `/exercises?q=panca&muscle=chest&source=mine`. React Router's **`useSearchParams()`** reads it and writes it, like `useState` for the query string:
-
-```tsx
-const [searchParams, setSearchParams] = useSearchParams()
-const muscle = searchParams.get('muscle') ?? ''        // '' when the parameter is missing
-setSearchParams(next, { replace: true })               // next: a URLSearchParams with the change
-```
+The filters live in the address: `/exercises?q=panca&muscle=chest&source=mine`, read and written with `useSearchParams()`.
 
 - **Why the address and not state:** the browser's Back returns to the list as it was, a reload keeps the filters, a filtered list can be bookmarked or shared.
 - **`replace: true`** changes the current history entry instead of adding one: otherwise Back would undo the search one letter at a time.
 - **A filter back to its default is removed** from the address, so the plain list is plain `/exercises`.
-- **Muscle and equipment wait in a panel.** `ExerciseFilters` shows the search box, a **Filters** button and the source; the button opens a `Sheet` from the bottom (shadcn/ui's, `src/components/ui/sheet.tsx`, a dialog against an edge) with the two selects. The panel's open state is the one `useState` of the component: the filters themselves stay in the address, and a choice in the panel applies at once, as before. **Show exercises** is wrapped in `SheetClose asChild`, which closes the panel; **Clear filters** empties both. The button counts the filters on, with a lime badge for the eye and hidden words for screen readers, "Filters, 1 active" (the comma: see [H3.31](../how-to/H3-frontend.md#h331-compact-page-headers-and-the-filters-panel)). Why: [D1.4.3](../design/D1-ui.md#d143-exercise-library).
+- **Muscle and equipment wait in a panel.** `ExerciseFilters` shows the search box, a **Filters** button and the source; the button opens a `Sheet` from the bottom (shadcn/ui's, `src/components/ui/sheet.tsx`, a dialog against an edge) with the two selects. The panel's open state is the one `useState` of the component: the filters themselves stay in the address, and a choice in the panel applies at once, as before. **Show exercises** is wrapped in `SheetClose asChild`, which closes the panel; **Clear filters** empties both. The button counts the filters on, with a lime badge for the eye and hidden words for screen readers, "Filters, 1 active" (the comma makes screen readers pause between the name and the count). Why a panel: [D1.4.3](../design/D1-ui.md#d143-exercise-library).
 - **The search and the filters stay at the top** while the list scrolls: `sticky top-0` on the row that holds them all. From 640 px they fit on one row of 48 px: search box, Filters, source. On phones the source goes under the other two, and only the search box and Filters stick. The trick is `max-sm:contents` on the row: `display: contents` makes the browser draw the children as if the row were not there, so the row's own `sticky` does nothing, and the inner row's `max-sm:sticky` (search and Filters) takes over. That inner row cannot simply be sticky *inside* a short block, because a sticky element sticks only within its parent: it would scroll away with it.
 - **The search waits for a pause.** The box shows every letter at once (its value is in the address), but the request uses **`useDebouncedValue(search, 300)`** (`src/lib/useDebouncedValue.ts`): a value that follows another one 300 ms after it stops changing. Typing "panca" sends one request, not five. While the two differ (`values.search !== search`) the request is still to come: the page counts that moment as searching, with the spinner in the box and the rows dimmed, so the pause does not look like a frozen screen ([C1.20](#c120-showing-that-something-is-loading)).
 
@@ -844,19 +657,17 @@ The form's fields are shaped for the screen, not for the API:
 | Equipment: a select whose "None" is `''` | `equipment_id`: a number or `null` |
 | Empty texts | `null`, which empties the field on the backend |
 
-`toExerciseInput()` and `formValuesFrom()` (`exercise-form.ts`) convert one way and the other. They are plain functions, tested without drawing anything (`exercise-form.test.ts`). The tools new in this form:
+`toExerciseInput()` and `formValuesFrom()` (`exercise-form.ts`) convert one way and the other, tested without React (`exercise-form.test.ts`).
 
-- **Native selects** (`components/ui/native-select.tsx`) instead of Radix's: on a phone they open the system's own picker, they work with `register()` like an input, and tests use `userEvent.selectOptions()`.
-- **`Controller`** connects a field that `register()` cannot, such as the list of ticks: it hands the render function `field.value` and `field.onChange`.
-- **`useWatch({ control, name: 'primary_muscle' })`** re-renders the form when one field changes: the tick of the main muscle is disabled at once.
-- **`mutateAsync`** instead of `mutate`: the form awaits the request, so `isSubmitting` covers it, and `catch` hands a 422 to `showRequestError`, which puts each message under its field. The form's field names are the backend's (`equipment_id`, `youtube_url`) for that reason.
-- **Editing waits for the data,** then draws the form: `useForm()` reads `defaultValues` only once, when the form first appears.
+- **Native selects** (`components/ui/native-select.tsx`) instead of Radix's: on a phone they open the system's own picker, and they work with `register()` like an input.
+- **The form awaits `mutateAsync`,** so `isSubmitting` covers the request and a 422 reaches `showRequestError`. The form's field names are the backend's (`equipment_id`, `youtube_url`) so each message lands under its field.
+- **Editing waits for the data** before drawing the form: `useForm()` reads `defaultValues` only once.
 
 ### C1.14.5 Photos
 
 The API sends each photo as two paths on the app's own address: `url`, a copy of at most 1600 px for the exercise's page, and `thumb_url`, one of at most 400 px, for every small square (the library, the plans, the editor's picker, workout mode, history) ([C2.5.9](C2-backend.md#c259-the-photos-of-an-exercise)). In development Vite forwards `/storage` to Laravel (`vite.config.ts`), in production Caddy; Laravel's `public/storage` is a link to `storage/app/public`, created by `make setup` (`storage:link`). Why a path and not a full URL: [C2.5.4](C2-backend.md#c254-the-exercise-librarys-endpoints).
 
-- **In the list,** the first photo is the row's cover: `alt=""`, since the name next to it says the same, and `loading="lazy"`, so the browser downloads it only when the row comes near the screen.
+- **In the list,** the first photo is the row's cover: `alt=""`, since the name next to it says the same, and `loading="lazy"`.
 - **On the page,** both photos side by side, each with an `alt` such as "Barbell Bench Press, photo 1".
 - **The small copy where the photo is small:** a 56 px square drawn from a 1200 px JPEG downloads twenty times what it shows. The imported photos' small copies are about 12 KB, against 56 KB.
 
@@ -866,7 +677,7 @@ The library's tests use the helpers of [C1.13.6](#c1136-testing-a-screen-with-th
 
 - **`fakeApi` with query strings.** `'GET /api/exercises'` answers every page and filter; an exact key, `'GET /api/exercises?page=2&per_page=50'`, answers one. The test then reads what was asked from `fake.mock.calls`.
 - **`sentBody(fake, path)`** gives the first call to `path` **that sent a body**: the editor first reads an exercise (GET), then saves it (PATCH).
-- **`ResizeObserver`** does not exist in jsdom, and Radix's Checkbox needs it: `src/test/setup.ts` gives the tests one that does nothing.
+- **`ResizeObserver`** is missing from jsdom and needed by Radix's Checkbox: `src/test/setup.ts` stubs it.
 - **`src/test/exercise-helpers.ts`** builds exercises and pages shaped as the API sends them.
 
 ### C1.14.7 Uploading photos, and Duplicate as mine
@@ -882,11 +693,11 @@ The library's tests use the helpers of [C1.13.6](#c1136-testing-a-screen-with-th
 
 - **The limits are checked before sending** (type, 10 MB, room left) so a wrong file gets its message at once; the server checks them again. The input's `accept` lists JPEG, PNG and WebP, which also makes an iPhone send a JPEG rather than a HEIC.
 - **Files go one after the other,** in order, not all at once on a phone's connection.
-- **The drop zone is a `<label>`** for a hidden `<input type="file">`: a click opens the file picker, a drop calls the same function with `event.dataTransfer.files`. `preventDefault()` in `onDragOver` and `onDrop` stops the browser from opening the dropped photo in place of the app.
+- **The drop zone is a `<label>`** for a hidden `<input type="file">`, so a click and a drop share one handler. `preventDefault()` in `onDragOver` and `onDrop` stops the browser from opening the dropped photo in place of the app.
 - **Icon-only buttons** have an `aria-label`, and the same text as `title`, the tooltip ([P1.2](../project/P1-conventions.md#p12-code)).
 - **Previews hold the file in memory** until `URL.revokeObjectURL()`: done when an upload ends or is dismissed, and for those left when the page is left.
 
-**A progress bar needs XMLHttpRequest.** `fetch()` can report how much of an *answer* has arrived, not how much of a *request* has left. `upload()` in `src/lib/http.ts` uses the browser's older `XMLHttpRequest`, whose `upload.onprogress` fires as the bytes go, and does by hand what `request()` does: the `Accept`, `Accept-Language` and `X-XSRF-TOKEN` headers (not `Content-Type`: for `FormData` the browser writes it, with the boundary between the parts), one retry after a 419, and an `ApiError` for any failure. `useUploadExercisePhoto()` builds the `FormData` with one field, `photo`.
+**A progress bar needs XMLHttpRequest.** `fetch()` cannot report upload progress. `upload()` in `src/lib/http.ts` uses `XMLHttpRequest` (`upload.onprogress`) and does by hand what `request()` does: the `Accept`, `Accept-Language` and `X-XSRF-TOKEN` headers (not `Content-Type`: for `FormData` the browser writes it, with the boundary between the parts), one retry after a 419, and an `ApiError` for any failure. `useUploadExercisePhoto()` builds the `FormData` with one field, `photo`.
 
 **Duplicate as mine** on a public exercise's page: `useDuplicateExercise()` asks for the copy, then the page opens `/exercises/<copy>/edit`, where it can be changed at once.
 
@@ -895,7 +706,7 @@ The library's tests use the helpers of [C1.13.6](#c1136-testing-a-screen-with-th
 
 ## C1.15 The plan screens
 
-The plan list and a plan's page (the second part of FEAT-2, [D1.4.6](../design/D1-ui.md#d146-plan-list) and [D1.4.7](../design/D1-ui.md#d147-plan-details)), on the API of [C2.5.5](C2-backend.md#c255-the-plans-endpoints). **New plan** and **Edit** open the plan editor ([C1.16](#c116-the-plan-editor)); `make plans-demo` gives every user two example plans to look at. How the screens were built, with the real output: [H3.13](../how-to/H3-frontend.md#h313-the-plan-screens-as-built).
+The plan list and a plan's page ([D1.4.6](../design/D1-ui.md#d146-plan-list) and [D1.4.7](../design/D1-ui.md#d147-plan-details)), on the API of [C2.5.5](C2-backend.md#c255-the-plans-endpoints). **New plan** and **Edit** open the plan editor ([C1.16](#c116-the-plan-editor)); `make plans-demo` gives every user two example plans.
 
 ### C1.15.1 The pages and their pieces
 
@@ -912,7 +723,7 @@ PlanDetailPage                 the plan: header, badges, actions, notes
         └── <section>          a superset: a lime bar, its label, and a PlanItemRow per exercise
 ```
 
-**Since then:** "Start this day" came with workout mode ([C1.17](#c117-workout-mode)), and each card says when the plan was last used, "Used 3 days ago" or "Never used yet": `last_used_at` of the list ([C2.5.5](C2-backend.md#c255-the-plans-endpoints)), written by `formatDaysAgo()` (`lib/format.ts`), which counts calendar days in the device's time zone and lets `Intl.RelativeTimeFormat` say them in each language ("ieri", "vor 3 Tagen").
+Each day has **Start this day** ([C1.17](#c117-workout-mode)), and each card says when the plan was last used, "Used 3 days ago" or "Never used yet": `last_used_at` of the list ([C2.5.5](C2-backend.md#c255-the-plans-endpoints)), written by `formatDaysAgo()` (`lib/format.ts`), which counts calendar days in the device's time zone and lets `Intl.RelativeTimeFormat` say them in each language ("ieri", "vor 3 Tagen").
 
 **What is not here yet:** Templates, Share, Duplicate and the Shared badge (phase 2).
 
@@ -928,17 +739,15 @@ PlanDetailPage                 the plan: header, badges, actions, notes
 | A plank of 60 s (logged by time) | `1 × 1 min · 90 sec` |
 | 8–10 at 82.5 kg, RPE 8.5, for a reader in pounds | `1 × 8–10 · 181.88 lb · RPE 8.5 · 90 sec`; in Italian `1 × 8–10 · 181,88 lb · RPE 8,5 · 90 s` |
 
-- **Plain functions, not components.** `plan-format.ts` takes data and gives text, so `plan-format.test.ts` tests every case above without drawing anything, and `PlanItemRow` stays short. The translate function is a parameter, `t`, for the few words ("sets", "max", "RPE").
+- **Plain functions, not components** ([C1.4](#c14-component-conventions)): `plan-format.test.ts` covers every case above. The translate function is a parameter, `t`.
 - **Warm-ups never count** in the line or in the day's "7 sets" ([D2.8](../design/D2-decisions.md#d28-workout-rules)): `workingSets()` leaves them out.
-- **Units come from `Intl`.** `formatSeconds()` and `formatDistance()` use `Intl.NumberFormat` with `style: 'unit'`, so each language writes its own: "90 s" in Italian and Spanish, "90 sec" in English, "90 Sek." in German. A **time target** past a minute that is not whole minutes is written as a clock instead, "1 × 14:30", by `durationText()` ([C1.17.10](#c11710-after-a-real-workout-times-up-next-how-to-do-it)); rests stay in seconds. The weight is converted to the user's unit (`weightIn()`, 1 lb = 0.45359237 kg) and written by `formatWeight()` ([C1.7](#c17-translations)).
+- **Units come from `Intl`.** `formatSeconds()` and `formatDistance()` use `Intl.NumberFormat` with `style: 'unit'`, so each language writes its own: "90 s" in Italian and Spanish, "90 sec" in English, "90 Sek." in German. A **time target** past a minute that is not whole minutes is written as a clock instead, "1 × 14:30", by `durationText()` ([C1.17.10](#c11710-times-up-next-how-to-do-it)); rests stay in seconds. The weight is converted to the user's unit (`weightIn()`, 1 lb = 0.45359237 kg) and written by `formatWeight()` ([C1.7](#c17-translations)).
 - **The user's settings:** an exercise without its own rest shows the user's `default_rest_seconds`; the weights follow `weight_unit`. Both come from `useCurrentUser()`, already in the cache.
 - **Supersets:** `groupSupersets()` splits a day's exercises into runs, keeping the order: neighbours with the same `superset_group` form one run, every other exercise is a run of its own. The backend guarantees the neighbours ([C2.5.6](C2-backend.md#c256-validating-nested-data)), so a run is the whole superset. On screen a run is a `<section aria-label="Superset">` with a lime bar on its left: the label is there for screen readers, which cannot see the bar.
 
 ### C1.15.3 Tabs whose state is in the address
 
-A plan's days are tabs (`components/ui/tabs.tsx`, Radix's Tabs through shadcn/ui). Radix gives what tabs need for keyboards and screen readers: the roles `tablist`, `tab` and `tabpanel`, the arrow keys between tabs, only the open panel drawn.
-
-The open tab is **controlled** by the page, and kept in the address, as the library's filters are ([C1.14.3](#c1143-filters-in-the-address)):
+A plan's days are Radix Tabs (`components/ui/tabs.tsx`). The open tab is controlled by the page and kept in the address, as the library's filters are ([C1.14.3](#c1143-filters-in-the-address)):
 
 ```tsx
 const requested = Number(searchParams.get('day') ?? '1')            // ?day=2, from 1
@@ -948,10 +757,9 @@ const dayIndex = Number.isInteger(requested) && requested >= 1 && requested <= p
 <Tabs value={String(dayIndex)} onValueChange={value => setSearchParams({ day: String(Number(value) + 1) }, { replace: true })}>
 ```
 
-- **Controlled** means `value` comes from the page and `onValueChange` reports a click: Radix never decides alone. Uncontrolled (`defaultValue`) would be simpler, and would forget the day on a reload.
 - **Why the address:** opening an exercise from day B and pressing Back returns to day B.
 - **A value from the address is never trusted:** `?day=9` on a plan of three days opens the first day, rather than a tab bar with nothing selected. A test checks it.
-- **On a phone** six day tabs do not fit: their row scrolls sideways (`overflow-x-auto`), and each tab is 48 px tall, the smallest a finger hits reliably ([D1.5](../design/D1-ui.md#d15-design-system)).
+- **On a phone** six day tabs do not fit: their row scrolls sideways (`overflow-x-auto`), each tab 48 px tall ([D1.5](../design/D1-ui.md#d15-design-system)).
 
 ### C1.15.4 Actions on a plan
 
@@ -971,7 +779,7 @@ action.mutate('activate')          // or 'archive', 'unarchive'
 
 The tests use the helpers of [C1.13.6](#c1136-testing-a-screen-with-the-api) and `src/test/plan-helpers.ts`, which builds plans shaped as the API sends them: `testPlan()` has two days, the first with a bench press (two warm-ups, four working sets) and a superset of two exercises.
 
-- **An answer that changes after an action.** `fakeApi` accepts a function as an answer, called on every request. Setting a plan active is tested with a variable that the `POST` changes, and the next `GET` reads:
+- **An answer that changes after an action,** as in [C1.13.6](#c1136-testing-a-screen-with-the-api):
 
 ```ts
 let active = false
@@ -989,11 +797,11 @@ fakeApi({
 
 **Export**, on a plan's page (`ExportPlanButton`), and **Import plan**, on the list (`ImportPlanButton`), both in `components/plans/`; the file's shape is [D3.5.8](../design/D3-data-model.md#d358-the-plan-file), the endpoints [C2.5.8](C2-backend.md#c258-a-plan-as-a-file).
 
-**Saving a file from the browser** (`lib/download.ts`, `downloadJson()`): the JSON text goes into a **Blob**, a file held in memory; `URL.createObjectURL(blob)` gives it an address, `blob:…`; a link made by the code, with that address and `download="push-pull-legs.atleoplan.json"`, is clicked, and the browser saves instead of opening. `URL.revokeObjectURL()` frees the memory. No mutation and no cache: `fetchPlanFile(id)` asks for the file when the button is tapped. `fileNameOf()` makes the plan's name safe for a file.
+**Saving a file from the browser** (`lib/download.ts`, `downloadJson()`): a Blob, an object URL, and a generated link with `download="push-pull-legs.atleoplan.json"` clicked, then the URL revoked. No mutation and no cache: `fetchPlanFile(id)` asks for the file when the button is tapped. `fileNameOf()` makes the plan's name safe for a file.
 
 **Import plan is a window in three steps** (`ImportPlanButton`, a controlled `Dialog`), so that nothing is sent by surprise: what file it wants and what will happen; **Choose the file**; the preview and **Import**. Closing the window forgets the file (`changeOpen(false)`).
 
-**Choosing a file** is the browser's own picker, an `<input type="file" accept=".json,application/json">`, hidden (`className="hidden"`), which the button clicks through a ref (`input.current?.click()`).
+**Choosing a file** is a hidden `<input type="file" accept=".json,application/json">` clicked through a ref.
 
 **A first look in the browser** (`components/plans/plan-file.ts`, plain functions): `readPlanFile(text, bytes)` answers either the content with a summary, or the problem, each said in its own words.
 
@@ -1010,17 +818,16 @@ else setError(t(`plans.import.problems.${reading.problem}`))   // tooBig, notJso
 | `notPlan` | Not an object with `format: "atleoplan.plan"`, a version 1, a plan with a name and days that are objects with a list of items |
 | `newer` | Our format, a version above the one this app reads: "update the app" |
 
-- **The result is a discriminated union,** `{ ok: true, content, summary } | { ok: false, problem }`: after `if (reading.ok)` TypeScript knows which fields are there. `isObject()` is a **type guard**: its return type, `value is Record<string, unknown>`, tells TypeScript what the value is when it returns true, so `content.format` can be read.
 - **Only a first look:** the backend checks every field (`ImportPlanRequest`), and stays the one that decides. A 422 after Import says the file "looks like a plan, but holds values that are not valid: it may have been edited by hand"; any other failure says "try again".
 - **`event.target.value = ''`** empties the input after each choice: choosing the same file again, after an error, fires `change` again.
 - **The new plan's page says what happened,** from the history entry's `state`, as the editor's save does with `changedElsewhere` (C1.16.5): "Plan imported. 2 exercises were missing and are now among yours: Frog stand, L-sit." The text has a plural (`plans.import.created_one`, `_other`, from `count`).
 - **The library is read again** when exercises were created (`invalidateQueries({ queryKey: exerciseKeys.all })`), with the plans.
 
-**Testing it.** `PlanDetailPage.test.tsx`: jsdom saves no file and has no `URL.createObjectURL`; the test gives one that keeps the Blob, and replaces every link's `click()` with `vi.spyOn(HTMLAnchorElement.prototype, 'click')`; `click.mock.contexts[0]` is the link it was called on, whose `download` and `href` are checked, and the Blob's text is the file. `PlansPage.test.tsx`: the window's text, then `user.upload(input, new File([…], 'plan.json'))`, which chooses a file as the picker does (it honours `accept`, so a file named `.csv` would never arrive); the preview, and no request until Import; the problems said in the window with nothing sent, then a 422. `plan-file.test.ts`: the summary, and each problem. `vi.restoreAllMocks()` after each test puts the spied method back.
+**Testing it.** `PlanDetailPage.test.tsx` stubs `URL.createObjectURL` and spies on `HTMLAnchorElement.prototype.click` (jsdom saves no file), then checks the link's `download` and the Blob's text. `PlansPage.test.tsx` chooses a file with `user.upload()`, checks the preview and that nothing is sent before Import, then the problems and a 422. `plan-file.test.ts` covers the summary and each problem.
 
 ## C1.16 The plan editor
 
-The last part of FEAT-2 ([D1.4.8](../design/D1-ui.md#d148-plan-editor)), at `/plans/new` and `/plans/:id/edit`, on `POST` and `PUT /api/plans` ([C2.5.5](C2-backend.md#c255-the-plans-endpoints)). It is the app's largest screen: a tree of days, exercises and sets, each changed in many ways, saved in one request. How it was built, with the real output: [H3.14](../how-to/H3-frontend.md#h314-the-plan-editor-as-built).
+[D1.4.8](../design/D1-ui.md#d148-plan-editor), at `/plans/new` and `/plans/:id/edit`, on `POST` and `PUT /api/plans` ([C2.5.5](C2-backend.md#c255-the-plans-endpoints)). The app's largest screen: a tree of days, exercises and sets, each changed in many ways, saved in one request.
 
 ### C1.16.1 The pieces
 
@@ -1050,11 +857,11 @@ PlanEditorPage            /plans/new: an empty draft; /plans/:id/edit: reads the
 | `components/plans/SetTypeSelect.tsx` | The set's number and its list of types, shared with workout mode (C1.16.9) |
 | `api/plans.ts` | `useCreatePlan()`, `useUpdatePlan(id)`, and the types of the body (`PlanInput`) |
 
-**What is not here,** with where it went: the desktop layout of D1.4.8, the library in a column beside the plan with exercises dragged across ([UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)); "Add to plan" from an exercise's page ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)). On every width, exercises come from the picker window.
+**Not here yet:** the desktop layout of D1.4.8, the library in a column beside the plan with exercises dragged across ([UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)); "Add to plan" from an exercise's page ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)). On every width, exercises come from the picker window.
 
 ### C1.16.2 The draft and its reducer
 
-The exercise editor is a form of fields side by side, and react-hook-form fits it ([C1.14.4](#c1144-the-editors-form)). A plan is a tree: a day holds exercises, an exercise holds sets, and the changes are not only typing. A set's type changes, an exercise moves to another day, two exercises join a superset, a drag reorders a list. These are written as **actions** handled by one function, the **reducer**, with React's **`useReducer`**:
+A plan is a tree, and most changes are not typing: a set's type changes, an exercise moves to another day, two exercises join a superset, a drag reorders a list. So the editor is not a react-hook-form form but a `useReducer` over named actions:
 
 ```tsx
 const [draft, dispatch] = useReducer(draftReducer, initial)
@@ -1063,14 +870,12 @@ dispatch({ type: 'setSetType', day: 0, item: 1, set: 2, setType: 'drop' })  // s
 dispatch({ type: 'moveItem', day: 0, from: 3, to: 0 })           // the end of a drag
 ```
 
-- **`useReducer(reducer, first)`** is `useState` for state that changes in many named ways. `dispatch(action)` asks React to call `draftReducer(draft, action)` and draw again with what it returns.
-- **The reducer is a plain function** in `plan-draft.ts`, with no React, so `plan-draft.test.ts` runs every action on a draft and checks the result, without drawing anything. 17 tests do so.
-- **It never changes the draft it is given.** React notices a change only when it receives a new object, so the reducer copies the draft first, with **`structuredClone()`**, the browser's deep copy, then changes the copy. The draft before stays as it was, which makes "Discard changes" a simple `dispatch({ type: 'replace', draft: initial })`.
-- **The actions are a discriminated union** (`DraftAction`): each is an object whose `type` names it, and inside `case 'moveItem':` TypeScript knows the action has `from` and `to`. A misspelt action type is a type error, not a silent no-op.
+- **The reducer is pure** and lives in `plan-draft.ts`; `plan-draft.test.ts` runs every action ([C1.4](#c14-component-conventions)).
+- **It copies the draft first** (`structuredClone()`), then changes the copy: the draft as opened stays intact, which makes "Discard changes" a `replace` action.
 - **The components hold no copy of the plan.** `EditorDay`, `EditorItem` and `EditorSet` receive their piece and `dispatch`, and send actions with their indexes (`{ day, item, set }`).
 - **The draft is text, like a form.** Each target is the text typed, `"8-10"` or `"82,5"`, in the user's unit and with their decimal comma. `toPlanInput()` reads it when saving: reps into `target_reps_min` and `target_reps_max`, pounds into kilograms with three decimals (135 lb → 61.235 kg, [D3.2.3](../design/D3-data-model.md#d323-weights-are-always-in-kilograms)), only the targets that fit how the exercise is logged. `draftFromPlan()` does the opposite.
 - **Supersets stay valid by themselves.** After every action the reducer runs `normalizeSupersets()` on each day: an exercise dragged away from its superset leaves it, a superset left with one exercise ends, the numbers become 1, 2, 3. The backend accepts only neighbours ([C2.5.6](C2-backend.md#c256-validating-nested-data)), and the editor can never send anything else.
-- **New rows get their UUID in the browser** (`newId()`: `crypto.randomUUID()`, or the same kind of UUID built from `crypto.getRandomValues()` where the browser lacks it, [H3.18.1](../how-to/H3-frontend.md#h3181-start-without-https-a-uuid-by-hand)), as [D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id) asks; saved rows keep theirs, so sessions of FEAT-3 stay linked.
+- **New rows get their UUID in the browser** (`newId()`: `crypto.randomUUID()`, or a version 4 UUID built from `crypto.getRandomValues()` where `randomUUID` is missing, as on plain HTTP outside `localhost`), as [D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id) asks; saved rows keep theirs, so workouts stay linked to them.
 
 ### C1.16.3 Drag and drop with dnd-kit
 
@@ -1091,26 +896,19 @@ const { attributes, listeners, setNodeRef, transform, transition } = useSortable
   <button {...attributes} {...listeners} aria-label="Move Barbell Bench Press">⋮⋮</button>
 ```
 
-- **`DndContext`** watches drags; **`SortableContext`** knows the list's order, by the items' ids; **`useSortable()`** makes one row draggable. Only the handle gets `listeners`, so the rest of the row can be tapped to open it, and the page can still be scrolled with a finger.
-- **Sensors** decide how a drag starts: `PointerSensor` for a mouse or a finger, once it has moved 5 px (a tap is not a drag); `KeyboardSensor` for space or enter on the handle, then the arrow keys, then space again. `touch-none` on the handle keeps the browser from scrolling during a drag.
-- **While dragging, nothing changes in the draft:** dnd-kit only moves the row on screen, with a CSS `transform`. When the drag ends, `onDragEnd` sends one action, `moveItem`, and the reducer does the rest.
+- **Only the handle gets `listeners`,** so the rest of the row can be tapped to open it and the page still scrolls with a finger; `touch-none` on the handle keeps the browser from scrolling during a drag.
+- **Sensors:** `PointerSensor` with a 5 px activation distance (a tap is not a drag), and `KeyboardSensor`.
+- **The draft changes once, at the end:** dnd-kit moves the row with a CSS `transform` while dragging, and `onDragEnd` dispatches one `moveItem`.
 - **Screen readers hear the drag** ("Picked up Barbell Bench Press. … dropped at position 1 of 4."). dnd-kit's own texts are English; `accessibility.announcements` and `screenReaderInstructions` give them in the user's language.
 - **Exercises move to another day** with a list, inside the opened exercise: one tap, the same with a keyboard. **Days are not reordered** on screen: the number of days adds or removes them at the end (C1.16.7). The reducer still has `moveDay`, with its test, should the order come back.
 
 ### C1.16.4 The draft kept in the browser
 
-D1.4.8 asks that the draft be saved automatically. After every change, an effect writes it to the browser's **`localStorage`**, under `atleoplan.planDraft.<plan id>`, or `…new` for a plan being created (`draft-storage.ts`):
-
-```tsx
-useEffect(() => {
-  if (dirty) storeDraft(storageKey, draft)
-  else clearDraft(storageKey)
-}, [draft, dirty, storageKey])
-```
+D1.4.8 asks that the draft be saved automatically. After every change, an effect writes it to `localStorage`, under `atleoplan.planDraft.<plan id>`, or `…new` for a plan being created (`draft-storage.ts`).
 
 - **Opening the editor again** brings the draft back, with a banner that says so; **Discard changes** returns to the plan as it was opened and forgets the draft; **a save** forgets it too.
-- **`dirty`** compares the draft with the plan as opened, both turned into text with `JSON.stringify`: the simplest way to compare two trees of objects.
-- **`localStorage`, not IndexedDB.** [D3.5.6](../design/D3-data-model.md#d356-saving-a-plan) names IndexedDB for drafts; it comes with the offline work of FEAT-3, which needs a database in the browser for much more. A draft is a few kilobytes of JSON, and `localStorage` holds it with three lines of code.
+- **`dirty`** compares the two trees serialised with `JSON.stringify`.
+- **`localStorage`, not IndexedDB.** [D3.5.6](../design/D3-data-model.md#d356-saving-a-plan) names IndexedDB for drafts; it comes with the offline work, which needs a database in the browser for much more. A draft is a few kilobytes of JSON.
 - **Every access is in `try`/`catch`:** a private window, or storage full, throws, and the editor must still work, only without keeping the draft.
 - **A draft follows the browser, not the account:** started on the phone, it is not on the laptop. A saved plan is.
 
@@ -1121,7 +919,7 @@ useEffect(() => {
 1. **`validateDraft()`**, the backend's rules ([C2.5.6](C2-backend.md#c256-validating-nested-data)) checked in the browser: a name, reps as `8` or `8-10` from 1 to 999, an RPE from 1 to 10 with one decimal, a rest up to an hour… It returns a translation key per wrong field, by the field's path in the draft: `days.0.items.1.sets.2.reps`. With any error, nothing is sent: the fields turn red, a banner says so, and the step with the error opens: the first for the name or a day's name, otherwise the second, on the tab of the first day whose exercises have one. That tab, and any other day's with an error, carries a red dot (C1.16.7).
 2. **`toPlanInput()`** builds the body, and `useCreatePlan()` sends it with `POST`, or `useUpdatePlan(id)` with `PUT` and the `version` the editor started from.
 3. **A 422 from the server** carries Laravel's field names: `draftField()` turns `days.0.items.1.sets.2.target_reps_max` into `days.0.items.1.sets.2.reps`, the same indexes, since the order is the position. The message appears under that field, as the editor's own would.
-4. **Success** forgets the kept draft and opens the plan's page, replacing the editor in the history (`replace: true`; from the second step, after one step back first, C1.16.7). On a `PUT`, the answer's `meta.changed_elsewhere` travels with the navigation, in its **`state`**:
+4. **Success** forgets the kept draft and opens the plan's page, replacing the editor in the history (`replace: true`; from the second step, after one step back first, C1.16.7). On a `PUT`, the answer's `meta.changed_elsewhere` travels in the navigation's `state`:
 
 ```tsx
 navigate(`/plans/${plan.id}`, { replace: true, state: { changedElsewhere: true } })
@@ -1135,15 +933,15 @@ const saved = useLocation().state as PlanSavedState | null
 
 ### C1.16.6 Testing it
 
-- **The draft without React** (`plan-draft.test.ts`): `run(draft, action1, action2…)` applies actions in turn with `actions.reduce(draftReducer, draft)`, then the test reads the result.
+- **The draft without React** (`plan-draft.test.ts`): `run(draft, action1, action2…)` applies actions in turn, then the test reads the result.
 - **The page** (`PlanEditorPage.test.tsx`) is used as a person would: it types, opens the picker (`findByRole('dialog', { name: 'Add exercises' })`), ticks, taps a set's number, saves; then `sentBody(fake, '/api/plans')` gives the body sent, compared with what the backend expects.
 - **The draft kept between visits:** the test draws the editor, types, calls `unmount()` (the editor disappears, as when leaving the page), draws it again, and finds the change and the banner. `src/test/setup.ts` empties `localStorage` after each test.
-- **Dragging is not drawn in tests:** jsdom has no layout, so the positions dnd-kit measures are all zero. What a drag does, `moveItem`, is tested in the reducer; the drag itself is checked in the browser ([H3.14.8](../how-to/H3-frontend.md#h3148-checking-in-the-browser)).
+- **Dragging is not drawn in tests:** jsdom has no layout, so the positions dnd-kit measures are all zero. What a drag does, `moveItem`, is tested in the reducer; the drag itself is checked in a browser.
 - **The history's Back** is the router's: `await act(() => router.navigate(-1))` is the phone's button, and `router.state.location.search` tells which step and tab are open (C1.16.7). A native select is changed with `user.selectOptions(select, '3')`; the dialog is found by its role, `alertdialog`.
 
 ### C1.16.7 Two steps, one draft
 
-The editor was first one page: the plan's fields, the days as tabs with "Add day", and above each day's exercises its name, move and delete. Three levels on one long page, the exercises far down on a phone. It is now two steps on the same draft ([D1.4.8](../design/D1-ui.md#d148-plan-editor)): first the plan's details with the number of days and their names (`EditorOverview`), then the days as tabs with their exercises (`EditorDays`).
+Two steps on the same draft ([D1.4.8](../design/D1-ui.md#d148-plan-editor)), so that a phone shows one level at a time: first the plan's details with the number of days and their names (`EditorOverview`), then the days as tabs with their exercises (`EditorDays`).
 
 **Which step shows is in the address,** as the plan page's open tab is ([C1.15](#c115-the-plan-screens)): no `?day=` is the first step, `?day=2` the second with the second day's tab open. `PlanEditor` reads it with `useSearchParams()` and draws one step or the other:
 
@@ -1156,7 +954,7 @@ const openDay = searchParams.has('day') && Number.isInteger(requested) && reques
 
 - **The steps are not routes.** Both are drawn by `PlanEditor`, which stays on the page: the draft, the errors and a save in progress are not lost between them.
 - **A value from the address is not trusted:** `?day=9`, or a day that a Discard removed, shows the first step.
-- **Each step starts at the top:** every change of `?day=` is a new history entry, and `<ScrollRestoration />`, drawn once by the frame (`AppLayout`), is React Router's component that scrolls a new entry to the top and puts an entry gone back to where it was.
+- **Each step starts at the top:** every change of `?day=` is a new history entry, and `<ScrollRestoration />` in `AppLayout` scrolls it.
 
 **The number of days** is a native select, 1 to 14 (`LIMITS.days`, the backend's limit). More days dispatches `addDay` once per new day, named with the next letters (`dayLetter()` in `plan-draft.ts`: "Day C", "Day D"); fewer dispatches `removeDay` for the last ones, from the last down, so each index still names the day it meant. When a day to remove has exercises, the change waits in `pendingCount` and an `AlertDialog` asks first; its `open` is controlled by that state (`open={pendingCount !== null}`), not by a trigger button as on the plan's page. Removing only from the end keeps the select simple; the price is that a day in the middle cannot be removed, nor the days reordered.
 
@@ -1169,7 +967,7 @@ const openDay = searchParams.has('day') && Number.isInteger(requested) && reques
 | The tab of Day B | … · details · Day B | the same with `replace: true`: Day B takes Day A's place |
 | Back, or **Back to the plan's details** | … · details | `navigate(-1)`, since `state.fromPlan` says the entry before is the details |
 
-The `state` is a second, invisible part of a history entry ([C1.16.5](#c1165-saving)). A tab opened another way, a reload or a link to `?day=2`, has none, and **Back to the plan's details** then replaces the entry (`setSearchParams({}, { replace: true })`) instead of leaving the editor.
+A tab opened another way, a reload or a link to `?day=2`, has no `state`, and **Back to the plan's details** then replaces the entry (`setSearchParams({}, { replace: true })`) instead of leaving the editor.
 
 **Saving from the second step.** The plan's page replaces the editor's entry, so Back from it does not return to the editor. In the second step the editor's entries are two (details, exercises), and replacing only the last would leave the first. So the editor first steps back, then saves over the first step's entry:
 
@@ -1180,7 +978,7 @@ onSaved(saved)   // navigate(`/plans/${id}`, { replace: true, … })
 
 `await` matters: with the app's router (`createBrowserRouter`), `navigate(-1)` returns a Promise that ends once the browser has gone back. Without it, the replace would land on the exercises' entry before the step back, and the back would then reopen the editor.
 
-**One lime button at a time** ([H3.15.10](../how-to/H3-frontend.md#h31510-fourth-pass-looking-at-the-screen-for-real)): in the first step the way on is **Next: the exercises**, so Save (or **Create plan**) is outlined there (`variant="outline"`), and lime again in the second.
+**One lime button at a time** ([D1.5](../design/D1-ui.md#d15-design-system)): in the first step the way on is **Next: the exercises**, so Save (or **Create plan**) is outlined there (`variant="outline"`), and lime again in the second.
 
 **Errors go to their step** (`showErrors` in `PlanEditor`): a path matching `/^days\.(\d+)\.items\./` belongs to a day's exercises, any other (the name, a day's name) to the first step. The first step wins when both have one, since its fields are fewer and come first. In the second step a day's tab carries a red dot when its exercises have an error.
 
@@ -1202,20 +1000,13 @@ A plan written from paper meets exercises the library does not have, or has unde
 - **The state "creating" lives in `ExercisePicker`**, not in the list's component: the window's title changes too, from "Add exercises" to "New exercise". Closing the window sets it back to the search.
 - **The library's lists are read again** after the creation (`invalidateQueries`), so the new exercise is in the library and in the next search.
 
-**Columns chosen by the form's width: container queries.** The form puts its three selects (main muscle, equipment, logging type) side by side. With `sm:grid-cols-3` that happened from a screen of 640 px, and in a 512 px window on a laptop the three were squeezed and "Peso × ripetizioni" cut off. A **container query** asks the width of an element instead of the screen's: the form is marked `@container`, and its grids use `@xl:grid-cols-3`, three columns when the form itself is at least 36rem (576 px) wide.
-
-```tsx
-<form className="@container flex flex-col gap-6">
-  <div className="grid gap-6 @xl:grid-cols-3">…</div>
-```
-
-Tailwind 4 has them built in: `@container` on the parent, `@sm:`, `@md:`, `@lg:`, `@xl:` (24, 28, 32, 36 rem) on what is inside. On the editor's page the form is wider than 576 px from a laptop up, so it looks as before there; on a tablet in portrait it now keeps one column. How it was built: [H3.23](../how-to/H3-frontend.md#h323-creating-an-exercise-from-the-picker-as-built).
+**Columns chosen by the form's width: container queries.** The same form lives on a full page and in a 512 px window, so its grids follow the form's width, not the screen's: the form is `@container`, its three selects `@xl:grid-cols-3` (three columns from 576 px of form). A screen breakpoint would squeeze them in the window on a laptop.
 
 ### C1.16.9 Set types and the RPE field
 
-Two changes to a set's row, after writing a real plan into the editor: the letters W, D, F said nothing to someone who did not know them, and the RPE field took a third of every row for a number most people never set.
+The letters W, D, F say nothing to someone who does not know them, and an RPE field takes a third of every row for a number most people never set.
 
-**The type, from a list.** The set's number used to go through the four types one tap at a time (`cycleSetType`). Now it opens a list, `SetTypeSelect` (`components/plans/SetTypeSelect.tsx`), shared by the editor and workout mode: each type with its letter in a square, its name and a line on what it is ("Warm-up: light, before the working sets; not counted"). The reducers take the type chosen, `{ type: 'setSetType', day, item, set, setType: 'warm_up' }` here and `{ type: 'setSetType', exercise, set, setType }` in workout mode.
+**The type, from a list.** The set's number opens a list, `SetTypeSelect` (`components/plans/SetTypeSelect.tsx`), shared by the editor and workout mode: each type with its letter in a square, its name and a line on what it is ("Warm-up: light, before the working sets; not counted"). The reducers take the type chosen, `{ type: 'setSetType', day, item, set, setType: 'warm_up' }` here and `{ type: 'setSetType', exercise, set, setType }` in workout mode.
 
 ```tsx
 <Select value={value} onValueChange={type => onChange(type as SetType)}>
@@ -1229,7 +1020,7 @@ Two changes to a set's row, after writing a real plan into the editor: the lette
 ```
 
 - **The same Select as Profile's** (`components/ui/select.tsx`, [C1.13.4](#c1134-preferences-on-the-account)), with keyboard, focus and screen-reader roles from Radix, but **its own trigger**: shadcn's `SelectTrigger` draws a bordered field with a chevron, too wide for a 48 px square.
-- **`asChild`** is Radix's way to lend a part's behaviour to another element: `SelectPrimitive.Trigger asChild` draws no button of its own, and passes its handlers, its `role="combobox"` and its `aria-expanded` to our `Button`. The button looks as before; only what a tap does changed.
+- **`SelectPrimitive.Trigger asChild`** passes the trigger's handlers, `role="combobox"` and `aria-expanded` to our `Button`.
 - **`position="popper"`** opens the list under the button, aligned to its left edge (`align="start"`), rather than over it with the chosen item on the button, the Select's default, which on a 48 px square would hide the row.
 - **Tests** find the button as a combobox, `getByRole('combobox', { name: 'Set 1, normal: change the type' })`, and the type as an option, `findByRole('option', { name: /^Warm-up/ })`: the option's name is its whole text, hint included.
 
@@ -1241,14 +1032,12 @@ const withRpe = showRpe || hadRpe
 ```
 
 - **An RPE already there is shown,** preference or not: a plan written before the preference, or by someone who uses it, would otherwise be saved with a value nobody sees.
-- **Read once, when the exercise is first drawn.** `useState(() => …)` keeps the first answer. Worked out at every draw, the field would vanish under the finger the moment its last RPE was erased.
+- **Read once, when the exercise is first drawn** (`useState(() => …)`): worked out at every draw, the field would vanish under the finger the moment its last RPE was erased.
 - **The plan's page** still writes "RPE 8" in an exercise's line when a target has one; only the editor's field depends on the preference.
-
-How it was built: [H3.24](../how-to/H3-frontend.md#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built).
 
 ## C1.17 Workout mode
 
-The first part of FEAT-3 on screen ([D1.4.9](../design/D1-ui.md#d149-workout-mode)): **Start** on a day of a plan opens `/session/:id`, a full screen where the user ticks the sets one by one, with the rest timer between them, and **Finish** sends the workout to `PUT /api/sessions/{id}` ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)). It is the screen used in the gym, with sweaty hands and a bad connection, so two rules come before everything else: **nothing is ever lost**, and **one tap per set**. How it was built, with the real output: [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built).
+[D1.4.9](../design/D1-ui.md#d149-workout-mode): **Start** on a day of a plan opens `/session/:id`, a full screen where the user ticks the sets one by one, with the rest timer between them, and **Finish** sends the workout to `PUT /api/sessions/{id}` ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)). It is the screen used in the gym, with sweaty hands and a bad connection, so two rules come before everything else: **nothing is ever lost**, and **one tap per set**.
 
 ### C1.17.1 The pieces
 
@@ -1292,9 +1081,9 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 | `lib/pending-sessions.ts`, `lib/usePendingSessions.ts` | Sending the queue, and the hook that sends it when the app opens and when the network comes back |
 | `lib/useNow.ts`, `lib/useWakeLock.ts`, `lib/alarm.ts` | The current moment every second; the screen kept on; the beep and the vibration |
 
-**Full screen.** The route `session/:id` sits inside `RequireAuth` but beside `AppLayout`, not under it ([C1.5](#c15-routing)): signed in, with no tab bar or side navigation. It behaves like an app: the bars stay put and only the middle scrolls, and only when an exercise is longer than the screen; the page itself never scrolls. Every part (top bar, exercise, rest timer, Previous and Next) uses the same side margins, `WORKOUT_COLUMN` in `components/workout/layout.ts`: those of the app's other pages (`px-5 sm:px-8 lg:px-12`: 20, 32, 48 px), with the whole width of the window, on a laptop too. The spacing breathes a little and grows with the screen: rows of sets 8 px apart on a phone, 12 px from 640 px (`gap-2 sm:gap-3`), 20 to 24 px around the exercise, the bars a little taller on a tablet and a laptop. The buttons follow the app's look ([D1.5](../design/D1-ui.md#d15-design-system)): 48 px tall (`xl`), lime only for the main action (Finish workout), outlined for the others (Finish at the top, Previous, Next, Add set, −15, +15, Skip), plain only for icons (✕, a set's number). The middle is `relative`, so the hidden "Rest over" text (`sr-only`, absolutely positioned) stays inside it instead of stretching the page ([H3.15.11](../how-to/H3-frontend.md#h31511-fifth-pass-wide-on-a-laptop-an-app-on-a-phone)). The screen is a column as tall as the window (`h-dvh`, the height the browser really shows on a phone, toolbars excluded); only the middle scrolls, so ✕, Finish, the rest timer and Next are always in reach. `env(safe-area-inset-top)` keeps the top clear of a phone's notch.
+**Full screen.** The route `session/:id` sits inside `RequireAuth` but beside `AppLayout`, not under it ([C1.5](#c15-routing)): signed in, with no tab bar or side navigation. It behaves like an app: the bars stay put and only the middle scrolls, and only when an exercise is longer than the screen; the page itself never scrolls. Every part (top bar, exercise, rest timer, Previous and Next) uses the same side margins, `WORKOUT_COLUMN` in `components/workout/layout.ts`: those of the app's other pages (`px-5 sm:px-8 lg:px-12`: 20, 32, 48 px), with the whole width of the window, on a laptop too. The spacing breathes a little and grows with the screen: rows of sets 8 px apart on a phone, 12 px from 640 px (`gap-2 sm:gap-3`), 20 to 24 px around the exercise, the bars a little taller on a tablet and a laptop. The buttons follow the app's look ([D1.5](../design/D1-ui.md#d15-design-system)): 48 px tall (`xl`), lime only for the main action (Finish workout), outlined for the others (Finish at the top, Previous, Next, Add set, −15, +15, Skip), plain only for icons (✕, a set's number). The middle is `relative`, so the hidden "Rest over" text (`sr-only`, absolutely positioned) stays inside it instead of stretching the page. The screen is a column as tall as the window (`h-dvh`, the height the browser really shows on a phone, toolbars excluded); only the middle scrolls, so ✕, Finish, the rest timer and Next are always in reach. `env(safe-area-inset-top)` keeps the top clear of a phone's notch.
 
-**What is not here yet,** each in the backlog: live records, a notification when the rest ends with the app in the background, and the real offline app (FEAT-3). The summary after Finish is in [C1.19](#c119-the-summary-and-history).
+**Not here yet,** each in the backlog: live records, a notification when the rest ends with the app in the background, and the offline app ([FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home)). The summary after Finish is in [C1.19](#c119-the-summary-and-history).
 
 ### C1.17.2 Starting: the plan becomes a workout
 
@@ -1302,7 +1091,7 @@ WorkoutPage              /session/:id: reads the workout kept on the phone; none
 
 1. **Asks for last time's sets** of the day's exercises, `GET /api/sessions/last-sets?exercises=12,40,7`, with `fetchLastSets()`. Without network the request fails, and `.catch(() => [])` turns the failure into "no last time": the workout starts anyway. Each exercise keeps the whole list too, `previous`, besides the set in each place: the summary compares with it at the end, with no request ([C1.19.3](#c1193-better-than-last-time-exercise-by-exercise)).
 2. **Builds the workout** with `startSession(plan, day, options)`: each item of the day becomes an exercise, each planned set a set to do. The fields are filled with **last time's values for the set in the same place**, else the **plan's target** (the lower end of `8-10`), so a set done as planned or as last time is a single tap on ✓. The weights are written in the user's unit and language (`82,5` in Italian).
-3. **Gives it a UUID** in the browser (`newId()`; `crypto.randomUUID()` exists only on HTTPS and `localhost`, so a fallback builds one by hand elsewhere, [H3.18.1](../how-to/H3-frontend.md#h3181-start-without-https-a-uuid-by-hand)), as every row of a workout gets one ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). The backend keeps these ids, which is what makes sending the same workout twice harmless (C1.17.5).
+3. **Gives it a UUID** in the browser (`newId()`, [C1.16.2](#c1162-the-draft-and-its-reducer)), as every row of a workout gets one ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). The backend keeps these ids, which is what makes sending the same workout twice harmless (C1.17.5).
 4. **Stores it** on the phone and opens `/session/<id>`.
 
 The workout is not sent to the backend now: only at Finish. Until then it lives on the phone only. Start is disabled while another workout is in progress ("Finish or resume the workout in progress first."), and on a day with no exercises.
@@ -1318,9 +1107,9 @@ dispatch({ type: 'toggleSet', exercise: 0, set: 2, now: new Date().toISOString()
 dispatch({ type: 'adjustRest', seconds: 15 })                                          // +15
 ```
 
-- **The same ideas as the editor:** a plain function with no React, tested on its own (`workout-session.test.ts`); `structuredClone()` first, so React receives a new object; the actions a discriminated union (`WorkoutAction`).
-- **Moments are ISO 8601 text** (`"2026-11-09T18:01:00.000Z"`), not `Date` objects: the workout is turned into JSON for `localStorage`, and a `Date` would come back as text anyway.
-- **"Now" is a parameter.** An action that needs the time carries it (`now`), and the readers take it (`elapsedSeconds(session, now)`). The reducer never calls `new Date()` itself, so a test chooses the moment and the result is always the same: "tick at 60 s, the rest ends at 150 s".
+- **The same shape as the editor's:** pure, copied with `structuredClone()`, tested on its own (`workout-session.test.ts`).
+- **Moments are ISO 8601 text,** not `Date` objects: the workout round-trips through JSON in `localStorage`.
+- **"Now" is a parameter** of the actions and of the readers (`elapsedSeconds(session, now)`), so a test chooses the moment: "tick at 60 s, the rest ends at 150 s".
 - **The clock counts the time trained without the pauses.** `accumulated_seconds` holds the seconds before the last pause, `running_since` the moment it started running again (null while paused): `elapsed = accumulated + (now − running_since)`. ✕ is a `pause`; opening the screen again a `resume`.
 - **Values are text, as typed,** like the editor's. A set can be ticked only when the values its exercise is logged with read as numbers (`canComplete()`): reps (with or without a weight), seconds or meters. ✓ is disabled otherwise, and the backend never receives a set it would refuse.
 - **The weight may stay empty.** On a weighted exercise, a set done with the body alone (lunges without dumbbells); on a bodyweight one (pull-ups, logged as `reps`), the column is **+kg**, the added weight, empty for the body alone. A weight that is typed must read as a number. `toSessionInput()` sends it for both, `null` when empty ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)).
@@ -1335,26 +1124,26 @@ dispatch({ type: 'adjustRest', seconds: 15 })                                   
 
   `supersetNext(session, index)` finds where to go: the next exercise of the round with a set not yet ticked; at the end of a round, the superset's first with a set left; `null` when there is none, or no superset. With `'round'` it looks only within this round, which is how the reducer decides whether the round is over and the rest starts. Exercises with nothing left are skipped: supersets often pair different numbers of sets (3 leg curls, 4 calf raises). Under the exercise's name, "Superset: Leg curl + Calf raise" says why Next names another exercise.
 
-  **Why not move by itself,** as D1.4.9 first had it: on the superset's last exercise, a tap on a set's ✓ replaced the whole screen with the first exercise, the set just ticked out of sight and the bottom bar changed; it looked broken ([H3.15.15](../how-to/H3-frontend.md#h31515-ninth-pass-supersets-with-uneven-sets), [H3.15.16](../how-to/H3-frontend.md#h31516-tenth-pass-the-screen-never-moves-by-itself)).
+  **Why the screen never moves by itself:** jumping to the superset's next exercise on ✓ takes the set just ticked out of sight and changes the bottom bar under the thumb; it reads as a glitch.
 
   A rest of 0 seconds starts no timer. `supersetOf(session, index)` finds the superset: the neighbours with the same `superset_group`, as the editor keeps them ([C1.16.2](#c1162-the-draft-and-its-reducer)).
 
 - **Numbers on screen** come from `setNumbers()`: warm-ups are counted apart, so the sets that count are numbered 1, 2, 3 whatever warm-ups come first, as D1.4.9 draws them (`W W 1 2 3`, not `W W 3 4 5`). A set whose type changes renumbers the ones after it. Screen readers hear the same names: "Set 1, kg: 80" (the row's button, with its value), "Warm-up 2, Reps" (the stepper's box), "Tick: Set 1".
 - **The columns have titles** (`SetHeader`): Set, Last, then one per field, kg (or lb) and Reps, or Time, or m. The header and the rows build their fields with the same function, `fieldsFor()`, and use the same widths (`w-12`, `w-16`, `flex-1`, `w-12`), so each number sits under its title.
-- **Exercises added on the way.** **Add exercises**, the outlined button on the right of the dots, opens the plan editor's picker (`ExercisePicker`, [C1.16](#c116-the-plan-editor)); the exercises ticked are added at the end, the first of them opened. Each is built by `exerciseFrom()`: one set per set of last time, with its values and types, or one empty set for an exercise never done; the user's default rest; no plan item. They are built *outside* the reducer and handed to it ready (`{ type: 'addExercises', exercises }`), because building one makes new UUIDs: a reducer must give the same result every time it gets the same action, and React may call it twice to check (StrictMode, [C1.4](#c14-react-from-scratch)).
+- **Exercises added on the way.** **Add exercises**, the outlined button on the right of the dots, opens the plan editor's picker (`ExercisePicker`, [C1.16](#c116-the-plan-editor)); the exercises ticked are added at the end, the first of them opened. Each is built by `exerciseFrom()`: one set per set of last time, with its values and types, or one empty set for an exercise never done; the user's default rest; no plan item. They are built outside the reducer and handed to it ready (`{ type: 'addExercises', exercises }`), because building one makes new UUIDs ([C1.4](#c14-component-conventions)).
 - **A free workout** (Home, [C1.18](#c118-home)) is `startFreeSession(now)`: no plan, no day's name, no exercises. The screen shows "Free workout" as its title and, until the first exercise is added, only **Add exercises** (lime) and **Cancel workout**, which forgets it: nothing was done. No Finish, no Previous or Next, with nothing to finish or move to; `finishTime` is false with no exercise.
 - **At Finish,** `toSessionInput()` builds the body: every exercise, **only the ticked sets**, only the values that fit how the exercise is logged, weights in kilograms. An exercise with no set ticked is sent with none: skipped, which the history can show. The note written from the exercise's menu goes as its `notes` (C1.17.7).
 
 ### C1.17.4 The rest timer: a moment, not a countdown
 
-A countdown that subtracts one every second drifts, and stops when the phone sleeps or the tab is in the background: browsers slow timers down there to save battery. So the rest is stored as **the moment it ends**, `rest.ends_at`, and the screen shows the difference with now:
+A countdown that subtracts one every second drifts, and stops when the phone sleeps or the tab is in the background, where browsers throttle timers. So the rest is stored as **the moment it ends**, `rest.ends_at`, and the screen shows the difference with now:
 
 ```tsx
 const now = useNow(1000)                  // a new Date every second: the screen draws again
 const left = restLeft(session, now)       // ends_at − now, in whole seconds, never below 0
 ```
 
-- **`useNow(intervalMs)`** is a small custom hook: `useState` holds the moment, an effect starts `setInterval`, and its clean-up stops it. Each tick draws the screen again, and the clock and the timer read the new moment. A phone that slept 2 minutes shows the right time as soon as it wakes.
+- **`useNow(intervalMs)`** re-renders with the current moment; a phone that slept 2 minutes shows the right time as soon as it wakes.
 - **±15 s** moves `ends_at`, and the bar's total with it. **Skip** is `endRest`.
 - **The end of the rest** is a `setTimeout` set for that moment, in an effect that depends on `session.rest`:
 
@@ -1371,9 +1160,9 @@ useEffect(() => {
 }, [session.rest, t, user])
 ```
 
-  A new rest, or ±15 s, is a new `session.rest` object: React runs the clean-up, which clears the old timer, then the effect again, which sets a new one. Why not simply check `left === 0` on every tick? That was the first version, and React's rules refuse it: changing state directly inside an effect draws the screen twice for nothing ([H3.15.4](../how-to/H3-frontend.md#h3154-the-errors-met)). Inside a timer's function it is allowed, since the change happens later, as an event would.
+  A new rest, or ±15 s, is a new `session.rest` object, so the old timer is cleared and a new one set. Checking `left === 0` on every tick instead would set state synchronously inside an effect, which React's lint rules refuse (a wasted render); from the timer's callback it is an ordinary event.
 - **The beep** is made with the Web Audio API (`lib/alarm.ts`): an oscillator at 880 Hz, twice, faded out so it does not click. No sound file to download. **The vibration** is `navigator.vibrate([200, 100, 200])`, which iPhones ignore. Both follow the user's settings, `timer_sound` and `timer_vibration`.
-- **The screen stays on** with the **Wake Lock API** (`useWakeLock`): `navigator.wakeLock.request('screen')` while the screen is open. The browser drops the lock when the page is hidden, so the hook asks again when it shows (`visibilitychange`). A browser without the API simply lets the screen sleep.
+- **The screen stays on** with the Wake Lock API (`useWakeLock`). The browser drops the lock when the page is hidden, so the hook asks again on `visibilitychange`; a browser without the API lets the screen sleep.
 
 ### C1.17.5 The queue of workouts to send
 
@@ -1408,7 +1197,7 @@ What each answer of the server does to a workout in the queue:
 
 **Sending twice is harmless.** The request is a `PUT` to the workout's own UUID, made on the phone: the first creates, the next ones replace it with the same content. A request that reached the server but whose answer was lost (the network dropped) is simply sent again, and the server does not end up with two workouts. This is why the ids are made in the browser.
 
-**Tried again when?** `usePendingSessions(enabled)`, in `RequireAuth`, sends the queue when a signed-in app opens, and on the browser's **`online`** event, when the network comes back. A round that sent something has the cached lists read again. This is the part of offline sync ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)) a workout needs; the PWA, IndexedDB and sending in the background come with the rest of FEAT-3.
+**Tried again when?** `usePendingSessions(enabled)`, in `RequireAuth`, sends the queue when a signed-in app opens, and on the browser's `online` event. A round that sent something invalidates the cached lists. This is the part of offline sync ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)) a workout needs; the PWA, IndexedDB and background sync come with the rest of the offline work.
 
 **Resuming.** ✕ pauses the workout, stores it and opens the plan's page (Home, for a free workout); both show "Workout in progress: Day A – Push" with **Resume** (`ResumeBanner`), and so does Home whatever page the workout was left from. A reload, a closed tab or a flat battery lead to the same place: the workout is read back from the phone, its clock running again only from when it is opened.
 
@@ -1417,15 +1206,13 @@ What each answer of the server does to a workout in the queue:
 - **The workout without React** (`workout-session.test.ts`), with the same `run(start, ...actions)` helper as the editor's. Every moment is chosen: `at(60)` is the start plus 60 seconds, so "tick at 60, 50 seconds of rest left at 100" is exact.
 - **The page** (`WorkoutPage.test.tsx`): a workout is started with `startSession()` and stored, as Start does, then the page is drawn at `/session/<id>`. The test ticks, reads the timer by its role (`getByRole('timer')`), reads `localStorage` back with `loadActiveSession()`, and sends Finish with a fake API that answers 201, or `'network'` to check that the workout stays in the queue.
 - **The queue** (`pending-sessions.test.ts`): five workouts queued, the fake API answering 201, 410, `'network'`, 503 and 422; the test checks which leave and which stay.
-- **What tests cannot show:** the beep, the vibration, the screen staying on, the timer firing with the phone asleep. jsdom has none of them; they are checked on a phone ([H3.15.7](../how-to/H3-frontend.md#h3157-checking-in-the-browser-and-on-a-phone)).
+- **What tests cannot show:** the beep, the vibration, the screen staying on, the timer firing with the phone asleep. jsdom has none of them; they are checked on a phone.
 
 ### C1.17.7 The big stepper and the exercise's menu
 
-Two panels that slide up from the bottom of the screen, added by UI-6 ([D1.4.9](../design/D1-ui.md#d149-workout-mode)). How they were built: [H3.20](../how-to/H3-frontend.md#h320-the-stepper-and-the-exercise-menu-as-built).
+Two panels that slide up from the bottom of the screen ([D1.4.9](../design/D1-ui.md#d149-workout-mode)), both shadcn/ui's `Sheet` with `side="bottom"`: a Radix Dialog against an edge, with the focus trapped and returned. Bottom panels suit a phone in one hand: the controls are where the thumb is.
 
-**A panel from the bottom: the Sheet.** shadcn/ui's `Sheet` (`components/ui/sheet.tsx`) is a Radix Dialog drawn against an edge instead of in the middle: the page behind waits, the focus moves in and stays, Escape, the X and a tap outside close it, the focus goes back to what opened it. `side="bottom"` picks the edge; the rest is the same component as the plan editor's `Dialog`. Bottom panels suit a phone in one hand: the controls are where the thumb is.
-
-**The stepper.** The set's fields are no longer text boxes but buttons that look like them (`SetRow`): a tap opens `SetStepper` on that set, with each of its fields between a − and a + 64 px wide, the step written on them (`−2,5`, `+1`). Typing the phone's keyboard was slow with sweaty hands; the box between − and + still takes typing, for a value far away.
+**The stepper.** The set's fields are buttons that look like inputs (`SetRow`): a tap opens `SetStepper` on that set, with each of its fields between a − and a + 64 px wide, the step written on them (`−2,5`, `+1`). The phone's keyboard is slow with sweaty hands; the box between − and + still takes typing, for a value far away.
 
 | Field | Step | Below zero |
 |---|---|---|
@@ -1437,7 +1224,7 @@ Two panels that slide up from the bottom of the screen, added by UI-6 ([D1.4.9](
 - **The values stay text.** `stepValue(text, field, delta, language)` (`stepper.ts`, no React) reads the field's text, adds the step and writes it back in the user's language (`82,5` + 2,5 = `85`), so typing and tapping mix. An empty or unreadable field starts from 0. Reps, seconds and meters are rounded to whole numbers (the backend takes no other); the weight keeps two decimals at most, written by `formatNumber()`, which also hides JavaScript's `0.1 + 0.2 = 0.30000000000000004`.
 - **Each tap changes the set at once** with the same `setField` action typing used: no Cancel, and **Done** only closes. The workout is stored after every change, as always.
 - **Which set:** `WorkoutScreen` keeps `stepping = { set, field }` apart from `stepperOpen`, so while the panel slides away it still shows the set it had.
-- **Focus:** Radix gives the focus to the first button of a dialog, here the weight's −. `onOpenAutoFocus` with `event.preventDefault()` stops that, and the + of the field tapped gets it, through a **callback ref**: `ref={(button) => { plusButtons.current[field] = button }}` keeps each + in an object held by `useRef`, which React does not draw again when it changes.
+- **Focus** goes to the + of the field tapped, not to Radix's default (the first button): `onOpenAutoFocus` is prevented, and callback refs keep each + in a `useRef` object.
 
 **The exercise's menu.** `ExerciseMenu`, the "⋯" beside the exercise's name, opens a panel with rows 48 px tall, rather than a small drop-down: rows as wide as the phone are easy to hit mid-set.
 
@@ -1450,17 +1237,17 @@ Two panels that slide up from the bottom of the screen, added by UI-6 ([D1.4.9](
 | **Remove from workout** | Only on an exercise added by hand; the panel turns into a question, then removes it (C1.17.11) | `removeExercise` |
 
 - **Swapping keeps the place, not the values.** `swappedExercise(current, exercise, lastSets, options)` keeps the workout exercise's id, plan item, superset and rest, and as many sets as before with the same types; the values and "Last" come from the new exercise's own last time (`GET /api/sessions/last-sets`, none offline). With no last time, the plan's reps fill the sets but **not the plan's weight**: 80 kg were meant for the barbell, not for dumbbells. Built outside the reducer, like `exerciseFrom()`, because it makes new UUIDs. The note and a skip go with the old exercise.
-- **The swap picker** is `ExercisePicker` with `replacing`: no tick boxes, a tap on a row picks it; the list starts filtered by the replaced exercise's first main muscle (`filter[muscle]=chest`), with a chip, **Only Chest**, that turns the filter off and on (`aria-pressed`); the exercise being replaced is left out. The menu opens it without a button of its own: `open` and `onOpenChange` let the screen **control** the dialog, where Add exercises lets the picker keep its own state (**uncontrolled**). `open ?? ownOpen` supports both.
+- **The swap picker** is `ExercisePicker` with `replacing`: no tick boxes, a tap on a row picks it; the list starts filtered by the replaced exercise's first main muscle (`filter[muscle]=chest`), with a chip, **Only Chest**, that turns the filter off and on (`aria-pressed`); the exercise being replaced is left out. The menu opens it without a button of its own, so here the picker is controlled ([C1.4](#c14-component-conventions)).
 - **Skipping** sets `skipped: true` on the exercise. It changes what counts as work left, in one function, `hasWorkLeft(item)`: a set not ticked, and not skipped. Next in a superset (`supersetNext`), Finish workout's moment (`allSetsDone`) and the dots read it, and the Finish question no longer counts the sets given up (`countSets`). On screen: the sets dimmed, a grey box "Skipped: the sets not ticked will not be saved." with **Do it after all**, and a greyer dot named "…, skipped". Ticking one of its sets takes the skip back: it is being done after all. Skipping opens the next exercise: a choice to move on, a tap, so the rule that the screen never moves by itself *after a tick* still holds.
-- **Older workouts** kept on the phone before UI-6 have no `notes` and no `skipped`: both are optional (`notes?: string`), and missing reads as none.
+- **Workouts kept by an older version** have no `notes` and no `skipped`: both are optional, and missing reads as none ([C1.12](#c112-typescript-conventions)).
 
 **Testing them.** The arithmetic in `stepper.test.ts`, the three actions in `workout-session.test.ts`, the panels in `WorkoutPage.test.tsx`: a tap on "Set 1, kg: 80", the dialog named "Set 1", "kg: 2.5 more" twice, the box reads 85; the note, Skip and its way back, Swap with the muscle in the request's address.
 
 ### C1.17.8 The stopwatch of a timed set
 
-A set of an exercise logged by time had only a box for the seconds: fine for a plank timed by the gym's clock, poor for "30 s dead hang". Such a row now has **▶** before ✓, which opens `StopwatchPanel`, **docked at the bottom of the screen**, where the rest bar goes: a bar filling up to the target, the time counting up, large, the target and **Last time** under it, **Pause**, **Stop** and **Cancel**. The sets stay in sight above it, the one being timed with a lime ring.
+A set of an exercise logged by time has **▶** before ✓, which opens `StopwatchPanel`, **docked at the bottom of the screen**, where the rest bar goes: a bar filling up to the target, the time counting up, large, the target and **Last time** under it, **Pause**, **Stop** and **Cancel**. The sets stay in sight above it, the one being timed with a lime ring.
 
-**Docked, not full screen.** The first version filled the screen. Used in a real workout, it hid everything for the length of the set (the table, the plan's notes, what came next) to show one number very large. Docked, the time is still large (48 px figures, `text-5xl`), and the screen stays the workout's. The ring became a bar like the rest's: the same look for the two timers, and it fits the height of a bar.
+**Docked, not full screen.** A full-screen stopwatch hides the table, the plan's notes and what comes next for the length of the set. Docked, the time is still large (`text-5xl`), and the two timers share one look.
 
 **A moment, like the rest** (C1.17.4). The workout keeps when the stopwatch started, not a counter:
 
@@ -1469,7 +1256,7 @@ session.stopwatch = { set_id: '0192…', started_at: '2026-11-10T18:05:12.000Z',
 stopwatchSeconds(stopwatch, now)   // (now − started_at − the pauses) in whole seconds
 ```
 
-- **Stored with the workout** (`session-storage.ts`), so the screen off, the app closed and opened again, or a reload lose nothing: the time is still right. `stopwatch?` is optional in `ActiveSession`, since workouts kept on a phone before it have no such key.
+- **Stored with the workout** (`session-storage.ts`), so the screen off, the app closed and opened again, or a reload lose nothing.
 - **The set by its id,** not by its indexes: exercises can be added while it runs, and `findSet(session, id)` finds it wherever it is.
 - **The target** is the set's `seconds` when ▶ is tapped: the plan's target, or last time's time, which fill the field (C1.17.2). For a hold it is the time to reach; for reps done as fast as possible (C1.17.9), last time's time to beat. Empty, there is none.
 - **Starting ends the rest**, if one was running: the set has begun.
@@ -1480,8 +1267,8 @@ const end = stopwatch.paused_at ? Date.parse(stopwatch.paused_at) : now.getTime(
 const seconds = Math.floor((end - Date.parse(stopwatch.started_at) - (stopwatch.paused_ms ?? 0)) / 1000)
 ```
 
-  Both fields are optional, `paused_at?` and `paused_ms?`: a stopwatch stored on the phone before Pause existed has neither, and `?? 0` reads it as never paused. A second Pause is ignored: moving `paused_at` would lose the seconds between the two. Stop while paused writes the time at the pause.
-- **One stopwatch at a time.** While it runs (or is paused), every ▶ is disabled (`SetRow`'s `stopwatch` prop, `'this'` on the set being timed, `'other'` elsewhere): with the table in sight, a second ▶ would replace the running time and lose it. The full-screen version had no such risk, since nothing else could be touched.
+  A second Pause is ignored: moving `paused_at` would lose the seconds between the two. Stop while paused writes the time at the pause.
+- **One stopwatch at a time.** While it runs (or is paused), every other ▶ is disabled (`SetRow`'s `stopwatch` prop, `'this'` or `'other'`): with the table in sight, a second ▶ would replace the running time.
 
 **The actions of the reducer:**
 
@@ -1494,25 +1281,23 @@ const seconds = Math.floor((end - Date.parse(stopwatch.started_at) - (stopwatch.
 | `cancelStopwatch` | Forgets it; the set stays as it was |
 | `finish` | Also forgets it |
 
-`stopStopwatch` calls `workoutReducer` from inside `workoutReducer`: a reducer is a plain function, and the copy it already made is simply passed on. Ticking has one set of rules, in one place.
+`stopStopwatch` calls `workoutReducer` recursively with `toggleSet`, so ticking has one set of rules, in one place.
 
 **The panel.**
 
 - **The bar** is the rest bar's: a lime band whose width is `share`, `seconds / target`; with no target, the seconds of the current minute, as a stopwatch's hand goes round. Red once a race's time to beat is gone (C1.17.9).
 - **Its own clock,** `useNow(250)`: four times a second, so the seconds change on time, not up to a second late as with the screen's clock.
 - **The target's signal** is the rest's (`restOver()`, with the user's sound and vibration), from a `setTimeout` set for that moment, as in C1.17.4. The moment is `stopwatchTargetAt(stopwatch)`: the start, plus the pauses, plus the target; `null` while paused, so no timer is set. Resume makes a new `stopwatch` object, and the effect, which depends on it, sets a new timer later by the pause's length. None when the moment is already past (the app opened again after it), or it would ring late. "Target reached" replaces "Target 0:30", in lime, and is read out (`aria-live`).
-- **A region, not a dialog.** The panel is a `<section aria-label="Stopwatch">`, as the rest bar is a region named "Rest": screen readers can jump to it, and the table above stays reachable, which a Dialog would have hidden from them (`aria-hidden` on the rest of the page). With no dialog, nothing moves the focus by itself: an effect gives it to **Stop** when the panel appears, since ▶, which had it, is now disabled. **Pause** is an outlined square showing ⏸ or ▶, named "Pause the stopwatch" or "Resume the stopwatch"; paused, the time turns grey and pulses (`animate-pulse`) and "Paused" takes the target's line. **Cancel** is a quiet word on the right of the first line, "Cancel", its full name for screen readers "Cancel, without saving the time": it starts with the visible word, so a voice command finds it.
-- **The first line** names the set first, then the exercise, cut with "…" when long: "Set 2 · Plank". The other way round, a long name pushed "Set 2" off a phone's screen.
+- **A region, not a dialog.** The panel is a `<section aria-label="Stopwatch">`, as the rest bar is a region named "Rest": the table above stays reachable, which a modal dialog would hide from screen readers. An effect gives the focus to **Stop** when the panel appears, since ▶, which had it, is now disabled. **Pause** is an outlined square showing ⏸ or ▶, named "Pause the stopwatch" or "Resume the stopwatch"; paused, the time turns grey and pulses (`animate-pulse`) and "Paused" takes the target's line. **Cancel** is a quiet word on the right of the first line, "Cancel", its full name for screen readers "Cancel, without saving the time": it starts with the visible word, so a voice command finds it.
+- **The first line** names the set first, then the exercise, truncated: "Set 2 · Plank", so a long name never pushes "Set 2" off a phone's screen.
 
 **Testing it.** `workout-session.test.ts`: the start with its target and the rest ended, Stop with the time and the tick and the rest, no target and at least a second, Cancel, no start on a set done; Pause with the time standing still and no target's moment, a second Pause ignored, Resume with the pause left out and the target later, Stop while paused, an old stopwatch without the pause's fields. `WorkoutPage.test.tsx`: ▶, the region "Stopwatch" with "Target 0:45" and "Last time 0:45", the set's row marked (`aria-current`), ▶ disabled, the focus on Stop, Pause and Resume kept on the phone, Stop, the set ticked with its seconds, the rest running.
 
-How it was built: [H3.24](../how-to/H3-frontend.md#h324-set-types-the-rpe-switch-and-the-stopwatch-as-built); docked, with Pause: [H3.32](../how-to/H3-frontend.md#h332-workout-mode-after-a-real-workout-as-built).
-
 ### C1.17.9 Exercises done as fast as possible
 
-A plan of calisthenics has many lines such as "50 push-ups, 50 sit-ups, 50 squat jumps", each as fast as possible: 9 of the 21 exercises of the plan that asked for it. The reps are fixed, the time is the result. Before, such a line had to be one's own exercise logged by time ("50 push-ups"), apart from the push-ups done for reps on other days.
+Calisthenics plans have many lines such as "50 push-ups, 50 sit-ups, 50 squat jumps", each as fast as possible: the reps are fixed, the time is the result. The same exercise is done for reps on other days, so this is a property of the plan item, not of the exercise.
 
-**In the plan, a switch on the item.** `plan_items.for_time` ([D3.5.3](../design/D3-data-model.md#d353-plan_items)), `for_time` in `PlanItem` and `PlanItemInput` (`api/plans.ts`), `for_time?` in `DraftItem`: optional, since a draft kept in the browser before has none. `EditorItem` shows the switch above the sets of an exercise that counts reps, `canBeForTime(loggingType)` in `plan-draft.ts`; the action is `setItemForTime`. `toPlanInput()` sends `for_time` true only for such an exercise. `itemSummary()` adds the switch's words to the exercise's line: "1 × 50 · as fast as possible · 90 s".
+**In the plan, a switch on the item.** `plan_items.for_time` ([D3.5.3](../design/D3-data-model.md#d353-plan_items)), `for_time` in `PlanItem` and `PlanItemInput` (`api/plans.ts`), `for_time?` in `DraftItem`. `EditorItem` shows the switch above the sets of an exercise that counts reps, `canBeForTime(loggingType)` in `plan-draft.ts`; the action is `setItemForTime`. `toPlanInput()` sends `for_time` true only for such an exercise. `itemSummary()` adds the switch's words to the exercise's line: "1 × 50 · as fast as possible · 90 s".
 
 **In workout mode, one question: `isForTime(item)`** (`workout-session.ts`): the plan item says so, and the exercise counts reps. Everything else follows from it:
 
@@ -1526,15 +1311,13 @@ A plan of calisthenics has many lines such as "50 push-ups, 50 sit-ups, 50 squat
 
 **Last time of the same kind.** Push-ups done 3 × 15 on Monday and 50 for time on Thursday: Thursday's time to beat is last Thursday's, not Monday's 15. The backend gives one last time per exercise **and kind** ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)), so an exercise done both ways has two entries; the app picks with `hasTimedSets(entry.sets)` (`compare.ts`): one set with seconds makes it timed. `lastOfKind()` in `workout-session.ts` does it for a workout's start, Add exercises and Swap; `compareWorkout()` for the summary and history. No flag is stored with the workout: a set with reps and seconds says it by itself.
 
-**Written and compared.** `loggedSetText()` writes such a set "50 in 1:12" (`workout.repsInTime`: "en" in Spanish). The text comes from `i18n.t()` with `lng: language`: `set-text.ts` is a plain function, with no `useTranslation()`, and the same i18next instance gives the same translations outside React. `compare.ts` scores it `[weight, reps, −seconds]`: more reps first, then fewer seconds, since a list of scores is compared item by item and the higher wins (C1.19.3).
+**Written and compared.** `loggedSetText()` writes such a set "50 in 1:12" (`workout.repsInTime`: "en" in Spanish). `compare.ts` scores it `[weight, reps, −seconds]`: more reps first, then fewer seconds (C1.19.3).
 
-**Testing it.** `plan-draft.test.ts`: the switch on and off, sent only for reps. `plan-format.test.ts`: "1 × 50 · as fast as possible · 90 sec". `compare.test.ts`: less time wins; last time of the same kind. `workout-session.test.ts`: last time of the same kind at the start, the seconds needed, the stopwatch's time sent with the reps, "50 in 1:12" and "50 en 1:12". `PlanEditorPage.test.tsx`: the switch and the body sent. `WorkoutPage.test.tsx`: the row with Reps and Time (72 seconds shown "1:12") and no Last, the panel's "Set 1 · 50 reps · Pushups" and "To beat 1:12", Stop. How it was built: [H3.25](../how-to/H3-frontend.md#h325-exercises-done-as-fast-as-possible-as-built).
+**Testing it.** `plan-draft.test.ts`: the switch on and off, sent only for reps. `plan-format.test.ts`: "1 × 50 · as fast as possible · 90 sec". `compare.test.ts`: less time wins; last time of the same kind. `workout-session.test.ts`: last time of the same kind at the start, the seconds needed, the stopwatch's time sent with the reps, "50 in 1:12" and "50 en 1:12". `PlanEditorPage.test.tsx`: the switch and the body sent. `WorkoutPage.test.tsx`: the row with Reps and Time (72 seconds shown "1:12") and no Last, the panel's "Set 1 · 50 reps · Pushups" and "To beat 1:12", Stop.
 
-### C1.17.10 After a real workout: times, up next, how to do it
+### C1.17.10 Times, up next, how to do it
 
-Three changes asked for after the app was used for a whole workout, besides the stopwatch's (C1.17.8). How they were built: [H3.32](../how-to/H3-frontend.md#h332-workout-mode-after-a-real-workout-as-built).
-
-**A time past a minute as minutes and seconds.** A 14½-minute set showed "870" in the row, and "870 s" in the Last column and in history. The time is still kept in seconds, as typed, stored and sent (`duration_seconds`); only the text changes, in one function, `durationText(seconds, language)` in `plan-format.ts`:
+**A time past a minute as minutes and seconds.** "870" says nothing in a row; "14:30" does. The time is kept in seconds, as typed, stored and sent (`duration_seconds`); only the text changes, in one function, `durationText(seconds, language)` in `plan-format.ts`:
 
 | Seconds | Text | Why |
 |---|---|---|
@@ -1543,26 +1326,26 @@ Three changes asked for after the app was used for a whole workout, besides the 
 | 870 | "14:30" | anything else: `clock()`, the stopwatch's own way of writing it, so the time read on the stopwatch is the time written in the set |
 
 - **Where:** the row's field (`fieldText()` in `set-fields.ts`, which leaves the other fields and a time being typed as they are), the Last column and history (`loggedSetText()`), a plan's targets (`formatSetTarget()`). **Not the rests,** which stay "90 s": in the gym a rest is counted in seconds, and changing them would change every plan's line.
-- **The column is titled "Time"** (`workout.colTime`), no longer "Sec", since its values are no longer all seconds. Its spoken name says the unit of the value read out, "Set 1, Seconds: 870", the value typed in the stepper.
+- **The column is titled "Time"** (`workout.colTime`), since its values are not all seconds. Its spoken name says the unit of the value read out, "Set 1, Seconds: 870", the value typed in the stepper.
 - **The stepper** types seconds, so the field's title there is "Seconds", followed by the clock past a minute: "Seconds · 14:30". Typing 870 shows at once what it means.
 
 **Up next.** `upNext(session, index)` (`workout-session.ts`) is the exercise to do after this one: the first after it with work left (`hasWorkLeft`); in a superset, after the whole superset, whose exercises the bottom bar already names (C1.17.3); when nothing is left after it, the first from the top with work left (an exercise jumped over with the dots); `null` when nothing else is left, and the bottom bar offers Finish workout. It shows in two places:
 
-- **`UpNextCard`**, under Add set: a dashed card with the next exercise's photo, a small "Up next" title, its name and what the plan asks ("2 × 10/8 · 60–70 kg · 90 s"). **A reminder, not a button:** moving on is the bottom bar's job, and the first version, which opened the exercise on a tap, gave a second way out of the exercise in the middle of the screen (H3.32.6). It is an `<aside aria-label="Up next">`, content beside the main one; with a name it is a region screen readers can find, role `complementary`.
+- **`UpNextCard`**, under Add set: a dashed card with the next exercise's photo, a small "Up next" title, its name and what the plan asks ("2 × 10/8 · 60–70 kg · 90 s"). **A reminder, not a button:** moving on is the bottom bar's job, and a second way out in the middle of the screen invites mis-taps. It is a named `<aside>` (role `complementary`).
 - **`RestBar`**, under the time: "Up next: Bent Over Barbell Row", when the rest leads there: the exercise on screen has no set left and no exercise of its superset waits. The rest is when the next machine is got ready, and the bar is always in sight, unlike the card at the end of a long table. Mid-exercise it says nothing: the next set is in sight.
 
 **How to do it.** A tap on the exercise's photo or on its name opens `ExerciseInfoSheet`, a panel from the bottom (the same `Sheet` as C1.17.7's) with what the exercise's page in the library shows: the equipment, the photos of the start and end position (`ExercisePhotos`), the main and secondary muscles (`MuscleChips`, moved out of `ExerciseDetailPage` into `components/exercises/` so both use it), the steps, the description, the video.
 
 - **No request.** The exercise is the one kept in the workout (`WorkoutExercise.exercise`): the library's whole JSON, copied at Start from the plan (`PlanItemResource` holds an `ExerciseResource`), steps and photos' addresses included. The panel works offline; only the photos need the network, unless the browser has kept them.
 - **Two buttons, one panel.** The photo is a `<button>` named "How to do it: Bench Press" (the image itself is decoration, `alt=""`), with a small ⓘ in its corner that says it can be tapped. The name is a `<button>` *inside* the `<h2>`, with a dotted underline: the heading keeps the exercise's name, which a screen reader lists among the page's headings. Both carry `aria-haspopup="dialog"`, said before the tap. The screen holds the panel's state (`infoOpen`): the panel is **controlled**, as the swap picker is.
-- **Taller, and scrolling inside.** At most 90% of the screen (`max-h-[90dvh]`); the title stays and the content scrolls (`overflow-y-auto`), which in a flex column works only with `min-h-0` on the scrolling child: a flex child does not shrink below its content otherwise.
+- **Taller, and scrolling inside.** At most 90% of the screen (`max-h-[90dvh]`); the title stays and the content scrolls, which in a flex column needs `min-h-0` on the scrolling child.
 - **An exercise with nothing to show** (a personal one saved with a name only) says so in words instead of an empty panel.
 
 **Testing it.** `plan-format.test.ts`: `durationText()` from 45 seconds to an hour. `workout-session.test.ts`: `upNext()` after a superset, back to the top, past done and skipped exercises, `null`; "14:30" for a hold of 870 seconds. `WorkoutPage.test.tsx`: 870 typed in the stepper, "Seconds · 14:30", the row "14:30", the workout still holding "870"; the card under the bench press naming the rows with the plan's line, nothing to tap in it, the rest bar silent after one set and naming the rows after the last, the screen still on the bench press; "How to do it" from the photo, with the equipment, two photos, the muscles and a step, then from the name.
 
 ### C1.17.11 Removing what was added by hand
 
-A set added with **Add set**, or an exercise added with **Add exercises**, could not be taken back: a tap too many stayed in the workout. Now **what was added by hand during the workout can be removed, and only that**: the plan's exercises and sets stay, so the day is always there whole; they can be skipped (C1.17.7) or left unticked, which already keeps them out of what is saved. How it was built: [H3.32.7](../how-to/H3-frontend.md#h3327-third-pass-removing-what-was-added-by-hand).
+**What was added by hand during the workout can be removed, and only that**: the plan's exercises and sets stay, so the day is always there whole; they can be skipped (C1.17.7) or left unticked, which already keeps them out of what is saved.
 
 **What was added, read from the workout itself.** No flag is stored; two functions of `workout-session.ts` read it from what is already there:
 
@@ -1574,7 +1357,7 @@ canRemoveSet(item, index)     // index >= (item.plan_item?.sets.length ?? 0) && 
 - **An exercise** comes from the plan when it has a plan item; one added by **Add exercises** (`exerciseFrom()`), and every exercise of a free workout, has none. Swap keeps the plan item (C1.17.7): a swapped exercise is still the plan's.
 - **A set** comes from the plan when it is among the first ones, as many as the plan item's sets: `startSession()` makes one set per planned set, Swap keeps the count, and **Add set** always adds at the end. Any set after them was added; every set of an exercise with no plan item was too.
 - **Never the only set left:** an exercise with no set would be an empty table; it is removed as a whole, from its menu.
-- **Why no flag:** a flag (`added: true`) would have to be set by every action that adds, kept by Swap, and would be missing on a workout already on the phone before this change. Read from the plan item, the rule holds for those too.
+- **Why no flag:** a flag (`added: true`) would have to be set by every action that adds, kept by Swap, and would be missing on workouts stored by an older version. Read from the plan item, the rule holds for those too.
 
 **Two actions of the reducer,** each checking the rule again, so a stray call cannot remove a plan's set:
 
@@ -1587,13 +1370,13 @@ canRemoveSet(item, index)     // index >= (item.plan_item?.sets.length ?? 0) && 
 
 - **A set:** **Remove this set**, at the bottom of its stepper (`SetStepper`'s `onRemove`, given only when `canRemoveSet` holds). The stepper is the set's own panel, opened by a tap on its values, and the row has no room left at 360 px: one more button would squeeze the weight and the reps under a thumb's width. Red text (`ghost`, `text-destructive`) under **Done**, apart from where the thumb goes to close. One tap, no question: a set added a moment ago is as quick to add again. The panel closes first, since the set it shows is about to go.
 - **An exercise:** **Remove from workout**, red, the last row of its menu (`ExerciseMenu`'s `onRemove`). The panel then turns into a question, as it turns into the note's box: "Remove Barbell Squat?", that its sets go with it, ticked ones included, then **Remove** (red) and **Back**. A question here and not for a set: an exercise may hold several sets already done.
-- **Optional props as switches.** `onRemove?: () => void`: the screen passes a function when removing is allowed and `undefined` otherwise, and the component draws the button only when there is one (`{onRemove && …}`). One prop says both whether and what.
+- **`onRemove?`** is an optional callback used as a switch ([C1.4](#c14-component-conventions)).
 
 **Testing it.** `workout-session.test.ts`: a set added to the bench press removed, a plan's set not; an added exercise's sets removed but not the last; the stopwatch forgotten with its set; an added exercise removed and the screen on the one before, a plan's exercise not; a free workout left empty. `WorkoutPage.test.tsx`: no Remove in a plan's set's stepper; Add set, Remove this set, the set gone on screen and on the phone; no Remove in a plan's exercise's menu; an exercise added from the picker, Remove from workout, the question, Remove, back on the pull-ups.
 
 ### C1.17.12 Deleting a workout in progress
 
-A workout started by mistake, or abandoned, could be thrown away only the long way: Finish, which sends it, then **Delete workout** in the summary, which deletes it on the server ([C1.19](#c119-the-summary-and-history)). Now the Finish dialog offers it directly. How it was built: [H3.32.8](../how-to/H3-frontend.md#h3328-fourth-pass-deleting-a-workout-in-progress).
+A workout started by mistake, or abandoned, is thrown away from the Finish dialog, without sending it first and deleting it from the summary ([C1.19](#c119-the-summary-and-history)).
 
 **Nothing to undo on the server.** A workout in progress lives on the phone alone: it is sent only at Finish (C1.17.5). Deleting it is therefore one line, `storeActiveSession(null)`, then a page to go to; no request, nothing in the queue, nothing to fail offline.
 
@@ -1607,7 +1390,7 @@ A workout started by mistake, or abandoned, could be thrown away only the long w
 - **Two views in one dialog.** `FinishButton` keeps `view: 'finish' | 'discard'` in its state, as the exercise's menu keeps its views (C1.17.7). **Delete workout** and **Back** are plain `Button`s, which only change the view; `AlertDialogCancel` and `AlertDialogAction` would close the dialog.
 - **Controlled, to start over.** The dialog's `open` is held in `FinishButton` too (`open`, `onOpenChange={change}`), so that closing it, however it is closed, also brings `view` back to `'finish'`: opened again, it asks the first question, never the second.
 - **`onDiscard?`,** an optional prop as in C1.17.11: the dialog offers Delete only when it is given.
-- **Inside the footer, in a column.** `AlertDialogFooter` is the box's bottom edge: a grey band with negative margins (`-mx-4 -mb-4`) and the bottom corners rounded. **Delete workout** is one of its children, first in the code: the footer is a reversed column (`flex-col-reverse`), so it shows last, under Keep going. From 640 px the footer is normally a row; with Delete it stays a column (`sm:flex-col-reverse`, which replaces the footer's `sm:flex-row`): three buttons on one row did not fit the dialog's 384 px in Spanish or German (H3.32.9).
+- **Inside the footer, in a column.** **Delete workout** is the footer's first child; the footer is a reversed column, so it shows last, under Keep going. With Delete the footer stays a column from 640 px too (`sm:flex-col-reverse`): three buttons on one row do not fit the dialog's 384 px in Spanish or German.
 
 **Where it leads.**
 
@@ -1618,7 +1401,7 @@ A workout started by mistake, or abandoned, could be thrown away only the long w
 
 ## C1.18 Home
 
-The second part of FEAT-3 on screen ([D1.4.2](../design/D1-ui.md#d142-home)): the first screen of every visit says **what to do today** and starts it in one tap. How it was built, with the real output: [H3.16](../how-to/H3-frontend.md#h316-home-as-built).
+[D1.4.2](../design/D1-ui.md#d142-home): the first screen of every visit says **what to do today** and starts it in one tap.
 
 ### C1.18.1 The pieces
 
@@ -1647,11 +1430,10 @@ HomePage                 route `/`, inside AppLayout
 
 **The four states** of the plan's place, as every screen has ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)): grey shapes while loading (`Skeleton`), a message with **Try again** when the request fails, the card when a plan is active, the empty state otherwise. Free workout and the week are shown in every state: Free workout needs no request.
 
-**Read again when something changes it.** `homeKeys.all` (`['home']`) is marked stale after a workout is sent (`WorkoutScreen.finish()` and `usePendingSessions`) and after any change to a plan (`refreshPlans()` in `api/plans.ts`: made active, archived, saved, deleted), since both change the card or the suggested day. Marking a key stale (`invalidateQueries`) makes TanStack Query read it again the next time a component shows it ([C1.6](#c16-server-data)).
-
+**Read again when something changes it.** `homeKeys.all` (`['home']`) is marked stale after a workout is sent (`WorkoutScreen.finish()` and `usePendingSessions`) and after any change to a plan (`refreshPlans()` in `api/plans.ts`: made active, archived, saved, deleted), since both change the card or the suggested day. 
 ### C1.18.2 Starting from Home: one hook for two pages
 
-Start on Home and Start this day on the plan's page do the same steps, so they are written once, in a **custom hook**, `useStartWorkout()`: a function whose name starts with `use` and that calls other hooks (`useNavigate`, `useCurrentUser`, `useState`). Each page calls it and gets back the actions and their state:
+Start on Home and Start this day on the plan's page do the same steps, so they are one hook, `useStartWorkout()`:
 
 ```tsx
 const start = useStartWorkout()
@@ -1670,7 +1452,7 @@ const plan = await queryClient.fetchQuery({
 })
 ```
 
-`fetchQuery()` is the imperative cousin of `useQuery()`: called in an event handler rather than while drawing, it gives the cached plan when it is fresh (the plan's page was opened a moment ago), otherwise asks the API and puts the answer in the cache, where the plan's page finds it. Then `startDay()` runs as on the plan's page: last time's sets, `startSession()`, stored, opened ([C1.17.2](#c1172-starting-the-plan-becomes-a-workout)). When the plan cannot be read (offline, never opened on this phone), `failed` becomes true and the card says so; nothing is started.
+`fetchQuery()` returns the cached plan when it is fresh, otherwise asks the API and caches the answer, where the plan's page finds it. Then `startDay()` runs as on the plan's page: last time's sets, `startSession()`, stored, opened ([C1.17.2](#c1172-starting-the-plan-becomes-a-workout)). When the plan cannot be read (offline, never opened on this phone), `failed` becomes true and the card says so; nothing is started.
 
 **Free workout** needs no request: `startFreeSession(now)` makes an empty workout, and the workout screen offers **Add exercises** ([C1.17.3](#c1173-the-workout-and-its-reducer)). It works offline.
 
@@ -1678,7 +1460,7 @@ const plan = await queryClient.fetchQuery({
 
 - **The day on the card** is held in `useState`, starting from `suggested_day_id`: the day after the last one done, worked out by the backend ([D2.8](../design/D2-decisions.md#d28-workout-rules)). When the day on the card is the suggested one, a **Suggested** badge says so; "Last time you did Day A – Push" comes from `last_day`.
 - **A chip per day** chooses it: the card shows that day, and **Start** starts it. D1.4.2 asked for a chip that starts at once; one tap that starts a workout is too easy to make by mistake on a phone, and a workout started by mistake stays in progress until it is finished, so a chip chooses and Start starts. `aria-pressed` tells screen readers which chip is chosen.
-- **A chosen chip's look** has to beat the outline button's own dark-theme classes (`dark:border-input dark:bg-input/30`): a class with the `dark:` prefix wins over the same property without it, so the chosen look repeats its border and tint with `dark:` ([H3.16.4](../how-to/H3-frontend.md#h3164-the-errors-met)).
+- **A chosen chip's look** has to beat the outline button's own dark-theme classes (`dark:border-input dark:bg-input/30`): a `dark:` class wins over the same property without it, so the chosen look repeats its border and tint with `dark:`.
 - **Start is disabled** while a workout is in progress on the phone (the banner above offers Resume, and the reason is written under Start), while starting, and on a day with no exercises. A plan with no days shows a sentence and **Edit the plan** instead.
 - **Only one lime button:** Start. Free workout and the chips are outlined; Resume, above, is lime too, but then Start is disabled.
 
@@ -1705,7 +1487,7 @@ const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
 
 ## C1.19 The summary and history
 
-FEAT-4 on screen ([D1.4.10](../design/D1-ui.md#d1410-workout-summary), [D1.4.11](../design/D1-ui.md#d1411-history)): **the summary** after Finish says what was done and asks how it felt; **history** lists every past workout and opens each one. How it was built, with the real output: [H3.17](../how-to/H3-frontend.md#h317-the-summary-and-history-as-built).
+[D1.4.10](../design/D1-ui.md#d1410-workout-summary), [D1.4.11](../design/D1-ui.md#d1411-history): **the summary** after Finish says what was done and asks how it felt; **history** lists every past workout and opens each one.
 
 ### C1.19.1 The pieces
 
@@ -1765,7 +1547,7 @@ Right after the last set the network may be down, and the summary must still sho
 
 ### C1.19.3 Better than last time, exercise by exercise
 
-A workout's total volume (weight × reps of everything) was the first number the summary showed, and said little: it adds a kilogram of squat to a kilogram of curl, and counts nothing done with the body alone, so a calisthenics workout weighed 0 ([D2.8](../design/D2-decisions.md#d28-workout-rules)). Each exercise is compared with itself instead, in `compare.ts`, with no React:
+A workout's total volume (weight × reps of everything) says little: it adds a kilogram of squat to a kilogram of curl, and counts nothing done with the body alone, so a calisthenics workout weighs 0 ([D2.8](../design/D2-decisions.md#d28-workout-rules)). Each exercise is compared with itself instead, in `compare.ts`:
 
 ```ts
 compareExercise(sets, previous, loggingType)
@@ -1784,13 +1566,13 @@ compareExercise(sets, previous, loggingType)
 - **A score is a list,** compared item by item (`compareScores()`): `[one-rep max]`, or `[added weight, reps]` for an exercise logged by reps, so the second item decides only when the first ties. Differences below 0.001 are equal: the same multiplication done twice can differ in its last decimal.
 - **Weights arrive in two forms:** numbers from the phone's body, exact text from the API (`"80.000"`); `Number()` reads both, and `SetValues` accepts both.
 - **On screen:** `ComparisonSummary` counts the verdicts ("Against last time: 2 better · 1 same"), lime when more went better than lower; `SessionExercises` writes, under each exercise, the verdict with its arrow, then the two best sets, "80×8 · last time 80×6", with `loggedSetText()`. Lower is said in grey, not red: a lighter day is not a failure.
-- **In the summary the list is folded:** under the count, in shadcn/ui's **Collapsible** (`components/ui/collapsible.tsx`, Radix's Collapsible), closed at first. The count says how it went; the list is there for whoever wants it, without pushing the questions and Save down the page. Radix keeps it open or closed, sets `aria-expanded` on the trigger for screen readers, and marks trigger and content with `data-state="open"` or `"closed"`. The content slides: Radix measures its height into `--radix-collapsible-content-height`, and `animate-collapsible-down` / `-up` (tw-animate-css) go from 0 to it and back. The arrow turns with `group-has-data-open:rotate-180`: the frame is the `group`, and `has-data-open` is true while something inside it carries `data-state="open"`. A closed list is not in the page at all. On a workout's page in history the list is the content, so it is shown open, as a plain list.
+- **In the summary the list is folded** in a Collapsible, closed at first: the count says how it went, and the questions and Save stay near the top. The content slides on Radix's `--radix-collapsible-content-height`, and the arrow turns with `group-has-data-open:rotate-180`. On a workout's page in history the list is the content, so it is shown open.
 - **Volume stays where it means something:** beside each exercise logged as weight × reps, "Volume of this exercise: 1,280 kg" (`exerciseVolume()`), never added across exercises.
 
 ### C1.19.4 History: pages from the server
 
-- **The list** is `useSessions()`, `useInfiniteQuery` over `GET /api/sessions?status=finished&page=…&per_page=20`, the pattern of the exercise library ([C1.14](#c114-the-exercise-library-screens)): `data.pages` holds every page read, `fetchNextPage()` asks for the next, `hasNextPage` hides **Show more** after the last.
-- **By month:** `byMonth()` in `HistoryPage` walks the list, newest first, and starts a new group when the month changes. The month's name comes from `Intl.DateTimeFormat(language, { month: 'long', year: 'numeric' })`; some languages write it in lower case ("novembre 2026"), so the heading capitalises its first letter with CSS (`first-letter:uppercase`).
+- **The list** is `useSessions()`, an infinite query over `GET /api/sessions?status=finished&page=…&per_page=20`, the exercise library's pattern ([C1.14](#c114-the-exercise-library-screens)).
+- **By month:** `byMonth()` in `HistoryPage` groups the list, newest first. Some languages write the month in lower case ("novembre 2026"), so the heading capitalises it with CSS (`first-letter:uppercase`).
 - **A workout's page** is `useSession(id, language)`: the language is in the key, since the exercises' names come translated. Its answer carries `meta.last_sets`, last time for each of its exercises, counting only the workouts **before** it ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)), for the comparison: the same `compareWorkout()` as the summary. The sets are numbered as in workout mode, with `setNumbers()`, and written with `loggedSetText()`, the function workout mode's "Last" column uses: one way of writing a set in the whole app.
 - **Delete** is a mutation (`useDeleteSession`): afterwards the workout's cached copies are removed (`removeQueries`), the lists and Home are marked stale, and history opens.
 - **Progress** shows the first three workouts of the same `useSessions()` list: the same key, so opening **All workouts** shows them at once, from the cache.
@@ -1819,11 +1601,11 @@ A request takes from a few milliseconds to a few seconds. When nothing on screen
 
 **The pieces:**
 
-- **`Spinner`** (`components/ui/spinner.tsx`): shadcn/ui's, added with `npx shadcn add spinner` ([H3.27](../how-to/H3-frontend.md#h327-loading-signs-as-built)). Lucide's `Loader2Icon` with Tailwind's `animate-spin`. Changed from shadcn's in two ways. It is hidden from screen readers unless given a `label`, which makes it a `role="status"` read in the user's language (shadcn's always said "Loading" in English). And its size is written `h-4 w-4`, not `size-4`: inside a button, the button's rule for icons without a `size-*` class sizes it like the icon it replaces, 20 px on an `xl` button.
+- **`Spinner`** (`components/ui/spinner.tsx`): shadcn/ui's, changed in two ways. It is hidden from screen readers unless given a `label`, which makes it a `role="status"` read in the user's language (shadcn's always said "Loading" in English). And its size is written `h-4 w-4`, not `size-4`: inside a button, the button's rule for icons without a `size-*` class sizes it like the icon it replaces, 20 px on an `xl` button.
 - **`Button`'s `pending`** (`components/ui/button.tsx`, ours): `disabled`, `aria-busy="true"`, and the spinner first among the children. One class in the button's base, `aria-busy:[&>svg:not([data-slot=spinner])]:hidden`, hides the button's own icons while it waits, so the spinner stands where the icon was. It does nothing with `asChild`: Radix's `Slot` takes exactly one child, so the button then draws its child alone, even skipping a `false` beside it (`Slot` would throw, since `React.Children.count` counts a `false`). **`AlertDialogAction`** has the same prop, and puts the spinner inside the Radix Action it draws through `asChild`.
 - **`ExerciseSearchBox`** (`components/exercises/`): the library's search box, shared by the Exercises page and the picker; `searching` turns the spinner on its right, labelled "Searching…".
 
-**When "searching" is true.** Two moments, both covered: `search !== debounced`, the 300 ms in which the box's text is ahead of the search sent ([C1.14](#c114-the-exercise-library-screens)); and `list.isPlaceholderData`, the old rows on screen while the new ones load. Before, only the second dimmed the list, and the picker did not even do that: typing "panca" in the picker showed the old list unchanged for the whole wait.
+**When "searching" is true.** Two moments, both covered: `search !== debounced`, the 300 ms in which the box's text is ahead of the search sent ([C1.14](#c114-the-exercise-library-screens)); and `list.isPlaceholderData`, the old rows on screen while the new ones load.
 
 **Two buttons, one request.** Activate and Archive on a plan's page share one mutation: both are disabled while it runs, but only the one pressed is `pending`, read from `action.variables`, the value given to `mutate()`. The summary's Save and Delete share a state the same way, `busy: 'save' | 'delete' | null`.
 
