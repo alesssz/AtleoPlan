@@ -1,33 +1,19 @@
 # H5. Continuous integration
 
-How GitHub checks every push by itself: what runs, when, in which files, how to read a run that failed, and how the same checks run on the computer. It is written for someone who has never seen GitHub Actions. Why it is built this way: [D2.11](../design/D2-decisions.md#d211-continuous-integration).
-
-**How to read this page:**
-
-- What it does, in one table: [H5.1](#h51-what-runs-and-when).
-- The files, line by line: [H5.2](#h52-the-files).
-- The settings to make on GitHub, once, and how to check them all with one command, `make github-check`: [H5.3](#h53-the-settings-on-github).
-- A run failed: [H5.5](#h55-reading-a-run-and-a-failed-one).
-- An advisory to review, or a package to leave out of the audit: [H5.4](#h54-the-audit-and-the-advisories-reviewed).
+How GitHub checks every push by itself: what runs, when, in which files, how to read a run that failed, and how the same checks run on the computer. Why it is built this way: [D2.11](../design/D2-decisions.md#d211-continuous-integration).
 
 ## Contents
 
 - [H5.1 What runs, and when](#h51-what-runs-and-when)
 - [H5.2 The files](#h52-the-files)
-  - [H5.2.1 The words of GitHub Actions](#h521-the-words-of-github-actions)
-  - [H5.2.2 ci.yml](#h522-ciyml)
-  - [H5.2.3 audit.yml](#h523-audityml)
-  - [H5.2.4 dependabot.yml](#h524-dependabotyml)
+  - [H5.2.1 ci.yml](#h521-ciyml)
+  - [H5.2.2 audit.yml](#h522-audityml)
+  - [H5.2.3 dependabot.yml](#h523-dependabotyml)
 - [H5.3 The settings on GitHub](#h53-the-settings-on-github)
   - [H5.3.1 Checking everything from the terminal: make github-check](#h531-checking-everything-from-the-terminal-make-github-check)
 - [H5.4 The audit and the advisories reviewed](#h54-the-audit-and-the-advisories-reviewed)
 - [H5.5 Reading a run, and a failed one](#h55-reading-a-run-and-a-failed-one)
 - [H5.6 The same checks on the computer](#h56-the-same-checks-on-the-computer)
-- [H5.7 As built](#h57-as-built)
-  - [H5.7.1 The commands, in order](#h571-the-commands-in-order)
-  - [H5.7.2 Trying the backend job in a clean clone](#h572-trying-the-backend-job-in-a-clean-clone)
-  - [H5.7.3 The errors met](#h573-the-errors-met)
-  - [H5.7.4 Second pass: CodeQL, and make github-check](#h574-second-pass-codeql-and-make-github-check)
 
 ---
 
@@ -48,22 +34,7 @@ The same layout as Chronovault's workflows ([D2.11](../design/D2-decisions.md#d2
 
 ## H5.2 The files
 
-### H5.2.1 The words of GitHub Actions
-
-| Word | Means | Here |
-|---|---|---|
-| **Workflow** | A YAML file in `.github/workflows/`: what to run and when | `ci.yml`, `audit.yml` |
-| **Trigger** (`on:`) | The events that start it | `push`, `schedule` (a cron), `pull_request`, `workflow_dispatch` (a button in the Actions tab) |
-| **Job** | A set of steps on one machine; jobs run side by side unless one `needs` another | `frontend` and `backend`; `npm` and `composer` |
-| **Runner** | The machine: a fresh Linux virtual machine per job (`runs-on: ubuntu-latest`), with Git, Node, Docker; thrown away at the end | |
-| **Step** | One line of the job: `uses:` an action, or `run:` a shell command | |
-| **Action** | A ready-made step from another repository, `owner/name@version` | only GitHub's own: `actions/checkout`, `actions/setup-node` |
-| **Token** (`GITHUB_TOKEN`) | The key the job gets to the repository; `permissions:` sets what it may do | read the code, nothing else |
-| **Run** | One execution of a workflow, with its logs | the **Actions** tab |
-
-A step fails when its command ends with an exit code other than 0; the job stops there, and the run is red.
-
-### H5.2.2 ci.yml
+### H5.2.1 ci.yml
 
 ```yaml
 on:
@@ -79,7 +50,6 @@ concurrency:
 
 - **`push` on any branch, no `pull_request`:** branches are merged on the computer, never through a pull request, so a pull request would only run the same checks twice. A pull request opened on GitHub by someone else runs nothing here until it is merged, which is the owner's choice.
 - **`concurrency`:** runs of the same branch (`github.ref`) form a group; a new push cancels the one still going, since only the latest commit matters. Not on `main`: each merge keeps its run.
-- **`${{ … }}`** is an expression GitHub works out before the run: `github.ref` is the branch, `refs/heads/feat/ci`.
 
 **The frontend job:**
 
@@ -128,17 +98,17 @@ These are `make setup`'s steps ([S1.5](../start/S1-setup.md#s15-first-start-the-
 - **`backend/.env`** comes from the example: the repository holds no secret, and the tests need none. Their own settings come from `backend/phpunit.xml`, which forces the test database `atleoplan_test`, the mail kept in memory and the jobs run at once ([C2.11](../concepts/C2-backend.md#c211-tests-with-pest)).
 - **`docker compose build backend`**: the image of development (`Dockerfile`, target `dev`), the same PHP and extensions as on the computers. Built from nothing on every run: a few minutes.
 - **`up -d --wait postgres`**: Postgres alone, `--wait` until its health check passes. On its first start it runs `docker/postgres/init/01-test-database.sql`, which creates `atleoplan_test`.
-- **`run --rm`**: a container for one command, removed afterwards, as `make setup` does with the stack stopped. It starts Postgres and Mailpit first (`depends_on` in `compose.yaml`).
-- **`if: failure()`**: a step that runs only when one before it failed, here the containers' logs, Postgres's above all.
+- **`run --rm`**, as `make setup` does with the stack stopped; `depends_on` starts Postgres and Mailpit first.
+- **`if: failure()`** prints the containers' logs, Postgres's above all, only when a step failed.
 
 `timeout-minutes` on each job stops a stuck run after 15 or 25 minutes, instead of GitHub's six hours.
 
-### H5.2.3 audit.yml
+### H5.2.2 audit.yml
 
 ```yaml
 on:
   schedule:
-    - cron: '0 6 * * 1'       # minute 0, hour 6 (UTC), any day of the month, any month, Monday
+    - cron: '0 6 * * 1'       # Mondays, 06:00 UTC
   workflow_dispatch:
   push:
     branches: ['**']
@@ -165,7 +135,7 @@ docker run --rm -v "$PWD/backend:/app:ro" -w /app composer:2 composer audit --lo
 
 **`GITHUB_STEP_SUMMARY`** is a file whose Markdown GitHub shows on the run's page, under the jobs: `{ echo …; npm outdated || true; } >> "$GITHUB_STEP_SUMMARY"` writes the list there. `|| true`: `npm outdated` exits 1 when anything is outdated, which must not fail the run.
 
-### H5.2.4 dependabot.yml
+### H5.2.3 dependabot.yml
 
 ```yaml
 version: 2
@@ -374,158 +344,6 @@ Today it is empty: `composer audit` finds nothing. Composer also fails on an **a
 | npm and Composer audits | `make audit` |
 
 `make check` runs all of them but the build and the audit. The one difference that matters: on the computer the stack, the packages and the database already exist; in CI everything starts from nothing. A problem that only CI sees is almost always something the computer has and the repository does not: a file not committed, a package installed without its lockfile, a database left from before. H5.7.2 shows how to try the backend job from nothing, on the computer.
-
----
-
-## H5.7 As built
-
-`chore/ci`, modelled on Chronovault's workflows ([D2.11](../design/D2-decisions.md#d211-continuous-integration)).
-
-| File | What |
-|---|---|
-| `.github/workflows/ci.yml` | New: the two jobs of H5.2.2 |
-| `.github/workflows/audit.yml` | New: the two jobs of H5.2.3 |
-| `.github/dependabot.yml` | New: the actions' weekly updates |
-| `scripts/npm-audit.mjs` | New: npm's audit with the list of advisories reviewed (H5.4) |
-| `frontend/package.json` | `auditIgnore`, with a `"//auditIgnore"` note (JSON takes no comments; npm ignores fields named `//…`) |
-| `Makefile` | `make audit` runs `scripts/npm-audit.mjs` instead of `npm audit` |
-| Docs | This page; [D2.11](../design/D2-decisions.md#d211-continuous-integration); [P1.1](../project/P1-conventions.md#p11-git), [P1.5.3](../project/P1-conventions.md#p153-from-here-on); the README's badge |
-
-### H5.7.1 The commands, in order
-
-```sh
-make branch name=chore/ci
-```
-
-```
-git switch -c chore/ci
-Switched to a new branch 'chore/ci'
-```
-
-1. **The audit script first**, since both `make audit` and the workflow use it. Run on the project, then with the list changed by hand to prove it fails (a made-up `GHSA-xxxx-old0-0000` in place of deepmerge's), then put back:
-
-```
-npm audit: 1 advisory found, 1 new.
-  GHSA-gcqx-w48m-w2h4  deepmerge  low  deepmerge mergeObject() allows prototype poisoning of returned objects
-      NEW
-  GHSA-xxxx-old0-0000 is in auditIgnore but no longer found: remove it from frontend/package.json
-
-✖ 1 advisory not reviewed: fix it, or review it and add it to auditIgnore with the reason (docs/how-to/H5-ci.md H5.4).
-exit 1
-```
-
-2. **The three YAML files**, then checked with **actionlint**, a linter of workflows that knows GitHub's syntax and expressions and runs shellcheck on the `run:` scripts. Run from its Docker image, nothing installed:
-
-```sh
-MSYS_NO_PATHCONV=1 docker run --rm -v "$(cygpath -m "$PWD"):/repo" -w /repo rhysd/actionlint:latest -color=false
-```
-
-   No output, exit code 0: no problem found. (`MSYS_NO_PATHCONV=1` and `cygpath -m` are for Git Bash on Windows, which would otherwise rewrite `/repo` into a Windows path; on the Mac, `-v "$PWD:/repo"`.)
-
-3. **The backend job tried from nothing** (H5.7.2), and `npm ci` the same way: `added 537 packages, and audited 544 packages in 10s`.
-
-4. **The Composer audit's commands**, on the repository:
-
-```sh
-docker run --rm -v "$PWD/backend:/app:ro" -w /app composer:2 composer audit --locked
-```
-
-```
-No security vulnerability advisories found.
-```
-
-5. `make toc`, `make check`.
-
-**Not tried here:** the first run on GitHub itself, which happens at the first `make push` of the branch. What to look at then is H5.3's "How to check".
-
-### H5.7.2 Trying the backend job in a clean clone
-
-The job starts from a repository with no `backend/.env`, no packages, no database. Its steps cannot be tried in the working copy: `cp backend/.env.example backend/.env` and `key:generate` would overwrite the real `backend/.env`. So in a throw-away clone, with a Compose project of its own (`COMPOSE_PROJECT_NAME`: its own containers and volumes) and other ports, the development stack left running:
-
-```sh
-git clone -q . /tmp/ci-clone && cd /tmp/ci-clone
-cp backend/.env.example backend/.env
-export COMPOSE_PROJECT_NAME=atleoplan-ci DB_FORWARD_PORT=5999 MAIL_UI_PORT=8599 APP_PORT=8599
-docker compose up -d --wait postgres
-docker compose run --rm backend composer install --no-interaction --no-progress
-docker compose run --rm backend php artisan key:generate
-docker compose run --rm backend vendor/bin/pint --test
-docker compose run --rm backend php artisan test
-docker compose down -v          # its containers and volumes only: the project name says which
-```
-
-```
- Container atleoplan-ci-postgres-1 Healthy
-vendor/ copied in 81 s.
-   INFO  Application key set successfully.
-    PASS   ......................................................... 214 files
-  Tests:    359 passed (17807 assertions)
-  Duration: 63.41s
- Volume atleoplan-ci_vendor Removed
- Volume atleoplan-ci_composer-cache Removed
-```
-
-The image was not rebuilt (`docker compose build`): the one of development is the same `Dockerfile`. `vendor/ copied in 81 s` is the copy for the editor ([H2.10](H2-backend.md#h210-adding-a-package)), slow through Windows' shared folder; on GitHub's Linux it takes a moment. The ports (`DB_FORWARD_PORT`, `MAIL_UI_PORT`) are the variables `compose.yaml` already reads; without them the clone's Postgres would ask for 5932, taken by the development one.
-
-### H5.7.3 The errors met
-
-| Message | Cause | Fix |
-|---|---|---|
-| `[DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities` | On Windows `npm` is `npm.cmd`, which only a shell starts; Node now warns when arguments are passed apart to a shell, since it joins them without escaping | On Windows the whole command as one string, `spawnSync('npm audit --json', { shell: true })`; elsewhere `spawnSync('npm', ['audit', '--json'])` with no shell |
-| `spatie/laravel-medialibrary 11.23.12 ~ 8.10.2` in `composer outdated`'s list: a newer version older than the one installed | The `composer:2` image has none of the project's PHP extensions (gd, exif), so Composer offered the newest version that would install there | `--ignore-platform-reqs` for that list only: `11.23.12 ! 11.23.13`. Not for the audit, which reads advisories, not requirements |
-
-### H5.7.4 Second pass: CodeQL, and make github-check
-
-`docs/github-checks`, once `gh` was installed and signed in (H5.3.1). First every setting was read with `gh api`, and all were as decided; then two changes to the settings, made with `gh` as well.
-
-**Secret scanning's two extra options**, asked for with a `PATCH` (a change) of the repository:
-
-```sh
-echo '{"security_and_analysis":{"secret_scanning_non_provider_patterns":{"status":"enabled"},"secret_scanning_validity_checks":{"status":"enabled"}}}' \
-  | gh api -X PATCH repos/alesssz/AtleoPlan --input - --jq .security_and_analysis
-```
-
-```
-{…,"secret_scanning_non_provider_patterns":{"status":"disabled"},…,"secret_scanning_validity_checks":{"status":"disabled"}}
-```
-
-No error, and both still off: GitHub ignores what the account cannot have (H5.3). `--input -` sends the JSON read from the pipe as the request's body.
-
-**CodeQL's default setup:**
-
-```sh
-echo '{"state":"configured","query_suite":"default"}' | gh api -X PATCH repos/alesssz/AtleoPlan/code-scanning/default-setup --input -
-gh run watch <run id> --exit-status       # waits for the run, fails if it fails
-```
-
-```
-{"run_id":43493859958,"run_url":"https://api.github.com/repos/alesssz/AtleoPlan/actions/runs/43493859958"}
-
-CodeQL Setup: success
-  Analyze (javascript-typescript): success, 73s
-  Analyze (actions): success, 49s
-```
-
-The workflows of H5.2 came out clean. The TypeScript had **one alert**:
-
-```
-js/incomplete-sanitization  high  scripts/docs-toc.mjs:108
-This does not escape backslash characters in the input.
-```
-
-`make toc` writes each heading as a link, `- [the heading](#the-heading)`, and put a backslash before `[` and `]` so Markdown reads them as text: `text.replace(/[[\]]/g, '\\$&')`. It forgot the backslash itself: a heading holding `C:\Users` would have kept a lone `\`, which escapes the character after it. No heading has one (`grep -rhE '^#{2,3} .*[\\]' docs README.md | wc -l` answered 0), so the danger was only in principle; the fix is one character in the pattern, `/[\\[\]]/g`. Before and after, on a made-up heading:
-
-```
-text   : Paths like C:\Users and [brackets]
-before : Paths like C:\Users and \[brackets\]
-after  : Paths like C:\\Users and \[brackets\]
-```
-
-`make toc` then changed no file (`Contents up to date.`), as expected with no backslash in any heading. The alert closes by itself at the first analysis of `main` after the merge.
-
-**`scripts/github-check.mjs` and `make github-check`** (H5.3.1), written on the model of `scripts/doctor.mjs`, then run: the output of H5.3.1.
-
-From the root: `make toc`, `make check`.
 
 ---
 

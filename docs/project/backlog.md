@@ -28,7 +28,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DOCS](#docs)
-  - [DOCS-4 The last beginner passages in D3, H4, H5 and S1](#docs-4-the-last-beginner-passages-in-d3-h4-h5-and-s1)
   - [DOCS-5 A showcase README](#docs-5-a-showcase-readme)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
@@ -252,21 +251,13 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 ## DOCS
 
-### DOCS-4 The last beginner passages in D3, H4, H5 and S1
-
-**Priority:** medium · **Kind:** documentation · **Found:** 2026-11-14
-
-**What is missing.** C1, C2 and H1 to H3 are written for developers now. D3, H4, H5 and S1 still hold a few sentences and sections written for a beginner (D3's basic ideas, H5's workflows explained line by line, H4's step-by-step TablePlus), and some history ("Done, in the first part of BE-1").
-
-**Recommended.** A pass on the four, keeping every functional part (setup, ports, commands, known problems, decisions).
-
 ### DOCS-5 A showcase README
 
 **Priority:** medium · **Kind:** documentation · **Found:** 2026-11-14
 
 **What is missing.** The README describes the project in one long status paragraph. A reader who opens the repository needs to see in a minute what the app does, how it is built and that it works.
 
-**Recommended.** After DOCS-4: what the app does with a few screenshots, the stack and an architecture sketch, how to run it, the CI and test badges, the docs' map; a link to a live demo once [OPS-3](#ops-3-deploy-to-the-free-server) is done.
+**Recommended.** What the app does with a few screenshots, the stack and an architecture sketch, how to run it, the CI and test badges, the docs' map; a link to a live demo once [OPS-3](#ops-3-deploy-to-the-free-server) is done.
 
 ## DATA
 

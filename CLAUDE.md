@@ -33,7 +33,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 ## Working rules (summary of docs/project/P1-conventions.md)
 
 - Everything in the repository is in English: code, comments, docs, commit messages.
-- **This is a professional project, written for developers.** Comments explain *why* (a decision, a constraint, a trap, an edge case), never what TypeScript, React, PHP or Laravel do; no tutorial-style explanations in code or docs (P1.2). A few passages in D3, H4, H5 and S1 are still written for a beginner: rewrite them to this style when a task touches them (backlog DOCS-4).
+- **This is a professional project, written for developers.** Comments explain *why* (a decision, a constraint, a trap, an edge case), never what TypeScript, React, PHP or Laravel do; no tutorial-style explanations in code or docs (P1.2).
 - **How-to guides are recipes** (P1.3): a task that brings a new kind of work adds a short recipe to the guide for its area (commands in order, files, how to check, easy mistakes). C1 and C2 describe the architecture. The history of a task lives in its commits.
 - **A change updates the docs section it touches in the same commit.** Docs are grouped by purpose in `docs/start/` (S), `design/` (D), `concepts/` (C), `how-to/` (H), `project/` (P); a document's code is its letter plus a number (`H2`), and sections are cited as "see H2.3" between docs; code comments never cite the docs or the backlog (P1.2). Index: docs/README.md. Each doc opens with a generated "Contents" list: after changing a heading run `make toc` (`make check` fails otherwise).
 - Backlog: one entry per point, IDs never reused, the entry is deleted by the commit that finishes it.

@@ -2,25 +2,14 @@
 
 Every table of the MVP ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)): what it stands for, its columns, how it connects to the others, why it is built that way, and the Laravel code that creates it. The migrations are written from this page, so a change to the design updates it in the same commit ([P1.3](../project/P1-conventions.md#p13-documentation)).
 
-**What exists so far:** `users`, with the columns of [D3.3](#d33-users-and-preferences), and the four tables of the exercise library ([D3.4](#d34-exercise-library)), with the muscles and the equipment already filled in. Each feature creates its own part when it is built ([D3.1.4](#d314-which-task-creates-what)).
-
-**The code here has been run.** The migrations, relations and queries on this page ran on Postgres 18 and Laravel 13, inside a transaction that was then undone. Results shown next to the code are that run's real output. The real files will add the full comments of [P1.2](../project/P1-conventions.md#p12-code); here the comments explain what is new.
-
-**How to read this page:**
-
-- New to databases: read [D3.1.1](#d311-a-database-in-ten-ideas), then the story of one week of training in [D3.10](#d310-the-full-story-one-week-of-training), and come back to the tables after.
-- Writing a migration: go to the table's section, then read [D3.11](#d311-traps-to-avoid) before finishing.
-- How migrations and models work in Laravel in general: [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
-- How to build a table in practice, step by step: the commands, the files to write, seeders, tinker, tests: [H1. Database: how to](../how-to/H1-database.md).
+Every table is in the code; a new one is designed here first ([H1.2](../how-to/H1-database.md#h12-a-new-table-from-start-to-finish)). Before writing a migration, read the table's section and [D3.11](#d311-traps-to-avoid). The conventions of the database layer in Laravel are in [C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders).
 
 ## Contents
 
 - [D3.1 Overview](#d31-overview)
-  - [D3.1.1 A database in ten ideas](#d311-a-database-in-ten-ideas)
-  - [D3.1.2 The map](#d312-the-map)
-  - [D3.1.3 The main idea: what I mean to do, and what I did](#d313-the-main-idea-what-i-mean-to-do-and-what-i-did)
-  - [D3.1.4 Which task creates what](#d314-which-task-creates-what)
-  - [D3.1.5 How to read the column tables](#d315-how-to-read-the-column-tables)
+  - [D3.1.1 The map](#d311-the-map)
+  - [D3.1.2 Plans and sessions: what is meant, what was done](#d312-plans-and-sessions-what-is-meant-what-was-done)
+  - [D3.1.3 Column types](#d313-column-types)
 - [D3.2 Rules for every table](#d32-rules-for-every-table)
   - [D3.2.1 Which kind of id](#d321-which-kind-of-id)
   - [D3.2.2 Table names](#d322-table-names)
@@ -62,55 +51,14 @@ Every table of the MVP ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)):
   - [D3.7.4 Deleting an account: an action in the code](#d374-deleting-an-account-an-action-in-the-code)
 - [D3.8 Computed, never stored](#d38-computed-never-stored)
 - [D3.9 Left for later](#d39-left-for-later)
-- [D3.10 The full story: one week of training](#d310-the-full-story-one-week-of-training)
+- [D3.10 One week of training, traced through the tables](#d310-one-week-of-training-traced-through-the-tables)
 - [D3.11 Traps to avoid](#d311-traps-to-avoid)
 
 ---
 
 ## D3.1 Overview
 
-### D3.1.1 A database in ten ideas
-
-**1. Tables, rows and columns.** A table is like a spreadsheet with strict rules. Each **row** is one thing and each **column** is one fact about it, with a fixed type: a text column refuses a list, a number column refuses a word.
-
-`plans`:
-
-| id | user_id | name | goal |
-|---|---|---|---|
-| `…a1` | 1 | Push Pull Legs | Hypertrophy |
-| `…a2` | 1 | Summer strength | *(empty)* |
-
-In Laravel, a **model** is a PHP class standing for a table, and an object of that class stands for one row: `$plan->name` is the "name" cell of that row.
-
-**2. Primary key: how to tell rows apart.** Two plans could have the same name, so every table has a column whose value is never repeated, usually `id`. It is how anything else refers to that row.
-
-**3. Foreign key: how rows point to each other.** A plan belongs to a user. Rather than copying the user's name and email into every plan, the plan stores only the user's id, in `user_id`. If the user changes their name, nothing else has to change.
-
-A **foreign key** is a rule on that column: "this value must exist as an id in `users`". Postgres refuses anything else, even if the application has a bug.
-
-**4. One-to-many.** One user has many plans; each plan has one user. The id goes on the "many" side, so `plans.user_id`, because one cell can hold one value. Laravel calls the two directions `hasMany` (`$user->plans`) and `belongsTo` (`$plan->user`).
-
-**5. Many-to-many and pivot tables.** An exercise works many muscles, and a muscle is worked by many exercises. No single cell can hold that, so a third table holds one row per connection. This is a **pivot table**:
-
-`exercise_muscle`:
-
-| exercise_id | muscle_id | role |
-|---|---|---|
-| 10 (Bench press) | 1 (Chest) | primary |
-| 10 (Bench press) | 2 (Triceps) | secondary |
-| 11 (Push-up) | 1 (Chest) | primary |
-
-**6. Empty cells (`NULL`).** A cell can hold no value at all, which is different from 0 or from an empty text. A column allows it only if declared `nullable`. Here it often carries meaning: an empty `exercises.owner_id` means "public", an empty `finished_at` means "still in progress".
-
-**7. Constraints: rules the database enforces.** Besides foreign keys, a **unique** constraint forbids repeated values, and a **check** constraint enforces a condition, such as "feeling is between 1 and 5". The application validates its input too, but these rules hold even when the application is wrong, and bad data is far harder to fix later than a bug.
-
-**8. Indexes: finding rows fast.** Without an index, finding a user's plans means reading the whole table. An index works like the one at the back of a book. It costs a little space and a little time on every write, so it goes on the columns that queries search by.
-
-**9. Transactions: all or nothing.** Saving a plan touches many rows. A **transaction** groups them so that either all the changes happen or none do; a crash halfway cannot leave half a plan. In Laravel: `DB::transaction(function () { … })`.
-
-**10. Soft delete: hiding instead of erasing.** A normal delete erases the row. A **soft delete** only writes the time into a `deleted_at` column; the row stays, and Laravel's `SoftDeletes` trait hides it from normal queries. It is used where the row must keep existing behind the scenes ([D3.7](#d37-what-happens-on-delete)).
-
-### D3.1.2 The map
+### D3.1.1 The map
 
 An arrow means "points to": the table on the left holds the id of a row in the table on the right.
 
@@ -132,7 +80,7 @@ users
 
 Each level is a one-to-many: a plan has many days, a day has many items, an item has many sets.
 
-### D3.1.3 The main idea: what I mean to do, and what I did
+### D3.1.2 Plans and sessions: what is meant, what was done
 
 Two families of tables mirror each other:
 
@@ -147,27 +95,9 @@ It would seem simpler to tick off the plan's own rows. They are kept apart becau
 
 So a session copies nothing from the future: it records what happened, and it survives even when the plan is deleted ([D3.7](#d37-what-happens-on-delete)).
 
-### D3.1.4 Which task creates what
+### D3.1.3 Column types
 
-| Tables | Created by |
-|---|---|
-| New columns on `users` | Done; `active_plan_id` in its own migration after `plans`, with FEAT-2 |
-| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of BE-1; muscles and equipment are filled by their seeders, the public exercises by the import of DATA-1, `make exercises-import` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
-| `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of FEAT-2, with their API |
-| `workout_sessions`, `session_exercises`, `logged_sets` | Done, in the first part of [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home), with their API |
-| `social_accounts`; `users.password` nullable | Done, with signing in with Google |
-
-### D3.1.5 How to read the column tables
-
-- **`bigint`** is a whole number, for ids; **`integer`** and **`smallint`** are smaller whole numbers.
-- **`uuid`** is a long random identifier, explained in [D3.2.1](#d321-which-kind-of-id).
-- **`string`** is a short text, up to 255 characters; **`text`** has no practical limit.
-- **`numeric(7,3)`** is an exact number with 7 digits, 3 of them decimals.
-- **`jsonb`** is structured data in one column: lists, or one value per language.
-- **`enum`** allows only the values listed.
-- **`timestampTz`** is an exact moment in time.
-- **`→ users`** means a foreign key to that table.
-- **nullable** means the cell may be empty.
+The tables use Laravel's Blueprint names: `bigint` for numeric ids, `uuid` ([D3.2.1](#d321-which-kind-of-id)), `string` (255) and `text`, `numeric(7,3)` for exact weights, `jsonb` for lists and translated values, `enum`, `timestampTz` for moments. `→ users` marks a foreign key; **nullable** a column that may be empty.
 
 ---
 
@@ -502,7 +432,7 @@ The real model (`app/Models/Exercise.php`) adds:
 
 ### D3.4.3 `exercise_muscle`
 
-**What it stands for.** Which muscles an exercise works, and how. A pivot table ([idea 5](#d311-a-database-in-ten-ideas)).
+**What it stands for.** Which muscles an exercise works, and how. A pivot table.
 
 | Column | Type | What it is for |
 |---|---|---|
@@ -1224,7 +1154,7 @@ Each comes with a new migration when its phase arrives ([D1.8](D1-ui.md#d18-rele
 
 ---
 
-## D3.10 The full story: one week of training
+## D3.10 One week of training, traced through the tables
 
 Every table, in the order they fill up. UUIDs are shortened to their last characters. Ada is a made-up user with id 1.
 
