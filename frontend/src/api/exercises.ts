@@ -10,7 +10,7 @@
  * - useInfiniteQuery, for a list that arrives one page at a time: the pages
  *   are kept together under one key, and fetchNextPage() asks for the next;
  * - mutations that refresh the cache after a change: invalidateQueries()
- *   marks the lists as old, so they are read again (docs/learn/L2-react.md L2.13).
+ *   marks the lists as old, so they are read again.
  *
  * Texts come in the request's language, so the language is part of every
  * key: switching language reads the library again instead of showing names

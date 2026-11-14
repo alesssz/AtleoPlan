@@ -108,7 +108,7 @@ export function WorkoutPreferences() {
 
   // No user yet: nothing to show. This early return comes after every hook
   // above, never before: React needs the same hooks, in the same order, at
-  // every draw (the rules of hooks, docs/learn/L2-react.md L2.9)
+  // every draw (the rules of hooks)
   if (!user) return null
   // The account's unit, and the step as a number ("2.50" → 2.5)
   const unit = user.weight_unit

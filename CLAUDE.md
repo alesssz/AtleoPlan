@@ -16,8 +16,6 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 | Building pages, data hooks, forms in practice: files, tests, translations, browser tools, errors | [docs/how-to/H3-frontend.md](docs/how-to/H3-frontend.md) |
 | Opening the database: connection details, TablePlus, alternatives | [docs/how-to/H4-database-tools.md](docs/how-to/H4-database-tools.md) |
 | What GitHub checks on every push (CI, audit, Dependabot), reading a failed run | [docs/how-to/H5-ci.md](docs/how-to/H5-ci.md) |
-| Learning standard Laravel lesson by lesson, with exercises | [docs/learn/L1-laravel.md](docs/learn/L1-laravel.md) |
-| Learning React and the frontend's libraries lesson by lesson, with exercises | [docs/learn/L2-react.md](docs/learn/L2-react.md) |
 | What to work on next | [docs/project/backlog.md](docs/project/backlog.md) |
 
 ## Running things
@@ -34,10 +32,10 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 
 ## Working rules (summary of docs/project/P1-conventions.md)
 
-- Everything in the repository is in English: code, comments, docs, commit messages. The user talks to you in Italian; answer in Italian.
-- **Comments in depth, for a reader new to Laravel, PHP and React**: the user reads the code to learn the stack. A header on every file, PHPDoc / TSDoc on every class, function, component, prop and field, a line on each local variable, labelled JSX blocks, commented migrations; and the framework concept behind a line explained the first time it appears in a file, with a pointer to docs/concepts/C1-frontend.md or docs/concepts/C2-backend.md. The guides are equally in-depth and updated in the same change.
-- **Every task comes with its "how to"** (P1.3): the docs say not only what was built but how, so the user can do the next one by hand. The how-to covers the commands in order, with their real output; the files and what goes in each; how to check the result; and the errors met. It goes in the how-to guide for the area (07 database, 08 backend, 09 frontend, or a new section), on the model of docs/how-to/H1-database.md H1.2; 04 and 05 keep the explanations. The final reply of each task also lists, briefly, the commands that were run.
-- **A change updates the docs section it touches in the same commit.** Docs are grouped by purpose in `docs/start/` (S), `design/` (D), `concepts/` (C), `how-to/` (H), `project/` (P), `learn/` (L); a document's code is its letter plus a number (`H2`), and sections are cited as "see H2.3", also in code comments. Index: docs/README.md. Each doc opens with a generated "Contents" list: after changing a heading run `make toc` (`make check` fails otherwise).
+- Everything in the repository is in English: code, comments, docs, commit messages.
+- **This is a professional project, written for developers.** Comments explain *why* (a decision, a constraint, a trap, an edge case), never what TypeScript, React, PHP or Laravel do; no tutorial-style explanations in code or docs (P1.2). Older files still carry longer explanatory comments: rewrite them to this style when a task touches them, and in the backlog's DOCS entries.
+- **How-to guides are recipes** (P1.3): a task that brings a new kind of work adds a short recipe to the guide for its area (commands in order, files, how to check, easy mistakes). C1 and C2 describe the architecture. The history of a task lives in its commits.
+- **A change updates the docs section it touches in the same commit.** Docs are grouped by purpose in `docs/start/` (S), `design/` (D), `concepts/` (C), `how-to/` (H), `project/` (P); a document's code is its letter plus a number (`H2`), and sections are cited as "see H2.3", also in code comments. Index: docs/README.md. Each doc opens with a generated "Contents" list: after changing a heading run `make toc` (`make check` fails otherwise).
 - Backlog: one entry per point, IDs never reused, the entry is deleted by the commit that finishes it.
 - One branch per task from `main` (`feat/…`, `fix/…`, `docs/…`, `chore/…`), pushed with `make push` and merged with `make merge` (checks, `--no-ff`, push, branch deleted).
 

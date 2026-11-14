@@ -4,8 +4,6 @@ How the React app in `frontend/` is built, why, and how to work on it. It is wri
 
 Every source file starts with a comment saying what it is for, and the code is commented line by line ([P1.2](../project/P1-conventions.md#p12-code)): the files are meant to be read next to this page. The decisions behind the choices are in [D2.2](../design/D2-decisions.md#d22-stack); the screens they serve in [D1. UI design](../design/D1-ui.md); setup and commands in [S1.7](../start/S1-setup.md#s17-creating-the-react-frontend) and [S1.8](../start/S1-setup.md#s18-everyday-commands).
 
-**New to React itself?** [L2. React course](../learn/L2-react.md) teaches React and the libraries used here lesson by lesson, keeping apart what is React, what is a library and what this project adds; this page is about how the app is built with them.
-
 ## Contents
 
 - [C1.1 The pieces](#c11-the-pieces)
@@ -815,7 +813,7 @@ useInfiniteQuery({
 - **`fetchNextPage()`** reads the next one; `hasNextPage` says whether there is one. The page shows a **Show more** button rather than an endless scroll: the end of the page stays reachable, for the keyboard and the tab bar.
 - **`placeholderData: keepPreviousData`** keeps the old list on screen while the list of new filters loads, with `isPlaceholderData` true; the page dims it and turns a spinner in the search box ([C1.20](#c120-showing-that-something-is-loading)). Without it every letter typed would flash a skeleton.
 - **The language is part of every key** (`['exercises', 'list', 'it', {…}]`), because the names arrive translated: switching language reads the library again instead of showing Italian names to an English reader. `useMuscles()` and `useEquipment()` do the same.
-- **After a change,** the mutations invalidate `['exercises']`: every list and every exercise, in every language, is marked old ([L2.13](../learn/L2-react.md#l213-changing-data-mutations)).
+- **After a change,** the mutations invalidate `['exercises']`: every list and every exercise, in every language, is marked old.
 
 ### C1.14.3 Filters in the address
 
@@ -1355,7 +1353,7 @@ const now = useNow(1000)                  // a new Date every second: the screen
 const left = restLeft(session, now)       // ends_at − now, in whole seconds, never below 0
 ```
 
-- **`useNow(intervalMs)`** is a small custom hook ([L2.9](../learn/L2-react.md#l29-hooks-the-rules-and-your-own)): `useState` holds the moment, an effect starts `setInterval`, and its clean-up stops it. Each tick draws the screen again, and the clock and the timer read the new moment. A phone that slept 2 minutes shows the right time as soon as it wakes.
+- **`useNow(intervalMs)`** is a small custom hook: `useState` holds the moment, an effect starts `setInterval`, and its clean-up stops it. Each tick draws the screen again, and the clock and the timer read the new moment. A phone that slept 2 minutes shows the right time as soon as it wakes.
 - **±15 s** moves `ends_at`, and the bar's total with it. **Skip** is `endRest`.
 - **The end of the rest** is a `setTimeout` set for that moment, in an effect that depends on `session.rest`:
 
@@ -1438,7 +1436,7 @@ Two panels that slide up from the bottom of the screen, added by UI-6 ([D1.4.9](
 - **The values stay text.** `stepValue(text, field, delta, language)` (`stepper.ts`, no React) reads the field's text, adds the step and writes it back in the user's language (`82,5` + 2,5 = `85`), so typing and tapping mix. An empty or unreadable field starts from 0. Reps, seconds and meters are rounded to whole numbers (the backend takes no other); the weight keeps two decimals at most, written by `formatNumber()`, which also hides JavaScript's `0.1 + 0.2 = 0.30000000000000004`.
 - **Each tap changes the set at once** with the same `setField` action typing used: no Cancel, and **Done** only closes. The workout is stored after every change, as always.
 - **Which set:** `WorkoutScreen` keeps `stepping = { set, field }` apart from `stepperOpen`, so while the panel slides away it still shows the set it had.
-- **Focus:** Radix gives the focus to the first button of a dialog, here the weight's −. `onOpenAutoFocus` with `event.preventDefault()` stops that, and the + of the field tapped gets it, through a **callback ref**: `ref={(button) => { plusButtons.current[field] = button }}` keeps each + in an object held by `useRef` ([L2.20](../learn/L2-react.md#l220-what-react-has-that-the-project-does-not-use-yet)), which React does not draw again when it changes.
+- **Focus:** Radix gives the focus to the first button of a dialog, here the weight's −. `onOpenAutoFocus` with `event.preventDefault()` stops that, and the + of the field tapped gets it, through a **callback ref**: `ref={(button) => { plusButtons.current[field] = button }}` keeps each + in an object held by `useRef`, which React does not draw again when it changes.
 
 **The exercise's menu.** `ExerciseMenu`, the "⋯" beside the exercise's name, opens a panel with rows 48 px tall, rather than a small drop-down: rows as wide as the phone are easy to hit mid-set.
 
@@ -1652,7 +1650,7 @@ HomePage                 route `/`, inside AppLayout
 
 ### C1.18.2 Starting from Home: one hook for two pages
 
-Start on Home and Start this day on the plan's page do the same steps, so they are written once, in a **custom hook**, `useStartWorkout()` ([L2.9](../learn/L2-react.md#l29-hooks-the-rules-and-your-own)): a function whose name starts with `use` and that calls other hooks (`useNavigate`, `useCurrentUser`, `useState`). Each page calls it and gets back the actions and their state:
+Start on Home and Start this day on the plan's page do the same steps, so they are written once, in a **custom hook**, `useStartWorkout()`: a function whose name starts with `use` and that calls other hooks (`useNavigate`, `useCurrentUser`, `useState`). Each page calls it and gets back the actions and their state:
 
 ```tsx
 const start = useStartWorkout()

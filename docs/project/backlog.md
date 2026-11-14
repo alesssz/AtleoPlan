@@ -27,6 +27,11 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-11 Videos of an exercise](#feat-11-videos-of-an-exercise)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
+- [DOCS](#docs)
+  - [DOCS-2 Backend comments in the current style](#docs-2-backend-comments-in-the-current-style)
+  - [DOCS-3 Frontend comments in the current style](#docs-3-frontend-comments-in-the-current-style)
+  - [DOCS-4 Concepts as architecture, how-to guides as recipes](#docs-4-concepts-as-architecture-how-to-guides-as-recipes)
+  - [DOCS-5 A showcase README](#docs-5-a-showcase-readme)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
 
@@ -246,6 +251,40 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - B) Leave as it is while the app is personal.
 
 **Recommended.** B for now and A before opening to other users (phase 2): with a single user nothing is at stake, and signing up will still need to say that an email is taken, unless it moves to verifying the address by email.
+
+## DOCS
+
+### DOCS-2 Backend comments in the current style
+
+**Priority:** medium · **Kind:** code quality · **Found:** 2026-11-14
+
+**What is missing.** The backend's files (`app/`, `database/`, `routes/`, `config/`, `tests/`: 196 files, about 7,300 comment lines) were written with long explanatory comments, line by line. [P1.2](P1-conventions.md#p12-code) now asks for comments that explain *why*, for a developer who knows Laravel.
+
+**Recommended.** One branch per area (models and migrations, HTTP layer, actions and jobs, Filament, tests), each with `make check`: keep the headers that say what a file is for and the comments that explain a decision or a trap, remove the ones that explain PHP or Laravel, shorten the rest.
+
+### DOCS-3 Frontend comments in the current style
+
+**Priority:** medium · **Kind:** code quality · **Found:** 2026-11-14
+
+**What is missing.** The same for the frontend (`src/`: 182 files, about 7,500 comment lines): comments on what a hook, a prop or JSX is, a line on every local constant, labels on every JSX block.
+
+**Recommended.** One branch per area (api and lib, components by feature, pages, tests), after [FEAT-3](#feat-3-workout-mode-and-home)'s offline work or between its parts, so the files it rewrites are converted once.
+
+### DOCS-4 Concepts as architecture, how-to guides as recipes
+
+**Priority:** medium · **Kind:** documentation · **Found:** 2026-11-14
+
+**What is missing.** [C1](../concepts/C1-frontend.md) and [C2](../concepts/C2-backend.md) are written for a reader new to React and Laravel; the how-to guides (H1 to H3 above all) hold long "as built" sections with every command's output and every error met.
+
+**Recommended.** C1 and C2 become architecture documents: the pieces, the flows, the decisions, the conventions of each layer. The "as built" sections are condensed into recipes ([P1.3](P1-conventions.md#p13-documentation)), keeping the traps worth knowing. D, P, S and H5 stay as they are.
+
+### DOCS-5 A showcase README
+
+**Priority:** medium · **Kind:** documentation · **Found:** 2026-11-14
+
+**What is missing.** The README describes the project in one long status paragraph. A reader who opens the repository needs to see in a minute what the app does, how it is built and that it works.
+
+**Recommended.** After DOCS-4: what the app does with a few screenshots, the stack and an architecture sketch, how to run it, the CI and test badges, the docs' map; a link to a live demo once [OPS-3](#ops-3-deploy-to-the-free-server) is done.
 
 ## DATA
 
