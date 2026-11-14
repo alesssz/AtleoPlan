@@ -1,63 +1,94 @@
-# AtleoPlan
+<p align="center">
+  <img src="docs/design/brand/mark-lime.svg" alt="AtleoPlan logo" width="96" height="96">
+</p>
 
-[![CI](https://github.com/alesssz/AtleoPlan/actions/workflows/ci.yml/badge.svg)](https://github.com/alesssz/AtleoPlan/actions/workflows/ci.yml)
+<h1 align="center">AtleoPlan</h1>
 
-<img src="docs/design/brand/mark-lime.svg" alt="AtleoPlan's logo: a heavy italic A with a tick cut out of it, on a lime tile" width="72">
+<p align="center">
+  A workout app for the gym: plans, workout mode set by set, progress against last time.<br>
+  <em>Your plans, your progress.</em>
+</p>
 
-*Your plans, your progress.*
+<p align="center">
+  <a href="https://github.com/alesssz/AtleoPlan/actions/workflows/ci.yml"><img src="https://github.com/alesssz/AtleoPlan/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+</p>
 
-A workout app for building training plans out of a library of exercises, following them at the gym and logging every set to see progress over time. Exercises live in a library of their own, public or personal, with photos and videos; a plan is made of days, each holding exercises with their sets, reps and rest. Plans can be shared through a link.
+AtleoPlan builds training plans from a library of almost 900 exercises, follows them set by set on the phone, and compares each exercise with last time. A Laravel API and a React + TypeScript single-page app, in four languages, designed phone first. In development, not deployed yet.
 
-It works on phones and desktop as a PWA, offline during workouts, in Italian, English, Spanish and German. Backend in Laravel (API), frontend in React + TypeScript, hosted for free on a single server ([D2.6](docs/design/D2-decisions.md#d26-hosting)).
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Home: the active plan with the suggested day, Start, and a chip for each day" width="240">
+  <img src="docs/screenshots/workout.png" alt="Workout mode: the sets of the bench press with last time's values, three ticked, the rest timer running" width="240">
+  <img src="docs/screenshots/plan-editor.png" alt="The plan editor: a day's exercises with their sets, two of them in a superset, each with a drag handle" width="240">
+</p>
 
-**Status:** early. The Laravel and React apps run locally, with signing in, the app's frame and its logo, four languages and the two themes; the exercise library is filled from free-exercise-db and translated into Italian, Spanish and German, with its screens: list, search, filters (muscle and equipment in a panel from the bottom), details and the editor of personal exercises, with their photos (uploaded, ordered, a small copy for every list) and Duplicate as mine for public ones. Workout plans are done: list, page and editor, with days, sets, supersets and drag and drop, exercises done as fast as possible; a plan can be exported as a file and imported again, on the same server or another, with a preview before anything is sent; `make plans-demo` adds two examples. Workout mode is done: a plan's day followed set by set, with last time's values, the rest timer and supersets, a big stepper for weights and reps, a stopwatch for timed sets (docked under the sets, with a pause), the next exercise named, a panel with how each exercise is done, a menu to swap, skip or annotate an exercise, what was added by hand removable again, a workout in progress deletable without finishing it, kept on the phone and sent when the network allows; its preferences (unit, default rest, weight step, timer sound and vibration) are on Profile, with the plan editor's RPE field, off by default. Home shows the active plan with the suggested day, Start, a free workout and the week. After a workout its summary asks how it felt, and history, under Progress, keeps every workout with its sets. Every page opens with a compact header, its main actions on the title's row. Every wait for the server has a sign: grey shapes on a first load, a spinner in the search box while a search runs, and in a button while its request does. The admin panel, at `/admin` and in the admin's language, manages the public library (its texts in four languages, the translations still to review) and the users (role, disabling an account, which signs it out at once). The offline app comes next. The other features come next, in the order of the [road to the MVP](docs/project/backlog.md#road-to-the-mvp). Deploying comes later ([OPS-3](docs/project/backlog.md#ops-3-deploy-to-the-free-server)).
+<p align="center">
+  <img src="docs/screenshots/desktop-plan.png" alt="A plan's page on a laptop: the sidebar, the plan's actions, its days as tabs and the first day's exercises" width="760">
+</p>
 
-**This repository.** A personal project, in development and not deployed, made public to be read. There is no licence: the code can be read and studied, but all rights are reserved, so it may not be reused or redistributed without permission. Contributions are not expected for now; a security problem is reported privately, as [SECURITY.md](SECURITY.md) says ([P1.5](docs/project/P1-conventions.md#p15-a-public-repository)). GitHub Actions checks every push and audits the dependencies every week ([H5](docs/how-to/H5-ci.md)).
+## Features
 
-## Contents
+- **Exercise library** of 876 exercises from free-exercise-db plus calisthenics of our own, in four languages; search across every language and alias, filters by muscle and equipment; personal exercises with photos.
+- **Plans** with days, sets and their types (warm-up, drop, to failure), supersets and drag and drop; the draft survives a closed tab; a plan exported as a file and imported on another server.
+- **Workout mode**: one tap per set, pre-filled with last time's values; a rest timer with sound and vibration; a stopwatch for timed sets; swap, skip or annotate an exercise; the screen kept on.
+- **Progress**: Home suggests the next day and sums up the week; after a workout, each exercise is compared with last time; history by month.
+- **Accounts** with email and password or Google; language, theme, unit (kg or lb) and workout preferences follow the user across devices.
+- **Admin panel** for the public library, its translations still to review, and the users.
 
-- [Local development](#local-development)
-- [Documentation](#documentation)
+All of it, screen by screen: [D1. UI design](docs/design/D1-ui.md).
 
----
+## Engineering highlights
 
-## Local development
+- **A workout survives a gym with no signal.** It lives on the phone while it runs, and is sent at the end with a `PUT` to a UUID the phone created: a retry after a lost answer replaces it instead of duplicating it, and a workout deleted meanwhile answers `410 Gone`, so the queue stops retrying. ([C2.5.7](docs/concepts/C2-backend.md#c257-the-workouts-endpoints))
+- **Timers that are right after the phone sleeps.** Browsers throttle background timers, so the rest timer and the stopwatch store the moment they end or started, never a countdown; the screen derives the time left from the clock. ([C1.17.4](docs/concepts/C1-frontend.md#c1174-the-rest-timer-a-moment-not-a-countdown))
+- **A plan is saved as one tree.** Days, exercises and sets go in one request and one transaction, rows matched by their UUIDs; a version number with a row lock tells the editor when someone saved the same plan elsewhere in the meantime. ([C2.5.5](docs/concepts/C2-backend.md#c255-the-plans-endpoints))
+- **Comparisons that mean something.** A workout's total volume adds a kilogram of squat to a kilogram of curl and weighs a calisthenics workout at zero, so each exercise is compared with its own last time instead: estimated one-rep max, reps, or time. ([C1.19.3](docs/concepts/C1-frontend.md#c1193-better-than-last-time-exercise-by-exercise))
+- **The rules live in plain code.** Laravel controllers only authorise, validate and delegate to actions tested without HTTP; the React editor and workout run on pure reducers with "now" passed in, tested without rendering. ([C1.4](docs/concepts/C1-frontend.md#c14-component-conventions), [C2.2](docs/concepts/C2-backend.md#c22-code-conventions))
+- **Tested and checked on every push.** Pest covers every endpoint with its forbidden cases, on a test database guarded against mistakes; Vitest drives pages through the real router with a fake API, by role and accessible name; CI adds the build, a weekly dependency audit and CodeQL. ([H5](docs/how-to/H5-ci.md))
 
-Needs Docker and Node only: PHP and Composer run inside the backend container (`Dockerfile`, `compose.yaml`).
+## Tech stack
 
-Ports on your computer are each service's standard port + 500, so they never clash with other projects. On Windows, run the commands from Git Bash ([S1.2](docs/start/S1-setup.md#s12-prerequisites)).
+React 19 (TypeScript strict, Vite) · TanStack Query · React Router · react-hook-form and zod · i18next · Tailwind CSS 4 and shadcn/ui · dnd-kit · Laravel 13 (PHP 8.4, FrankenPHP) · Sanctum and Fortify · Filament 5 · PostgreSQL 18 · Pest, Vitest and Testing Library · Docker Compose · GitHub Actions. Why each one: [D2. Decisions](docs/design/D2-decisions.md#d22-stack).
 
-| Service | Address |
-|---|---|
-| Laravel (API) | http://localhost:8500 |
-| Admin panel, for admins (also Profile → Administration in the app) | http://localhost:8500/admin |
-| Postgres | `localhost:5932`, user, password and database `atleoplan` |
-| Mailpit (caught emails) | http://localhost:8525 |
-| Vite (React app) | http://localhost:5673 |
-
-```sh
-make setup        # first time on a new clone
-make fresh        # the fixed lists (muscles, equipment) and the development account
-make exercises-import   # the public exercise library, from free-exercise-db, translated
-make up           # start the backend stack;  make dev  starts React
-make help         # every command
-make down         # stop (data is kept)
+```mermaid
+flowchart LR
+  SPA["React SPA<br/>workout kept on the phone"] -- "/api · session cookie" --> Proxy["Caddy<br/>(Vite in development)"]
+  Proxy --> API["Laravel API"]
+  Proxy -- "/admin" --> Admin["Filament admin"]
+  API --> DB[("PostgreSQL")]
+  Admin --> DB
+  Queue["Queue worker"] --> DB
 ```
 
-First time on this computer, creating the apps, every command and known problems: [S1. Setup](docs/start/S1-setup.md).
+## Quick start
 
----
+Requires Docker and Node 24; on Windows, run the commands from Git Bash. `make doctor` checks everything and prints the fix for anything missing.
+
+```sh
+make setup             # images, packages, database
+make fresh             # reference data and the development account
+make exercises-import  # the exercise library (downloads free-exercise-db once)
+make start             # backend and React app with hot reload
+```
+
+Open http://localhost:5673 and sign in with `test@example.com` / `password`; `make plans-demo` adds two example plans. `make check` runs every check; `make help` lists every command. A new computer from scratch, ports and known problems: [S1. Setup](docs/start/S1-setup.md).
 
 ## Documentation
 
-Everything lives in [`docs/`](docs), grouped by what you are looking for. **[docs/README.md](docs/README.md)** is the index of every document.
-
-| Folder | Look here to… |
+| Section | Contents |
 |---|---|
-| [`docs/start/`](docs/start) (S) | install and start the project, solve setup problems |
-| [`docs/design/`](docs/design) (D) | know what the app does and why: screens, decisions, tables |
-| [`docs/concepts/`](docs/concepts) (C) | understand how the React and Laravel code works |
-| [`docs/how-to/`](docs/how-to) (H) | follow a recipe: the commands in order, the files, how to check, the common mistakes |
-| [`docs/project/`](docs/project) (P) | know how we work (conventions) and what comes next (backlog) |
+| [S1. Setup](docs/start/S1-setup.md) | From a new computer to the app running; ports, commands, known problems |
+| [D1. UI design](docs/design/D1-ui.md) | Users, navigation, every screen, design system, states, accessibility |
+| [D2. Decisions](docs/design/D2-decisions.md) | Stack, exercise library, languages, media, hosting, offline, workout rules |
+| [D3. Data model](docs/design/D3-data-model.md) | Every table, ids, what happens on delete, traps |
+| [C1. Frontend](docs/concepts/C1-frontend.md) | The React app's architecture, feature by feature |
+| [C2. Backend](docs/concepts/C2-backend.md) | The Laravel API's architecture, endpoints, admin panel, imports |
+| [H1–H5. How-to](docs/how-to) | Recipes: tables, endpoints, pages, the database client, CI |
+| [P1. Conventions](docs/project/P1-conventions.md) | Git, code, comments, docs, the public repository |
 
-Each document has a code: its folder's letter and a number, such as `H2`. Its sections follow it, so a reference such as "see H2.3" points to section 3 of `docs/how-to/H2-backend.md`.
+Every document is indexed in [docs/README.md](docs/README.md); work known and waiting is in the [backlog](docs/project/backlog.md).
+
+## Status
+
+Everything above runs locally; deploying is [OPS-3](docs/project/backlog.md#ops-3-deploy-to-the-free-server). Next come the offline app (a PWA that opens with no network), then progress charts, records, shared plans and exercise videos.
+
+A personal project, made public to be read. There is no licence: the code can be read and studied, but all rights are reserved. A security problem is reported privately, as [SECURITY.md](SECURITY.md) says.
