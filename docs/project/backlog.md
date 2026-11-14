@@ -28,7 +28,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DOCS](#docs)
-  - [DOCS-4 Concepts as architecture, how-to guides as recipes](#docs-4-concepts-as-architecture-how-to-guides-as-recipes)
+  - [DOCS-4 How-to guides as recipes](#docs-4-how-to-guides-as-recipes)
   - [DOCS-5 A showcase README](#docs-5-a-showcase-readme)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
@@ -252,13 +252,13 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 ## DOCS
 
-### DOCS-4 Concepts as architecture, how-to guides as recipes
+### DOCS-4 How-to guides as recipes
 
 **Priority:** medium · **Kind:** documentation · **Found:** 2026-11-14
 
-**What is missing.** [C1](../concepts/C1-frontend.md) and [C2](../concepts/C2-backend.md) are written for a reader new to React and Laravel; the how-to guides (H1 to H3 above all) hold long "as built" sections with every command's output and every error met.
+**What is missing.** [C1](../concepts/C1-frontend.md) and [C2](../concepts/C2-backend.md) are architecture documents now; the how-to guides (H1 to H3 above all) still hold long "as built" sections with every command's output and every error met, and D3, H4, H5 and S1 a few sentences written for a beginner.
 
-**Recommended.** C1 and C2 become architecture documents: the pieces, the flows, the decisions, the conventions of each layer. The "as built" sections are condensed into recipes ([P1.3](P1-conventions.md#p13-documentation)), keeping the traps worth knowing. D, P, S and H5 stay as they are.
+**Recommended.** The "as built" sections condensed into recipes ([P1.3](P1-conventions.md#p13-documentation)), keeping the traps worth knowing; then a pass on D3, H4, H5 and S1.
 
 ### DOCS-5 A showcase README
 

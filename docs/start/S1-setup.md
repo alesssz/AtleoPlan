@@ -184,7 +184,7 @@ The `backend` and `queue` services start only once the Laravel app exists ([S1.6
 
 ## S1.6 Creating the Laravel backend
 
-How the backend works once created, for a reader new to PHP and Laravel: [C2. Backend](../concepts/C2-backend.md).
+How the backend is built: [C2. Backend](../concepts/C2-backend.md).
 
 **How it works.** There is no need to go inside the container: commands are typed in your computer's terminal, from the project folder, and Docker runs them in the container. The container is a computer with PHP and Composer installed, working on your computer's `backend/` folder:
 
