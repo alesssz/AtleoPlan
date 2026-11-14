@@ -6,7 +6,7 @@ How to look inside the Postgres database with a program: browse tables, read row
 
 - First time: [H4.1](#h41-the-connection-details), then [H4.2](#h42-tableplus-the-tool-we-use).
 - It does not connect: [H4.5](#h45-when-it-does-not-connect).
-- How to write the queries themselves, and the tables' structure: [H1.7](H1-database.md#h17-looking-at-the-data) and [D3. Data model](../design/D3-data-model.md).
+- How to write the queries themselves, and the tables' structure: [H1.6](H1-database.md#h16-looking-at-the-data) and [D3. Data model](../design/D3-data-model.md).
 
 ## Contents
 
@@ -97,7 +97,7 @@ SELECT migration, batch FROM migrations ORDER BY id;
 
 - **`Cmd+Enter`** runs the query under the cursor, or the selected text. The results appear below.
 - **Saved queries:** the editor's text stays with the connection until you delete it. Handy for the queries you reuse.
-- **Queries on the tables to come** (sessions, sets, volumes per week) are in [D3](../design/D3-data-model.md) and [H1.7](H1-database.md#h17-looking-at-the-data).
+- **Queries on the tables to come** (sessions, sets, volumes per week) are in [D3](../design/D3-data-model.md) and [H1.6](H1-database.md#h16-looking-at-the-data).
 
 ### H4.2.4 Changing data, carefully
 
@@ -131,7 +131,7 @@ On Windows, `Ctrl` takes the place of `Cmd`.
 
 ## H4.3 Without leaving the terminal
 
-For a quick look, without opening a program ([H1.7](H1-database.md#h17-looking-at-the-data)):
+For a quick look, without opening a program ([H1.6](H1-database.md#h16-looking-at-the-data)):
 
 | Command | What you get |
 |---|---|
@@ -144,7 +144,7 @@ For a quick look, without opening a program ([H1.7](H1-database.md#h17-looking-a
 
 ## H4.4 The alternatives
 
-**phpMyAdmin is not one of them:** it works only with MySQL and MariaDB, and this project uses Postgres. Laravel itself has no screen for browsing the database. Filament shows only the tables that have an admin screen ([H2.4](H2-backend.md#h24-an-admin-screen)).
+**phpMyAdmin is not one of them:** it works only with MySQL and MariaDB, and this project uses Postgres. Laravel itself has no screen for browsing the database. Filament shows only the tables that have an admin screen ([H2.6](H2-backend.md#h26-an-admin-screen)).
 
 **Desktop programs**, installed on the computer, which connect with the details of [H4.1](#h41-the-connection-details):
 

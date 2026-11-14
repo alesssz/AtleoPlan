@@ -152,10 +152,10 @@ So a session copies nothing from the future: it records what happened, and it su
 | Tables | Created by |
 |---|---|
 | New columns on `users` | Done; `active_plan_id` in its own migration after `plans`, with FEAT-2 |
-| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of BE-1; muscles and equipment are filled by their seeders, the public exercises by the import of DATA-1, `make exercises-import` ([H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)) |
-| `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of FEAT-2, with their API ([H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built), [H2.13](../how-to/H2-backend.md#h213-the-plans-api-as-built)) |
-| `workout_sessions`, `session_exercises`, `logged_sets` | Done, in the first part of [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home), with their API ([H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built)) |
-| `social_accounts`; `users.password` nullable | Done, with signing in with Google ([H1.18](../how-to/H1-database.md#h118-the-google-accounts-as-built)) |
+| `muscles`, `equipment`, `exercises`, `exercise_muscle` | Done, in the first part of BE-1; muscles and equipment are filled by their seeders, the public exercises by the import of DATA-1, `make exercises-import` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
+| `plans`, `plan_days`, `plan_items`, `plan_sets` | Done, in the first part of FEAT-2, with their API |
+| `workout_sessions`, `session_exercises`, `logged_sets` | Done, in the first part of [FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home), with their API |
+| `social_accounts`; `users.password` nullable | Done, with signing in with Google |
 
 ### D3.1.5 How to read the column tables
 
@@ -334,12 +334,12 @@ Schema::table('users', function (Blueprint $table) {    // table(), not create()
     $table->boolean('timer_vibration')->default(true);
 });
 
-// In a later migration, once `plans` exists: …_add_active_plan_id_to_users_table.php (H1.13.4)
+// In a later migration, once `plans` exists: …_add_active_plan_id_to_users_table.php
 Schema::table('users', function (Blueprint $table) {
     $table->foreignUuid('active_plan_id')->nullable()->index()->constrained('plans')->nullOnDelete();
 });
 
-// With feat/set-types-rpe: …_add_show_rpe_to_users_table.php (H3.24.2)
+// In its own migration: …_add_show_rpe_to_users_table.php
 Schema::table('users', function (Blueprint $table) {
     $table->boolean('show_rpe')->default(false);
 });
@@ -378,7 +378,7 @@ Schema::create('social_accounts', function (Blueprint $table) {
     $table->unique(['provider', 'provider_user_id']);
 });
 
-// And on users, in its own migration (H1.18.2)
+// And on users, in its own migration
 Schema::table('users', function (Blueprint $table) {
     $table->string('password')->nullable()->change();
 });
@@ -392,7 +392,7 @@ Schema::table('users', function (Blueprint $table) {
 
 ## D3.4 Exercise library
 
-**In the code:** the migrations `…_create_{muscles,equipment,exercises,exercise_muscle}_table.php`, the models `Muscle`, `Equipment`, `Exercise` and `ExerciseMuscle`, the seeders `MuscleSeeder` and `EquipmentSeeder`. How they were built: [H1.10](../how-to/H1-database.md#h110-the-exercise-library-as-built). The public rows come from free-exercise-db, through the command `exercises:import` and the action `ImportFreeExercise` ([C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import), [H1.12](../how-to/H1-database.md#h112-the-free-exercise-db-import-as-built)).
+**In the code:** the migrations `…_create_{muscles,equipment,exercises,exercise_muscle}_table.php`, the models `Muscle`, `Equipment`, `Exercise` and `ExerciseMuscle`, the seeders `MuscleSeeder` and `EquipmentSeeder`. The public rows come from free-exercise-db, through the command `exercises:import` and the action `ImportFreeExercise` ([C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import), [H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)).
 
 ### D3.4.1 `muscles` and `equipment`
 
@@ -525,7 +525,7 @@ $exercise->muscles()->attach($chest, ['role' => 'primary']);        // adds a pi
 $exercise->muscles()->wherePivot('role', 'primary')->pluck('slug'); // ["chest"]
 ```
 
-**The role as an enum.** A pivot table has no model, so its `role` would be a plain string. The small class `ExerciseMuscle extends Pivot` gives it the cast to `MuscleRole`, and both relations use it: `->using(ExerciseMuscle::class)->withPivot('role')`. Then `$muscle->pivot->role` is `MuscleRole::Primary` ([H1.10.3](../how-to/H1-database.md#h1103-a-pivot-with-a-column-of-its-own)).
+**The role as an enum.** A pivot table has no model, so its `role` would be a plain string. The small class `ExerciseMuscle extends Pivot` gives it the cast to `MuscleRole`, and both relations use it: `->using(ExerciseMuscle::class)->withPivot('role')`. Then `$muscle->pivot->role` is `MuscleRole::Primary` ([H1.4](../how-to/H1-database.md#h14-models)).
 
 ### D3.4.4 Photos and videos
 
@@ -573,7 +573,7 @@ Pullups | Trazioni alla sbarra | Klimmzüge | pull-up      (names and aliases)
 pullups | trazioni alla sbarra | klimmzuge | pull up      (search_text)
 ```
 
-The model writes it at every save, on its `saving` event ([C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders)), so it follows the API, the import, the translation and the admin panel alike; the migration that added it filled the existing rows once ([H1.16](../how-to/H1-database.md#h116-the-search-text-as-built)).
+The model writes it at every save, on its `saving` event ([C2.6](../concepts/C2-backend.md#c26-database-migrations-models-factories-seeders)), so it follows the API, the import, the translation and the admin panel alike; the migration that added it filled the existing rows once ([H1.3.4](../how-to/H1-database.md#h134-filling-a-new-column)).
 
 **How a search matches.** What the user typed is normalised the same way and cut into words. Matches start at the beginning of a word of `search_text`, never inside one, and an exercise is found by any of three rules:
 
@@ -603,7 +603,7 @@ No special index is needed: a thousand rows do not need one. If search slows dow
 
 **Why a column, rather than reading the JSON at every search.** The normalisation (accents, punctuation) is easy in PHP and awkward in SQL, and done once per save it costs nothing per search. The price is keeping it in step, which the `saving` event does; code that bypasses the model (`DB::table()->update()`) must fill it itself.
 
-**Sorting by name** reads the same text, `coalesce(name->>'it', name->>'en')`, with `collate "und-x-icu"`. Postgres on Alpine compares bytes by default, which puts "Bench" before "banca" and accented letters after "z". The ICU rules sort as a reader expects ([H2.12.4](../how-to/H2-backend.md#h2124-sorting-by-name-the-collation-trap)).
+**Sorting by name** reads the same text, `coalesce(name->>'it', name->>'en')`, with `collate "und-x-icu"`. Postgres on Alpine compares bytes by default, which puts "Bench" before "banca" and accented letters after "z". The ICU rules sort as a reader expects ([H2.12](../how-to/H2-backend.md#h212-when-something-goes-wrong)).
 
 ### D3.4.7 What is not in the table
 
@@ -613,7 +613,7 @@ The "tips and common mistakes" of [D1.4.4](D1-ui.md#d144-exercise-details). free
 
 ## D3.5 Plans
 
-**In the code:** the migrations `…_create_{plans,plan_days,plan_items,plan_sets}_table.php` and `…_add_active_plan_id_to_users_table.php`, the models `Plan`, `PlanDay`, `PlanItem` and `PlanSet`, the enum `SetType`. How they were built: [H1.13](../how-to/H1-database.md#h113-the-plan-tables-as-built). The API that reads and saves them: [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints).
+**In the code:** the migrations `…_create_{plans,plan_days,plan_items,plan_sets}_table.php` and `…_add_active_plan_id_to_users_table.php`, the models `Plan`, `PlanDay`, `PlanItem` and `PlanSet`, the enum `SetType`. The API that reads and saves them: [C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints).
 
 A plan has four levels, because each level holds different facts:
 
@@ -707,7 +707,7 @@ Schema::create('plan_items', function (Blueprint $table) {
     $table->index(['plan_day_id', 'position']);
 });
 
-// With feat/for-time: …_add_for_time_to_plan_items_table.php (H3.25.2)
+// In its own migration: …_add_for_time_to_plan_items_table.php
 Schema::table('plan_items', function (Blueprint $table) {
     $table->boolean('for_time')->default(false);
 });
@@ -795,7 +795,7 @@ class PlanItem extends Model
 
 The real models (`app/Models/Plan*.php`) add:
 - the way back up: `PlanDay::plan()`, `PlanItem::day()`, `PlanSet::item()`, `Plan::user()`, and on `User`, `plans()` and `activePlan()`;
-- `Plan::items()`, a *has many through* that reaches every item of every day in one query ([H1.13.5](../how-to/H1-database.md#h1135-the-relations-of-four-levels));
+- `Plan::items()`, a *has many through* that reaches every item of every day in one query ([H1.4](../how-to/H1-database.md#h14-models));
 - the casts: `set_type` to the enum `SetType`, the weight and the RPE to exact decimals, `archived_at` to a date;
 - `$timestamps = false` on `PlanSet`, whose table has no `created_at` and `updated_at`;
 - `isOwnedBy($user)`, `isArchived()`, and the scopes of the plan list, `archived()` and `activeFirst()`.
@@ -883,7 +883,7 @@ A plan saved as a file by **Export** and read back by **Import plan** ([D1.4.7](
 
 ## D3.6 Workouts
 
-**In the code:** the migrations `…_create_{workout_sessions,session_exercises,logged_sets}_table.php`, the models `WorkoutSession`, `SessionExercise` and `LoggedSet`, `Plan::suggestedDay()`. How they were built: [H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built). The API that saves and reads them: [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints).
+**In the code:** the migrations `…_create_{workout_sessions,session_exercises,logged_sets}_table.php`, the models `WorkoutSession`, `SessionExercise` and `LoggedSet`, `Plan::suggestedDay()`. The API that saves and reads them: [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints).
 
 ### D3.6.1 `workout_sessions`
 
@@ -1058,7 +1058,7 @@ return $index === false ? $days->first() : ($days[$index + 1] ?? $days->first())
 
 ### D3.6.5 Sending a session to the server
 
-The phone sends the whole session, with its exercises and sets, when the network is back, and may send it more than once. The server must therefore end up in the same state however many times it receives it ([D2.7](D2-decisions.md#d27-offline-and-sync)). This is the idea; the real endpoint is `PUT /api/sessions/{id}` with `SaveWorkoutSession` ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)), which differs in three ways: a session deleted elsewhere answers **410 Gone** instead of returning silently, so the phone knows to stop sending it; the links to the plan, its day and its items are kept only if they still exist and are the user's, so a workout is never refused because the plan changed meanwhile; and every moment is turned into UTC before it is written ([H2.14.5](../how-to/H2-backend.md#h2145-the-trap-of-the-moments)). The sketch:
+The phone sends the whole session, with its exercises and sets, when the network is back, and may send it more than once. The server must therefore end up in the same state however many times it receives it ([D2.7](D2-decisions.md#d27-offline-and-sync)). This is the idea; the real endpoint is `PUT /api/sessions/{id}` with `SaveWorkoutSession` ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)), which differs in three ways: a session deleted elsewhere answers **410 Gone** instead of returning silently, so the phone knows to stop sending it; the links to the plan, its day and its items are kept only if they still exist and are the user's, so a workout is never refused because the plan changed meanwhile; and every moment is turned into UTC before it is written ([H2.5](../how-to/H2-backend.md#h25-writes-from-a-phone)). The sketch:
 
 ```php
 DB::transaction(function () use ($user, $data) {

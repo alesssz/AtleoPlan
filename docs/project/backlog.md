@@ -28,7 +28,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DOCS](#docs)
-  - [DOCS-4 How-to guides as recipes](#docs-4-how-to-guides-as-recipes)
+  - [DOCS-4 The last beginner passages in D3, H4, H5 and S1](#docs-4-the-last-beginner-passages-in-d3-h4-h5-and-s1)
   - [DOCS-5 A showcase README](#docs-5-a-showcase-readme)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
@@ -154,9 +154,9 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 **Priority:** high · **Kind:** feature · **Found:** 2026-11-05
 
 **Done:**
-- the three tables and the API: saving a whole workout sent by the phone, late and twice, listing and reading with totals, deleting, the sets of last time, and Home's data with the suggested day (`feat/workout-api`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints), [H1.15](../how-to/H1-database.md#h115-the-workout-tables-as-built), [H2.14](../how-to/H2-backend.md#h214-the-workouts-api-as-built));
-- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode), [H3.15](../how-to/H3-frontend.md#h315-workout-mode-as-built)). The big stepper and the exercise menu came with UI-6 ([C1.17.7](../concepts/C1-frontend.md#c1177-the-big-stepper-and-the-exercises-menu)); live records wait in [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end came with FEAT-4 ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history));
-- Home: the active plan's card with the suggested day, Start and a chip per day, the banner with Resume, Free workout (with Add exercises in workout mode), the week strip and its numbers (`feat/home`, [C1.18](../concepts/C1-frontend.md#c118-home), [H3.16](../how-to/H3-frontend.md#h316-home-as-built)). The recent records wait for Progress (phase 2).
+- the three tables and the API: saving a whole workout sent by the phone, late and twice, listing and reading with totals, deleting, the sets of last time, and Home's data with the suggested day (`feat/workout-api`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints));
+- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode)). The big stepper and the exercise menu came with UI-6 ([C1.17.7](../concepts/C1-frontend.md#c1177-the-big-stepper-and-the-exercises-menu)); live records wait in [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end came with FEAT-4 ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history));
+- Home: the active plan's card with the suggested day, Start and a chip per day, the banner with Resume, Free workout (with Add exercises in workout mode), the week strip and its numbers (`feat/home`, [C1.18](../concepts/C1-frontend.md#c118-home)). The recent records wait for Progress (phase 2).
 
 **What is missing.** One part, on its own branch:
 - **Working offline** ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)): the PWA (vite-plugin-pwa), so the app opens with no network; the query cache kept in IndexedDB; the queue of workouts, today in `localStorage` ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)), moved to IndexedDB if it grows, and sent by the service worker in the background (Background Sync, where the browser has it); a notification when a rest ends with the app in the background.
@@ -252,13 +252,13 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 ## DOCS
 
-### DOCS-4 How-to guides as recipes
+### DOCS-4 The last beginner passages in D3, H4, H5 and S1
 
 **Priority:** medium · **Kind:** documentation · **Found:** 2026-11-14
 
-**What is missing.** [C1](../concepts/C1-frontend.md) and [C2](../concepts/C2-backend.md) are architecture documents now; the how-to guides (H1 to H3 above all) still hold long "as built" sections with every command's output and every error met, and D3, H4, H5 and S1 a few sentences written for a beginner.
+**What is missing.** C1, C2 and H1 to H3 are written for developers now. D3, H4, H5 and S1 still hold a few sentences and sections written for a beginner (D3's basic ideas, H5's workflows explained line by line, H4's step-by-step TablePlus), and some history ("Done, in the first part of BE-1").
 
-**Recommended.** The "as built" sections condensed into recipes ([P1.3](P1-conventions.md#p13-documentation)), keeping the traps worth knowing; then a pass on D3, H4, H5 and S1.
+**Recommended.** A pass on the four, keeping every functional part (setup, ports, commands, known problems, decisions).
 
 ### DOCS-5 A showcase README
 
