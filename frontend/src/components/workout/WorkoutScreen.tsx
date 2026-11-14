@@ -1,35 +1,13 @@
 /*
- * Workout mode, full screen: the day's name and the time trained at the top,
- * then one exercise at a time with its sets, the rest timer at the bottom when
- * it runs, and Previous and Next.
+ * Workout mode, full screen: one exercise at a time with its sets, the rest
+ * timer, Previous and Next, and the panels opened from it (stepper, exercise
+ * menu, How to do it, stopwatch).
  *
- * The workout is written to the phone after every change
- * (session-storage.ts): closing the app loses nothing, and ✕ only pauses.
- * Finishing has two buttons, and only one is lime at a time: Finish at the
- * top, outlined, to stop early at any moment; and Finish workout at the
- * bottom, the width of the bar, in place of Next on the last exercise or
- * once every set is ticked. Both ask for a confirmation, then finish the
- * workout, put it in the queue of workouts to send, try to send it at once
- * (src/lib/pending-sessions.ts), and open its summary (src/pages/SummaryPage.tsx).
- * Their dialog also offers Delete workout, which throws the workout away
- * without finishing it, after a second question (FinishButton.tsx).
- *
- * Exercises can be added on the way (Add exercises, the plan editor's
- * picker): in any workout, and in a free workout (Home), which starts with
- * none and shows only that until the first is added. What is added by hand
- * can be removed again, and only that: an exercise from its menu, a set
- * from its stepper (canRemoveExercise, canRemoveSet in workout-session.ts).
- * The plan's exercises and sets stay; they can be skipped or left unticked.
- *
- * Three panels from the bottom: the big stepper, opened by a tap on a set's
- * value (SetStepper.tsx), and the exercise's menu, behind the "⋯" beside its
- * name (ExerciseMenu.tsx): swap, skip, a note, the video; and "How to do it",
- * opened by a tap on the exercise's photo or name (ExerciseInfoSheet.tsx): its
- * photos, muscles and steps. The stopwatch of a timed set, opened by its ▶, is
- * docked at the bottom where the rest bar goes (StopwatchPanel.tsx), so the
- * sets stay in sight. Under the sets, the "Up next" card names the exercise
- * that follows (UpNextCard.tsx), as does the rest bar once the exercise on
- * screen is done.
+ * The workout is written to the phone after every change (session-storage.ts),
+ * so closing the app loses nothing and ✕ only pauses. Finishing queues the
+ * workout, tries to send it at once (pending-sessions.ts) and opens the
+ * summary. What was added by hand can be removed again, and only that: the
+ * plan's exercises and sets stay, to be skipped or left unticked.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Dumbbell, Info, Link2, ListPlus, Plus, X } from 'lucide-react'

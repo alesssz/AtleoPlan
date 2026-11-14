@@ -46,8 +46,8 @@ export interface DraftItem {
   /** The user's notes; '' for none. */
   notes: string
   /**
-   * Done as fast as possible (canBeForTime). Optional: a draft kept in the
-   * browser before this existed has none, which reads as false.
+   * Done as fast as possible (canBeForTime). Optional: a draft saved by an
+   * older version has none, which reads as false.
    */
   for_time?: boolean
   sets: DraftSet[]
@@ -89,12 +89,10 @@ export const SET_TYPE_SIGNS: Record<SetType, string | null> = { normal: null, wa
  * A new UUID, made in the browser: the device names its own rows, so a plan can
  * be built with no network.
  *
- * crypto.randomUUID() is the browser's own generator, but browsers give it
- * only to pages in a **secure context**: HTTPS, or localhost. The app opened
- * from a phone at http://192.168.1.20:5673 is neither, and the function is
- * simply missing: Start failed with "crypto.randomUUID is not a function".
- * So when it is missing, the same kind of UUID (version 4, random) is built
- * from crypto.getRandomValues(), which every page has (randomUuid below).
+ * crypto.randomUUID() exists only in a secure context (HTTPS or localhost):
+ * the app opened from a phone at http://192.168.1.20:5673 has none. There the
+ * same kind of UUID (version 4, random) is built from
+ * crypto.getRandomValues(), which every page has (randomUuid below).
  */
 export function newId(): string {
   return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : randomUuid()

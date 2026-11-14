@@ -6,9 +6,9 @@
  * Checks, in order: Docker (installed, running, disk space), Node (the major of
  * .nvmrc) and npm's cache, the Git identity and hook, the dependencies of both
  * apps, the backend's .env (only that it exists: it holds secrets), the ports,
- * and the test database: the problems met while setting the project up. Works
- * on macOS, Linux and Windows; the npm cache check does not apply to Windows
- * and is skipped there.
+ * and the test database: the setup problems known to happen. Works on macOS,
+ * Linux and Windows; the npm cache check does not apply to Windows and is
+ * skipped there.
  *
  * Exit code 1 when at least one check fails, 0 otherwise (warnings included).
  */

@@ -1,18 +1,10 @@
 /*
- * The exercise library (route `/exercises`): public exercises and the user's
- * own, with search, filters and a button to load more. New exercise sits at the
- * right of the title, in PageHeader's `actions`. Its pieces: ExerciseFilters
- * (the search, the Filters panel, the source) and ExerciseListItem
- * (src/components/exercises/).
+ * The exercise library: public exercises and the user's own, searched,
+ * filtered and read a page at a time.
  *
- * The filters live in the address, /exercises?q=panca&muscle=chest&source=mine,
- * so Back returns to them, a reload keeps them, and a filtered list can be
- * bookmarked.
- *
- * Five states: loading (skeleton rows), error (a message and Retry), empty
- * (three kinds: a search with no result, filters with no result, no personal
- * exercise yet), the list, and the list being refreshed (the old one dimmed,
- * and a spinner in the search box, while the new one loads).
+ * The filters live in the address (/exercises?q=panca&muscle=chest), so Back
+ * and a reload keep them. While a new list loads, the old one stays dimmed and
+ * the search box shows a spinner, instead of a skeleton at every letter.
  */
 import { Dumbbell, Plus, SearchX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

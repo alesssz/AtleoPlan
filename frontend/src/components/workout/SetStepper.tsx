@@ -1,16 +1,11 @@
 /*
- * The big stepper of workout mode: a tap on a set's weight or reps opens a
- * panel from the bottom of the screen, with every field of that set, each
- * between a − and a + as large as a thumb. Weight ±2.5 (the user's
- * `weight_step`, in their unit), reps ±1, seconds ±5, meters ±10 (stepper.ts).
- * Typing is still possible, in the box between them, for a value far from the
- * one shown.
+ * The big stepper: every field of the tapped set between a − and a + as large
+ * as a thumb, the step written on them (stepper.ts); typing still works for a
+ * value far away.
  *
- * Each tap changes the set at once (the screen's `setField` action), as typing
- * in the row did: there is no Cancel, and **Done** only closes. Under it, on a
- * set added by hand during the workout (never one of the plan's), **Remove this
- * set** takes it out (canRemoveSet, workout-session.ts): this panel is the
- * set's own, opened on its values, and the row has no room for one more button.
+ * Each tap changes the set at once, so there is no Cancel and Done only
+ * closes. A set added by hand gets Remove this set here (canRemoveSet): the
+ * row itself has no room for one more button at 360 px.
  */
 import { Trash2 } from 'lucide-react'
 import { useRef } from 'react'

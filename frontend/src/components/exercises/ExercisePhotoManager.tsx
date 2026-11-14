@@ -1,21 +1,11 @@
 /*
- * The photos of a personal exercise, on its edit page: add them (picked or
- * dropped), see each one's upload advance, put them in order, remove them.
+ * The photos of a personal exercise on its edit page: upload with progress,
+ * reorder, remove, retry a failed upload.
  *
- * Every change is sent at once, one request each, apart from the form's
- * Save: a photo is a file on the server, not a field of the exercise. After
- * each answer the exercise is read again (the hooks of src/api/exercises.ts),
- * and the list below shows what the server has.
- *
- * Three kinds of rows:
- * - the photos already saved, the first marked Cover, each with Move
- *   earlier, Move later and Remove;
- * - the uploads under way, with their bar, or their error with Retry and
- *   Dismiss;
- * - the drop zone with Add photos, while there is room (5 at most).
- *
- * The limits are checked here before sending, so a wrong file gets its
- * message at once; the server checks them again.
+ * Each change is its own request, apart from the form's Save: a photo is a
+ * file on the server, not a field of the exercise. The exercise is read again
+ * after each answer, so the list shows what the server has. The limits are
+ * checked before sending, for an immediate message; the server checks again.
  */
 import { ArrowDown, ArrowUp, ImagePlus, RotateCcw, Trash2, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react'

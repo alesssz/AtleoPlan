@@ -1,18 +1,10 @@
 /*
- * "How to do it" in workout mode: a tap on the exercise's photo or name opens a
- * panel from the bottom with what its page in the library shows
- * (src/pages/ExerciseDetailPage.tsx): the photos of the start and end position,
- * the muscles, the steps, the description, the video. A panel rather than a
- * link to that page: the workout stays where it is, a swipe down or a tap
- * outside brings it back.
+ * "How to do it" in workout mode: the exercise's photos, muscles and steps in
+ * a panel from the bottom, so the workout stays where it is.
  *
- * Works offline: the exercise is the one kept in the workout
- * (`WorkoutExercise.exercise`, the library's JSON copied at Start, steps
- * and photos' addresses included), not asked of the server again. The
- * photos themselves need the network unless the browser has kept them.
- *
- * The same Sheet as the stepper's and the menu's (src/components/ui/sheet.tsx),
- * taller and scrolling inside: the steps can be long.
+ * Works offline: the exercise is the copy kept in the workout since Start,
+ * not asked of the server again; only the photos need the network, unless the
+ * browser has kept them.
  */
 import { ExternalLink } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

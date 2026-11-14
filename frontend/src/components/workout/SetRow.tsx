@@ -1,30 +1,13 @@
 /*
- * One set in workout mode: its number, which opens the list of set types (W, D,
- * F: SetTypeSelect.tsx); what the set in the same place did last time; the
- * fields, filled with last time's values or the plan's targets; and ✓, which
- * completes it and starts the rest. SetHeader is the row of titles above the
- * sets, with the same widths, so each number sits under its name.
+ * One set in workout mode: its number (which opens the set types), last
+ * time's values, the fields and ✓. SetHeader is the row of titles above,
+ * with the same widths, so each value sits under its title.
  *
- * The fields are buttons, not text boxes: a tap opens the big stepper
- * (SetStepper.tsx), with − and + as large as a thumb, rather than the phone's
- * keyboard, slow with sweaty hands. The stepper still has a text box, for a
- * value far from the one shown.
- *
- * An exercise logged by time has one more button before ✓: ▶, which opens
- * the stopwatch (StopwatchPanel.tsx, docked at the bottom, under the table);
- * its Stop fills the seconds and ticks the set. While it runs, the set it
- * times has a lime ring and every ▶ is disabled. A done set keeps the place
- * empty, so the columns stay aligned. The time is kept in seconds and shown
- * as a time: "45 s", "14:30" (fieldText, set-fields.ts).
- * So has one counted in reps and done as fast as possible (`forTime`): its
- * row shows the reps and the seconds, and no Last column, for room. Last
- * time is in the seconds' field, the time to beat, in the stepper and in
- * the stopwatch.
- *
- * ✓ is disabled while a value the exercise needs is missing or does not
- * read as a number: the backend would refuse the set (canComplete,
- * workout-session.ts). The weight may stay empty: a set with the body alone.
- * A bodyweight exercise (pull-ups, dips) shows it as "+kg", the added weight.
+ * The fields are buttons that open the big stepper rather than the phone's
+ * keyboard, slow with sweaty hands. ✓ stays disabled while a value the
+ * exercise needs is missing (canComplete): the backend would refuse the set.
+ * A timed exercise has ▶ for the stopwatch; one done as fast as possible
+ * shows reps and seconds and drops the Last column, for room at 360 px.
  */
 import { Check, Play } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

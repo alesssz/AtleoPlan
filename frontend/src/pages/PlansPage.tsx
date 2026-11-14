@@ -1,15 +1,7 @@
 /*
- * Plans (route `/plans`): the user's plans, the active one first, each a card
- * linking to its page; the archived ones behind a view of their own,
- * `/plans?archived=1`.
- *
- * The view (in use, or archived) lives in the address, as the library's filters
- * do: Back from a plan returns to the same view.
- *
- * New plan opens the plan editor (/plans/new); Import plan makes a plan of a
- * file saved by a plan's Export (ImportPlanButton). Both sit at the right of
- * the title, in PageHeader's `actions`. The Templates section and Share are
- * phase 2.
+ * The user's plans, the active one first; the archived ones in a view of their
+ * own (`?archived=1`), kept in the address so Back from a plan returns to it.
+ * New plan and Import plan sit beside the title.
  */
 import { Archive, ClipboardList, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

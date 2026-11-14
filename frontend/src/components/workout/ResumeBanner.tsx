@@ -1,16 +1,9 @@
 /*
- * The banner of a workout left in progress on this phone (paused with ✕, or the
- * app closed mid-workout): on Home and on the plan's page. One component, so
- * both say the same thing in the same way, with two actions:
- *
- * - **Resume**, lime: back into workout mode;
- * - **Finish**, outlined: finishes it from here, with the same question as
- *   in workout mode (FinishButton) and the same steps (finishWorkout), then
- *   opens its summary. For a workout done but never finished: the app
- *   closed at the end, the phone in the bag. Its dialog also offers
- *   **Delete workout**, for one started by mistake or abandoned: the
- *   workout is forgotten, and the page is told (`onDiscarded`) so the
- *   banner goes.
+ * The banner of a workout left in progress on this phone, on Home and on the
+ * plan's page: Resume, or Finish from here (the same question and steps as in
+ * workout mode) for a workout done but never finished. Its dialog also offers
+ * Delete workout; `onDiscarded` tells the page, which holds the workout in its
+ * state, to drop it.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { Play } from 'lucide-react'

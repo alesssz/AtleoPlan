@@ -1,21 +1,12 @@
 /*
- * The plan editor, in two steps on one draft: first the plan's details
- * (EditorOverview: name, goal, notes, the number of days and their names), then
- * the exercises (EditorDays: the days as tabs, under each its exercises, their
- * sets and their supersets). Used by PlanEditorPage for /plans/new and
- * /plans/:id/edit.
+ * The plan editor, in two steps on one draft: the plan's details and days
+ * (EditorOverview), then the days as tabs with their exercises (EditorDays).
  *
- * Which step shows is in the address: `?day=2` is the second step with the
- * second day's tab open, no `?day=` the first step. So the phone's Back button,
- * or the browser's, goes from the exercises back to the details, as people
- * expect, and a reload stays where it was.
- *
- * The draft is one reducer state (draftReducer, plan-draft.ts); the pieces
- * below get `dispatch`, and none holds a copy of the plan.
- *
- * The draft is kept in the browser at every change (draft-storage.ts), so
- * nothing is lost by leaving; "Discard changes" goes back to the plan as it
- * was opened. Saving sends the whole plan in one request.
+ * The step is in the address (`?day=2`), so the phone's Back goes from the
+ * exercises to the details and a reload stays put. The draft is one reducer
+ * state (plan-draft.ts) passed down with `dispatch`; it is kept in the browser
+ * at every change (draft-storage.ts), and saved as the whole plan in one
+ * request.
  */
 import { Save, Undo2 } from 'lucide-react'
 import { useEffect, useReducer, useState } from 'react'

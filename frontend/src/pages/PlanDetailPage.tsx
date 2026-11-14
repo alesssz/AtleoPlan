@@ -1,19 +1,11 @@
 /*
- * One plan (route `/plans/:id`): its name, goal and notes, its days as tabs,
- * and in each day the exercises summed up as "4 × 8–10 · 80 kg · 90 s",
- * warm-ups apart, supersets joined by a bar. The actions: Edit (the plan
- * editor), Set as active, Archive or Restore, Delete. After a save, the editor
- * may say through the navigation's state that the plan had been changed
- * elsewhere: the page then warns about it.
+ * One plan: its days as tabs, each exercise summed up on one line
+ * ("4 × 8–10 · 80 kg · 90 s"), the plan's actions, and Start this day.
  *
- * Each day has **Start this day**, which starts workout mode (StartDayButton
- * below). A workout in progress is shown at the top with Resume. After Finish,
- * the workout's summary opens, then Home (src/pages/SummaryPage.tsx).
- *
- * Not here yet: Share and Duplicate (phase 2).
- *
- * The open day lives in the address, `?day=2` (from 1), so a reload or Back
- * from an exercise's page returns to the same day.
+ * The open day is in the address (`?day=2`), so a reload or Back from an
+ * exercise returns to it. After a save the editor may report, through the
+ * navigation's state, that the plan had been changed elsewhere; the page then
+ * warns about it.
  */
 import { Archive, ArchiveRestore, ArrowLeft, Pencil, Play, Star, Trash2 } from 'lucide-react'
 import { useState } from 'react'
