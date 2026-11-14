@@ -163,7 +163,7 @@ Only test addresses and the noreply one.
 
 ### P1.5.2 The account and the repository on GitHub
 
-All by hand on github.com, signed in as the owner (the GitHub CLI `gh` is not installed on these computers), in this order: the account first, since whoever gets into it controls the repository; the repository's settings before it goes public; the protections GitHub gives free to public repositories right after. Done on 2026-11-13; the state below is the one in force. GitHub moves and renames its menus at times: when a name differs, the nearest one on the same page.
+All by hand on github.com, signed in as the owner, in this order: the account first, since whoever gets into it controls the repository; the repository's settings before it goes public; the protections GitHub gives free to public repositories right after. Done on 2026-11-13; the state below is the one in force. GitHub moves and renames its menus at times: when a name differs, the nearest one on the same page.
 
 **1. The account** (avatar, top right → **Settings**):
 
@@ -198,9 +198,10 @@ All by hand on github.com, signed in as the owner (the GitHub CLI `gh` is not in
 | **Advanced Security** (on some accounts **Code security**) | **Private vulnerability reporting** on | Someone who finds a problem reports it privately, from the **Security** tab, instead of in a public issue ([`SECURITY.md`](../../SECURITY.md)) |
 | | **Dependency graph** and **Dependabot alerts** on | A warning when a Composer or npm package in use has a known vulnerability: `make audit`, by itself |
 | | **Secret Protection** and its **Push protection** on | GitHub scanned the whole history, and refuses any push holding a secret of a known kind, such as a Google client secret |
+| | **CodeQL analysis → Default setup** on (added with the CI, [H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)) | GitHub reads the TypeScript and the workflows for security mistakes, at every push to `main` and weekly; its first analysis found one, fixed at once ([H5.7.4](../how-to/H5-ci.md#h574-second-pass-codeql-and-make-github-check)) |
 | **Rules → Rulesets → New branch ruleset** | Name `main`, **Active**, target **Include default branch**; **Restrict deletions** and **Block force pushes**. Not **Require a pull request before merging**: `make merge` pushes `main` itself, and would be refused | Nobody, the owner by mistake included, can delete `main` or rewrite its history |
 
-**How to check:**
+**How to check:** `make github-check` reads every setting of this section, and the CI's of [H5.3](../how-to/H5-ci.md#h53-the-settings-on-github), with GitHub's command line `gh`, and compares them with the ones decided ([H5.3.1](../how-to/H5-ci.md#h531-checking-everything-from-the-terminal-make-github-check)). By hand:
 
 - The repository's address in a private browser window, signed out: it shows the code.
 - **Security → Secret scanning**: no alerts.
@@ -215,7 +216,8 @@ All by hand on github.com, signed in as the owner (the GitHub CLI `gh` is not in
 - **A Dependabot alert, or a Dependabot run that failed** (the email "Dependabot encountered an error performing the update"): a package in use has a known vulnerability, and Dependabot could not propose a pull request, usually because the fix is a major version its parents do not accept, or because no fixed version exists. `make audit` shows which; [H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides) is the way through, on a `chore/…` branch: who brings the package, whether it reaches the app or only the developer's tools, an `overrides` checked by hand, and **Dismiss** with a reason for what cannot be fixed. Never `npm audit fix --force`.
 - **A report through Private vulnerability reporting:** it arrives by email and in the **Security** tab. Answer there; the fix goes on a `fix/…` branch like any other.
 - **On deploying** ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)): anyone can read the code, so the app's own security matters more than before: `APP_DEBUG=false` in production, secrets only in the server's environment, and the security points still in the backlog ([BE-3](backlog.md#be-3-harden-the-public-sign-in-routes)). That is the app's security, a subject apart from the repository's.
-- **Not done, possible later:** signing commits with an SSH key, with **Vigilant mode** (which marks unsigned commits as unverified); **CodeQL** code scanning, which needs Actions and reads TypeScript but not PHP.
+- **Now and then,** after changing a setting, or simply once a month: `make github-check`.
+- **Not done, possible later:** signing commits with an SSH key, with **Vigilant mode** (which marks unsigned commits as unverified). CodeQL, once here, is on since the CI ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)).
 
 ---
 

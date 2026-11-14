@@ -223,6 +223,8 @@ A plan can be saved as a file and imported again, on the same server or another 
 | An audit workflow beside Dependabot's alerts | The alerts only warn, on GitHub's page; the audit fails the branch that brings a vulnerable version, before the merge, and fails weekly on a new advisory, by email |
 | The advisories reviewed listed with their reason (`auditIgnore`, `config.audit.ignore`) | Some advisories have no fix (deepmerge's, [H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)); a failure always there would hide the new one. Each one left out is written down, with why |
 | Dependabot's version updates for the actions only | npm and Composer updates are made by hand, a few at a time, with `make check`; their security is covered by the alerts and the audit |
+| CodeQL's default setup, not a workflow of ours | GitHub's own analysis, configured and updated by GitHub, with no file to keep; it also reads the workflows, the part of a CI most often written carelessly. It does not read PHP |
+| `make github-check` reads the settings with `gh` | Settings live on GitHub's pages, outside the repository, where a change goes unnoticed; one command compares them all with the ones decided, as `make doctor` does for the computer |
 | No status check required on `main` | `make merge` pushes a merge commit made on the computer, which no check has seen: a required check would refuse it. The rule is a habit: a green branch before the merge |
 
 **Set aside:**

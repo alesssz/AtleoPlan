@@ -6,7 +6,7 @@ How GitHub checks every push by itself: what runs, when, in which files, how to 
 
 - What it does, in one table: [H5.1](#h51-what-runs-and-when).
 - The files, line by line: [H5.2](#h52-the-files).
-- The settings to make on GitHub, once: [H5.3](#h53-the-settings-on-github).
+- The settings to make on GitHub, once, and how to check them all with one command, `make github-check`: [H5.3](#h53-the-settings-on-github).
 - A run failed: [H5.5](#h55-reading-a-run-and-a-failed-one).
 - An advisory to review, or a package to leave out of the audit: [H5.4](#h54-the-audit-and-the-advisories-reviewed).
 
@@ -19,6 +19,7 @@ How GitHub checks every push by itself: what runs, when, in which files, how to 
   - [H5.2.3 audit.yml](#h523-audityml)
   - [H5.2.4 dependabot.yml](#h524-dependabotyml)
 - [H5.3 The settings on GitHub](#h53-the-settings-on-github)
+  - [H5.3.1 Checking everything from the terminal: make github-check](#h531-checking-everything-from-the-terminal-make-github-check)
 - [H5.4 The audit and the advisories reviewed](#h54-the-audit-and-the-advisories-reviewed)
 - [H5.5 Reading a run, and a failed one](#h55-reading-a-run-and-a-failed-one)
 - [H5.6 The same checks on the computer](#h56-the-same-checks-on-the-computer)
@@ -26,6 +27,7 @@ How GitHub checks every push by itself: what runs, when, in which files, how to 
   - [H5.7.1 The commands, in order](#h571-the-commands-in-order)
   - [H5.7.2 Trying the backend job in a clean clone](#h572-trying-the-backend-job-in-a-clean-clone)
   - [H5.7.3 The errors met](#h573-the-errors-met)
+  - [H5.7.4 Second pass: CodeQL, and make github-check](#h574-second-pass-codeql-and-make-github-check)
 
 ---
 
@@ -36,6 +38,7 @@ How GitHub checks every push by itself: what runs, when, in which files, how to 
 | `.github/workflows/ci.yml` | every push, to any branch; by hand | the checks of `make check`, in two jobs side by side: **Frontend and docs** (contents lists, ESLint, TypeScript, Vitest, the build), **Backend** (Pint, the Pest tests on Postgres) | any check fails |
 | `.github/workflows/audit.yml` | Mondays at 06:00 UTC; a push or pull request changing `package.json`, `package-lock.json`, `composer.json` or `composer.lock`; by hand | the npm and Composer packages against the advisory databases; a list of outdated packages in the run's summary | an advisory not reviewed (H5.4), or an abandoned Composer package |
 | `.github/dependabot.yml` | Mondays | a pull request with new versions of the actions the workflows use (`actions/checkout`, `actions/setup-node`) | never: it is a proposal, checked by its own CI run |
+| **CodeQL**, no file: GitHub's *default setup*, turned on in the settings | every push to `main`, and weekly | reads the TypeScript and JavaScript code, and the workflows themselves, for security mistakes (text not escaped, data from outside reaching a command…) | never fails a push: it opens **alerts** in **Security → Code scanning** |
 
 **Where it sits in the way of working** ([P1.1](../project/P1-conventions.md#p11-git)): a branch is pushed with `make push`; GitHub runs CI on it, and the audit if the dependencies changed; once the run is green, `make merge` merges it on the computer and pushes `main`, which runs CI again on the merge. `make merge` also runs `make check` itself, so CI is the second look, on a clean Linux machine where nothing of the computer (a file not committed, a package installed by hand) can hide a problem.
 
@@ -200,7 +203,87 @@ If Actions were turned off while there was no CI, turn them on with the first se
 
 **Not a required check on `main`.** A ruleset can demand that a status check passed before a push to `main` (**Require status checks to pass**). Here `make merge` pushes a merge commit made on the computer, which no check has seen yet: GitHub would refuse it. The rule stays a habit instead: a green run on the branch before `make merge`.
 
-**How to check:** push a branch (`make push`): **Actions** shows **CI** running on it, two jobs; with a change to a lockfile, **Audit** too. **Actions → Audit → Run workflow** runs the audit by hand.
+**Settings → Advanced Security** (on some accounts **Code security**), besides the protections of [P1.5.2](../project/P1-conventions.md#p152-the-account-and-the-repository-on-github):
+
+| Setting | Choice | Why |
+|---|---|---|
+| **CodeQL analysis** | **Set up → Default**, with the languages it finds (here `actions` and `javascript-typescript`), suite **Default** | GitHub's own code analysis, free on a public repository, run by GitHub with its own action (`github/codeql-action`), so the rule "GitHub's actions only" still holds. It reads TypeScript and the workflows; not PHP, which CodeQL does not know, and where the tests and the policies stand guard |
+
+Two more options of secret scanning, **non-provider patterns** (generic secrets: private keys, connection strings) and **validity checks** (whether a secret found still works), were asked for through the API and stayed off without an error: on a repository of a personal account GitHub does not offer them. If the page shows them one day, they cost nothing.
+
+**How to check:** push a branch (`make push`): **Actions** shows **CI** running on it, two jobs; with a change to a lockfile, **Audit** too. **Actions → Audit → Run workflow** runs the audit by hand. And every setting of this section and of P1.5.2 at once, from the terminal: `make github-check`, below.
+
+### H5.3.1 Checking everything from the terminal: make github-check
+
+GitHub's command line, **`gh`**, reads the same settings as the pages, through GitHub's API. `scripts/github-check.mjs` asks for each one and compares it with the value decided, as `make doctor` does for the computer: ✔, ⚠ worth a look, ✖ with where to change it. It only reads.
+
+**Once per computer:**
+
+1. Install it: on Windows the installer from [cli.github.com](https://cli.github.com), or `winget install GitHub.cli`; on the Mac `brew install gh`. **Reopen the terminal**: one opened before does not see the new program (on Windows the script also looks in `C:\Program Files\GitHub CLI\` by itself).
+2. Sign in, in your own terminal (it asks questions and opens the browser):
+
+```sh
+gh auth login
+```
+
+   **GitHub.com** → **HTTPS** → **Yes** to use it as Git's credential (or No, to keep pushing as before) → **Login with a web browser**: a code to type into the page that opens. `gh auth status` then says:
+
+```
+github.com
+  ✓ Logged in to github.com account alesssz (keyring)
+  - Git operations protocol: https
+  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+```
+
+   The token is kept in the computer's keychain (Windows' Credential Manager, the Mac's Keychain), never in a file of the project.
+
+**Then, whenever:**
+
+```sh
+make github-check
+```
+
+```
+gh
+  ✔ signed in, repository alesssz/AtleoPlan
+Actions
+  ✔ Actions on, only selected actions allowed
+  ✔ only actions created by GitHub
+  ✔ workflow token read-only, cannot approve pull requests
+  ✔ approval required for all external contributors
+Code security
+  ✔ repository public
+  ✔ secret scanning on
+  ✔ push protection on
+  ✔ Dependabot security updates on
+  ✔ private vulnerability reporting on
+  ✔ CodeQL default setup on
+Ruleset
+  ✔ main: deletion and force pushes blocked
+Alerts
+  ✔ no open Dependabot alert
+  ✔ no open secret scanning alert
+  ⚠ 1 open CodeQL alert(s)
+      → Security → Code scanning (docs/how-to/H5-ci.md H5.5)
+Last runs on main
+  ✔ ci.yml: success (2026-11-13)
+  ✔ audit.yml: success (2026-11-13)
+
+✔ All as decided.
+```
+
+(The CodeQL alert of that day is the one of H5.7.4, fixed by the same branch.) An open Dependabot or CodeQL alert is a warning, to read; an open **secret** alert is a failure: a secret is in the repository, and is revoked first (P1.5.3).
+
+**How the script asks:** `gh api <path>` calls `https://api.github.com/<path>` with the signed-in account's token and prints the JSON answer. One example per kind of setting, to try by hand:
+
+```sh
+gh api repos/alesssz/AtleoPlan/actions/permissions/selected-actions   # {"github_owned_allowed":true,"patterns_allowed":[],"verified_allowed":false}
+gh api repos/alesssz/AtleoPlan/actions/permissions/workflow            # {"default_workflow_permissions":"read","can_approve_pull_request_reviews":false}
+gh api repos/alesssz/AtleoPlan/code-scanning/default-setup --jq .state # configured
+gh run list --limit 5                                                  # the last runs, every workflow
+```
+
+`--jq` picks a field from the answer, in the language of the `jq` tool. Some answers need the repository's owner: another account gets `Not Found`, which the script reports as a failure.
 
 ---
 
@@ -274,6 +357,8 @@ Today it is empty: `composer audit` finds nothing. Composer also fails on an **a
 | `pint --test` | PHP not formatted | `make pint`, commit |
 | `php artisan test` | A test fails; the logs of `docker compose logs`, printed after it, help when the database is involved | `make test` |
 | `npm-audit.mjs`, `composer audit` | A new advisory | H5.4 |
+
+**A CodeQL alert** is not a failed run: it appears in **Security → Code scanning**, and `make github-check` counts it. Each one names a rule (`js/incomplete-sanitization`), a file and a line, with an explanation and an example of the fix. The way through is the same as for a test: a `fix/…` branch, the code corrected, and the alert closes by itself at the next analysis of `main`. One that is a false alarm is closed with **Dismiss alert** and the reason ("False positive", "Used in tests"), as the advisories of H5.4 are.
 
 ---
 
@@ -388,6 +473,59 @@ The image was not rebuilt (`docker compose build`): the one of development is th
 |---|---|---|
 | `[DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities` | On Windows `npm` is `npm.cmd`, which only a shell starts; Node now warns when arguments are passed apart to a shell, since it joins them without escaping | On Windows the whole command as one string, `spawnSync('npm audit --json', { shell: true })`; elsewhere `spawnSync('npm', ['audit', '--json'])` with no shell |
 | `spatie/laravel-medialibrary 11.23.12 ~ 8.10.2` in `composer outdated`'s list: a newer version older than the one installed | The `composer:2` image has none of the project's PHP extensions (gd, exif), so Composer offered the newest version that would install there | `--ignore-platform-reqs` for that list only: `11.23.12 ! 11.23.13`. Not for the audit, which reads advisories, not requirements |
+
+### H5.7.4 Second pass: CodeQL, and make github-check
+
+`docs/github-checks`, once `gh` was installed and signed in (H5.3.1). First every setting was read with `gh api`, and all were as decided; then two changes to the settings, made with `gh` as well.
+
+**Secret scanning's two extra options**, asked for with a `PATCH` (a change) of the repository:
+
+```sh
+echo '{"security_and_analysis":{"secret_scanning_non_provider_patterns":{"status":"enabled"},"secret_scanning_validity_checks":{"status":"enabled"}}}' \
+  | gh api -X PATCH repos/alesssz/AtleoPlan --input - --jq .security_and_analysis
+```
+
+```
+{…,"secret_scanning_non_provider_patterns":{"status":"disabled"},…,"secret_scanning_validity_checks":{"status":"disabled"}}
+```
+
+No error, and both still off: GitHub ignores what the account cannot have (H5.3). `--input -` sends the JSON read from the pipe as the request's body.
+
+**CodeQL's default setup:**
+
+```sh
+echo '{"state":"configured","query_suite":"default"}' | gh api -X PATCH repos/alesssz/AtleoPlan/code-scanning/default-setup --input -
+gh run watch <run id> --exit-status       # waits for the run, fails if it fails
+```
+
+```
+{"run_id":43493859958,"run_url":"https://api.github.com/repos/alesssz/AtleoPlan/actions/runs/43493859958"}
+
+CodeQL Setup: success
+  Analyze (javascript-typescript): success, 73s
+  Analyze (actions): success, 49s
+```
+
+The workflows of H5.2 came out clean. The TypeScript had **one alert**:
+
+```
+js/incomplete-sanitization  high  scripts/docs-toc.mjs:108
+This does not escape backslash characters in the input.
+```
+
+`make toc` writes each heading as a link, `- [the heading](#the-heading)`, and put a backslash before `[` and `]` so Markdown reads them as text: `text.replace(/[[\]]/g, '\\$&')`. It forgot the backslash itself: a heading holding `C:\Users` would have kept a lone `\`, which escapes the character after it. No heading has one (`grep -rhE '^#{2,3} .*[\\]' docs README.md | wc -l` answered 0), so the danger was only in principle; the fix is one character in the pattern, `/[\\[\]]/g`. Before and after, on a made-up heading:
+
+```
+text   : Paths like C:\Users and [brackets]
+before : Paths like C:\Users and \[brackets\]
+after  : Paths like C:\\Users and \[brackets\]
+```
+
+`make toc` then changed no file (`Contents up to date.`), as expected with no backslash in any heading. The alert closes by itself at the first analysis of `main` after the merge.
+
+**`scripts/github-check.mjs` and `make github-check`** (H5.3.1), written on the model of `scripts/doctor.mjs`, then run: the output of H5.3.1.
+
+From the root: `make toc`, `make check`.
 
 ---
 
