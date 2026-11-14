@@ -465,7 +465,7 @@ vendor/ copied in 81 s.
  Volume atleoplan-ci_composer-cache Removed
 ```
 
-The image was not rebuilt (`docker compose build`): the one of development is the same `Dockerfile`. `vendor/ copied in 81 s` is the copy for the editor ([H2.18](H2-backend.md#h218-a-fast-local-backend-the-packages-in-a-volume-as-built)), slow through Windows' shared folder; on GitHub's Linux it takes a moment. The ports (`DB_FORWARD_PORT`, `MAIL_UI_PORT`) are the variables `compose.yaml` already reads; without them the clone's Postgres would ask for 5932, taken by the development one.
+The image was not rebuilt (`docker compose build`): the one of development is the same `Dockerfile`. `vendor/ copied in 81 s` is the copy for the editor ([H2.10](H2-backend.md#h210-adding-a-package)), slow through Windows' shared folder; on GitHub's Linux it takes a moment. The ports (`DB_FORWARD_PORT`, `MAIL_UI_PORT`) are the variables `compose.yaml` already reads; without them the clone's Postgres would ask for 5932, taken by the development one.
 
 ### H5.7.3 The errors met
 
