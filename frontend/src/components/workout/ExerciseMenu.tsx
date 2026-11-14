@@ -1,22 +1,10 @@
 /*
- * The exercise's menu in workout mode: a "⋯" beside the exercise's name,
- * opening a panel from the bottom with up to five actions, each a row 48 px
- * tall:
- *
- * - **Swap exercise**: the library's picker, filtered by the exercise's
- *   main muscle, opens (WorkoutScreen); only before a set is ticked;
- * - **Skip exercise**, or **Do it after all** once skipped;
- * - **Add a note** (or **Edit the note**): the panel turns into a text box;
- *   the note goes with the workout, on that exercise;
- * - **Watch the video**, when the exercise has one: YouTube, in a new tab;
- * - **Remove from workout**, only on an exercise added by hand during the
- *   workout (canRemoveExercise, workout-session.ts): the panel turns into
- *   a question first, since its sets, ticked ones included, go with it.
- *   The plan's exercises have Skip instead: the day stays whole.
- *
- * A panel from the bottom rather than a small drop-down menu: rows as wide as
- * the phone are easy to hit mid-workout, and it is the same Sheet as the
- * stepper's (src/components/ui/sheet.tsx).
+ * The exercise's "⋯" menu in workout mode, as a panel from the bottom with rows
+ * as wide as the phone, easy to hit mid-workout: swap (only before a set is
+ * ticked), skip or take the skip back, a note, the video, and remove, offered
+ * only for an exercise added by hand (canRemoveExercise) and asked first,
+ * since its sets go with it. The plan's exercises can only be skipped, so the
+ * day stays whole.
  */
 import { ArrowLeftRight, CirclePlay, Ellipsis, NotebookPen, SkipForward, Trash2, Undo2 } from 'lucide-react'
 import { useId, useState } from 'react'

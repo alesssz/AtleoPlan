@@ -1,21 +1,11 @@
 /*
- * The active plan's card on Home: the plan's name, the day chosen in large type
- * with its number of exercises and an estimated duration, Start, and a chip for
- * each day of the plan.
+ * The active plan's card on Home: the day chosen (the suggested one at first),
+ * its numbers, Start, and a chip per day.
  *
- * - **The suggested day** is chosen at first: the day after the last one done
- *   (the backend works it out). The card says so ("Suggested") and says which
- *   day was done last.
- * - **A chip** chooses another day: the card then shows that one, and
- *   Start starts it. One tap chooses, a second starts: a tap that started a
- *   workout at once would be too easy to make by mistake on a phone, and a
- *   workout started by mistake stays in progress until it is finished.
- * - **Start** is disabled while another workout is in progress on the
- *   phone, with the reason (the banner above offers Resume), and for a day
- *   with no exercises.
- *
- * The card shows; Home starts (useStartWorkout), so the card stays simple
- * to read and to test.
+ * A chip only chooses; Start starts. One tap that started a workout would be
+ * too easy to make by mistake, and a workout started by mistake stays in
+ * progress until it is finished. The card only shows; Home starts
+ * (useStartWorkout).
  */
 import { Clock, Dumbbell, Play } from 'lucide-react'
 import { useState } from 'react'

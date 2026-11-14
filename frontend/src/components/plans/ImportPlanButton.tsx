@@ -1,20 +1,11 @@
 /*
- * Import plan, in the header of the plans' list, beside New plan; only its icon
- * on phones: a file saved by a plan's Export (ExportPlanButton.tsx), here or on
- * another server, becomes a new plan; its page then opens, saying which
- * exercises had to be created.
+ * Import plan: a file saved by a plan's Export, here or on another server,
+ * becomes a new plan, whose page then says which exercises had to be created.
  *
- * In a window, in three steps, so that nothing is sent by surprise:
- * 1. **What is expected,** in words: a file made by Export, ending in
- *    `.atleoplan.json`; the plan arrives as a new one, nothing changes.
- * 2. **Choose file:** the browser's own picker, an `<input type="file">`,
- *    hidden, which the button clicks. The file is read in the browser
- *    (`file.text()`) and looked at (plan-file.ts): too big, not JSON, not
- *    a plan, a plan of a later version are said at once, and nothing is
- *    sent.
- * 3. **The preview,** "Calisthenics · 3 days · 23 exercises", and Import,
- *    which sends it. The backend checks every field (ImportPlanRequest)
- *    and may still refuse it.
+ * A window in three steps, so nothing is sent by surprise: what file is
+ * expected; the browser's picker, the file read and checked in the browser
+ * (plan-file.ts: too big, not JSON, not a plan, a newer version); the preview,
+ * and Import. The backend checks every field again (ImportPlanRequest).
  */
 import { FileJson, Upload } from 'lucide-react'
 import { useRef, useState, type ChangeEvent } from 'react'

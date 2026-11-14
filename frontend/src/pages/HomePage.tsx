@@ -1,18 +1,9 @@
 /*
- * Home (route `/`): what to do today, in one screen, from one request (GET
- * /api/home, src/api/home.ts):
- * - a greeting with today's date;
- * - after a workout's summary, whether it was saved, is waiting for the
- *   network, or was deleted (the summary says so through the navigation's
- *   state);
- * - the workout left in progress on this phone, with Resume;
- * - the active plan's card: the suggested day, Start, the other days
- *   (ActivePlanCard); without an active plan, the empty state, whose
- *   buttons lead to Plans and Exercises;
- * - Free workout, a workout with no plan;
- * - this week: the days trained and the week's numbers.
- *
- * Starting goes through useStartWorkout, the same steps as the plan's page.
+ * Home: what to do today, from one request (GET /api/home): the active plan's
+ * card with the suggested day, a workout left in progress, Free workout, and
+ * this week. After a summary, the outcome of the workout (saved, waiting for
+ * the network, deleted) arrives through the navigation's state. Starting goes
+ * through useStartWorkout, shared with the plan's page.
  */
 import { ClipboardList, Dumbbell, Plus, Zap } from 'lucide-react'
 import { useState } from 'react'

@@ -1,18 +1,12 @@
 /*
- * Where workouts live on the phone:
+ * Where workouts live on the phone, in localStorage: the workout in progress
+ * (written after every tap), the finished ones waiting to be sent (by id,
+ * until the backend has them: pending-sessions.ts), and the one just finished,
+ * which the summary is drawn from.
  *
- * - **the workout in progress**, one at a time, written after every tap, so
- *   that closing the app, a reload or a flat battery loses nothing, and ✕ only
- *   pauses it;
- * - **the workouts waiting to be sent**, by id: a finished workout goes
- *   there first, and leaves only when the backend has it
- *   (src/lib/pending-sessions.ts);
- * - **the workout just finished**, for its summary (FinishedWorkout below):
- *   the summary is drawn from it, with no request, so it works offline too.
- *
- * Both in localStorage, like the plan editor's draft (draft-storage.ts): a
- * workout is a few kilobytes. Every access is in try/catch, since a private
- * window or full storage throws. IndexedDB comes with the offline work.
+ * A workout is a few kilobytes; IndexedDB comes with the offline app. Every
+ * access is in try/catch: a private window or full storage throws, and the
+ * workout must still run.
  */
 import type { SessionInput } from '@/api/sessions'
 import type { ActiveSession } from './workout-session'

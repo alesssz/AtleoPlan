@@ -1,17 +1,11 @@
 /*
- * "Up next" in workout mode: a reminder under the exercise's sets naming the
- * exercise that comes after it, with its photo and what the plan asks ("3 × 12
- * · 60 s"), so the next machine or the next weights can be got ready during the
- * rest.
+ * "Up next" under the exercise's sets: the exercise that follows (upNext(),
+ * after the whole superset), with its photo and the plan's line, so the next
+ * machine can be got ready during the rest.
  *
- * Only a reminder, not a button: moving on is the bottom bar's job (Next, or
- * the superset's next exercise by name), and a second way to leave the
- * exercise, in the middle of the screen, was asked to be removed after it was
- * tried in a workout.
- *
- * Which exercise: upNext() in workout-session.ts, the first one after this
- * one (after its whole superset) with sets left to do. The screen draws no
- * card when there is none: the bottom bar then offers Finish workout.
+ * A reminder, not a button: moving on is the bottom bar's job, and a second
+ * way out in the middle of the screen invites mis-taps. With nothing left,
+ * no card: the bottom bar offers Finish workout.
  */
 import { Dumbbell } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

@@ -1,21 +1,12 @@
 /*
- * The summary of a workout just finished (route `/session/:id/summary`): what
- * was done (time, exercises, sets, reps), each exercise against last time ("3
- * better · 1 same", compare.ts), and two questions, how it felt (1 to 5) and
- * notes. **Save** sends them and opens Home; **Delete workout** throws the
+ * The summary of a workout just finished: its numbers, each exercise against
+ * last time, how it felt and notes; Save sends them, Delete workout throws the
  * workout away.
  *
- * Finish in workout mode opens it (WorkoutScreen.finish()), after putting
- * the workout in the queue of workouts to send and keeping it on the phone
- * as "finished" (session-storage.ts, FinishedWorkout). Everything is worked
- * out from that copy, with no request: the numbers (inputTotals, totals.ts)
- * and the comparison, against last time's sets that workout mode read when
- * the workout started (`previous` of each exercise). The summary works
- * offline, right after the last set.
- *
- * Opened again later (a reload after Save, another device), the address
- * has no finished workout on this phone: the workout's page in history
- * opens instead, which reads it from the server.
+ * Drawn from the copy kept on the phone at Finish (FinishedWorkout), with no
+ * request, so it works offline right after the last set; the comparison uses
+ * last time's sets read when the workout started. Opened again later, with no
+ * such copy, it redirects to the workout's page in history.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Save, Trash2 } from 'lucide-react'

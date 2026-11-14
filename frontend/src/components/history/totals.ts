@@ -1,19 +1,12 @@
 /*
- * The four numbers of a finished workout: time trained, exercises done, sets
- * and reps, warm-up sets excluded from the last two.
+ * The four numbers of a finished workout: time, exercises, sets and reps,
+ * warm-ups excluded. Reps rather than volume, which adds up unlike exercises
+ * and counts nothing done with the body alone.
  *
- * Reps, not volume (weight × reps): a workout's volume adds up unlike
- * exercises and counts nothing done with the body alone, so it is not a
- * workout's number any more; the comparison exercise by exercise is in
- * compare.ts. Reps count every set that counts, the body alone included.
- *
- * Two sources, one shape:
- * - **the summary** works them out from the body the phone sent
- *   (`inputTotals`): it needs no request, so it works offline, right after
- *   Finish;
- * - **history** reads them from the backend, which sums them in the
- *   database (`sessionTotals`; backend WorkoutSession::withTotals()).
- * Both count the same way, so a workout shows the same numbers in both.
+ * Two sources, one shape: the summary computes them from the body the phone
+ * sent (inputTotals), offline; history reads the backend's
+ * (WorkoutSession::withTotals()). Both count the same way, so a workout shows
+ * the same numbers in both.
  */
 import type { SessionInput, WorkoutSession } from '@/api/sessions'
 

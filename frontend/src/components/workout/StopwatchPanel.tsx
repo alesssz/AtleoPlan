@@ -1,33 +1,13 @@
 /*
- * The stopwatch of a timed set: opened by ▶ on a set of an exercise logged by
- * time (SetRow.tsx), for a hold ("30 s dead hang") and for a race against the
- * clock ("50 push-ups, as fast as possible") alike.
+ * The stopwatch of a timed set, docked at the bottom where the rest bar goes,
+ * so the sets stay in sight: a hold ("30 s dead hang") counts up to a target
+ * and signals it; a race ("50 push-ups, as fast as possible", `race`) shows the
+ * time to beat, turns red past it and never signals.
  *
- * A panel docked at the bottom of workout mode, where the rest bar goes
- * (RestBar.tsx), not a full screen: the time is big enough to read from the
- * floor, and the sets stay in sight above it, the one being timed with a
- * lime ring. (First built full screen: mid-workout, the table, the next set
- * and the plan's notes were all hidden for the length of the set.)
- *
- * - **The time** counts up, large, on the left.
- * - **The bar** above it fills up to the target: the seconds that were in
- *   the set's field at the start, the plan's or last time's. Reaching it
- *   plays the end-of-rest signal (src/lib/alarm.ts, with the user's sound
- *   and vibration) and says "Target reached". With no target, the bar fills
- *   once a minute, as a stopwatch's hand goes round.
- * - **Last time**, under the time, to beat.
- * - **A race** (`race`: an exercise counted in reps, done as fast as possible):
- *   the reps to do after the set's name, "50 reps"; the target is a time to
- *   beat, "To beat 1:12", then "0:05 over" once past it, with the bar in red
- *   and no signal: reaching it is not the goal.
- * - **Pause** stops the count, **Resume** takes it up again; the time paused
- *   is not counted (stopwatchSeconds, workout-session.ts).
- * - **Stop** writes the time into the set and ticks it, which starts the
- *   rest as ✓ does; **Cancel** throws the time away.
- *
- * The time is worked out from the moment of the start and the pauses, kept in
- * the workout (`session.stopwatch`, workout-session.ts): with the screen off,
- * or the app closed and opened again, it is still right.
+ * The time is derived from the start and the pauses kept in the workout
+ * (stopwatchSeconds), never counted, so the screen off or the app reopened
+ * does not change it. Stop writes the seconds into the set and ticks it, which
+ * starts the rest as ✓ does.
  */
 import { Pause, Play, Square } from 'lucide-react'
 import { useEffect, useRef } from 'react'

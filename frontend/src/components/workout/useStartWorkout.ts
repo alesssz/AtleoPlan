@@ -1,16 +1,10 @@
 /*
- * useStartWorkout: the one way a workout starts, shared by the plan's page
- * (Start this day) and Home (Start, and Free workout). It builds the workout on
- * the phone (workout-session.ts), keeps it there (session-storage.ts) and opens
- * workout mode at /session/:id.
+ * The one way a workout starts, shared by the plan's page and Home: builds the
+ * workout on the phone, stores it and opens workout mode.
  *
- * Starting a plan's day:
- * 1. the whole plan, which Home does not have (its answer lists the days
- *    without their exercises): read from TanStack Query's cache when it is
- *    there, from the API otherwise (queryClient.fetchQuery);
- * 2. last time's sets of the day's exercises; offline, an empty list, and
- *    the workout starts with the plan's targets alone;
- * 3. startSession(), stored, opened.
+ * Home has only the days' names, so the whole plan is read first, from the
+ * cache when there (queryClient.fetchQuery). Last time's sets are asked for
+ * too; offline, the workout starts with the plan's targets alone.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'

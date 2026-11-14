@@ -1,18 +1,12 @@
 /*
- * Finish, with a confirmation first: finishing cannot be undone. The question
- * says how many sets were done, and, when finishing early, that the sets not
- * ticked will not be saved. Used by workout mode, at the top ("Finish",
- * outlined) and at the bottom ("Finish workout", lime), and by the banner of a
- * workout left open on Home and on the plan's page (ResumeBanner). What
- * finishing does is in finish-workout.ts; this file is only the button and its
- * question.
+ * Finish with its confirmation, which counts the sets done and, when finishing
+ * early, warns that the unticked ones will not be saved. Used at the top and
+ * bottom of workout mode and in ResumeBanner; what finishing does is in
+ * finish-workout.ts.
  *
- * Under the question, quieter and in red, **Delete workout**: the way to throw
- * away a workout in progress without finishing it first (a workout started by
- * mistake, or abandoned). The dialog then asks a second question, since nothing
- * will be kept, not even the sets ticked. Finishing and deleting are both
- * "ending the workout", so they share one door: the top bar gets no extra
- * button.
+ * The same dialog offers Delete workout, after a second question: finishing
+ * and deleting both end the workout, so they share one door and the top bar
+ * gets no extra button.
  */
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'

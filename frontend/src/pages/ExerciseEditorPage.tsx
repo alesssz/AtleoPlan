@@ -1,17 +1,10 @@
 /*
- * The exercise editor (routes `/exercises/new` and `/exercises/:id/edit`): one
- * page for both, with the form of src/components/exercises/ExerciseForm.tsx.
- *
- * - **New:** an empty form; `?name=…` in the address fills in the name, as
- *   the library's "Create «…»" does after a search with no result.
- * - **Edit:** the exercise is loaded first, then the form starts from its
- *   values. Only the user's own exercises: the backend refuses the others
- *   with a 403 anyway (ExercisePolicy), the page says so before trying.
- *   Under the form, its photos (ExercisePhotoManager), saved one change at
- *   a time; on a new exercise, a line says they come after Create.
- *
- * After saving, the exercise's page; `replace: true` so that Back from there
- * does not reopen the form.
+ * The exercise editor, for a new exercise and for one of the user's own
+ * (others are refused before trying: the backend would answer 403). `?name=`
+ * prefills the name, as the library's "Create «…»" does. On an existing
+ * exercise the photos are managed under the form, one change at a time.
+ * After saving, the exercise's page replaces the editor in the history, so
+ * Back does not reopen the form.
  */
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'

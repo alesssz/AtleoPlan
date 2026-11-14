@@ -1,22 +1,11 @@
 /*
- * The workout preferences on Profile: six rows of the settings list, five read
- * by workout mode and one by the plan editor.
+ * Profile's workout preferences: weight unit, default rest, weight step,
+ * sound and vibration, RPE in plans. Each change is saved at once,
+ * optimistically, like the language and the theme.
  *
- * - **Weight unit**, kg or lb: how weights are shown and typed. They are kept
- *   in kilograms, so changing it converts nothing on the server. Not while a
- *   workout is in progress: its fields hold text typed in the old unit, and
- *   would be read in the new one at Finish.
- * - **Default rest**: the rest timer's length when a plan's exercise sets
- *   none; "No timer" is 0.
- * - **Weight step**: how much the big stepper's − and + move the weight
- *   (src/components/workout/SetStepper.tsx), in the user's unit.
- * - **Sound** and **vibration** at the end of the rest (src/lib/alarm.ts),
- *   and when the stopwatch of a timed set reaches its target.
- * - **RPE in plans**: whether the plan editor shows the RPE field beside each
- *   set's reps (src/components/plans/editor/EditorSet.tsx). Off by default.
- *
- * Each change is saved at once, optimistically, like the language and the
- * theme.
+ * The unit is locked while a workout is in progress: its fields hold text
+ * typed in the old unit, and would be read in the new one at Finish. Weights
+ * are stored in kilograms, so changing it converts nothing on the server.
  */
 import { Gauge, SlidersHorizontal, Timer, Vibrate, Volume2, Weight } from 'lucide-react'
 import { useId, useState } from 'react'

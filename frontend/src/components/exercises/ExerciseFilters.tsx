@@ -5,22 +5,10 @@
  *             [ All | Mine | Public ]
  *   640 px+:  [🔍 Search                    ] [⚙ Filters 2] [All|Mine|Public]
  *
- * - The search box, the one control used every time.
- * - **Filters**, a button that opens a panel from the bottom of the screen
- *   (a sheet) with the muscle group and the equipment, used less often. The
- *   button shows how many of the two are on, so a filtered list never looks
- *   like the whole library. On phones only its icon shows.
- * - The source (all, mine, public): three buttons always in sight, one tap
- *   to switch.
- *
- * They stay at the top while the list scrolls: the whole row from 640 px, the
- * search box and Filters on phones, where the source scrolls away. The search
- * box is ExerciseSearchBox, with its spinner while the page says a new list is
- * on its way (`searching`).
- *
- * The page keeps the filters in the address, so going back or reloading
- * finds them; only the panel's open state lives here. A choice in the panel
- * applies at once.
+ * Muscle and equipment, used less often, wait in a panel from the bottom; the
+ * button counts the filters on, so a filtered list never passes for the whole
+ * library. The filters live in the page's address; only the panel's open
+ * state lives here.
  */
 import { SlidersHorizontal } from 'lucide-react'
 import { useId, useState } from 'react'

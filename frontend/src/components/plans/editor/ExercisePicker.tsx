@@ -1,23 +1,12 @@
 /*
- * The library's select mode, for the plan editor: a window with a search box
- * and the library's exercises, each with a tick box. "Add (n)" puts the ticked
- * ones in the day, in the order they were ticked.
+ * The library's select mode in a window: tick exercises, "Add (n)" puts them
+ * in the day in the order ticked. With `replacing` (workout mode's Swap) it
+ * becomes a one-tap choice, filtered by the replaced exercise's main muscle.
  *
- * Workout mode uses it twice: Add exercises, as here, and **Swap exercise**
- * from the exercise's menu, where `replacing` turns it into a one-tap choice:
- * no tick boxes and no Add, a tap on a row picks it, and the list starts
- * filtered by the replaced exercise's main muscle, with a chip to show every
- * muscle. That window is opened by the menu, not by a button of its own: `open`
- * and `onOpenChange` let the screen control it.
- *
- * The same hook and search box as the Exercises page, so the two share the
- * cache and the spinner.
- *
- * **Create «…»**: after a search, a button under the list opens the exercise
- * editor's form (ExerciseForm) inside the window, the search as the name. The
- * exercise it creates is the user's own, and goes straight into the day with
- * the ticked ones (or replaces the exercise, when swapping), without leaving
- * the plan.
+ * It shares the Exercises page's query and search box, so the two share the
+ * cache. After a search, **Create «…»** opens the exercise editor's form in
+ * the window, so an exercise missing from the library is created without
+ * leaving the plan.
  */
 import { ArrowLeft, Dumbbell, Plus, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
