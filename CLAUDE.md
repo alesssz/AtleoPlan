@@ -32,7 +32,7 @@ A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite P
 
 ## Working rules (summary of docs/project/P1-conventions.md)
 
-- Everything in the repository is in English: code, comments, docs, commit messages.
+- Everything in the repository is in English: code, comments, docs, commit messages. Replies to the maintainer are in Italian.
 - **This is a professional project, written for developers.** Comments explain *why* (a decision, a constraint, a trap, an edge case), never what TypeScript, React, PHP or Laravel do; no tutorial-style explanations in code or docs (P1.2).
 - **How-to guides are recipes** (P1.3): a task that brings a new kind of work adds a short recipe to the guide for its area (commands in order, files, how to check, easy mistakes). C1 and C2 describe the architecture. The history of a task lives in its commits.
 - **A change updates the docs section it touches in the same commit.** Docs are grouped by purpose in `docs/start/` (S), `design/` (D), `concepts/` (C), `how-to/` (H), `project/` (P); a document's code is its letter plus a number (`H2`), and sections are cited as "see H2.3" between docs; code comments never cite the docs or the backlog (P1.2). Index: docs/README.md. Each doc opens with a generated "Contents" list: after changing a heading run `make toc` (`make check` fails otherwise).
@@ -45,6 +45,6 @@ Commits use the personal GitHub noreply address set in this repository's `.git/c
 
 **The repository is public** (docs/project/P1-conventions.md P1.5): nothing committed may hold a secret, a real person's data or a private detail of the user, in code, docs, fixtures or commit messages.
 
-**At the end of every task, give a ready-to-paste commit message** for the work done, following [P1.1](docs/project/P1-conventions.md#p11-git): English, Conventional Commits (`feat: …`, `fix: …`, `docs: …`, `chore: …`), a body when the why is not obvious, backlog IDs or doc sections when relevant, no attribution line. **Never commit, push or merge yourself: the user does it by hand.** Leave the changes in the working tree and say which branch they are on.
+**At the end of every task, give a ready-to-paste commit message** for the work done, following [P1.1](docs/project/P1-conventions.md#p11-git): English, Conventional Commits (`feat: …`, `fix: …`, `docs: …`, `chore: …`), a body when the why is not obvious, backlog IDs or doc sections when relevant, no attribution line. Give only the message's text, in a code block: no `git` or `make` commands, no heredoc. Then list briefly the commands that were run. Before handing over, check the comments, docs and READMEs the task touched against [P1.2](docs/project/P1-conventions.md#p12-code) and [P1.3](docs/project/P1-conventions.md#p13-documentation). **Never commit, push or merge yourself: the user does it by hand.** Leave the changes in the working tree and say which branch they are on.
 
 **At the start of every task, create its branch yourself**, before editing anything: `make branch name=<type>/<short-name>` (switches to `main`, pulls, creates the branch), with a type of [P1.1](docs/project/P1-conventions.md#p11-git) and a short English name, e.g. `docs/data-model`, `feat/sign-in`. If `main` has uncommitted changes from an earlier task, ask first. Creating the branch is the only git change you make.
