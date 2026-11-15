@@ -26,9 +26,9 @@ How GitHub checks every push by itself: what runs, when, in which files, how to 
 | `.github/dependabot.yml` | Mondays | a pull request with new versions of the actions the workflows use (`actions/checkout`, `actions/setup-node`) | never: it is a proposal, checked by its own CI run |
 | **CodeQL**, no file: GitHub's *default setup*, turned on in the settings | every push to `main`, and weekly | reads the TypeScript and JavaScript code, and the workflows themselves, for security mistakes (text not escaped, data from outside reaching a command…) | never fails a push: it opens **alerts** in **Security → Code scanning** |
 
-**Where it sits in the way of working** ([P1.1](../project/P1-conventions.md#p11-git)): a branch is pushed with `make push`; GitHub runs CI on it, and the audit if the dependencies changed; once the run is green, `make merge` merges it on the computer and pushes `main`, which runs CI again on the merge. `make merge` also runs `make check` itself, so CI is the second look, on a clean Linux machine where nothing of the computer (a file not committed, a package installed by hand) can hide a problem.
+**Where it sits in the way of working** ([P1.1](../project/P1-conventions.md#p11-git)): a branch is pushed with `make push`; GitHub runs CI on it, and the audit if the dependencies changed. `make merge` runs `make check`, opens the branch's pull request and turns on auto-merge; `main`'s ruleset lets GitHub merge it only once both CI jobs passed, and the merge runs CI again on `main`. CI is the look that counts: a clean Linux machine where nothing of the computer (a file not committed, a package installed by hand) can hide a problem.
 
-The same layout as Chronovault's workflows ([D2.11](../design/D2-decisions.md#d211-continuous-integration)): `ci.yml`, `audit.yml`, `dependabot.yml`, a read-only token, runs on any branch.
+The same layout in AtleoPlan, Chronovault and Flowboard ([D2.11](../design/D2-decisions.md#d211-continuous-integration)): `ci.yml`, `audit.yml`, `dependabot.yml`, a shared `.github/actions/setup`, actions pinned to a commit hash, a read-only token, `persist-credentials: false`, runs on any branch, merges through a pull request.
 
 ---
 
@@ -48,7 +48,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 ```
 
-- **`push` on any branch, no `pull_request`:** branches are merged on the computer, never through a pull request, so a pull request would only run the same checks twice. A pull request opened on GitHub by someone else runs nothing here until it is merged, which is the owner's choice.
+- **`push` on any branch, no `pull_request`:** checks belong to a commit, so the branch's run is also its pull request's; a `pull_request` trigger would run the same checks twice. A pull request opened by someone else runs nothing until the owner approves it.
 - **`concurrency`:** runs of the same branch (`github.ref`) form a group; a new push cancels the one still going, since only the latest commit matters. Not on `main`: each merge keeps its run.
 
 **The frontend job:**
@@ -58,15 +58,12 @@ defaults:
   run:
     working-directory: frontend
 steps:
-  - uses: actions/checkout@v7          # the repository's code, at the pushed commit
-  - uses: actions/setup-node@v7
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with:
-      node-version-file: .nvmrc        # Node 24, as on the computers
-      cache: npm
-      cache-dependency-path: frontend/package-lock.json
+      persist-credentials: false       # no Git credential left on the runner
+  - uses: ./.github/actions/setup      # Node of .nvmrc, npm ci in frontend/
   - run: node scripts/docs-toc.mjs --check
     working-directory: .
-  - run: npm ci
   - run: npm run lint
   - run: npm run typecheck
   - run: npm test
@@ -81,7 +78,9 @@ steps:
 
 ```yaml
 steps:
-  - uses: actions/checkout@v7
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    with:
+      persist-credentials: false
   - run: cp backend/.env.example backend/.env
   - run: docker compose build backend
   - run: docker compose up -d --wait postgres
@@ -119,7 +118,7 @@ on:
 
 - **The weekly run** finds a new advisory on a package that did not change: the code is the same, the advisory database is not. A failed scheduled run is emailed to the owner.
 - **`paths`:** on a push, only when one of these files changed: a branch that adds a vulnerable version fails beside its CI, before the merge.
-- **`pull_request`** this time: Dependabot's security updates arrive as pull requests, and are audited there.
+- **`pull_request`** only for a fork's (the job's `if`): this repository's branches are audited on push.
 
 **The npm job:** Node, `npm ci`, `npm outdated` into the run's summary, then `node scripts/npm-audit.mjs` (H5.4).
 
@@ -171,7 +170,7 @@ Once, by the owner, after the branch is on `main` (the workflows exist only then
 
 If Actions were turned off while there was no CI, turn them on with the first setting.
 
-**Not a required check on `main`.** A ruleset can demand that a status check passed before a push to `main` (**Require status checks to pass**). Here `make merge` pushes a merge commit made on the computer, which no check has seen yet: GitHub would refuse it. The rule stays a habit instead: a green run on the branch before `make merge`.
+**The ruleset of `main`** (**Settings → Rules → Rulesets → main**): besides **Restrict deletions** and **Block force pushes**, **Require a pull request before merging** (no approvals needed: one person) and **Require status checks to pass** with the two jobs, **Frontend and docs** and **Backend**. In **Settings → General → Pull Requests**: **Allow merge commits** and **Allow auto-merge** on, so `make merge` can hand the merge to GitHub.
 
 **Settings → Advanced Security** (on some accounts **Code security**), besides the protections of [P1.5.2](../project/P1-conventions.md#p152-the-account-and-the-repository-on-github):
 

@@ -279,5 +279,5 @@ push: ## Push the current branch to GitHub (sets the upstream the first time)
 
 # Make treats anything starting with "--" as one of its own options, so the
 # script's flags are variables instead (yes=1 → --yes, checks=0 → --no-checks).
-merge: ## make check, merge the current branch into main, push, delete it (asks first; yes=1 skips the question, checks=0 the checks)
+merge: ## make check, open a pull request, have GitHub merge it into main once CI passes, delete the branch (asks first; yes=1 skips the question, checks=0 the checks)
 	node scripts/merge-main.mjs $(if $(yes),--yes) $(if $(filter 0,$(checks)),--no-checks)

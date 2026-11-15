@@ -10,7 +10,7 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     # The workflows' folder is found from the root
-    directory: /
+    directories: ['/', '/.github/actions/*']
     schedule:
       interval: weekly
       day: monday
