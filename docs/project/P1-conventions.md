@@ -31,7 +31,8 @@ How work is done in this repository: Git, code, comments, documentation and the 
 
 - **Language:** everything in the repository is in English: code, comments, docs, commit messages. The interface's texts are in translation files, one per language (Italian, English, Spanish, German), never written in a component ([D2.4](../design/D2-decisions.md#d24-languages)).
 - **Comments explain why, not what.** They are written for a developer who knows TypeScript, React, PHP and Laravel: a comment says why the code is the way it is (a decision, a constraint, a trap, an edge case, a rule of the app), never what the language or the framework does. When code needs a comment to say *what* it does, it is renamed or split first.
-  - A file whose purpose is not obvious from its name and place starts with a short header: what it is for, and how it fits with the rest.
+  - A file whose purpose is not obvious from its name and place starts with a short header: what it is for, and how it fits with the rest, in a few lines; never a screen narrated control by control. A long block only for a specification: a JSON contract, a table of rules, an algorithm.
+  - Comments describe the code as it is: no history ("used to", the first version, how a bug was found, what was tried first), no branch names or backlog IDs. The history lives in the commits.
   - Exported functions, classes, components and hooks get a doc comment (TSDoc / PHPDoc) when their name and types do not say everything: units, side effects, errors, the cases they refuse.
   - Comments stand on their own: they never point to the docs or to backlog entries. When a rule of the docs explains the code, the comment states it in a few words: `// Warm-ups never count towards records`. The docs point to the code, not the other way round.
   - Migrations explain the columns whose meaning or constraint is not obvious; once applied, a migration never changes: a change is a new migration.
@@ -50,7 +51,7 @@ How work is done in this repository: Git, code, comments, documentation and the 
 
 ## P1.3 Documentation
 
-- **`README.md`** holds only the introduction, a short quick start and a map of the folders; everything else is in `docs/`, whose index is [`docs/README.md`](../README.md).
+- **`README.md`** is the project's showcase, everything else is in `docs/`, whose index is [`docs/README.md`](../README.md). In order: a centred header (logo, name, one line on what it is, the live link if there is one, the CI badge); a short paragraph presenting the project and its state; screenshots, centred: three phone screens side by side and one desktop screen, dark theme, taken from a demo account, never from real users' data (JPEG for screens full of artwork); **Features** in short bullets, then a link to the full list in the docs; **Engineering highlights**, each a constraint and the choice it led to, with its docs link; the **Tech stack** in one line ending with "Why each one:" and a link, then a small Mermaid architecture sketch; a **Quick start** with a few commands and the demo login; the **Documentation** table; the **Status**, and the note on the repository (licence, how to report a security problem). No generated contents list. The README of a sub-folder (`backend/`, `frontend/`) is a short pointer: what it is, its docs, its commands.
 - **Folders by purpose,** each with a letter:
   - `start/` (S): installing and starting;
   - `design/` (D): what the app does and why;
