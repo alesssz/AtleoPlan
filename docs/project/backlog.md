@@ -17,6 +17,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
   - [UI-8 Photos while creating an exercise](#ui-8-photos-while-creating-an-exercise)
+  - [UI-9 The exercise library scrolls sideways on phones](#ui-9-the-exercise-library-scrolls-sideways-on-phones)
 - [FEAT](#feat)
   - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
   - [FEAT-5 New records during a workout](#feat-5-new-records-during-a-workout)
@@ -45,13 +46,15 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 **Priority:** high | medium | low · **Kind:** e.g. missing feature, phones · **Found:** YYYY-MM-DD
 
-**What is missing.** What, where, and why it matters.
+**What is missing.** What, where it shows, how to see it, and why it matters.
+
+**Where.** Files and parts of them.
 
 **Options.**
 - A) …
 - B) …
 
-**Recommended.** Which option and why.
+**Recommended.** Which option, why, and how to check it is done.
 ```
 
 ---
@@ -143,6 +146,20 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - C) As it is.
 
 **Recommended.** B first, a one-line change in `useGoToExercise()`; A if B feels like a detour.
+
+### UI-9 The exercise library scrolls sideways on phones
+
+**Priority:** medium · **Kind:** phones, layout · **Found:** 2026-11-14
+
+**What is missing.** On a 390 px screen the library's page is 406 px wide and scrolls sideways by 16 px. The list (`grid gap-3 sm:grid-cols-2` in `ExercisesPage.tsx`) has no column template below `sm`, so its single implicit column grows to the longest exercise name, even though the name is shown truncated. The plans list uses the same classes.
+
+**Where.** `frontend/src/pages/ExercisesPage.tsx`, the results list; `frontend/src/pages/PlansPage.tsx`, the list and its loading placeholder.
+
+**Options.**
+- A) `grid-cols-1` on both lists: the column is then `minmax(0, 1fr)` and truncation works.
+- B) `min-w-0` on each item.
+
+**Recommended.** A: one class per list, the same rule in both. Checked in the browser at 390 px (jsdom has no layout); then the library can join the README's screenshots.
 
 ## FEAT
 
