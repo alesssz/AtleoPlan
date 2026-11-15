@@ -212,20 +212,20 @@ A plan can be saved as a file and imported again, on the same server or another 
 
 ## D2.11 Continuous integration
 
-**GitHub Actions checks every push, with the same layout as Chronovault's:** a CI workflow on any branch, an audit of the dependencies every week and when they change, and Dependabot proposing the actions' new versions. Built in `chore/ci`; how it works: [H5](../how-to/H5-ci.md).
+**GitHub Actions checks every push, with the same layout in AtleoPlan, Chronovault and Flowboard:** a CI workflow on any branch, an audit of the dependencies every week and when they change, Dependabot proposing the actions' new versions, and merges only through a pull request whose CI passed. How it works: [H5](../how-to/H5-ci.md).
 
 | Choice | Why |
 |---|---|
-| Runs on a push to any branch, not on pull requests | Branches are merged on the computer (`make merge`), never through a pull request: the branch's run, after `make push`, is the check before `main` |
+| Runs on a push to any branch | A branch is checked as soon as it is pushed; its pull request needs no run of its own, since checks belong to the commit |
 | The backend in its own Docker image, with Docker Compose | The rule of the project, PHP only through Docker ([D2.10](#d210-local-development)), holds in CI too: the same PHP, extensions and Postgres as on the computers; a failure in CI is one on the computer, and the other way round |
-| Only GitHub's own actions (`actions/checkout`, `actions/setup-node`) | An action is someone's code run with the repository's token. The backend needs none (Docker is on the runner), so the setting "GitHub's actions only" holds with no exception ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)) |
+| Only GitHub's own actions (`actions/checkout`, `actions/setup-node`), pinned to a commit hash | An action is someone's code run with the repository's token. The backend needs none (Docker is on the runner), so the setting "GitHub's actions only" holds with no exception ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)). A tag can be moved to other code, a hash cannot; Dependabot proposes the new hashes |
 | A read-only token in every workflow | The jobs read the code and run checks; nothing they run could push, comment or open a pull request |
 | An audit workflow beside Dependabot's alerts | The alerts only warn, on GitHub's page; the audit fails the branch that brings a vulnerable version, before the merge, and fails weekly on a new advisory, by email |
 | The advisories reviewed listed with their reason (`auditIgnore`, `config.audit.ignore`) | Some advisories have no fix (deepmerge's, [H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)); a failure always there would hide the new one. Each one left out is written down, with why |
 | Dependabot's version updates for the actions only | npm and Composer updates are made by hand, a few at a time, with `make check`; their security is covered by the alerts and the audit |
 | CodeQL's default setup, not a workflow of ours | GitHub's own analysis, configured and updated by GitHub, with no file to keep; it also reads the workflows, the part of a CI most often written carelessly. It does not read PHP |
 | `make github-check` reads the settings with `gh` | Settings live on GitHub's pages, outside the repository, where a change goes unnoticed; one command compares them all with the ones decided, as `make doctor` does for the computer |
-| No status check required on `main` | `make merge` pushes a merge commit made on the computer, which no check has seen: a required check would refuse it. The rule is a habit: a green branch before the merge |
+| Merges only through a pull request, both CI jobs required | GitHub merges only a commit whose CI passed: nothing reaches `main` from a computer, by mistake or in a hurry. `make merge` opens the pull request and lets auto-merge finish it |
 
 **Set aside:**
 

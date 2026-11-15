@@ -18,12 +18,12 @@ How work is done in this repository: Git, code, comments, documentation and the 
 ## P1.1 Git
 
 - **One branch per task** from `main`, with a short English name and a type prefix: `feat/plan-editor`, `fix/rest-timer`, `docs/ui-design`, `chore/docker`. `make branch name=feat/plan-editor` creates it from an up-to-date `main`.
-- **Commit messages** in English, imperative, one subject line (`Add the rest timer to workout mode`), a body when the why is not obvious.
+- **Commit messages** follow [Conventional Commits](https://www.conventionalcommits.org/): a type, then an imperative subject in English (`feat: add the rest timer to workout mode`; `fix:`, `docs:`, `refactor:`, `test:`, `ci:`, `chore:`), a body when the why is not obvious. The same in AtleoPlan, Chronovault and Flowboard.
 - **Identity:** commits use the same personal GitHub identity as Chronovault, set in this repository's own `.git/config`; a computer's global Git configuration, which may hold another identity, is never used here.
 - **No real email in the history:** author and committer are always the GitHub noreply address, which is what let the repository become public as it was ([P1.5](#p15-a-public-repository)). The `pre-commit` hook in `.githooks/` refuses any other identity; a new clone turns it on with `git config core.hooksPath .githooks` ([S1.3](../start/S1-setup.md#s13-git-identity)).
-- Merges into `main` keep a merge commit (`--no-ff`), so each branch stays readable in the history.
-- **GitHub checks every push** ([H5](../how-to/H5-ci.md)): `make push` starts the **CI** workflow on the branch (the checks of `make check`, plus the build, on a clean Linux machine), and the **Audit** one when the dependencies changed. Merge once the branch's run is green; a red run is read in the **Actions** tab ([H5.5](../how-to/H5-ci.md#h55-reading-a-run-and-a-failed-one)).
-- **Merging is done with `make merge`** ([`scripts/merge-main.mjs`](../../scripts/merge-main.mjs), the same as Chronovault's), from the branch, once it is pushed (`make push`). It stops if the branch is not ready (uncommitted or unpushed work, nothing new), runs `make check`, shows the commits and asks; then it updates `main`, merges with a message listing the branch's commits, pushes `main`, deletes the branch on GitHub and locally, and leaves you on `main` in sync. A conflict is aborted and you are back on the branch. `yes=1` skips the question, `checks=0` the checks (for a docs-only branch).
+- **Nothing reaches `main` but a pull request whose CI passed**, merged as a merge commit, so each branch stays readable in the history: `main`'s ruleset refuses a direct push and requires both CI jobs ([P1.5.2](#p152-the-account-and-the-repository-on-github)).
+- **GitHub checks every push** ([H5](../how-to/H5-ci.md)): `make push` starts the **CI** workflow on the branch (the checks of `make check`, plus the build, on a clean Linux machine), and the **Audit** one when the dependencies changed. A red run is read in the **Actions** tab ([H5.5](../how-to/H5-ci.md#h55-reading-a-run-and-a-failed-one)).
+- **Merging is done with `make merge`** ([`scripts/merge-main.mjs`](../../scripts/merge-main.mjs), the same script in Chronovault and Flowboard), from the branch, once it is pushed (`make push`). It stops if the branch is not ready (uncommitted or unpushed work, nothing new, a conflict with `main`), runs `make check`, shows the commits and asks; then it opens the pull request (or reuses the open one) and turns on GitHub's auto-merge: GitHub merges once CI passes, with a message listing the branch's commits, even if the terminal is closed. Then it updates `main` and deletes the branch on GitHub and locally. A failed check stops it with nothing merged: fix, push, run it again. `yes=1` skips the question, `checks=0` the local checks (CI still runs them).
 
 ---
 
@@ -178,7 +178,7 @@ All by hand on github.com, signed in as the owner, in this order: the account fi
 | **Secrets and variables → Actions** | Empty | A public repository holds no secret until a CI needs one |
 | **Actions → General** | **Disable actions** | There is no workflow yet; with Actions off, a pull request from a stranger cannot make anything run. Turned on again with the CI, as in P1.5.3 |
 | **General → Features** | **Wikis**, **Projects**, **Discussions**, **Sponsorships** off | Everything is in `docs/` |
-| **General → Pull Requests** | **Automatically delete head branches** | Branches merged on GitHub do not pile up |
+| **General → Pull Requests** | **Allow merge commits**, **Allow auto-merge**, **Automatically delete head branches** | `make merge` hands the merge to GitHub, as a merge commit, once CI passes; merged branches do not pile up |
 | **Pages** | Off | Nothing is published as a website |
 
 **3. Public.** After merging the branch that prepared it (the README's paragraph, this section): **Settings → General → Danger Zone → Change repository visibility → Change to public**, confirmed by typing the repository's name.
@@ -191,7 +191,7 @@ All by hand on github.com, signed in as the owner, in this order: the account fi
 | | **Dependency graph** and **Dependabot alerts** on | A warning when a Composer or npm package in use has a known vulnerability: `make audit`, by itself |
 | | **Secret Protection** and its **Push protection** on | GitHub scanned the whole history, and refuses any push holding a secret of a known kind, such as a Google client secret |
 | | **CodeQL analysis → Default setup** on ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)) | GitHub reads the TypeScript and the workflows for security mistakes, at every push to `main` and weekly |
-| **Rules → Rulesets → New branch ruleset** | Name `main`, **Active**, target **Include default branch**; **Restrict deletions** and **Block force pushes**. Not **Require a pull request before merging**: `make merge` pushes `main` itself, and would be refused | Nobody, the owner by mistake included, can delete `main` or rewrite its history |
+| **Rules → Rulesets → New branch ruleset** | Name `main`, **Active**, target **Include default branch**; **Restrict deletions**, **Block force pushes**, **Require a pull request before merging** (no approvals) and **Require status checks to pass** (**Frontend and docs**, **Backend**) | Nobody, the owner by mistake included, can delete `main`, rewrite its history, or bring in a commit whose CI did not pass |
 
 **How to check:** `make github-check` reads every setting of this section, and the CI's of [H5.3](../how-to/H5-ci.md#h53-the-settings-on-github), with GitHub's command line `gh`, and compares them with the ones decided ([H5.3.1](../how-to/H5-ci.md#h531-checking-everything-from-the-terminal-make-github-check)). By hand:
 

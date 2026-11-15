@@ -19,14 +19,12 @@ on:
     - cron: '0 6 * * 1'
   # Run by hand from the Actions tab.
   workflow_dispatch:
-  # A push to any branch that changes the dependencies: branches are merged
-  # on the computer (`make merge`), never through a pull request, so this is
-  # the check before main.
+  # A push to any branch that changes the dependencies: the branch fails
+  # beside its CI, before its pull request can be merged.
   push:
     branches: ['**']
     paths: [frontend/package.json, frontend/package-lock.json, backend/composer.json, backend/composer.lock]
-  # A pull request that changes them: none is opened by hand, but one opened
-  # on GitHub, by Dependabot or from a fork, is audited before it is merged.
+  # A pull request from a fork, which no push of this repository covers.
   pull_request:
     paths: [frontend/package.json, frontend/package-lock.json, backend/composer.json, backend/composer.lock]
 
@@ -37,18 +35,15 @@ permissions:
 jobs:
   npm:
     name: npm packages
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          persist-credentials: false
       # Installed so that `npm outdated` compares what is really resolved
-      - run: npm ci
-        working-directory: frontend
+      - uses: ./.github/actions/setup
       - name: Outdated packages (summary)
         working-directory: frontend
         # `npm outdated` exits 1 when anything is outdated: informative only.
@@ -67,10 +62,13 @@ jobs:
 
   composer:
     name: Composer packages
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       # Composer's official image, with no PHP of the project's: --locked
       # reads composer.lock alone, installing nothing, which is all an audit
       # and a list of updates need. The backend's own image would take

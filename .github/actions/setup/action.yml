@@ -1,0 +1,19 @@
+# Shared by the frontend jobs, right after actions/checkout (a local action is
+# read from the checked-out code). Actions are pinned to a commit hash, release
+# in the comment.
+name: Setup
+description: Node at the version in .nvmrc, the frontend's dependencies from the lockfile
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: frontend
+      run: npm ci
