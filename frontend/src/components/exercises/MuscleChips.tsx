@@ -1,8 +1,6 @@
 /*
- * An exercise's muscles as rounded chips: lime for the main ones, quieter for
- * those that help. Shared by the exercise's page
- * (src/pages/ExerciseDetailPage.tsx) and by workout mode's "How to do it" panel
- * (src/components/workout/ExerciseInfoSheet.tsx), so the two look the same.
+ * An exercise's muscles as chips, shared by the exercise's page and workout
+ * mode's "How to do it" panel; `strong` (lime) for the primary ones.
  */
 import { Badge } from '@/components/ui/badge'
 

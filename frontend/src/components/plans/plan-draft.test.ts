@@ -1,8 +1,3 @@
-/*
- * The plan editor's draft (plan-draft.ts), without React: reading what the
- * user types, the conversions to and from the API, the rules, the supersets,
- * and what each action of the reducer does.
- */
 import { describe, expect, it } from 'vitest'
 import { testExercise } from '@/test/exercise-helpers'
 import { testPlan } from '@/test/plan-helpers'
@@ -13,11 +8,7 @@ function draft(): PlanDraft {
   return draftFromPlan(testPlan(), 'kg', 'en')
 }
 
-/**
- * Runs several actions in a row, as the editor does one at a time.
- * @param start the first draft
- * @param actions the actions, in order
- */
+/** Runs several actions in a row, as the editor does one at a time. */
 function run(start: PlanDraft, ...actions: DraftAction[]): PlanDraft {
   return actions.reduce(draftReducer, start)
 }
@@ -226,7 +217,7 @@ describe('draftReducer', () => {
 })
 
 describe('newId', () => {
-  /** A version 4 UUID: 8-4-4-4-12 hexadecimal digits, a 4 at the start of the third group, 8, 9, a or b at the start of the fourth. */
+  /** A version 4 UUID, its version and variant bits included. */
   const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
   it('builds a version 4 UUID by hand, different every time', () => {

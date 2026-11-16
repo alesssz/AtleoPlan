@@ -1,8 +1,4 @@
-/*
- * Test data for the workouts' pages: past workouts as the API sends them
- * (GET /api/sessions and /api/sessions/{id}), each changeable field by
- * field, as plan-helpers.ts does for plans.
- */
+/* Past workouts as the API returns them, each field overridable. */
 import type { SessionDetail, WorkoutSession } from '@/api/sessions'
 import { testExercise } from './exercise-helpers'
 
@@ -35,7 +31,6 @@ export function testWorkoutSession(changes: Partial<WorkoutSession> = {}): Worko
  * 40 × 10, then 80 × 8 twice) and pull-ups skipped.
  */
 export function testSessionDetail(changes: Partial<SessionDetail> = {}): SessionDetail {
-  /** A set at 18:05, the values as given. */
   const set = (id: string, type: 'warm_up' | 'normal', weight: string | null, reps: number) => ({ id, set_type: type, weight_kg: weight, reps, duration_seconds: null, distance_meters: null, completed_at: '2026-11-09T18:05:00Z' })
   return {
     ...testWorkoutSession(),

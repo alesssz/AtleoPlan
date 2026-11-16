@@ -1,14 +1,6 @@
 /*
- * One set of an exercise in the plan editor: its number, which opens the list
- * of set types (warm-up W, drop set D, to failure F: SetTypeSelect.tsx), the
- * targets that fit how the exercise is logged, and a button that removes it.
- *
- * The RPE field shows only when the exercise wants it: the user's
- * preference (Profile, `show_rpe`), or an RPE already in one of its sets,
- * which would otherwise be saved without being seen (EditorItem.tsx).
- *
- * The fields are text, as typed ("8-10", "82,5"); plan-draft.ts reads them
- * when saving, and validateDraft() names the ones that do not read.
+ * One set in the plan editor: the targets that fit how the exercise is logged,
+ * kept as typed ("8-10", "82,5") and read only when saving.
  */
 import { X } from 'lucide-react'
 import { useId, type Dispatch } from 'react'
@@ -34,7 +26,10 @@ interface EditorSetProps {
   errorOf: (path: string) => string | undefined
   /** The user's weight unit, shown in the weight's label. */
   unit: WeightUnit
-  /** Whether to show the RPE field (for an exercise with reps). */
+  /**
+   * Whether to show the RPE field (for an exercise with reps): the user's
+   * preference, or an RPE already set, which would otherwise be saved unseen.
+   */
   showRpe: boolean
 }
 

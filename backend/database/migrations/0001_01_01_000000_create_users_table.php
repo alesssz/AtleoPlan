@@ -27,8 +27,6 @@ return new class extends Migration
             $table->timestamp('created_at')->nullable();
         });
 
-        // Both the React app (Sanctum SPA mode) and the admin panel keep the
-        // signed-in user here
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();

@@ -1,11 +1,6 @@
 /*
- * One exercise (route `/exercises/:id`): its photos, equipment, logging type,
- * muscles, instructions, description and YouTube link; for the user's own
- * exercise, Edit and Delete; for a public one, Duplicate as mine, which opens
- * the editor of the copy.
- *
- * Not here yet, with the feature that brings them: "Add to plan", the "My
- * history" tab, the videos (phase 2).
+ * One exercise (`/exercises/:id`): Edit and Delete on the user's own, Duplicate
+ * as mine on a public one.
  */
 import { ArrowLeft, Copy, ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -63,7 +58,6 @@ export function ExerciseDetailPage() {
 }
 
 interface ExerciseDetailProps {
-  /** The exercise, loaded. */
   exercise: Exercise
 }
 
@@ -141,7 +135,6 @@ function ExerciseDetail({ exercise }: ExerciseDetailProps) {
           </section>
         )}
 
-        {/* noreferrer: the new page gets no handle on this one */}
         {exercise.youtube_url && (
           <a href={exercise.youtube_url} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center gap-2 self-start font-semibold text-primary">
             <ExternalLink aria-hidden="true" className="size-4" />
@@ -186,10 +179,7 @@ interface DeleteExerciseButtonProps {
   exercise: Exercise
 }
 
-/**
- * Delete, with a confirmation first: deleting cannot be undone from the app.
- * After it, the plain list.
- */
+/** Delete, behind a confirmation: it cannot be undone from the app. */
 function DeleteExerciseButton({ exercise }: DeleteExerciseButtonProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()

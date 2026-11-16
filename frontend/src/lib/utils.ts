@@ -1,7 +1,5 @@
 /*
- * Re-exported where shadcn/ui expects it (components.json). The `cn` package
- * replaces the clsx + tailwind-merge pair: conditional classes, and the last
- * conflicting Tailwind class wins, so a component's `className` overrides its
- * defaults.
+ * The `cn` package in place of shadcn's clsx + tailwind-merge pair, at the path
+ * components.json expects.
  */
 export { cn } from 'cn'

@@ -1,16 +1,9 @@
-/*
- * The one door to the API: what every request carries, how failures become an
- * ApiError, and the second try on an expired CSRF token.
- */
 import { describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
 import { fakeApi } from '@/test/auth-helpers'
 import { ApiError, request } from './http'
 
-/**
- * The headers of one call to the fake API.
- * @param index which call, counting from 0
- */
+/** @param index which call, from 0 */
 function headersOf(fake: ReturnType<typeof fakeApi>, index: number) {
   return fake.mock.calls[index]?.[1]?.headers as Record<string, string>
 }
@@ -62,7 +55,6 @@ describe('request', () => {
   })
 
   it('tries again once on an expired token, with a fresh one', async () => {
-    // Counts the calls, to answer 419 only to the first
     let calls = 0
     const fake = fakeApi({
       'POST /api/thing': () => {
@@ -78,7 +70,6 @@ describe('request', () => {
 
     await expect(request('/api/thing', { method: 'POST' })).resolves.toEqual({ ok: true })
 
-    // old token, then a new cookie, then the fresh token
     expect(headersOf(fake, 0)).toMatchObject({ 'X-XSRF-TOKEN': 'old' })
     expect(fake.mock.calls[1]?.[0]).toBe('/sanctum/csrf-cookie')
     expect(headersOf(fake, 2)).toMatchObject({ 'X-XSRF-TOKEN': 'fresh' })
@@ -90,7 +81,6 @@ describe('request', () => {
 
     await expect(request('/api/thing', { method: 'POST' })).rejects.toMatchObject({ status: 419 })
 
-    // Two tries of the request itself, never a loop
     expect(fake.mock.calls.filter(([path]) => path === '/api/thing')).toHaveLength(2)
   })
 })

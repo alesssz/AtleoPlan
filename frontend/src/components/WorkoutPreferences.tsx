@@ -45,8 +45,8 @@ function stepValue(step: number): string {
 }
 
 /**
- * The account's value added in order when it is not offered (saved by an
- * older version, or by hand), so the Select can always show it.
+ * Adds the account's value, in order, when it is not among the choices, so the
+ * Select can always show it.
  */
 function withCurrent(choices: number[], current: number): number[] {
   return choices.includes(current) ? choices : [...choices, current].sort((a, b) => a - b)

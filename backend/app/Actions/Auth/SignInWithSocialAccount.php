@@ -23,8 +23,7 @@ use Laravel\Socialite\Contracts\User as OutsideUser;
  * 2. **An email already registered** (an account with a password): Google is
  *    linked to that account, so its plans and workouts are kept. Only when
  *    Google says it has verified the address, or anyone could make a Google
- *    account with someone else's address and walk into their AtleoPlan account
- *    (option A).
+ *    account with someone else's address and walk into their AtleoPlan account.
  * 3. **A new address**: a new account, with no password, the name and email
  *    from Google and the language the app was showing. Also only with a
  *    verified address, so nobody can take an address before its owner signs up.

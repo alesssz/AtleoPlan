@@ -1,14 +1,9 @@
 #!/usr/bin/env node
 /**
- * Checks that this computer and this clone are ready for AtleoPlan, and prints
- * the fix for whatever is not. Changes nothing. Run with `make doctor`.
- *
- * Checks, in order: Docker (installed, running, disk space), Node (the major of
- * .nvmrc) and npm's cache, the Git identity and hook, the dependencies of both
- * apps, the backend's .env (only that it exists: it holds secrets), the ports,
- * and the test database: the setup problems known to happen. Works on macOS,
- * Linux and Windows; the npm cache check does not apply to Windows and is
- * skipped there.
+ * Checks this computer and clone against the setup problems known to happen
+ * (Docker, Node, npm cache, Git identity and hook, dependencies, backend/.env,
+ * ports, test database) and prints the fix for each. Read-only; macOS, Linux
+ * and Windows.
  *
  * Exit code 1 when at least one check fails, 0 otherwise (warnings included).
  */
@@ -19,7 +14,6 @@ import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** The repository root (this file is in scripts/). */
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /** The only email allowed in commits. */
 const NOREPLY = '32982604+alesssz@users.noreply.github.com'
@@ -28,7 +22,6 @@ const PORTS = { 8500: 'Laravel', 5932: 'Postgres', 8525: 'Mailpit', 5673: 'Vite'
 /** Below this many free GB on Docker's disk, builds start failing in odd ways. */
 const MIN_DOCKER_FREE_GB = 5
 
-/** Count of failed checks, for the exit code. */
 let failures = 0
 
 /** Runs a command and returns its trimmed output, or null when it fails. */
@@ -49,11 +42,9 @@ function run(command, args, options = {}) {
  */
 async function isListening(port) {
   for (const host of ['127.0.0.1', '::1']) {
-    // Whether this address answered; a refused connection is an error, so a free port gives false
+    // A refused connection is an error: a free port gives false
     const answered = await new Promise((resolve) => {
-      // The connection attempt, given up after a second
       const socket = connect({ port, host, timeout: 1000 })
-      /** Closes the socket and gives the attempt's result. */
       const finish = (result) => {
         socket.destroy()
         resolve(result)
@@ -84,7 +75,6 @@ function portOwnerCommand(port) {
     : `lsof -nP -iTCP:${port} -sTCP:LISTEN`
 }
 
-/** Prints a passed check. */
 function ok(message) {
   console.log(`  ✔ ${message}`)
 }
@@ -94,7 +84,6 @@ function warn(message, fix) {
   console.log(`  ⚠ ${message}${fix ? `\n      → ${fix}` : ''}`)
 }
 
-/** Prints a failed check with its fix, and counts it. */
 function fail(message, fix) {
   failures++
   console.log(`  ✖ ${message}${fix ? `\n      → ${fix}` : ''}`)
@@ -102,7 +91,7 @@ function fail(message, fix) {
 
 // --- Docker ------------------------------------------------------------------------
 console.log('Docker')
-/** Docker's server version; null when the CLI is missing or the daemon is down. */
+/** null when the CLI is missing or the daemon is down. */
 const dockerVersion = run('docker', ['info', '--format', '{{.ServerVersion}}'])
 if (!run('docker', ['--version'])) {
   fail('Docker is not installed', 'install Docker Desktop')
@@ -112,14 +101,12 @@ else if (!dockerVersion) {
 }
 else {
   ok(`Docker ${dockerVersion} running`)
-  // Free space on Docker's virtual disk, in GB, measured from a throwaway container
-  // already on this computer (the backend image, if built)
+  // Docker's virtual disk is measured from inside a throwaway container of the backend image
   const freeKb = run('docker', ['run', '--rm', '--entrypoint', 'sh', 'atleoplan-backend:dev', '-c', "df -k / | tail -1 | awk '{print $4}'"])
   if (freeKb === null) {
     warn('backend image not built yet, Docker disk space not checked', 'make build')
   }
   else {
-    // Kilobytes to gigabytes, one decimal
     const freeGb = Math.round(Number(freeKb) / 1024 / 1024 * 10) / 10
     if (freeGb < MIN_DOCKER_FREE_GB) {
       fail(`only ${freeGb} GB free on Docker's disk`, 'docker builder prune -af; docker image prune -af (docs/start/S1-setup.md S1.10)')
@@ -132,9 +119,7 @@ else {
 
 // --- Node and npm ------------------------------------------------------------------
 console.log('Node')
-/** The Node major the project expects (.nvmrc). */
 const wantedNode = readFileSync(join(ROOT, '.nvmrc'), 'utf8').trim()
-/** The Node major running this script. */
 const actualNode = process.versions.node.split('.')[0]
 if (actualNode === wantedNode) {
   ok(`Node ${process.versions.node}`)
@@ -145,7 +130,6 @@ else {
 // A file in npm's cache owned by another user (root, after a `sudo npm`) breaks every install.
 // macOS and Linux only: Windows has no sudo and no process.getuid().
 if (process.platform !== 'win32') {
-  // npm's cache folder, and the first file in it that belongs to someone else, if any
   const npmCache = join(homedir(), '.npm')
   const foreignFile = existsSync(npmCache) ? run('find', [npmCache, '!', '-user', String(process.getuid()), '-print', '-quit']) : ''
   if (foreignFile) {
@@ -158,7 +142,6 @@ if (process.platform !== 'win32') {
 
 // --- Git ---------------------------------------------------------------------------
 console.log('Git')
-/** The email this repository commits with. */
 const email = run('git', ['config', 'user.email'])
 if (email === NOREPLY) {
   ok(`commits as ${email}`)
@@ -181,12 +164,9 @@ else {
 
 // --- The apps ----------------------------------------------------------------------
 console.log('Apps')
-// The Composer packages exist twice: the ones the app runs on, in the `vendor`
-// Docker volume, checked further down once the containers are known to run; and
-// this copy on the computer, which only the editor reads. vendor/autoload.php
-// is the file every PHP request loads first, so its presence means the copy is
-// complete, not just begun. A missing copy is only a warning: the app works
-// without it.
+// backend/vendor/ is only the editor's copy of the `vendor` volume (checked
+// further down), so a missing one is only a warning; autoload.php stands for a
+// complete copy, not one just begun.
 if (existsSync(join(ROOT, 'backend/vendor/autoload.php'))) ok('backend packages copied for the editor')
 else warn('backend/vendor/ empty: the editor cannot see the packages', 'make vendor (make setup on a new clone)')
 // Existence only: the file holds secrets and is never read here
@@ -197,7 +177,6 @@ else fail('frontend packages missing', 'make fe-install')
 
 // --- Ports and services ------------------------------------------------------------
 console.log('Ports')
-/** Host ports published by this project's running containers. */
 const ownPorts = new Set((run('docker', ['compose', 'ps', '--format', '{{.Ports}}']) ?? '')
   .match(/:(\d+)->/g)?.map(match => match.slice(1, -2)) ?? [])
 for (const [port, service] of Object.entries(PORTS)) {
@@ -207,18 +186,14 @@ for (const [port, service] of Object.entries(PORTS)) {
   else warn(`${port} (${service}) taken by another program`, `${portOwnerCommand(port)}; or change the port (docs/start/S1-setup.md S1.4)`)
 }
 
-// The test database, when Postgres runs
 const testDb = run('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', 'atleoplan', '-tAc', "select 1 from pg_database where datname = 'atleoplan_test'"])
 if (testDb === null) warn('Postgres not running, test database not checked', 'make up')
 else if (testDb === '1') ok('test database atleoplan_test exists')
 else fail('test database atleoplan_test missing', 'make test-db')
 
-// The packages the app runs on, in the `vendor` Docker volume, when the backend
-// runs. The volume is inside Docker's virtual machine, where this script cannot
-// look, so the question goes to the container. Its answer is never empty, so
-// null means it is not running. An empty volume, as after `make down-v`, is a
-// failure: every request errors.
-/** "yes" or "no" from the container, or null when the backend is not running. */
+// The `vendor` volume lives inside Docker's VM, so the container is asked. An
+// empty volume, as after `make down-v`, fails every request.
+/** "yes" or "no", or null when the backend is not running. */
 const packages = run('docker', ['compose', 'exec', '-T', 'backend', 'sh', '-c', 'test -f vendor/autoload.php && echo yes || echo no'])
 if (packages === null) warn('backend not running, its packages not checked', 'make up')
 else if (packages === 'yes') ok('backend packages installed')

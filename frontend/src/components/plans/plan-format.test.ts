@@ -1,7 +1,3 @@
-/*
- * The summary of a plan's exercises (plan-format.ts): what each line says,
- * in two languages and two units, and how supersets are found.
- */
 import { beforeEach, describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
 import { testExercise } from '@/test/exercise-helpers'

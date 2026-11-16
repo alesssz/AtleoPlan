@@ -1,10 +1,6 @@
 /*
- * "How to do it" in workout mode: the exercise's photos, muscles and steps in
- * a panel from the bottom, so the workout stays where it is.
- *
- * Works offline: the exercise is the copy kept in the workout since Start,
- * not asked of the server again; only the photos need the network, unless the
- * browser has kept them.
+ * How to do it, in workout mode. Works offline: the exercise is the copy kept
+ * in the workout since Start; only the photos need the network.
  */
 import { ExternalLink } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -14,11 +10,8 @@ import { MuscleChips } from '@/components/exercises/MuscleChips'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 interface ExerciseInfoSheetProps {
-  /** Whether the panel is open. */
   open: boolean
-  /** Called to close it (the X, a tap outside, Escape). */
   onOpenChange: (open: boolean) => void
-  /** The exercise on screen, as kept in the workout. */
   exercise: Exercise
 }
 
@@ -33,7 +26,6 @@ export function ExerciseInfoSheet({ open, onOpenChange, exercise }: ExerciseInfo
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      {/* The content scrolls, the title stays */}
       <SheetContent side="bottom" closeLabel={t('common.close')} className="max-h-[90dvh] rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
         <SheetHeader className="mx-auto w-full max-w-xl px-5 pb-0">
           <SheetTitle className="pr-10 font-heading text-xl font-extrabold">{exercise.name}</SheetTitle>
@@ -72,7 +64,6 @@ export function ExerciseInfoSheet({ open, onOpenChange, exercise }: ExerciseInfo
           {exercise.description && (
             <section className="flex flex-col gap-3">
               <h3 className="font-heading text-lg font-extrabold">{t('exercises.detail.description')}</h3>
-              {/* Keeps the line breaks the user typed */}
               <p className="whitespace-pre-line">{exercise.description}</p>
             </section>
           )}

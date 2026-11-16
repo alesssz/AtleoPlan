@@ -30,7 +30,6 @@ it('writes the 17 muscles and the 12 kinds of equipment', function () {
 it('names every row in the four languages', function () {
     $this->seed([MuscleSeeder::class, EquipmentSeeder::class]);
 
-    // Every muscle and every kind of equipment, as one list
     $rows = Muscle::all()->concat(Equipment::all());
 
     foreach ($rows as $row) {

@@ -24,9 +24,9 @@ Recipes for the React app: a new page, data from the API, a form, tests, transla
 
 ## H3.1 Before you start
 
-- **The frontend runs on the computer,** Node 24 (`.nvmrc`), not in Docker: `make start` brings up the backend and Vite at http://localhost:5673. Vite proxies `/api`, `/sanctum`, `/storage` and `/auth/` to Laravel.
+- **The frontend runs on the host,** Node 24 (`.nvmrc`), not in Docker: `make start` brings up the backend and Vite at http://localhost:5673. Vite proxies `/api`, `/sanctum`, `/storage` and `/auth/` to Laravel.
 - **Where each piece goes** ([C1.2](../concepts/C1-frontend.md#c12-folder-structure)): pages in `pages/`, requests and hooks in `api/`, components of one area in `components/<area>/`, logic worth testing in plain `.ts` modules next to them, texts in `i18n/locales/`, routes in `router.tsx`, tests next to what they test.
-- **On Windows, open the terminal or VS Code from `D:\`** with a capital drive letter: started from `d:\`, Vitest loads itself twice and every test file fails with "Vitest failed to find the runner".
+- **On Windows, start the terminal or the editor from a path with an upper-case drive letter** (`D:\`, not `d:\`): otherwise Vitest loads itself twice and every test file fails with "Vitest failed to find the runner".
 
 ---
 
@@ -97,7 +97,7 @@ Values in a text: `"hint": "Numbers like {{weight}}"`, `t('…hint', { weight })
 npm install package-name        # in frontend/; -D for development only
 ```
 
-- **Commit `package.json` and `package-lock.json`.** Other computers run `make fe-install` after pulling, then restart `make dev`; until then Vite stops with `Failed to resolve import`.
+- **Commit `package.json` and `package-lock.json`.** Other clones run `make fe-install` after pulling, then restart `make dev`; until then Vite stops with `Failed to resolve import`.
 - **Read `git diff package-lock.json`** before committing: what came in with it.
 - **Never `npm audit fix --force`** (it can install older majors) and never `sudo npm`. `make audit` lists advisories without changing anything ([H5](H5-ci.md)).
 
@@ -120,13 +120,9 @@ When an advisory is in a transitive dependency whose parents do not accept the f
 
 ## H3.8 Checking in the browser
 
-| Tool | For |
-|---|---|
-| Network (Fetch/XHR) | Status, payload and response of every request; a 500 is in `backend/storage/logs/laravel.log` |
-| Console | React's errors and warnings |
-| Application → Cookies, Local storage | `atleoplan-session`, `XSRF-TOKEN`; the plan drafts and the workout kept on the phone (`atleoplan.*`) |
-| React Developer Tools | A component's props and state |
-| TanStack Query Devtools | Every query, its key, state and data |
+- **Cookies:** `atleoplan-session` and `XSRF-TOKEN`. **Local storage:** the plan drafts and the workout in progress, under `atleoplan.*`.
+- **TanStack Query Devtools** (development builds only): every query's key, state and data.
+- **A 500** in the Network tab: the cause is in `backend/storage/logs/laravel.log` (`make logs`).
 
 **Every screen,** before calling it done: in both themes, in at least two languages (Italian and German texts are longer), at the three widths.
 
@@ -138,24 +134,22 @@ When an advisory is in a transitive dependency whose parents do not accept the f
 | 640–1024 px (`sm:`) | Icon sidebar | iPad Air (820 px) |
 | from 1024 px (`lg:`) | Sidebar with labels | the window itself |
 
-Chrome's device toolbar (`Ctrl/Cmd+Shift+M`); its `⋮` → *Show media queries* jumps to each threshold. Picking a phone also turns the pointer into a touch with no hover: a layout that breaks only there often relies on hover.
+Device emulation also turns the pointer into a touch with no hover: a layout that breaks only there usually relies on hover.
 
 ### H3.8.2 A real Android phone over USB
 
 What only a real phone shows: the screen kept on (Wake Lock), the vibration and the beep at the end of a rest, the notch, a real finger. `adb reverse` makes the phone's `localhost:5673` the computer's, so the page is a secure context and the session works as on the computer.
 
-**Once, on the phone:** Developer options (tap *Build number* seven times), then *USB debugging* on.
-
-**Once, on the computer:** Google's platform-tools. On the Mac `brew install android-platform-tools`; on Windows, from Git Bash:
+**Once:** *USB debugging* on in the phone's developer options, and Google's platform-tools on the host: `brew install android-platform-tools` on macOS; on Windows, from Git Bash:
 
 ```sh
 curl -L -o ~/platform-tools.zip https://dl.google.com/android/repository/platform-tools-latest-windows.zip
 powershell -command "Expand-Archive ~/platform-tools.zip -DestinationPath $HOME"
 ```
 
-`make phone` finds `adb` on the PATH or in `~/platform-tools`. The first `adb devices` shows `unauthorized` until *Allow USB debugging?* is accepted on the unlocked phone.
+`make phone` finds `adb` on the PATH or in `~/platform-tools`. The phone shows `unauthorized` until *Allow USB debugging?* is accepted on it.
 
-**Each time:** `make start`, the phone plugged in, `make phone`, then Chrome on the phone at `http://localhost:5673`. The rule lasts until the cable is unplugged. `chrome://inspect/#devices` on the computer opens DevTools for the phone's tab.
+**Each time:** `make start`, the phone plugged in, `make phone`, then Chrome on the phone at `http://localhost:5673`. The forwarding lasts until the cable is unplugged. `chrome://inspect/#devices` on the host opens DevTools for the phone's tab.
 
 **For workout mode:** screen timeout at 15 s and a workout left alone for a minute (the screen stays on); a short rest with sound and vibration on; nothing under the notch or the gesture bar.
 
@@ -163,7 +157,7 @@ powershell -command "Expand-Archive ~/platform-tools.zip -DestinationPath $HOME"
 |---|---|
 | `adb devices` lists nothing | A charge-only cable, USB debugging off, or no debugging driver on Windows |
 | `unauthorized` and no question on the phone | Unlock it; or *Revoke USB debugging authorizations*, unplug, plug again |
-| *This site can't be reached*, though the computer opens it | The cable was unplugged since `make phone`; or Vite is listening on `::1` only, where `adb reverse` does not connect: `server.host: '127.0.0.1'` in `vite.config.ts` prevents it, restart `make dev` after pulling it |
+| *This site can't be reached*, though the host opens it | The cable was unplugged since `make phone`: run it again. Vite must listen on `127.0.0.1` (`server.host` in `vite.config.ts`): `adb reverse` does not reach `::1` |
 | The sign-in fails on the phone | The address must be exactly `localhost:5673`, the one Sanctum knows |
 
 ### H3.8.3 The README's screenshots
@@ -174,7 +168,7 @@ The screenshots in `docs/screenshots/` show a demo account, never a real one: pl
 2. **History to show:** one workout done through the app (Start, every set ticked, Finish), so Home suggests the next day and workout mode has last time's values.
 3. **The shots:** Playwright, installed in a folder outside the repository (`npm install playwright`, `npx playwright install chromium`), signed in as Ada with `make start` running: phone screens at 390 × 844, desktop at 1280 × 800, `deviceScaleFactor: 2`, `colorScheme: 'dark'`, `locale: 'en-US'`.
 4. **Hide the TanStack Query Devtools button,** which only development shows: a style `[class*="tsqd"] { display: none }` added by `context.addInitScript()`.
-5. **Look at each one** before committing: a layout bug shows here as clearly as anywhere.
+5. **Review each image** before committing.
 
 ---
 

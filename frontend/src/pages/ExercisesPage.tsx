@@ -1,10 +1,7 @@
 /*
- * The exercise library: public exercises and the user's own, searched,
- * filtered and read a page at a time.
- *
- * The filters live in the address (/exercises?q=panca&muscle=chest), so Back
- * and a reload keep them. While a new list loads, the old one stays dimmed and
- * the search box shows a spinner, instead of a skeleton at every letter.
+ * The exercise library. The filters live in the URL (/exercises?q=panca&muscle=chest),
+ * so Back and a reload keep them. While a new list loads, the old one stays
+ * dimmed with a spinner in the search box, instead of a skeleton at every letter.
  */
 import { Dumbbell, Plus, SearchX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -43,7 +40,7 @@ export function ExercisesPage() {
     source: isSource(sourceParam) ? sourceParam : 'all',
   }
 
-  // The other filters apply at once
+  // Only the search waits for a pause; the other filters apply at once
   const search = useDebouncedValue(values.search, SEARCH_DELAY_MS)
   const list = useExercises({ ...values, search }, i18n.language)
   // While typing, or while the new list loads behind the old
@@ -101,7 +98,6 @@ export function ExercisesPage() {
         )}
 
         {list.isSuccess && total === 0 && (
-          // Which empty state depends on why
           values.search.trim() !== ''
             ? (
                 // Offer to create it, the search as its name
@@ -146,8 +142,6 @@ export function ExercisesPage() {
         )}
 
         {list.isSuccess && total > 0 && (
-          // Dimmed while the new list loads, so the screen does not jump at
-          // each letter typed and still shows it is working
           <div className={cn('transition-opacity', searching && 'opacity-60')}>
             {/* Announced when the filters change */}
             <p aria-live="polite" className="mb-3 text-sm text-muted-foreground">{t('exercises.count', { count: total })}</p>

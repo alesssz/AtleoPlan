@@ -1,22 +1,20 @@
-# AtleoPlan's commands: `make help` lists them. Backend commands run in the
-# containers, frontend ones with this computer's Node. On Windows, run make from
-# Git Bash: the recipes need bash, grep and cp. Values are passed as variables,
-# since Make reads anything after the target as more targets: make artisan
-# c="route:list".
+# Backend commands run in the containers, frontend ones with the host's Node.
+# On Windows, run make from Git Bash: the recipes need bash, grep and cp.
+# Arguments are passed as variables (make artisan c="route:list"): Make reads
+# anything after the target as more targets.
 
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer vendor migratefresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
-        dev fe-install fe-build \
+        artisan composer vendor migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
+        dev phone fe-install fe-build \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit github-check toc toc-check \
         branch sync push merge
 
 DC      := docker compose
 ARTISAN := $(DC) exec backend php artisan
-# Photo conversions made at once rather than queued: for commands that add many
-# photos, which `queue:listen`, booting Laravel for every job, would take long
-# to work through
+# Photo conversions run at once rather than queued, for commands that add many
+# photos: `queue:listen` boots Laravel for every job
 ARTISAN_NOW := $(DC) exec -e QUEUE_CONVERSIONS_BY_DEFAULT=false backend php artisan
 NPM     := npm --prefix frontend
 BRANCH  := $(shell git branch --show-current)
@@ -24,7 +22,7 @@ BRANCH  := $(shell git branch --show-current)
 help: ## Show this list
 	@echo "AtleoPlan - available commands:"
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # --- First run and status -------------------------------------------------------
 
@@ -35,13 +33,11 @@ doctor: ## Check this computer and clone (Docker, disk, Node, npm cache, Git ide
 # - backend/.env comes first: without it Laravel believes it is in production
 #   and `migrate` stops to ask for confirmation.
 # - Composer runs before the stack starts: without vendor/ the queue worker
-#   crashes and keeps restarting until the packages arrive. They go into the
-#   `vendor` Docker volume, and Composer then copies them to backend/vendor/ for
-#   the editor; about 20 s on Windows.
+#   crashes and keeps restarting until the packages arrive.
 # - The key is generated only when empty: replacing it would invalidate
 #   existing sessions. grep -q prints nothing: the file holds secrets.
-# - The fixed lists (muscles, equipment) come right after the migrations: the
-#   app and the exercise import both need them (reference-data below).
+# - Muscles and equipment come right after the migrations: the app and the
+#   exercise import both need them.
 setup: ## New clone, or after a pull: Git hook, backend/.env and its key, image, packages, containers, test database, migrations, muscles and equipment
 	git config core.hooksPath .githooks
 	test -f backend/.env || cp backend/.env.example backend/.env
@@ -53,15 +49,13 @@ setup: ## New clone, or after a pull: Git hook, backend/.env and its key, image,
 	$(MAKE) --no-print-directory test-db
 	$(ARTISAN) migrate
 	$(MAKE) --no-print-directory reference-data
-	# public/storage → storage/app/public: the web server can then serve the
-	# photos, at /storage/…
 	$(ARTISAN) storage:link
 	@echo ""
-	@echo "✔ Ready. Laravel: http://localhost:8500 · React: make dev (http://localhost:5673)"
-	@echo "  Set the Git identity once if not done: docs/start/S1-setup.md S1.3 · then: make doctor"
+	@echo "✔ Ready. Admin: http://localhost:8500/admin · React: make dev (http://localhost:5673)"
+	@echo "  Git identity: docs/start/S1-setup.md S1.3 · then: make doctor"
 
 urls: ## The local addresses
-	@echo "Laravel          http://localhost:8500"
+	@echo "Laravel API      http://localhost:8500/api/health"
 	@echo "Filament admin   http://localhost:8500/admin"
 	@echo "React (make dev) http://localhost:5673"
 	@echo "Mailpit          http://localhost:8525"
@@ -107,9 +101,8 @@ composer: ## Any Composer command: make composer c="require vendor/package"
 	$(DC) exec backend composer $(c)
 
 # backend/vendor/ is the editor's copy of the `vendor` volume, refreshed by
-# Composer after every change. By hand, for when the copy is missing or was
-# touched; only what differs is sent.
-vendor: ## Copy the Composer packages to backend/vendor/ for the editor (Composer does it by itself)
+# Composer after every change; only what differs is copied.
+vendor: ## Copy the Composer packages to backend/vendor/ for the editor (Composer does it after every change)
 	$(DC) exec backend sync-vendor
 
 migrate: ## Run the new migrations
@@ -132,12 +125,12 @@ clear: ## Clear Laravel's caches (config, routes, views, events): when a change 
 psql: ## SQL console on the development database
 	$(DC) exec postgres psql -U atleoplan
 
-test-db: ## Create the tests' database atleoplan_test if missing (a Postgres volume from before its init script)
+test-db: ## Create the test database atleoplan_test if missing
 	@$(DC) exec -T postgres psql -U atleoplan -tAc "select 1 from pg_database where datname = 'atleoplan_test'" | grep -q 1 \
 		&& echo "✔ atleoplan_test already exists" \
 		|| $(DC) exec -T postgres psql -U atleoplan -c "CREATE DATABASE atleoplan_test OWNER atleoplan;"
 
-db-dump: ## Save the development database to backups/atleoplan-<date>.sql (before make fresh, say)
+db-dump: ## Save the development database to backups/atleoplan-<date>.sql (e.g. before make fresh)
 	@mkdir -p backups
 	$(DC) exec -T postgres pg_dump -U atleoplan --clean --if-exists atleoplan > backups/atleoplan-$$(date +%Y%m%d-%H%M%S).sql
 	@ls -t backups/*.sql | head -1
@@ -148,15 +141,12 @@ db-restore: ## Replace the development database with a dump: make db-restore f=b
 	@echo "✔ Restored $(f)"
 
 # The public exercise library. The dataset is cloned once into
-# backend/storage/app/, which Git ignores. Options of the command go in o="…":
-# make exercises-import o="--limit=5". The translation runs last; a language an
-# exercise already has is kept, so running it again never undoes a correction
-# made by hand.
+# backend/storage/app/, which Git ignores. The translation runs last and keeps
+# the languages an exercise already has, so it never undoes a manual correction.
 FREE_EXERCISE_DB := backend/storage/app/free-exercise-db
 
-# The seeders upsert, so setup and exercises-import run this every time, and a
-# database emptied without --seed is covered too.
-reference-data: ## Muscles and equipment, the lists the library points to; safe to run again (setup and exercises-import do it)
+# The seeders upsert, so setup and exercises-import run this every time.
+reference-data: ## Muscles and equipment, the lists the library points to; safe to run again
 	$(ARTISAN) db:seed --class=MuscleSeeder
 	$(ARTISAN) db:seed --class=EquipmentSeeder
 
@@ -168,23 +158,19 @@ exercises-import: ## Fill the public exercise library from free-exercise-db (dow
 	$(ARTISAN) exercises:import-extra
 	$(ARTISAN) exercises:translate
 
-# The project's own exercises, those free-exercise-db lacks (calisthenics).
-# exercises-import does this too; alone, it adds them to a library imported
-# before they existed.
+# The project's own exercises, those free-exercise-db lacks. Included in
+# exercises-import.
 exercises-extra: ## Add the extra exercises (calisthenics) to the library, then translate them; safe to run again
 	$(MAKE) --no-print-directory reference-data
 	$(ARTISAN) exercises:import-extra
 	$(ARTISAN) exercises:translate
 
-# The logging types the import guessed wrong. exercises-import does this too;
-# alone, it puts right a library imported before the list existed. Only
-# exercises still on the guess and not yet in a plan or a workout change.
+# Included in exercises-import. Only exercises still on the guess and not yet
+# in a plan or a workout change.
 exercises-correct: ## Correct the logging types the import guessed wrong (Plank as time); safe to run again
 	$(ARTISAN) exercises:correct-logging-types
 
-# For photos added before the conversions existed; running it again only does
-# what is left.
-exercises-thumbnails: ## Make the missing small and large copies of the exercises' photos (a library imported before them)
+exercises-thumbnails: ## Make the missing small and large copies of the exercises' photos; safe to run again
 	$(ARTISAN_NOW) media-library:regenerate --only-missing
 
 exercises-translate: ## Translate the imported exercises into it, es, de; options in o="…": make exercises-translate o="--locale=it --force"
@@ -199,8 +185,7 @@ plans-demo: ## Give every user with no plans two example plans (after exercises-
 dev: ## Start the React dev server (http://localhost:5673)
 	$(NPM) run dev
 
-# The adb on the PATH, or the copy unzipped into the home folder. Git Bash finds
-# adb.exe without the .exe
+# The adb on the PATH, or the copy unzipped into the home folder
 ADB := $(shell command -v adb 2>/dev/null || echo "$(HOME)/platform-tools/adb")
 
 phone: ## Android phone on USB: its own localhost:5673 opens this computer's dev app
@@ -233,7 +218,7 @@ lint-fix: ## ESLint with automatic fixes
 typecheck: ## TypeScript check of the frontend
 	$(NPM) run typecheck
 
-fe-test: ## Frontend tests (Vitest); while coding, npm --prefix frontend run test:watch reruns them on save
+fe-test: ## Frontend tests (Vitest); npm --prefix frontend run test:watch reruns them on save
 	$(NPM) test
 
 fix: pint lint-fix ## Fix what can be fixed automatically: PHP format and ESLint
@@ -242,8 +227,6 @@ check: pint-check test lint typecheck fe-test toc-check ## Everything before a m
 
 # --- Docs ---------------------------------------------------------------------
 
-# The "Contents" list at the top of each doc is generated from its headings
-# (scripts/docs-toc.mjs).
 toc: ## Rebuild the contents list at the top of every doc, after changing a heading
 	node scripts/docs-toc.mjs
 
@@ -251,14 +234,12 @@ toc-check: ## Fail if a doc's contents list is out of date (part of make check)
 	node scripts/docs-toc.mjs --check
 
 # "-": the second audit runs even when the first finds something. npm's leaves
-# out the advisories reviewed in frontend/package.json (auditIgnore), as the
-# Audit workflow does.
+# out the advisories reviewed in frontend/package.json (auditIgnore).
 audit: ## Known vulnerabilities in the Composer and npm packages (report only, changes nothing)
 	-$(DC) exec backend composer audit
 	-node scripts/npm-audit.mjs
 
-# Read-only, through gh.
-github-check: ## The repository's settings on GitHub and its last runs, against the ones decided (needs gh)
+github-check: ## The repository's settings on GitHub and its last runs, against the ones decided (read-only, needs gh)
 	node scripts/github-check.mjs
 
 # --- Git ----------------------------------------------------------------------

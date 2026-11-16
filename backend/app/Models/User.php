@@ -54,9 +54,6 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
         ];
     }
 
-    /**
-     * Admins whose account is not disabled.
-     */
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_admin && $this->disabled_at === null;

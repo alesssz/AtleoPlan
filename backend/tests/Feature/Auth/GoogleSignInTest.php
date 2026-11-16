@@ -189,7 +189,6 @@ describe('back from Google', function () {
         $this->get('/auth/google/callback')->assertRedirect(frontend('/login?error=disabled'));
 
         $this->assertGuest();
-        // Nothing new was linked to it
         expect($user->socialAccounts()->count())->toBe($linked ? 1 : 0);
     })->with(['linked' => true, 'by its address' => false]);
 
@@ -298,12 +297,10 @@ describe('an account without a password', function () {
     });
 
     it('goes with its user', function () {
-        // A Google account linked to a user the factory makes
         $account = SocialAccount::factory()->create();
 
         $account->user->delete();
 
-        // cascadeOnDelete() in the migration
         expect(SocialAccount::count())->toBe(0);
     });
 });

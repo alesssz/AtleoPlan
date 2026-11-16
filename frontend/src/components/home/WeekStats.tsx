@@ -1,12 +1,7 @@
 /*
- * Three numbers of the current week on Home, under the week strip: workouts
- * done, sets logged (warm-ups excluded) and minutes trained. Home works them
- * out from the recent workouts (week-summary.ts).
- *
- * Minutes, not volume (weight × reps): a week's volume adds up unlike
- * exercises and counts nothing done with the body alone
- * (src/components/history/compare.ts). Minutes, not "2 h 35 min": a
- * single number fits a third of a phone's width.
+ * The current week's numbers on Home. Minutes, not volume: volume adds up
+ * unlike exercises and counts nothing done with the body alone. Minutes, not
+ * "2 h 35 min": a single number fits a third of a phone's width.
  */
 import { useTranslation } from 'react-i18next'
 import { formatNumber } from '@/lib/format'

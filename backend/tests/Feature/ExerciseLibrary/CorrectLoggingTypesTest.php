@@ -43,23 +43,18 @@ function loggingTypeCorrections(): array
  */
 function guessedExercise(string $externalId, LoggingType $type): Exercise
 {
-    // Factories bypass mass-assignment protection
     return Exercise::factory()->create(['external_id' => $externalId, 'logging_type' => $type]);
 }
 
-// Scenario: Plank as the import leaves it, on reps, used by nobody
 it('corrects an exercise still on the guess', function () {
-    // Plank, still on the guess
     $plank = guessedExercise('Plank', LoggingType::Reps);
 
-    // What the action says it did
     $outcome = app(CorrectLoggingType::class)->correct('Plank', LoggingType::Reps, LoggingType::Time);
 
     expect($outcome)->toBe(CorrectionOutcome::Corrected)
         ->and($plank->fresh()->logging_type)->toBe(LoggingType::Time);
 });
 
-// Scenario: a second run, after the first one corrected Plank
 it('changes nothing on a second run', function () {
     guessedExercise('Plank', LoggingType::Time);
 
@@ -67,7 +62,6 @@ it('changes nothing on a second run', function () {
         ->toBe(CorrectionOutcome::AlreadyRight);
 });
 
-// Scenario: an admin set a type of their own in the admin panel
 it('keeps a type an admin chose', function () {
     // Plank on neither the guess (reps) nor the correction (time)
     $plank = guessedExercise('Plank', LoggingType::Distance);
@@ -77,13 +71,8 @@ it('keeps a type an admin chose', function () {
         ->and($plank->fresh()->logging_type)->toBe(LoggingType::Distance);
 });
 
-// Scenario: Plank on the guess, but someone already has it in a plan, or
-// did it in a workout
 it('leaves alone an exercise already in a plan or a workout', function (string $usedBy) {
-    // Plank, still on the guess
     $plank = guessedExercise('Plank', LoggingType::Reps);
-    // A plan item or an exercise of a workout pointing to it; the factory
-    // makes the plan or the workout it belongs to
     $usedBy === 'plan'
         ? PlanItem::factory()->create(['exercise_id' => $plank->id])
         : SessionExercise::factory()->create(['exercise_id' => $plank->id]);
@@ -93,9 +82,7 @@ it('leaves alone an exercise already in a plan or a workout', function (string $
         ->and($plank->fresh()->logging_type)->toBe(LoggingType::Reps);
 })->with(['plan', 'workout']);
 
-// Scenario: an admin deleted Plank (a soft delete)
 it('does not bring back an exercise deleted by an admin', function () {
-    // Plank, on the guess, then deleted: the row stays, with deleted_at set
     $plank = guessedExercise('Plank', LoggingType::Reps);
     $plank->delete();
 
@@ -104,15 +91,11 @@ it('does not bring back an exercise deleted by an admin', function () {
         ->and(Exercise::withTrashed()->find($plank->id)->logging_type)->toBe(LoggingType::Reps);
 });
 
-// Scenario: a library just imported, every exercise of the file on its
-// guess; the real command, run twice
 it('corrects every exercise of the file from the command', function () {
-    // The file's entries, each made as the import leaves it
     $rows = loggingTypeCorrections();
     foreach ($rows as $row) {
         guessedExercise($row['id'], LoggingType::from($row['from']));
     }
-    // How many there are, for the summary's lines
     $count = count($rows);
 
     $this->artisan('exercises:correct-logging-types')
@@ -129,7 +112,6 @@ it('corrects every exercise of the file from the command', function () {
 // Scenario: Plank already in a plan; the command must say which exercise
 // it kept, so the person running it can decide what to do
 it('names the exercises it kept because they are in use', function () {
-    // Plank on the guess, in a plan
     $plank = guessedExercise('Plank', LoggingType::Reps);
     PlanItem::factory()->create(['exercise_id' => $plank->id]);
 
@@ -157,10 +139,8 @@ it('has a file whose "from" is what the import guesses', function () {
         'Battling_Ropes' => ['strength', 'other'],
     ];
 
-    // The file's entries
     $rows = loggingTypeCorrections();
 
-    // The same exercises in the file and here, in any order
     expect(array_column($rows, 'id'))->toEqualCanonicalizing(array_keys($source));
     foreach ($rows as $row) {
         [$category, $equipment] = $source[$row['id']];
@@ -170,7 +150,6 @@ it('has a file whose "from" is what the import guesses', function () {
     }
 });
 
-// Scenario: --path pointing to a file that does not exist
 it('fails, naming the file, when the file is missing', function () {
     $this->artisan('exercises:correct-logging-types', ['--path' => '/nowhere/corrections.json'])
         ->expectsOutputToContain('/nowhere/corrections.json does not exist')

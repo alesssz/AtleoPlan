@@ -1,25 +1,17 @@
-# Continuous integration: the checks of `make check`, run by GitHub on every
-# push, in two jobs side by side, each on a fresh Linux machine:
-#   frontend  the docs' contents lists, ESLint, TypeScript, Vitest, the build
-#   backend   Pint and the Pest tests, in the backend's own Docker image, with Postgres
-#
-# Runs on a push to any branch: main's ruleset requires both jobs to pass on a
-# branch's pull request before it can be merged (`make merge`).
+# The checks of `make check`, plus the production build, on every push.
+# main's ruleset requires both jobs by name: renaming one means updating it.
 name: CI
 
 on:
   push:
     branches: ['**']
-  # Run by hand from the Actions tab, on any branch.
   workflow_dispatch:
 
-# Read-only token: the jobs only check out the code and run checks. A job
-# that tried to push, comment or open a pull request would be refused.
 permissions:
   contents: read
 
-# On a branch, a new push cancels the run still going: only the latest commit
-# matters. On main every merge keeps its run, so no commit goes unchecked.
+# A new push cancels the branch's running check, except on main, where every
+# merge keeps its run
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -28,9 +20,7 @@ jobs:
   frontend:
     name: Frontend and docs
     runs-on: ubuntu-latest
-    # A stuck run stops here instead of at GitHub's six hours
     timeout-minutes: 15
-    # Every `run:` below starts in frontend/, unless it says otherwise
     defaults:
       run:
         working-directory: frontend
@@ -38,17 +28,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # Node at .nvmrc's version, the packages exactly as the lockfile says
-      # (npm ci: a lockfile out of step with package.json fails here)
       - uses: ./.github/actions/setup
-      # Each doc's "Contents" list matches its headings (make toc-check)
       - run: node scripts/docs-toc.mjs --check
         working-directory: .
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      # The production build: an import that resolves in Vitest but not in
-      # Vite's build, or a type error only the build sees, fails here
+      # Catches imports that resolve in Vitest but not in Vite's build
       - run: npm run build
 
   backend:
@@ -59,26 +45,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # The settings file the app reads. The repository has only its
-      # example; the tests' own values come from phpunit.xml, which forces
-      # the test database, the in-memory mail and the jobs run at once
+      # The tests' values come from phpunit.xml, which forces the test database
       - run: cp backend/.env.example backend/.env
-      # The image of development (Dockerfile, target dev): the same PHP, the
-      # same extensions as on the computer. Built from scratch, a few minutes
+      # The development image: the same PHP and extensions as locally
       - run: docker compose build backend
-      # Postgres alone, waiting for its health check. Its first start runs
-      # docker/postgres/init, which creates the tests' database atleoplan_test
+      # Its first start creates atleoplan_test (docker/postgres/init)
       - run: docker compose up -d --wait postgres
-      # The Composer packages, from composer.lock. `run --rm`: a container
-      # for the command only, as `make setup` does with the stack stopped
       - run: docker compose run --rm backend composer install --no-interaction --no-progress
-      # The app key, written into backend/.env: encryption and sessions need one
       - run: docker compose run --rm backend php artisan key:generate
-      # The PHP code's format, without changing it (make pint-check)
       - run: docker compose run --rm backend vendor/bin/pint --test
-      # The tests, on atleoplan_test (make test)
       - run: docker compose run --rm backend php artisan test
-      # On failure, the containers' logs in the run's page (Postgres's
-      # above all); `always()` would print them on success too, for nothing
       - if: failure()
         run: docker compose logs --no-color

@@ -1,12 +1,8 @@
 /*
- * Finish with its confirmation, which counts the sets done and, when finishing
- * early, warns that the unticked ones will not be saved. Used at the top and
- * bottom of workout mode and in ResumeBanner; what finishing does is in
- * finish-workout.ts.
- *
- * The same dialog offers Delete workout, after a second question: finishing
- * and deleting both end the workout, so they share one door and the top bar
- * gets no extra button.
+ * Finish with its confirmation, at both ends of workout mode and in
+ * ResumeBanner. The same dialog offers Delete workout behind a second
+ * question: both end the workout, so they share one door and the top bar gets
+ * no extra button.
  */
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -31,38 +27,22 @@ interface FinishButtonProps {
   count: SetCount
   /** The button's text: "Finish" at the top, "Finish workout" at the bottom. */
   label: string
-  /** The button's look: lime (default) or outlined. */
   variant?: 'default' | 'outline'
-  /** Extra classes for the button: its padding or width. */
   className?: string
-  /** True while finishing. */
   disabled: boolean
-  /** Called when the user confirms. */
   onFinish: () => void
   /** Called when the user confirms deleting the workout instead; missing, the dialog offers no Delete. */
   onDiscard?: () => void
 }
 
-/**
- * Finish, with a confirmation: finishing cannot be undone from here. The
- * question says how many sets were done, and, when finishing early, that
- * the sets not ticked will not be saved. Below it, Delete workout, asked
- * again before anything is thrown away.
- */
 export function FinishButton({ count, label, variant = 'default', className, disabled, onFinish, onDiscard }: FinishButtonProps) {
   const { t } = useTranslation()
   // The sets not ticked, warm-ups excluded
   const left = count.total - count.done
   // Controlled, so closing it also brings back the first question
   const [open, setOpen] = useState(false)
-  // Which question the dialog asks: finish, or delete
   const [view, setView] = useState<'finish' | 'discard'>('finish')
 
-  /**
-   * Opens or closes the dialog; closed, it goes back to the first question,
-   * so the next time it opens on Finish again.
-   * @param next true to open
-   */
   function change(next: boolean) {
     setOpen(next)
     if (!next) setView('finish')
@@ -85,14 +65,12 @@ export function FinishButton({ count, label, variant = 'default', className, dis
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 {/* With Delete offered, a column on every screen: three
-                    buttons did not fit the dialog's 384 px in Spanish or
+                    buttons do not fit the dialog's 384 px in Spanish or
                     German */}
                 <AlertDialogFooter className={cn(onDiscard && 'sm:flex-col-reverse')}>
-                  {/* Inside the footer: after it, it hung below the card.
-                      First in the code, so the reversed column shows it
-                      last, away from where the thumb goes to finish. A
-                      Button, not an Action: it turns the dialog into the
-                      second question rather than closing it */}
+                  {/* First in the code, so the reversed column shows it last,
+                      away from the thumb. A Button, not an Action: it switches
+                      to the second question instead of closing */}
                   {onDiscard && (
                     <Button variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setView('discard')}>
                       <Trash2 aria-hidden="true" />
@@ -106,13 +84,12 @@ export function FinishButton({ count, label, variant = 'default', className, dis
             )
           : (
               <>
-                {/* The second question: nothing at all will be kept */}
+                {/* The second question: nothing will be kept */}
                 <AlertDialogHeader>
                   <AlertDialogTitle>{t('workout.discardTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>{t('workout.discardText')}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  {/* Back to the first question, the dialog still open */}
                   <Button variant="outline" onClick={() => setView('finish')}>{t('workout.noteBack')}</Button>
                   <AlertDialogAction variant="destructive" onClick={onDiscard}>{t('workout.discardConfirm')}</AlertDialogAction>
                 </AlertDialogFooter>

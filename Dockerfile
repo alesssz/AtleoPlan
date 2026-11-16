@@ -1,12 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # The Laravel backend's image: the API, the admin panel and the queue worker.
-# FrankenPHP serves HTTP and runs PHP in one container.
-#
-# Targets:
-# - `dev`  used by compose.yaml; the code is mounted from ./backend, not copied.
-# - `prod` comes with the deployment, and will also build the React app into the
-#   image.
+# FrankenPHP serves HTTP and runs PHP in one container. The `dev` target is
+# the one compose.yaml uses: the code is mounted from ./backend, not copied.
 
 ARG FRANKENPHP_VERSION=1
 ARG PHP_VERSION=8.4
@@ -39,7 +35,7 @@ RUN cp "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
 COPY docker/php/dev.ini "$PHP_INI_DIR/conf.d/zz-atleoplan.ini"
 
 # vendor/ lives in a volume, not in the folder shared with the computer: reading
-# it through that folder cost over a second per request after a pause.
+# it through that folder costs over a second per request after a pause.
 # sync-vendor copies it to the computer for the editor; rsync is only needed
 # here, not in `base`.
 RUN apt-get update \

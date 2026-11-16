@@ -31,8 +31,8 @@ return new class extends Migration
             $table->string('plan_name')->nullable();
             $table->string('day_name')->nullable();
 
-            // Null while in progress: what Home's banner looks for
             $table->timestampTz('started_at');
+            // Null while in progress: what Home's banner looks for
             $table->timestampTz('finished_at')->nullable();
 
             // Counted by the device: a session left open overnight would

@@ -43,8 +43,8 @@ use App\Models\PlanSet;
  * - **Each exercise described in full** (no photos): the import uses an
  *   exercise already there when it finds one, and creates one from this
  *   description when it does not. `external_id` is there for a public exercise
- *   only, the id of free-exercise-db or `AtleoPlan_…`,
- * the same on every server.
+ *   only, the id of free-exercise-db or `AtleoPlan_…`, the same on every
+ *   server.
  * - **Texts in the request's language,** the app's (Accept-Language): the
  *   name, description and instructions, as the user reads them.
  * - **`format` and `version`** let a later version of the app read an older

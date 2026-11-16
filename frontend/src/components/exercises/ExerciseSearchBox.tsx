@@ -1,13 +1,7 @@
 /*
- * The search box of the exercise library, shared by the Exercises page
- * (through ExerciseFilters) and the plan editor's picker (ExercisePicker):
- * a magnifying glass on the left, the text, and on the right a spinner
- * while the list is being read again.
- *
- * Why the spinner: the list waits 300 ms after the last key before asking the
- * server, then keeps the old rows on screen until the new ones arrive
- * (keepPreviousData, src/api/exercises.ts). Without a sign, those moments look
- * like a frozen screen, and the new list seems to jump in from nowhere.
+ * The library's search box, shared by the Exercises page and the plan
+ * editor's picker. The spinner covers the debounce and the fetch, while the
+ * old rows stay on screen: without it the list looks frozen.
  */
 import { Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -16,9 +10,7 @@ import { Spinner } from '@/components/ui/spinner'
 
 interface ExerciseSearchBoxProps {
   value: string
-  /**
-   * Called at every key, with the new text.
-   */
+  /** At every key: the caller debounces. */
   onChange: (value: string) => void
   searching: boolean
 }

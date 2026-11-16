@@ -1,8 +1,4 @@
-/*
- * One past workout in a list (history, and the latest on Progress): its date,
- * the day done or "Free workout", the plan, and the time, sets and reps. The
- * whole row is a link to the workout's page.
- */
+/* One past workout in a list (history, and the latest on Progress). */
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'

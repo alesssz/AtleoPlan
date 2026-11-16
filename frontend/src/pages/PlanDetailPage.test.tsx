@@ -1,8 +1,3 @@
-/*
- * One plan's page: what it shows of each day, the day tabs kept in the address,
- * the actions (set as active, archive, restore, delete), and a plan that is not
- * there.
- */
 import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -236,9 +231,7 @@ describe('PlanDetailPage', () => {
   })
 })
 
-/**
- * Draws the test plan's page, the plan and the user answered by the fake API.
- */
+/** Draws the test plan's page, the plan and the user answered by the fake API. */
 function renderPlan(path = '/plans/plan-ppl') {
   fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })
   return renderRoutes(routes, path)

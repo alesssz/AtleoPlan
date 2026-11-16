@@ -1,7 +1,3 @@
-/*
- * One exercise's page: what it shows, the owner's actions, deleting with a
- * confirmation, and an exercise that is not there.
- */
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -9,7 +5,6 @@ import { fakeApi, renderRoutes } from '@/test/auth-helpers'
 import { testExercise } from '@/test/exercise-helpers'
 import { ExerciseDetailPage } from './ExerciseDetailPage'
 
-/** The page, and plain stand-ins for where its links go. */
 const routes = [
   { path: 'exercises', element: <p>the list</p> },
   { path: 'exercises/:id', element: <ExerciseDetailPage /> },
@@ -22,16 +17,13 @@ describe('ExerciseDetailPage', () => {
     renderRoutes(routes, '/exercises/12')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Barbell Bench Press' })).toBeInTheDocument()
-    // The photos, each with its text alternative, from their large copy (url)
+    // The large copy (url), not the thumbnail
     expect(screen.getByRole('img', { name: 'Barbell Bench Press, photo 1' })).toHaveAttribute('src', '/storage/1/conversions/0-large.webp')
     expect(screen.getByRole('img', { name: 'Barbell Bench Press, photo 2' })).toBeInTheDocument()
-    // The facts: each term is followed by its value
     expect(screen.getByText('Equipment').nextElementSibling).toHaveTextContent('Barbell')
     expect(screen.getByText('Logged as').nextElementSibling).toHaveTextContent('Weight × reps')
     expect(screen.getByText('Main muscles').nextElementSibling).toHaveTextContent('Chest')
     expect(screen.getByText('Secondary muscles').nextElementSibling).toHaveTextContent('Triceps')
-    // The steps, in order. A <section> named by its heading
-    // (aria-labelledby) is a "region"
     const steps = within(screen.getByRole('region', { name: 'How to do it' })).getAllByRole('listitem')
     expect(steps.map(step => step.textContent)).toEqual(['Lie on the bench.', 'Lower the bar to the chest.'])
     // A public exercise: no owner's actions

@@ -1,12 +1,6 @@
 /*
- * One day's exercises in the plan editor, under its tab in the second step
- * (EditorDays): the exercises in an order changed by dragging, the choice of
- * exercises to join in a superset, and the button that adds exercises from the
- * library. The day's name and the number of days are set in the first step
- * (EditorOverview).
- *
- * dnd-kit works with a mouse, a finger and the keyboard; a drop sends one
- * moveItem action.
+ * One day's exercises in the plan editor: reordered by dragging (pointer or
+ * keyboard), joined into supersets, added from the library.
  */
 import {
   closestCenter,
@@ -62,16 +56,11 @@ export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, showRp
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  /**
-   * The name of an exercise by its id, for what screen readers announce.
-   */
   function nameOf(id: string | number): string {
     return day.items.find(item => item.id === id)?.exercise.name ?? ''
   }
 
-  /**
-   * The place of an exercise, from 1, for the announcements.
-   */
+  /** From 1, for the announcements. */
   function positionOf(id: string | number): number {
     return day.items.findIndex(item => item.id === id) + 1
   }
@@ -84,10 +73,6 @@ export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, showRp
     onDragCancel: ({ active }) => t('plans.editor.dnd.cancelled', { name: nameOf(active.id) }),
   }
 
-  /**
-   * A drag has ended: moves the exercise to where it was dropped.
-   * @param event dnd-kit's event: `active` was dragged, `over` is where it ended
-   */
   function onDragEnd({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return
     const from = day.items.findIndex(item => item.id === active.id)
@@ -95,13 +80,11 @@ export function EditorDay({ day, dayIndex, days, dispatch, errorOf, unit, showRp
     dispatch({ type: 'moveItem', day: dayIndex, from, to })
   }
 
-  /** Ends the choice of exercises for a superset, ticking none. */
   function stopSelecting() {
     setSelecting(false)
     setChosen([])
   }
 
-  /** Joins the chosen exercises in a superset, and ends the choice. */
   function join() {
     const indexes = chosen.map(id => day.items.findIndex(item => item.id === id))
     dispatch({ type: 'joinSuperset', day: dayIndex, items: indexes })

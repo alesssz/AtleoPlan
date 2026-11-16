@@ -2,9 +2,9 @@
 
 /**
  * Tests must never run on the development database. compose.yaml gives the
- * containers its settings, and phpunit.xml overrides them with force="true"; if
- * that override is ever lost, this fails before another test's RefreshDatabase
- * empties the development data.
+ * containers its settings, and phpunit.xml overrides them with <server>
+ * entries; if that override is ever lost, this fails before another test's
+ * RefreshDatabase empties the development data.
  */
 
 use Illuminate\Support\Facades\DB;

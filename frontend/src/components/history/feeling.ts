@@ -1,7 +1,6 @@
 /*
- * The summary's "How did it feel?": the five values and their words, also used
- * by history. Apart from FeelingPicker.tsx, which may then export only
- * components (Fast Refresh).
+ * The five feelings and their words, for the summary and history. Kept out of
+ * FeelingPicker.tsx so that file exports only components (Fast Refresh).
  */
 import type { TFunction } from 'i18next'
 

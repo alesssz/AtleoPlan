@@ -1,8 +1,4 @@
-/*
- * The user's plans, the active one first; the archived ones in a view of their
- * own (`?archived=1`), kept in the address so Back from a plan returns to it.
- * New plan and Import plan sit beside the title.
- */
+// The archived view is in the address (`?archived=1`), so Back from a plan returns to it
 import { Archive, ClipboardList, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
@@ -87,7 +83,6 @@ export function PlansPage() {
           archived
             ? <EmptyState icon={Archive} title={t('plans.noArchivedTitle')} description={t('plans.noArchivedText')} />
             : (
-                // Before the first plan
                 <EmptyState
                   icon={ClipboardList}
                   title={t('plans.emptyTitle')}

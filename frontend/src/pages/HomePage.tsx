@@ -1,9 +1,6 @@
 /*
- * Home: what to do today, from one request (GET /api/home): the active plan's
- * card with the suggested day, a workout left in progress, Free workout, and
- * this week. After a summary, the outcome of the workout (saved, waiting for
- * the network, deleted) arrives through the navigation's state. Starting goes
- * through useStartWorkout, shared with the plan's page.
+ * Home, from one request (GET /api/home). After a summary, the workout's
+ * outcome (saved, queued, refused, deleted) arrives in the navigation state.
  */
 import { ClipboardList, Dumbbell, Plus, Zap } from 'lucide-react'
 import { useState } from 'react'

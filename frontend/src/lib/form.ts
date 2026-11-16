@@ -8,6 +8,7 @@ import type { FieldValues, Path, UseFormSetError } from 'react-hook-form'
 import { ApiError } from './http'
 
 const TOO_MANY_REQUESTS_STATUS = 429
+
 export function showRequestError<T extends FieldValues>(
   error: unknown,
   setError: UseFormSetError<T>,
@@ -18,7 +19,6 @@ export function showRequestError<T extends FieldValues>(
   let shown = false
 
   for (const [field, messages] of fieldErrors) {
-    // The first of a field's messages is enough
     if (fields.includes(field as Path<T>)) {
       setError(field as Path<T>, { message: messages[0] })
     }

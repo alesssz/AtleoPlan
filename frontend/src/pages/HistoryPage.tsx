@@ -1,12 +1,6 @@
 /*
- * History (route `/progress/history`): every finished workout, newest first,
- * grouped by month ("November 2026"), 20 at a time with **Show more**. Each row
- * opens the workout's page.
- *
- * Under Progress in the address, so the Progress tab stays lit: NavLink marks a
- * tab active for every address that starts with its own.
- *
- * Paged like the exercise library.
+ * History (`/progress/history`): finished workouts by month, newest first.
+ * Under /progress so the Progress tab stays active.
  */
 import { ArrowLeft, History } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -24,17 +18,15 @@ interface MonthGroup {
 }
 
 /**
- * Groups workouts, already newest first, by the month they started in, by
- * the device's clock.
- * @param sessions the workouts, newest first
- * @param language the interface's language, for the months' names
+ * Groups workouts by the month they started in, by the device's clock.
+ * @param sessions newest first
  */
 function byMonth(sessions: WorkoutSession[], language: string): MonthGroup[] {
   const format = new Intl.DateTimeFormat(language, { month: 'long', year: 'numeric' })
   const groups: MonthGroup[] = []
   for (const session of sessions) {
     const title = format.format(new Date(session.started_at))
-    // Sorted, so a new month starts a new group
+    // Sorted, so a new month always starts a new group
     const last = groups.at(-1)
     if (last?.title === title) last.sessions.push(session)
     else groups.push({ title, sessions: [session] })

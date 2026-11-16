@@ -1,12 +1,8 @@
 /*
- * The library's select mode in a window: tick exercises, "Add (n)" puts them
- * in the day in the order ticked. With `replacing` (workout mode's Swap) it
- * becomes a one-tap choice, filtered by the replaced exercise's main muscle.
- *
- * It shares the Exercises page's query and search box, so the two share the
- * cache. After a search, **Create «…»** opens the exercise editor's form in
- * the window, so an exercise missing from the library is created without
- * leaving the plan.
+ * The exercise library in a dialog: tick exercises to add them in the order
+ * ticked or, with `replacing` (workout mode's Swap), pick one with a tap. It
+ * uses the Exercises page's query, so the two share the cache, and can create
+ * a missing exercise without leaving the plan.
  */
 import { ArrowLeft, Dumbbell, Plus, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -44,7 +40,6 @@ interface ExercisePickerProps {
 
 export function ExercisePicker({ trigger, open: openProp, onOpenChange, disabled = false, replacing, onAdd }: ExercisePickerProps) {
   const { t } = useTranslation()
-  // The caller's `open` when given
   const [ownOpen, setOwnOpen] = useState(false)
   const open = openProp ?? ownOpen
   // Here, not in PickerBody, because the window's title changes too
@@ -120,10 +115,6 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
   // The one being swapped left out
   const exercises = (list.data?.pages.flatMap(page => page.data) ?? []).filter(exercise => exercise.id !== replacing?.id)
 
-  /**
-   * Ticks or unticks an exercise.
-   * @param tick true to tick
-   */
   function toggle(exercise: Exercise, tick: boolean) {
     setChosen(current => (tick ? [...current, exercise] : current.filter(other => other.id !== exercise.id)))
   }

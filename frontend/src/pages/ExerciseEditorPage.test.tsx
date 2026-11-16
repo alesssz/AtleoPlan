@@ -1,7 +1,3 @@
-/*
- * The exercise editor: creating, changing, the form's own messages, the
- * server's messages, and an exercise that is not the user's.
- */
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -9,7 +5,6 @@ import { fakeApi, renderRoutes, sentBody } from '@/test/auth-helpers'
 import { fixedLists, testExercise } from '@/test/exercise-helpers'
 import { ExerciseEditorPage } from './ExerciseEditorPage'
 
-/** The editor's two routes, and a stand-in for the exercise's page. */
 const routes = [
   { path: 'exercises', element: <p>the list</p> },
   { path: 'exercises/new', element: <ExerciseEditorPage /> },
@@ -95,7 +90,6 @@ describe('ExerciseEditorPage', () => {
     })
     const { router } = renderRoutes(routes, '/exercises/13/edit')
 
-    // The form, filled in once the exercise has arrived
     const name = await screen.findByLabelText('Name')
     expect(name).toHaveValue('Panca mia')
     expect(screen.getByLabelText('Instructions')).toHaveValue('Lie on the bench.\nLower the bar to the chest.')

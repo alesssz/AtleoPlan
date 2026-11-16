@@ -1,31 +1,20 @@
 <!doctype html>
-<!--
-  The SPA's only page. Vite serves it in development and builds it, with the
-  final script and style paths, into dist/.
--->
-<!-- class="dark": the dark theme from the very first paint, the default;
-    the script below corrects it at once -->
+<!-- Dark is the default theme; the script below corrects it before the first paint -->
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- viewport-fit=cover: the app may draw under the iPhone's notch and
-         home bar, and keeps its controls clear of them with
-         env(safe-area-inset-*) -->
+    <!-- viewport-fit=cover: the app draws under the notch and home bar and
+         keeps its controls clear with env(safe-area-inset-*) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="AtleoPlan: workout plans, sets and progress." />
-    <!-- Colour of the phone's status bar: the dark theme's background
-         (changed with the theme by src/theme/theme.ts) -->
+    <!-- The dark theme's background; src/theme/theme.ts updates it with the theme -->
     <meta name="theme-color" content="#0B0B0F" />
     <title>AtleoPlan</title>
     <!--
-      Applies the saved theme before anything is drawn. React loads a moment
-      later; without this, a light-theme user would see a dark flash on every
-      start. Must match src/theme/theme.ts (same storage key and values).
-      Plain, old-style JavaScript (var, no types), run as is by the browser:
-      read the saved choice ('dark' when none), work out whether that means
-      dark, and put or remove the `dark` class on <html>. try/catch: if
-      localStorage is blocked, nothing happens and the default stays.
+      Applies the saved theme before React loads, so a light-theme user sees
+      no dark flash. Must match src/theme/theme.ts (storage key and values).
+      Blocked localStorage keeps the default.
     -->
     <script>
       try {
@@ -37,10 +26,7 @@
     </script>
   </head>
   <body>
-    <!-- React draws the whole app in here (src/main.tsx) -->
     <div id="root"></div>
-    <!-- The app's entry point. type="module" lets it use `import`; Vite
-         turns the .tsx into JavaScript before the browser gets it -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

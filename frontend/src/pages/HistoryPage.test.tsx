@@ -1,8 +1,3 @@
-/*
- * History and a workout's page in it, and Progress with the latest workouts:
- * the list by month with Show more, a workout's sets and its comparison,
- * Delete, a workout that is not there, and the empty states.
- */
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -13,7 +8,6 @@ import { HistoryDetailPage } from './HistoryDetailPage'
 import { HistoryPage } from './HistoryPage'
 import { ProgressPage } from './ProgressPage'
 
-/** The three pages, and a stand-in for Home. */
 const routes = [
   { path: 'progress', element: <ProgressPage /> },
   { path: 'progress/history', element: <HistoryPage /> },
@@ -21,10 +15,7 @@ const routes = [
   { path: '/', element: <p>home</p> },
 ]
 
-/**
- * One page of GET /api/sessions.
- * @param lastPage the number of the last page
- */
+/** One page of GET /api/sessions. */
 function sessionPage(sessions: WorkoutSession[], page = 1, lastPage = 1) {
   return { status: 200, body: { data: sessions, meta: { current_page: page, last_page: lastPage, total: sessions.length } } }
 }

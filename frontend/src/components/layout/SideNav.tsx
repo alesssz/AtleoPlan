@@ -31,7 +31,6 @@ export function SideNav() {
                   title={label}
                   className={({ isActive }) => cn(
                     'relative flex h-12 items-center justify-center gap-3 rounded-xl px-3 text-sm font-semibold transition-all lg:justify-start',
-                    // The active link gets a glowing bar on the left edge
                     isActive
                       ? 'bg-primary/12 text-primary before:absolute before:inset-y-2.5 before:-left-3 before:w-1 before:rounded-r-full before:bg-primary before:shadow-[0_0_12px_var(--primary)] lg:before:-left-4'
                       : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',

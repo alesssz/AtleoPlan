@@ -1,6 +1,3 @@
-/*
- * The app's routes. Each branch sits behind a guard (src/routes/).
- */
 import { createBrowserRouter } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AuthLayout } from '@/components/layout/AuthLayout'
@@ -27,8 +24,6 @@ import { RequireAuth } from '@/routes/RequireAuth'
 import { RequireGuest } from '@/routes/RequireGuest'
 
 export const router = createBrowserRouter([
-  // The shared plan /s/:token (phase 2), public for everyone, goes here.
-
   {
     // Visitors only, full screen, without the app's frame
     element: <RequireGuest />,
@@ -78,5 +73,4 @@ export const router = createBrowserRouter([
       { path: 'session/:id', element: <WorkoutPage /> },
     ],
   },
-
 ])

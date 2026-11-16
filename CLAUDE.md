@@ -1,51 +1,38 @@
 # AtleoPlan — notes for AI assistants
 
-A workout-plan app: Laravel 13 API (`backend/`) + React 19 / TypeScript / Vite PWA (`frontend/`), one repository. Start from [README.md](README.md); the docs in [`docs/`](docs), indexed in [docs/README.md](docs/README.md), are the reference and win over anything assumed here.
+A workout-plan app: Laravel 13 API (`backend/`) and React 19 / TypeScript / Vite PWA (`frontend/`), one repository. Start from [README.md](README.md); the docs in [`docs/`](docs), indexed in [docs/README.md](docs/README.md), are the reference and win over this file.
 
 | Need | Read |
 |---|---|
-| Setup, ports, every command, known problems | [docs/start/S1-setup.md](docs/start/S1-setup.md) |
-| How screens look and behave | [docs/design/D1-ui.md](docs/design/D1-ui.md) |
-| Why the stack, storage, hosting, offline rules are what they are | [docs/design/D2-decisions.md](docs/design/D2-decisions.md) |
-| Git, code style, comments, docs rules | [docs/project/P1-conventions.md](docs/project/P1-conventions.md) |
-| How the React app is built, recipes for pages, endpoints, translations | [docs/concepts/C1-frontend.md](docs/concepts/C1-frontend.md) |
-| How the Laravel app is built, recipes for tables, endpoints, jobs, admin screens | [docs/concepts/C2-backend.md](docs/concepts/C2-backend.md) |
-| Every table: columns, relations, ids, what happens on delete | [docs/design/D3-data-model.md](docs/design/D3-data-model.md) |
-| Building tables in practice: artisan commands, migrations, models, factories, seeders, tinker, errors | [docs/how-to/H1-database.md](docs/how-to/H1-database.md) |
-| Building endpoints, admin screens, jobs in practice: commands, files, tests, errors | [docs/how-to/H2-backend.md](docs/how-to/H2-backend.md) |
-| Building pages, data hooks, forms in practice: files, tests, translations, browser tools, errors | [docs/how-to/H3-frontend.md](docs/how-to/H3-frontend.md) |
-| Opening the database: connection details, TablePlus, alternatives | [docs/how-to/H4-database-tools.md](docs/how-to/H4-database-tools.md) |
-| What GitHub checks on every push (CI, audit, Dependabot), reading a failed run | [docs/how-to/H5-ci.md](docs/how-to/H5-ci.md) |
-| What to work on next | [docs/project/backlog.md](docs/project/backlog.md) |
+| Setup, ports, commands, known problems | [S1. Setup](docs/start/S1-setup.md) |
+| How screens look and behave | [D1. UI design](docs/design/D1-ui.md) |
+| Why the stack, storage, hosting and offline rules are what they are | [D2. Decisions](docs/design/D2-decisions.md) |
+| Every table: columns, relations, ids, what happens on delete | [D3. Data model](docs/design/D3-data-model.md) |
+| The React app's architecture | [C1. Frontend](docs/concepts/C1-frontend.md) |
+| The Laravel API's architecture | [C2. Backend](docs/concepts/C2-backend.md) |
+| Recipes: tables, endpoints and admin screens, pages, the database client, CI | [H1](docs/how-to/H1-database.md) · [H2](docs/how-to/H2-backend.md) · [H3](docs/how-to/H3-frontend.md) · [H4](docs/how-to/H4-database-tools.md) · [H5](docs/how-to/H5-ci.md) |
+| Git, code style, comments, docs, the public repository | [P1. Conventions](docs/project/P1-conventions.md) |
+| What to work on next | [Backlog](docs/project/backlog.md) |
 
 ## Running things
 
-- **The project is developed on a Mac and on a Windows PC.** On Windows, run commands from Git Bash, not the Command Prompt or PowerShell: the `Makefile` needs `bash`, `grep` and `cp` (docs/start/S1-setup.md S1.2).
-- **PHP and Composer are used only through Docker.** Never install PHP, Composer or Laravel Boost for this project, and do not use a copy already on the computer. Run backend commands from the repository root through the container:
-  `docker compose exec backend php artisan …`, `docker compose exec backend composer …` (`run --rm` instead of `exec` when the stack is stopped).
-- **The frontend runs directly on the computer**, Node 24 (`.nvmrc`): `npm …` inside `frontend/`, no Docker. Never `npm audit fix --force`, never `sudo npm`.
-- Host ports are standard + 500: Laravel 8500, Postgres 5932, Mailpit 8525, Vite 5673.
-- The `Makefile` wraps all of this (`make help`); `make check` runs every check (Pint, tests, lint, types) and must pass before a merge. GitHub runs the same checks, plus the build, on every push (`.github/workflows/ci.yml`), and a dependency audit weekly and when the lockfiles change (`audit.yml`, `make audit` locally): docs/how-to/H5-ci.md. Workflows use only GitHub's own actions (`actions/*`) and a read-only token; CodeQL's default setup reads the TypeScript and the workflows. `make github-check` compares the repository's settings on GitHub with the ones decided, through `gh` (read-only).
-- Tests: `make test` (`docker compose exec backend php artisan test`). They run on the `atleoplan_test` database; `tests/Feature/TestDatabaseTest.php` guards it. Never weaken the `<server>` / `<env force>` overrides in `backend/phpunit.xml`.
-- Style: `docker compose exec backend vendor/bin/pint`, `npm run lint` in `frontend/`.
-- `.env` files hold secrets: do not read or print them; new variables go in `.env.example` (or in `compose.yaml` when they are development settings).
+- **PHP and Composer only through Docker.** Never install PHP, Composer or Laravel Boost, and never use a copy already on the computer. Backend commands run from the repository root: `docker compose exec backend php artisan …`, `docker compose exec backend composer …` (`run --rm` instead of `exec` when the stack is stopped).
+- **The frontend runs on the host** with Node 24 (`.nvmrc`): `npm …` inside `frontend/`. Never `npm audit fix --force`, never `sudo npm`.
+- **On Windows,** commands run from Git Bash: the `Makefile` needs `bash`, `grep` and `cp`.
+- **Ports** are the standard ones + 500: Laravel 8500, Postgres 5932, Mailpit 8525, Vite 5673.
+- **`make help`** lists every command. `make check` runs every check (Pint, tests, ESLint, TypeScript, docs' contents lists) and must pass before a merge; CI runs the same, plus the build ([H5](docs/how-to/H5-ci.md)).
+- **Tests** (`make test`) run on the `atleoplan_test` database, guarded by `tests/Feature/TestDatabaseTest.php`. Never weaken the `<server>` / `<env force>` overrides in `backend/phpunit.xml`.
+- **`.env` files hold secrets:** never read or print them. A new variable goes in `.env.example`, or in `compose.yaml` when it is a development setting.
 
-## Working rules (summary of docs/project/P1-conventions.md)
+## Rules
 
-- Everything in the repository is in English: code, comments, docs, commit messages. Replies to the maintainer are in Italian.
-- **This is a professional project, written for developers.** Comments explain *why* (a decision, a constraint, a trap, an edge case), never what TypeScript, React, PHP or Laravel do; no tutorial-style explanations in code or docs (P1.2).
-- **How-to guides are recipes** (P1.3): a task that brings a new kind of work adds a short recipe to the guide for its area (commands in order, files, how to check, easy mistakes). C1 and C2 describe the architecture. The history of a task lives in its commits.
-- **A change updates the docs section it touches in the same commit.** Docs are grouped by purpose in `docs/start/` (S), `design/` (D), `concepts/` (C), `how-to/` (H), `project/` (P); a document's code is its letter plus a number (`H2`), and sections are cited as "see H2.3" between docs; code comments never cite the docs or the backlog (P1.2). Index: docs/README.md. Each doc opens with a generated "Contents" list: after changing a heading run `make toc` (`make check` fails otherwise).
-- Backlog: one entry per point, IDs never reused, the entry is deleted by the commit that finishes it.
-- **Two computers, one set of rules:** the project is worked on from a Windows PC and a Mac. A new working preference or rule goes into this file (or the conventions it points to) in the same branch, never into Claude's memory, which stays on one computer.
-- One branch per task from `main` (`feat/…`, `fix/…`, `docs/…`, `chore/…`), pushed with `make push` and merged with `make merge` (checks, a pull request that GitHub merges once CI passes, branch deleted); `main` accepts nothing else.
+A summary of [P1](docs/project/P1-conventions.md), which wins.
 
-## Git identity
-
-Commits use the personal GitHub noreply address set in this repository's `.git/config`; a computer's global identity, which may be another account, must never appear. The hook in `.githooks/` refuses any other email. Never add a `Co-Authored-By` trailer or any Claude attribution to commits or pull requests.
-
-**The repository is public** (docs/project/P1-conventions.md P1.5): nothing committed may hold a secret, a real person's data or a private detail of the user, in code, docs, fixtures or commit messages.
-
-**At the end of every task, give a ready-to-paste commit message** for the work done, following [P1.1](docs/project/P1-conventions.md#p11-git): English, Conventional Commits (`feat: …`, `fix: …`, `docs: …`, `chore: …`), a body when the why is not obvious, backlog IDs or doc sections when relevant, no attribution line. Give only the message's text, in a code block: no `git` or `make` commands, no heredoc. Then list briefly the commands that were run. Before handing over, check the comments, docs and READMEs the task touched against [P1.2](docs/project/P1-conventions.md#p12-code) and [P1.3](docs/project/P1-conventions.md#p13-documentation). **Never commit, push or merge yourself: the user does it by hand.** Leave the changes in the working tree and say which branch they are on.
-
-**At the start of every task, create its branch yourself**, before editing anything: `make branch name=<type>/<short-name>` (switches to `main`, pulls, creates the branch), with a type of [P1.1](docs/project/P1-conventions.md#p11-git) and a short English name, e.g. `docs/data-model`, `feat/sign-in`. If `main` has uncommitted changes from an earlier task, ask first. Creating the branch is the only git change you make.
+- **English** everywhere in the repository: code, comments, docs, commit messages.
+- **Written for developers who know the stack.** Comments explain *why* (a decision, a constraint, a trap, an edge case), never what the language, the framework or a tool does; no history, branch names, backlog IDs or doc references in comments. Docs describe the project as it is.
+- **A change updates the docs section it touches in the same commit.** Sections are cited by code between docs (`H2.3`); after changing a heading, `make toc`.
+- **A new kind of work** (table, endpoint, job, screen, check) adds a short recipe to its how-to guide.
+- **A new endpoint:** policy, Form Request, then an action or service; a Pest test per route, forbidden cases included. **A new table:** D3 first, then migration, model, policy, factory, tests, API Resource, frontend types. An applied migration never changes.
+- **Git:** one branch per task from `main` (`make branch name=<type>/<name>`, types `feat`, `fix`, `docs`, `chore`), Conventional Commits, merged with `make merge` once CI passes. Commits use the GitHub noreply address; the hook in `.githooks/` refuses any other identity.
+- **The repository is public:** nothing committed holds a secret, a real person's data or a private detail ([P1.5](docs/project/P1-conventions.md#p15-a-public-repository)).
+- **Backlog:** one entry per point, IDs never reused, the entry deleted by the commit that finishes it.

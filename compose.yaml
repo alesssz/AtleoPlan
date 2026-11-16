@@ -17,7 +17,7 @@ x-backend: &backend
   volumes:
     - ./backend:/app
     # vendor/ in a named volume over the bind mount: reading a thousand package
-    # files through the shared folder took over a second per request after a
+    # files through the shared folder takes over a second per request after a
     # pause, from the volume a tenth
     - vendor:/app/vendor
     # Composer copies the volume here after every change

@@ -1,7 +1,3 @@
-/*
- * A plan file looked at in the browser (plan-file.ts): what it holds, and
- * each reason not to send it.
- */
 import { describe, expect, it } from 'vitest'
 import { MAX_PLAN_FILE_BYTES, readPlanFile } from './plan-file'
 
@@ -13,11 +9,8 @@ const file = {
   exercises: [],
 }
 
-/**
- * Reads a value as if it were a file's text, of its real size.
- */
+/** Reads a value as a file's text; its length stands for the size in bytes. */
 function read(value: unknown) {
-  // The value as a file's text; its length stands for the size in bytes
   const text = JSON.stringify(value)
   return readPlanFile(text, text.length)
 }
@@ -32,9 +25,9 @@ describe('readPlanFile', () => {
     expect(readPlanFile('', MAX_PLAN_FILE_BYTES + 1)).toEqual({ ok: false, problem: 'tooBig' })
     // Not JSON: a CSV, say
     expect(readPlanFile('day;exercise;sets', 17)).toEqual({ ok: false, problem: 'notJson' })
-    // JSON, but not ours, or ours with a broken plan
-    // a plan in every way but its format: the format alone decides
-    expect(read({ ...file, format: 'chronovault.export' })).toEqual({ ok: false, problem: 'notPlan' })
+    // JSON, but not ours, or ours with a broken plan. The first is a plan in
+    // every way but its format: the format alone decides
+    expect(read({ ...file, format: 'other-app.export' })).toEqual({ ok: false, problem: 'notPlan' })
     expect(read([1, 2, 3])).toEqual({ ok: false, problem: 'notPlan' })
     expect(read({ ...file, version: '1' })).toEqual({ ok: false, problem: 'notPlan' })
     expect(read({ ...file, plan: { name: 'No days' } })).toEqual({ ok: false, problem: 'notPlan' })

@@ -61,17 +61,9 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 ## Road to the MVP
 
-The order of work for phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)); each step needs the ones before it. The tables they create are designed in [D3. Data model](../design/D3-data-model.md).
+Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-1. [FEAT-3](#feat-3-workout-mode-and-home) working offline (workout mode and Home are done)
-
-**The exercise library** is done (BE-1): tables, API, import, translation, screens, admin screen, photos with their small copies and Duplicate as mine ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)). Its videos wait for phase 2 in [FEAT-11](#feat-11-videos-of-an-exercise); adding photos while creating an exercise in [UI-8](#ui-8-photos-while-creating-an-exercise).
-
-**Sign in with Google**, brought forward from phase 2, is built and was tried for real by the owner ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)). Google on Profile waits in [FEAT-10](#feat-10-google-on-profile).
-
-**The admin panel** has its two screens, the public library with its photos and the users (BE-1 and BE-2; [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament)).
-
-The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of their screens wait in [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan) and [UI-3](#ui-3-add-to-plan-from-an-exercises-page). Workout mode's refinements wait in [FEAT-5](#feat-5-new-records-during-a-workout) (live records); its preferences are on Profile (UI-7, [C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)). The summary and history are done (FEAT-4); their refinements wait in [FEAT-6](#feat-6-edit-a-past-workout) and [FEAT-7](#feat-7-an-exercises-own-history).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [UI-9](#ui-9-the-exercise-library-scrolls-sideways-on-phones), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 ## OPS
 
@@ -87,10 +79,10 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Priority:** low · **Kind:** deployment, postponed · **Found:** 2026-11-05
 
-**What is missing.** The app runs only on the local machine. Deploying waits until there is something worth using away from the desk; the plan is in [D2.6](../design/D2-decisions.md#d26-hosting).
+**What is missing.** The app runs only locally. Deployment is postponed until the app is worth putting online; the target setup is in [D2.6](../design/D2-decisions.md#d26-hosting).
 
-**Steps, when it is time.**
-- Check again the free tiers (Oracle, DuckDNS): they change often.
+**Steps.**
+- Check the free tiers again (Oracle, DuckDNS): they change often.
 - Create the Oracle Always Free account (home region Milan or Frankfurt) and an ARM VM with Ubuntu 24.04.
 - Open ports 80 and 443, both in the Oracle console and in the VM's `iptables`.
 - Install Docker, point `atleoplan.duckdns.org` at the VM, start the production Compose.
@@ -167,13 +159,9 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Priority:** high · **Kind:** feature · **Found:** 2026-11-05
 
-**Done:**
-- the three tables and the API: saving a whole workout sent by the phone, late and twice, listing and reading with totals, deleting, the sets of last time, and Home's data with the suggested day (`feat/workout-api`, [C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints));
-- workout mode: Start on a plan's day, the "Last" column, one-tap sets, set types, the rest timer with sound and vibration, supersets, Previous, Next and the dots, the screen kept on, ✕ pausing and Resume on the plan's page; the workout kept on the phone and, at Done, queued and sent with `PUT /api/sessions/{id}`, the queue retried when the app opens and when the network returns (`feat/workout-mode`, [C1.17](../concepts/C1-frontend.md#c117-workout-mode)). The big stepper and the exercise menu came with UI-6 ([C1.17.7](../concepts/C1-frontend.md#c1177-the-big-stepper-and-the-exercises-menu)); live records wait in [FEAT-5](#feat-5-new-records-during-a-workout); the summary at the end came with FEAT-4 ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history));
-- Home: the active plan's card with the suggested day, Start and a chip per day, the banner with Resume, Free workout (with Add exercises in workout mode), the week strip and its numbers (`feat/home`, [C1.18](../concepts/C1-frontend.md#c118-home)). The recent records wait for Progress (phase 2).
+**Done.** The workout tables and API ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)), workout mode ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)) and Home ([C1.18](../concepts/C1-frontend.md#c118-home)); finished workouts are already queued on the phone and retried when the app opens and when the network returns. Live records are tracked in [FEAT-5](#feat-5-new-records-during-a-workout); Home's recent records wait for Progress (phase 2).
 
-**What is missing.** One part, on its own branch:
-- **Working offline** ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)): the PWA (vite-plugin-pwa), so the app opens with no network; the query cache kept in IndexedDB; the queue of workouts, today in `localStorage` ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)), moved to IndexedDB if it grows, and sent by the service worker in the background (Background Sync, where the browser has it); a notification when a rest ends with the app in the background.
+**What is missing.** **Working offline** ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)): the PWA (vite-plugin-pwa), so the app opens with no network; the query cache kept in IndexedDB; the queue of workouts, today in `localStorage` ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)), moved to IndexedDB if it grows, and sent by the service worker in the background (Background Sync, where the browser has it); a notification when a rest ends with the app in the background.
 
 ### FEAT-5 New records during a workout
 
@@ -187,13 +175,13 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Recommended.** A, with the records of Progress: the badge mid-workout is the motivating moment, and the comparison is a few lines once the bests are known; the summary then shows the same badges.
 
-**Two kinds of best with a time.** A hold (a dead hang, a plank, logged by time) is better longer. Reps done as fast as possible (a plan item's `for_time`, since `feat/for-time`, [C1.17.9](../concepts/C1-frontend.md#c1179-exercises-done-as-fast-as-possible)) are better with the same reps in less time, and the set says so itself: it has both `reps` and `duration_seconds`. The comparison with last time already follows this (`compare.ts`); the records should too, and keep the two kinds apart, as last time does.
+**Two kinds of best with a time.** A hold (a dead hang, a plank, logged by time) is better longer. Reps done as fast as possible (a plan item's `for_time`, [C1.17.9](../concepts/C1-frontend.md#c1179-exercises-done-as-fast-as-possible)) are better with the same reps in less time, and the set says so itself: it has both `reps` and `duration_seconds`. The comparison with last time already follows this (`compare.ts`); the records should too, and keep the two kinds apart, as last time does.
 
 ### FEAT-6 Edit a past workout
 
 **Priority:** low · **Kind:** feature · **Found:** 2026-11-08
 
-**What is missing.** [D1.4.11](../design/D1-ui.md#d1411-history) asks for a past workout's page to be editable: fix a wrong weight, add a forgotten set, change the feeling or the notes. FEAT-4 shows it read-only ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)); the backend already takes a whole workout again with `PUT /api/sessions/{id}` ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)).
+**What is missing.** [D1.4.11](../design/D1-ui.md#d1411-history) asks for a past workout's page to be editable: fix a wrong weight, add a forgotten set, change the feeling or the notes. The page is read-only today ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)); the backend already takes a whole workout again with `PUT /api/sessions/{id}` ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)).
 
 **Options.**
 - A) An Edit button opening the workout in a form like workout mode's rows (`SetRow` without ✓ and the timer), turned back into the `PUT` body by a function the reverse of `toSessionInput()`; sent through the queue, so it works offline.
@@ -205,7 +193,7 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Priority:** low · **Kind:** feature · **Found:** 2026-11-08
 
-**What is missing.** [D1.4.4](../design/D1-ui.md#d144-exercise-details) gives an exercise's page a **My history** tab: the last sessions with that exercise, the best set, the estimated one-rep max. History (FEAT-4) lists whole workouts only.
+**What is missing.** [D1.4.4](../design/D1-ui.md#d144-exercise-details) gives an exercise's page a **My history** tab: the last sessions with that exercise, the best set, the estimated one-rep max. History lists whole workouts only.
 
 **Options.**
 - A) `GET /api/exercises/{id}/history`: the user's sets of that exercise, by workout, newest first, paged, with the best set and the estimated one-rep max ([D2.8](../design/D2-decisions.md#d28-workout-rules)) worked out by the database; the tab drawn with `SessionExercises` and `loggedSetText()`, each workout compared with the one before by `compareExercise()`.
@@ -224,7 +212,7 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - B) The same with CSV only: no library, but Excel opens and saves CSV with the computer's separator (`;` in Italy) and may turn "8-10" into a date.
 - C) Nothing: the editor, with the picker's search and Create «…», is quick enough.
 
-**Recommended.** Wait until a second plan has to be written from paper; then A, with the template in Excel, since that is what people use.
+**Recommended.** Defer until there is a real need (a long plan to transcribe from paper); then A, with an Excel template, the format users are most likely to have.
 
 ### FEAT-10 Google on Profile
 
@@ -236,13 +224,13 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 - A) An "Accounts" card on Profile: Google linked or not, with Link (the same `/auth/google/redirect`, with the signed-in user linked instead of a new one) and Unlink (refused while there is no password, or the account would have no way in); "Set a password" for an account without one, sending the reset email.
 - B) Only the information: "Signed in with Google", and "no password yet" with the link to set one.
 
-**Recommended.** B when someone other than the owner uses Google sign-in; A if Apple comes (phase 2), when choosing between two providers makes Link and Unlink worth it.
+**Recommended.** B before the app opens to other users (phase 2); A when Apple sign-in arrives, when choosing between two providers makes Link and Unlink worth it.
 
 ### FEAT-11 Videos of an exercise
 
 **Priority:** low, phase 2 · **Kind:** feature · **Found:** 2026-11-12
 
-**What is missing.** The videos of [D2.5](../design/D2-decisions.md#d25-photos-and-videos) and [D1.4.5](../design/D1-ui.md#d145-exercise-editor): up to 2 per exercise, 30 s and 100 MB each, converted by a queued job with ffmpeg (already in the Docker image) to 720p H.264 without audio, with a poster image, the original deleted; "Processing…" until the job ends; on the exercise's page, muted and looping, full screen on a tap. Left out of `feat/exercise-media`, which did the photos: D1.8 puts video upload in phase 2.
+**What is missing.** The videos of [D2.5](../design/D2-decisions.md#d25-photos-and-videos) and [D1.4.5](../design/D1-ui.md#d145-exercise-editor): up to 2 per exercise, 30 s and 100 MB each, converted by a queued job with ffmpeg (already in the Docker image) to 720p H.264 without audio, with a poster image, the original deleted; "Processing…" until the job ends; on the exercise's page, muted and looping, full screen on a tap. Photos are done; D1.8 puts video upload in phase 2.
 
 **Options.**
 - A) The same shape as the photos: `POST /api/exercises/{id}/videos`, a job of our own that runs ffmpeg (medialibrary's conversions make images, not videos), a `processing` state in the JSON, the panel's field for public exercises.
@@ -260,9 +248,9 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Options.**
 - A) Rate limits on both routes, and the same answer to a known and an unknown email when asking for a reset.
-- B) Leave as it is while the app is personal.
+- B) Leave as it is until the app is public.
 
-**Recommended.** B for now and A before opening to other users (phase 2): with a single user nothing is at stake, and signing up will still need to say that an email is taken, unless it moves to verifying the address by email.
+**Recommended.** A before opening to other users (phase 2); until then the app is not deployed, so nothing is exposed. Signing up will still reveal that an email is taken, unless it moves to verifying the address by email first.
 
 ## DATA
 
@@ -270,11 +258,11 @@ The plans are done (FEAT-2: tables, API, list, page, editor); two refinements of
 
 **Priority:** low · **Kind:** data model · **Found:** 2026-11-12
 
-**What is missing.** Some of free-exercise-db's exercises are a weight held for a time or carried for a distance: Plate Pinch and Crucifix (held), Farmer's Walk, Yoke Walk, Rickshaw Carry and the sleds (carried). The import guesses them as weight and reps, which is wrong; but `time` and `distance` record no weight ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)), so DATA-3 left them alone ([C2.14.6](../concepts/C2-backend.md#c2146-the-logging-types-corrected-after-the-import)). "Farmer's walk, 2 × 32 kg, 40 m" cannot be written.
+**What is missing.** Some of free-exercise-db's exercises are a weight held for a time or carried for a distance: Plate Pinch and Crucifix (held), Farmer's Walk, Yoke Walk, Rickshaw Carry and the sleds (carried). The import guesses them as weight and reps, which is wrong; but `time` and `distance` record no weight ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)), so the list of corrected logging types leaves them out ([C2.14.6](../concepts/C2-backend.md#c2146-the-logging-types-corrected-after-the-import)). "Farmer's walk, 2 × 32 kg, 40 m" cannot be written.
 
 **Options.**
-- A) `time` and `distance` accept an optional `weight_kg`, as `reps` does for an added weight: a change to the rules of `SaveSessionRequest`, of the plan's sets and of workout mode's rows, no new column. Then the list of DATA-3 gains these exercises.
+- A) `time` and `distance` accept an optional `weight_kg`, as `reps` does for an added weight: a change to the rules of `SaveSessionRequest`, of the plan's sets and of workout mode's rows, no new column. Then the list of corrected logging types gains these exercises.
 - B) Two new types, `weight_time` and `weight_distance`: clearer, but one more value in the enum, the migration's check, and every `switch` on the type in the frontend.
-- C) Nothing: a weighted carry is rare in the plans written so far.
+- C) Nothing: no current plan uses a weighted hold or carry.
 
 **Recommended.** C until a plan needs one; then A, which keeps four types and reuses the optional weight that `reps` already has.

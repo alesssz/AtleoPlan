@@ -5,7 +5,7 @@
  *
  * Why not a workout's total volume (weight × reps of everything): it adds up
  * unlike exercises (a kilogram of squat is not a kilogram of curl), and
- * counts nothing done with the body alone, so ten sets of pull-ups weighed 0.
+ * counts nothing done with the body alone, so ten sets of pull-ups weigh 0.
  * Each exercise is compared with itself instead, by the rule that fits how
  * it is logged:
  *
@@ -81,7 +81,6 @@ function score(set: SetValues, loggingType: LoggingType): number[] {
  * Compares two scores item by item: 1 when `a` is higher, -1 when lower, 0
  * when equal. Differences below 0.001 are equal: 80 × (1 + 8/30) computed
  * twice may differ in its last decimal.
- * @param b another score
  */
 function compareScores(a: number[], b: number[]): number {
   for (let i = 0; i < Math.max(a.length, b.length); i++) {
@@ -133,8 +132,8 @@ export function countVerdicts(comparisons: readonly (Comparison | null)[]): Verd
 
 /**
  * The volume of one exercise, weight × reps of its sets that count, in
- * kilograms. Meaningful only for an exercise logged as weight × reps, where
- * it is still shown, beside the exercise; never added across exercises.
+ * kilograms. Meaningful only for an exercise logged as weight × reps, and
+ * never added across exercises.
  */
 export function exerciseVolume(sets: readonly SetValues[]): number {
   return working(sets).reduce((sum, set) => sum + Number(set.weight_kg ?? 0) * (set.reps ?? 0), 0)

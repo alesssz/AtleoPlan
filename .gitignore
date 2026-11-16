@@ -12,5 +12,5 @@
 # Database dumps (make db-dump): local data, never committed
 /backups/
 
-# Personal instructions for Claude Code, read with CLAUDE.md, never committed
+# Personal instructions for Claude Code, never committed
 CLAUDE.local.md

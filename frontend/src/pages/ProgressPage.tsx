@@ -1,10 +1,6 @@
 /*
- * Progress (route `/progress`). In the MVP it holds history: the three latest
- * workouts and a link to all of them (`/progress/history`). Charts and records
- * come in phase 2: a card says so, with the "Coming soon" badge.
- *
- * Before the first workout, an empty state ("Your progress starts with the
- * first workout"), whose button leads to Home, where workouts start.
+ * Progress (`/progress`): the latest workouts and a link to history; charts
+ * and records are a "Coming soon" card.
  */
 import { ChartLine, Play, TrendingUp } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -75,7 +71,6 @@ export function ProgressPage() {
           </section>
         )}
 
-        {/* Charts and records: phase 2 */}
         <section aria-labelledby="charts-title" className="flex flex-wrap items-center gap-4 rounded-3xl border bg-card/60 p-5 sm:p-6">
           <ChartLine aria-hidden="true" className="size-8 shrink-0 text-primary" />
           <div className="min-w-0 flex-1 basis-60">

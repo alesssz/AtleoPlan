@@ -21,7 +21,6 @@ it('emails a link that opens the React screen', function () {
     $this->postJson('/api/auth/forgot-password', ['email' => 'ann+gym@example.com'])->assertOk();
 
     Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user) {
-        // The link's address, as it appears in the email
         $url = $notification->toMail($user)->actionUrl;
 
         return str_starts_with($url, 'http://localhost:5673/reset-password?token=')
@@ -38,7 +37,6 @@ it('says when the email is unknown', function () {
 
 it('sets the new password with a valid token', function () {
     $user = User::factory()->create(['email' => 'ann@example.com']);
-    // A real token, as the email would hold
     $token = Password::createToken($user);
 
     $this->postJson('/api/auth/reset-password', [
@@ -61,7 +59,6 @@ it('refuses a wrong token', function () {
         'password_confirmation' => 'a-brand-new-password',
     ])->assertUnprocessable()->assertJsonValidationErrors('email');
 
-    // The old password still works
     expect(Hash::check('password', $user->fresh()->password))->toBeTrue();
 });
 

@@ -13,9 +13,9 @@ use Throwable;
 /**
  * `php artisan exercises:import-extra`: adds to the public library the
  * exercises free-exercise-db does not have, kept in the repository in
- * backend/database/data/extra-exercises.json: for now calisthenics (frog stand,
- * front lever, burpees…). In this project `make exercises-import` runs it after
- * the free-exercise-db import, and `make exercises-extra` runs it alone.
+ * backend/database/data/extra-exercises.json, mostly calisthenics (frog stand,
+ * front lever, burpees…). `make exercises-import` runs it after the
+ * free-exercise-db import, and `make exercises-extra` runs it alone.
  *
  * The file has free-exercise-db's shape, so ImportFreeExercise imports each
  * entry with the same rules: found again by its external_id (ours start

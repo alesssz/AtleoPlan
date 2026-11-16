@@ -1,11 +1,6 @@
 /*
- * The plan editor's first step: the plan's name, goal and notes, how many days
- * it has, and each day's name. "Next" leads to the second step, EditorDays: the
- * days as tabs, with their exercises.
- *
- * PlanEditor shows this step when the address has no `?day=`, and the second
- * when it has one; both work on the same draft, so moving between them loses
- * nothing.
+ * The plan editor's first step: the plan's details, its number of days and
+ * their names. Both steps share one draft, so moving between them loses nothing.
  */
 import { ArrowRight } from 'lucide-react'
 import { useId, useState, type Dispatch } from 'react'

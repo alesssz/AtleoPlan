@@ -1,6 +1,6 @@
 /*
- * Apart from ThemeProvider.tsx, which may then export only a component (Fast
- * Refresh, eslint.config.js).
+ * Kept out of ThemeProvider.tsx so that file exports only a component, as Fast
+ * Refresh requires.
  */
 import { createContext } from 'react'
 import type { Theme } from './theme'

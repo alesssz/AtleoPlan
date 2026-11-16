@@ -1,6 +1,7 @@
 /*
  * GET /api/equipment: the kinds of equipment, for the library's filter and
- * the exercise editor. Cached like the muscles (src/api/muscles.ts).
+ * the exercise editor. Fresh for an hour, like the muscles: the list changes
+ * only with a backend release.
  */
 import { useQuery } from '@tanstack/react-query'
 import { request } from '@/lib/http'

@@ -1,12 +1,8 @@
 /*
- * The summary of a workout just finished: its numbers, each exercise against
- * last time, how it felt and notes; Save sends them, Delete workout throws the
- * workout away.
- *
- * Drawn from the copy kept on the phone at Finish (FinishedWorkout), with no
- * request, so it works offline right after the last set; the comparison uses
- * last time's sets read when the workout started. Opened again later, with no
- * such copy, it redirects to the workout's page in history.
+ * The summary of a workout just finished. Drawn from the copy kept on the
+ * device at Finish, with no request, so it works offline right after the last
+ * set. Opened again later, with no such copy, it redirects to the workout's
+ * page in history.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDown, Save, Trash2 } from 'lucide-react'
@@ -89,14 +85,13 @@ export function SummaryPage() {
   const { id } = useParams()
   const [finished] = useState(loadFinished)
 
-  // Not on this phone, or another workout: its page in history instead
+  // Not on this device, or another workout: its page in history instead
   if (finished === null || finished.id !== id) return <Navigate to={`/progress/history/${id ?? ''}`} replace />
 
   return <Summary finished={finished} />
 }
 
 interface SummaryProps {
-  /** The workout just finished, its body and what happened when it was sent. */
   finished: FinishedWorkout
 }
 
@@ -192,8 +187,8 @@ function Summary({ finished }: SummaryProps) {
               <button type="button" className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left font-heading text-lg font-extrabold tracking-tight hover:bg-muted/60">
                 <span>
                   {t('history.exercisesTitle')}
-                  {/* The space is text, not a margin: without it, the
-                      button's name was "Exercises3" */}
+                  {/* The space is text, not a margin: without it the
+                      button's name reads "Exercises3" */}
                   {' '}
                   <span className="ml-1 text-sm font-semibold text-muted-foreground tabular-nums">{exercises.length}</span>
                 </span>

@@ -1,8 +1,6 @@
 /*
  * The queue of finished workouts waiting for the network. Each is sent with the
- * idempotent PUT /api/sessions/{id} until the backend has it. The full offline
- * work (PWA, IndexedDB, background sync) comes later; this is what a workout
- * needs not to be lost.
+ * idempotent PUT /api/sessions/{id} until the backend has it.
  *
  * - 2xx: saved; it leaves the queue.
  * - 410: deleted elsewhere meanwhile; it leaves the queue for good.

@@ -29,8 +29,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * The texts are in the request's language, falling back to English, then to any
  * language there is. The import's columns (level, category, external_id,
- * machine_translated) are not sent: the app does not show them yet. Videos come
- * in phase 2.
+ * machine_translated) and the videos are not sent: the app does not show them.
  *
  * @mixin Exercise
  */

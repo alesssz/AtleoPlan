@@ -1,7 +1,3 @@
-/*
- * Better, the same or worse than last time (compare.ts): one rule per way
- * of logging, warm-ups left out, ties decided by the total reps.
- */
 import { describe, expect, it } from 'vitest'
 import { bestSet, compareExercise, compareWorkout, countVerdicts, exerciseVolume, hasTimedSets, type SetValues } from './compare'
 

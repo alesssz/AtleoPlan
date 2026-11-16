@@ -3,8 +3,8 @@
  * - `pending`: disabled, aria-busy, and a Spinner in place of its icon;
  * - the 48 px `xl` and `icon-xl` sizes, for touch;
  * - `[class*=size-]` without quotes, here and in select, tabs and alert-dialog:
- *   quoted inside single-quoted strings it became \'size-\', which Tailwind
- *   turned into a class no element has, and no icon was sized.
+ *   escaped quotes inside a single-quoted string make Tailwind generate a
+ *   selector no element matches, and icons go unsized.
  */
 import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'

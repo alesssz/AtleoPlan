@@ -11,27 +11,25 @@ import { defineConfig } from 'vitest/config'
 /** APP_PORT as in compose.yaml. */
 const backendUrl = `http://localhost:${process.env.APP_PORT ?? '8500'}`
 
-// From vitest/config, so `test` is typed too
 export default defineConfig({
   plugins: [
     react(),
-    // Configured in src/index.css, with no config file
     tailwindcss(),
   ],
 
   resolve: {
-    // The same alias as tsconfig.app.json
+    // Mirrors `paths` in tsconfig.app.json
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
 
   server: {
-    // Standard + 500. Strict: another port would not be recognised by Sanctum
+    // Strict: Sanctum recognises this port only
     port: 5673,
     strictPort: true,
     // On Windows `localhost` resolves to ::1 only, where `adb reverse` to a
-    // phone finds nothing. Still only this computer, not the Wi-Fi
+    // phone finds nothing. Still loopback only, not the LAN
     host: '127.0.0.1',
 
     // No changeOrigin: Laravel must see the browser's host, so Sanctum
@@ -40,8 +38,8 @@ export default defineConfig({
       '/api': backendUrl,
       '/sanctum': backendUrl,
       '/storage': backendUrl,
-      // Sign in with Google; the callback's address is registered with Google.
-      // The final slash keeps a page such as /authors in the React app
+      // Google sign-in and its registered callback. The trailing slash keeps
+      // a route such as /authors in the React app
       '/auth/': backendUrl,
     },
   },

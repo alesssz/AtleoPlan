@@ -1,24 +1,15 @@
 /*
- * "How did it feel?", from 1 to 5, in the summary: five buttons, of which one
- * at most is chosen. A tap on the chosen one takes the choice back: the
- * question may stay unanswered.
- *
- * For screen readers it is a radio group (role="radiogroup", each button
- * role="radio" with aria-checked), the pattern of "one of several", drawn
- * as buttons because they are easier to hit than round radio dots. The
- * values and their words: feeling.ts.
+ * "How did it feel?", 1 to 5, in the summary. A tap on the chosen value takes
+ * it back: the question may stay unanswered. A radio group drawn as buttons,
+ * which are easier to hit than radio dots.
  */
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { FEELINGS, feelingName } from './feeling'
 
 interface FeelingPickerProps {
-  /** The value chosen, or null for none. */
   value: number | null
-  /**
-   * Called with the new value, or null when the chosen one is tapped again.
-   * @param value 1 to 5, or null
-   */
+  /** null when the chosen value is tapped again. */
   onChange: (value: number | null) => void
 }
 

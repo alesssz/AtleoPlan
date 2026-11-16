@@ -31,11 +31,8 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            // example.com addresses never reach a real inbox
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            // Hashed once: hashing is slow on purpose, and a test may create
-            // many users
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             // The columns' defaults, which a new model does not read back
@@ -51,9 +48,6 @@ class UserFactory extends Factory
         ];
     }
 
-    /**
-     * Factories bypass mass-assignment protection, so is_admin can be set here.
-     */
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [

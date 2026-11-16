@@ -1,17 +1,8 @@
 /*
- * The plan editor's draft: the plan as the user is changing it, before it is
- * saved:
- *
- * - the draft's shape, close to the screen: every number is the text the
- *   user typed ("8-10", "82,5"), as in a form;
- * - the conversions: from a saved plan to a draft (draftFromPlan), and from a
- *   draft to the body of POST or PUT /api/plans (toPlanInput);
- * - the rules checked before sending (validateDraft), and the translation of
- *   the server's field names into the draft's (draftField);
- * - the reducer.
- *
- * Positions are never stored: the place of a day, an exercise or a set in
- * its list is its position, as in the API.
+ * The plan editor's draft, its conversions from and to the API, the checks
+ * mirroring the backend's, and its reducer. Every number is kept as the text
+ * the user typed ("8-10", "82,5"). Positions are never stored: an entry's
+ * place in its list is its position, as in the API.
  */
 import type { Exercise, LoggingType } from '@/api/exercises'
 import type { Plan, PlanInput, PlanItem, PlanSetInput, SetType } from '@/api/plans'
@@ -20,7 +11,6 @@ import { KG_PER_LB, weightIn } from './plan-format'
 
 /** One set while it is being edited: the type, and each target as typed. */
 export interface DraftSet {
-  /** normal, warm_up, drop or failure. */
   set_type: SetType
   /** "8-10", "8", or '' for no target. */
   reps: string
@@ -46,8 +36,8 @@ export interface DraftItem {
   /** The user's notes; '' for none. */
   notes: string
   /**
-   * Done as fast as possible (canBeForTime). Optional: a draft saved by an
-   * older version has none, which reads as false.
+   * Done as fast as possible (canBeForTime). Optional: drafts stored before
+   * the field lack it, which reads as false.
    */
   for_time?: boolean
   sets: DraftSet[]
@@ -98,11 +88,7 @@ export function newId(): string {
   return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : randomUuid()
 }
 
-/**
- * A version 4 UUID built by hand, as RFC 9562 describes it: 16 random bytes,
- * of which two carry fixed bits that say "version 4" and "the standard
- * variant", written as 32 hexadecimal digits in groups of 8-4-4-4-12.
- */
+/** A version 4 UUID (RFC 9562) built from crypto.getRandomValues(). */
 export function randomUuid(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16))
   // Byte 6: the version, 0100

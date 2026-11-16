@@ -1,7 +1,6 @@
 /*
  * An empty list or screen: an illustration, a sentence and the main action,
- * never a blank page. The illustration is CSS only: the section's icon in a
- * glowing, ringed circle.
+ * never a blank page.
  */
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'

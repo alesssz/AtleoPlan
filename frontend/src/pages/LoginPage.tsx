@@ -1,13 +1,7 @@
 /*
- * Sign in (route `/login`), the reference for the app's forms: a zod schema,
- * react-hook-form, a mutation and showRequestError.
- *
- * It does not navigate after signing in: the mutation updates who is signed in,
- * and RequireGuest, around this page, moves on.
- *
- * Under the form, "Continue with Google" (src/components/GoogleSignIn.tsx);
- * when Google sign-in fails, Laravel sends the browser back here with
- * `?error=…`, shown at the top of the form.
+ * Signing in does not navigate: the mutation updates the current user and
+ * RequireGuest moves on. A failed Google sign-in comes back here with
+ * `?error=…`.
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'

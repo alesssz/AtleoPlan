@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * The text the library's search looks in: every name and alias, normalised. The
  * model keeps it up to date on every save (Exercise::booted()); this fills the
- * rows that already exist, through the DB facade rather than the model, which
- * may change later.
+ * rows that already exist, through the query builder so that it does not
+ * depend on the model's future shape.
  */
 return new class extends Migration
 {

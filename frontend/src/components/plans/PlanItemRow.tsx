@@ -1,9 +1,3 @@
-/*
- * One exercise of a plan's day: its cover, its name linking to the exercise's
- * page, the line that sums up its sets ("4 × 8–10 · 80 kg · 90 s"), the
- * warm-ups counted apart ("+ 2 warm-up") and the user's notes. The line is
- * built by itemSummary() (plan-format.ts).
- */
 import { Dumbbell } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -39,7 +33,6 @@ export function PlanItemRow({ item, weightUnit, defaultRestSeconds }: PlanItemRo
         <Link to={`/exercises/${item.exercise_id}`} className="font-semibold hover:text-primary">
           {item.exercise.name}
         </Link>
-        {/* Tabular digits, so neighbouring lines line up */}
         <p className="text-sm text-muted-foreground tabular-nums">
           {itemSummary(item, { language: i18n.language, weightUnit, defaultRestSeconds, t })}
           {warmUps > 0 && <span className="ml-2 font-semibold text-foreground/80">{t('plans.detail.warmUps', { count: warmUps })}</span>}

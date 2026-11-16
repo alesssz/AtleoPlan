@@ -1,8 +1,6 @@
 /*
- * The new password (route `/reset-password`), the second step of "forgot
- * password": the email's link opens this screen, with the token and the address
- * in the query string (?token=…&email=…). The backend builds that link in
- * app/Providers/FortifyServiceProvider.php. Built as LoginPage.
+ * The second step of a password reset, opened by the email's link with
+ * `?token=…&email=…` (built by the backend's FortifyServiceProvider).
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'

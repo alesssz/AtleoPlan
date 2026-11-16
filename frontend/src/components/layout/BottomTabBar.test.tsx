@@ -1,7 +1,3 @@
-/*
- * The phone's tab bar: five tabs, the current one marked, labels in the
- * user's language.
- */
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'

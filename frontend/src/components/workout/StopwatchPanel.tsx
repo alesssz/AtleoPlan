@@ -1,13 +1,9 @@
 /*
- * The stopwatch of a timed set, docked at the bottom where the rest bar goes,
- * so the sets stay in sight: a hold ("30 s dead hang") counts up to a target
- * and signals it; a race ("50 push-ups, as fast as possible", `race`) shows the
- * time to beat, turns red past it and never signals.
- *
- * The time is derived from the start and the pauses kept in the workout
- * (stopwatchSeconds), never counted, so the screen off or the app reopened
- * does not change it. Stop writes the seconds into the set and ticks it, which
- * starts the rest as ✓ does.
+ * The stopwatch of a timed set, docked where the rest bar goes so the sets
+ * stay in sight. A hold ("30 s dead hang") counts up to a target and signals
+ * it; a race ("50 push-ups, as fast as possible") shows the time to beat,
+ * turns red past it and never signals. Stop writes the seconds into the set
+ * and ticks it, which starts the rest as ✓ does.
  */
 import { Pause, Play, Square } from 'lucide-react'
 import { useEffect, useRef } from 'react'
@@ -21,11 +17,8 @@ import { WORKOUT_COLUMN } from './layout'
 import { stopwatchSeconds, stopwatchTargetAt, type Stopwatch } from './workout-session'
 
 interface StopwatchPanelProps {
-  /** The stopwatch running (or paused). */
   stopwatch: Stopwatch
-  /** The exercise's name, at the top of the panel. */
   exerciseName: string
-  /** The set's name: "Set 1". */
   setName: string
   /** A race: the reps to do (null when none typed); null for a hold. */
   race: { reps: number | null } | null
@@ -41,21 +34,16 @@ interface StopwatchPanelProps {
   onCancel: () => void
 }
 
-/** The stopwatch, docked at the bottom of workout mode. */
 export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastText, alarm, onStop, onPause, onCancel }: StopwatchPanelProps) {
   const { t } = useTranslation()
-  // The current moment, four times a second: the seconds change on time,
-  // not up to a second late as with the workout's clock
+  // Four times a second: the seconds change on time, not up to a second late
+  // as with the workout's clock
   const now = useNow(250)
-  // The seconds so far, the pauses left out
   const seconds = stopwatchSeconds(stopwatch, now)
   const { target } = stopwatch
-  // Whether it is paused: Resume instead of Pause, the time greyed
   const paused = Boolean(stopwatch.paused_at)
-  // Whether the target is reached: in a race, the time to beat is gone
+  // In a race, reaching the target means the time to beat is gone
   const reached = target !== null && seconds >= target
-  // The line under the time: Paused; or the target, then reached; in a
-  // race, the time to beat, then how far past it
   const targetText = paused
     ? t('workout.stopwatch.paused')
     : target === null
@@ -63,8 +51,7 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
       : race
         ? (reached ? t('workout.stopwatch.over', { time: clock(seconds - target) }) : t('workout.stopwatch.toBeat', { time: clock(target) }))
         : (reached ? t('workout.stopwatch.reached') : t('workout.stopwatch.target', { time: clock(target) }))
-  // How much of the bar is filled, 0 to 1: the share of the target, or
-  // the seconds of the current minute when there is none
+  // The share of the target, or of the current minute when there is none
   const share = target !== null ? Math.min(1, seconds / target) : (seconds % 60) / 60
   // The focus goes to Stop: ▶, which opened the panel, is disabled meanwhile,
   // and a keyboard user would be left nowhere
@@ -74,16 +61,13 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
     stopButton.current?.focus()
   }, [])
 
-  // The signal at the target: a timer set for that moment, as the rest's
-  // end is (WorkoutScreen). None while paused (stopwatchTargetAt gives
-  // null): Resume sets a new stopwatch object, and so a new timer, later
-  // by the length of the pause. Not when the moment is already past, as
-  // when the app is opened again after it: the signal would come late, and
-  // twice. Not in a race either: there the target is a time not to reach
+  // The signal at the target. None while paused: Resume makes a new stopwatch
+  // object, so a new timer. None when the moment is already past (the app
+  // reopened after it): the signal would come late. Never in a race, where
+  // the target is a time not to reach
   const { sound, vibration } = alarm
   const isRace = race !== null
   useEffect(() => {
-    // The moment of the target, in ms; null with none, or while paused
     const at = stopwatchTargetAt(stopwatch)
     if (at === null || isRace) return
     const delay = at - Date.now()
@@ -93,8 +77,7 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
   }, [stopwatch, sound, vibration, isRace])
 
   return (
-    // A named region, as the rest bar is. `relative` keeps the sr-only "Target
-    // reached" inside the panel
+    // `relative` keeps the sr-only live region inside the panel
     <section aria-label={t('workout.stopwatch.title')} className="relative border-t bg-card py-4">
       <div className={WORKOUT_COLUMN}>
         {/* The bar: lime up to the target; red once a race's time to beat
@@ -121,7 +104,6 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
           </Button>
         </div>
 
-        {/* The time with what it is measured against, then Pause and Stop */}
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
             {/* role="timer": screen readers do not read it every second */}

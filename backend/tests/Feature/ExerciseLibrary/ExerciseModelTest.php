@@ -33,7 +33,6 @@ it('reads the name in the current language, falling back to English', function (
 });
 
 it('falls back to any language when English is missing too', function () {
-    // A personal exercise, written in one language only
     $exercise = Exercise::factory()->personal()->create(['name' => ['it' => 'Panca mia']]);
 
     // fallbackAny, set in AppServiceProvider: without it, this would be ''
@@ -42,7 +41,6 @@ it('falls back to any language when English is missing too', function () {
 });
 
 it('starts as a public exercise logged by weight and reps, with nothing machine-translated', function () {
-    // create() with only a name: everything else takes its default
     $exercise = Exercise::create(['name' => ['en' => 'Plank']]);
 
     expect($exercise->isPublic())->toBeTrue()
@@ -55,7 +53,6 @@ it('starts as a public exercise logged by weight and reps, with nothing machine-
 it('belongs to its owner when created through the user', function () {
     $user = User::factory()->create();
 
-    // Through the relation, owner_id is filled by itself
     $exercise = $user->exercises()->create(['name' => ['it' => 'Panca mia']]);
 
     expect($exercise->owner->is($user))->toBeTrue()
@@ -66,7 +63,6 @@ it('belongs to its owner when created through the user', function () {
 it('does not let a request set the owner', function () {
     $someone = User::factory()->create();
 
-    // owner_id is not in #[Fillable]: create() ignores it
     $exercise = Exercise::create(['name' => ['en' => 'Squat'], 'owner_id' => $someone->id]);
 
     expect($exercise->owner_id)->toBeNull();
@@ -92,24 +88,20 @@ it('lists its muscles with their role, and its equipment', function () {
 it('hides a deleted exercise but keeps it for plans and history', function () {
     $exercise = Exercise::factory()->hasAttached(Muscle::factory(), ['role' => MuscleRole::Primary], 'muscles')->create();
 
-    // A soft delete: only deleted_at is filled
     $exercise->delete();
 
     expect(Exercise::count())->toBe(0)
         ->and(Exercise::withTrashed()->count())->toBe(1);
     $this->assertSoftDeleted($exercise);
-    // Its muscles are still there
     $this->assertDatabaseCount('exercise_muscle', 1);
 });
 
 it('removes the muscle rows when an exercise is deleted for good', function () {
     $exercise = Exercise::factory()->hasAttached(Muscle::factory()->count(2), ['role' => MuscleRole::Secondary], 'muscles')->create();
 
-    // The cascade takes its pivot rows
     $exercise->forceDelete();
 
     $this->assertDatabaseCount('exercise_muscle', 0);
-    // The muscles themselves stay
     $this->assertDatabaseCount('muscles', 2);
 });
 

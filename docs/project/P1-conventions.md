@@ -1,6 +1,6 @@
 # P1. Conventions
 
-How work is done in this repository: Git, code, comments, documentation and the backlog. They follow Chronovault's conventions, adapted to Laravel and React.
+How work is done in this repository: Git, code, comments, documentation and the backlog.
 
 ## Contents
 
@@ -9,28 +9,29 @@ How work is done in this repository: Git, code, comments, documentation and the 
 - [P1.3 Documentation](#p13-documentation)
 - [P1.4 Backlog](#p14-backlog)
 - [P1.5 A public repository](#p15-a-public-repository)
-  - [P1.5.1 The check before going public](#p151-the-check-before-going-public)
-  - [P1.5.2 The account and the repository on GitHub](#p152-the-account-and-the-repository-on-github)
-  - [P1.5.3 From here on](#p153-from-here-on)
+  - [P1.5.1 Checking the history](#p151-checking-the-history)
+  - [P1.5.2 The repository's settings on GitHub](#p152-the-repositorys-settings-on-github)
+  - [P1.5.3 Alerts and reports](#p153-alerts-and-reports)
 
 ---
 
 ## P1.1 Git
 
 - **One branch per task** from `main`, with a short English name and a type prefix: `feat/plan-editor`, `fix/rest-timer`, `docs/ui-design`, `chore/docker`. `make branch name=feat/plan-editor` creates it from an up-to-date `main`.
-- **Commit messages** follow [Conventional Commits](https://www.conventionalcommits.org/): a type, then an imperative subject in English (`feat: add the rest timer to workout mode`; `fix:`, `docs:`, `refactor:`, `test:`, `ci:`, `chore:`), a body when the why is not obvious. The same in AtleoPlan, Chronovault and Flowboard.
-- **Identity:** commits use the same personal GitHub identity as Chronovault, set in this repository's own `.git/config`; a computer's global Git configuration, which may hold another identity, is never used here.
-- **No real email in the history:** author and committer are always the GitHub noreply address, which is what let the repository become public as it was ([P1.5](#p15-a-public-repository)). The `pre-commit` hook in `.githooks/` refuses any other identity; a new clone turns it on with `git config core.hooksPath .githooks` ([S1.3](../start/S1-setup.md#s13-git-identity)).
-- **Nothing reaches `main` but a pull request whose CI passed**, merged as a merge commit, so each branch stays readable in the history: `main`'s ruleset refuses a direct push and requires both CI jobs ([P1.5.2](#p152-the-account-and-the-repository-on-github)).
+- **Commit messages** follow [Conventional Commits](https://www.conventionalcommits.org/): a type, then an imperative subject in English (`feat: add the rest timer to workout mode`; `fix:`, `docs:`, `refactor:`, `test:`, `ci:`, `chore:`), a body when the why is not obvious.
+- **Identity:** commits use the maintainer's personal GitHub identity, set in this repository's own `.git/config`; a computer's global Git configuration, which may hold another identity, is never used here.
+- **No real email in the history:** author and committer are always the GitHub noreply address, as the repository is public ([P1.5](#p15-a-public-repository)). The `pre-commit` hook in `.githooks/` refuses any other identity; a new clone turns it on with `git config core.hooksPath .githooks` ([S1.3](../start/S1-setup.md#s13-git-identity)).
+- **Nothing reaches `main` but a pull request whose CI passed**, merged as a merge commit, so each branch stays readable in the history: `main`'s ruleset refuses a direct push and requires both CI jobs ([P1.5.2](#p152-the-repositorys-settings-on-github)).
 - **GitHub checks every push** ([H5](../how-to/H5-ci.md)): `make push` starts the **CI** workflow on the branch (the checks of `make check`, plus the build, on a clean Linux machine), and the **Audit** one when the dependencies changed. A red run is read in the **Actions** tab ([H5.5](../how-to/H5-ci.md#h55-reading-a-run-and-a-failed-one)).
-- **Merging is done with `make merge`** ([`scripts/merge-main.mjs`](../../scripts/merge-main.mjs), the same script in Chronovault and Flowboard), from the branch, once it is pushed (`make push`). It stops if the branch is not ready (uncommitted or unpushed work, nothing new, a conflict with `main`), runs `make check`, shows the commits and asks; then it opens the pull request (or reuses the open one) and turns on GitHub's auto-merge: GitHub merges once CI passes, with a message listing the branch's commits, even if the terminal is closed. Then it updates `main` and deletes the branch on GitHub and locally. A failed check stops it with nothing merged: fix, push, run it again. `yes=1` skips the question, `checks=0` the local checks (CI still runs them).
+- **Merging is done with `make merge`** ([`scripts/merge-main.mjs`](../../scripts/merge-main.mjs)), from the branch, once it is pushed (`make push`). It stops if the branch is not ready (uncommitted or unpushed work, nothing new, a conflict with `main`), runs `make check`, shows the commits and asks; then it opens the pull request (or reuses the open one) and turns on GitHub's auto-merge: GitHub merges once CI passes, with a message listing the branch's commits, even if the terminal is closed. Then it updates `main` and deletes the branch on GitHub and locally. A failed check stops it with nothing merged: fix, push, run it again. `yes=1` skips the question, `checks=0` the local checks (CI still runs them).
 
 ---
 
 ## P1.2 Code
 
 - **Language:** everything in the repository is in English: code, comments, docs, commit messages. The interface's texts are in translation files, one per language (Italian, English, Spanish, German), never written in a component ([D2.4](../design/D2-decisions.md#d24-languages)).
-- **Comments explain why, not what.** They are written for a developer who knows TypeScript, React, PHP and Laravel: a comment says why the code is the way it is (a decision, a constraint, a trap, an edge case, a rule of the app), never what the language or the framework does. When code needs a comment to say *what* it does, it is renamed or split first.
+- **Written for developers who know the stack.** The repository is a showcase: code, comments and docs read as a professional project's, never as an exercise, a tutorial or a diary. Nothing explains what TypeScript, React, PHP, Laravel, Git or Docker do in general; what is left is specific to this app.
+- **Comments explain why, not what.** A comment says why the code is the way it is (a decision, a constraint, a trap, an edge case, a rule of the app), never what the language or the framework does. When code needs a comment to say *what* it does, it is renamed or split first.
   - A file whose purpose is not obvious from its name and place starts with a short header: what it is for, and how it fits with the rest, in a few lines; never a screen narrated control by control. A long block only for a specification: a JSON contract, a table of rules, an algorithm.
   - Comments describe the code as it is: no history ("used to", the first version, how a bug was found, what was tried first), no branch names or backlog IDs. The history lives in the commits.
   - Exported functions, classes, components and hooks get a doc comment (TSDoc / PHPDoc) when their name and types do not say everything: units, side effects, errors, the cases they refuse.
@@ -40,7 +41,7 @@ How work is done in this repository: Git, code, comments, documentation and the 
   - Files generated by a tool (shadcn/ui's components, Laravel's skeleton) keep the shape they were generated with; a comment marks only what we changed.
 - **Style:**
   - PHP: **Laravel Pint** with the `laravel` preset.
-  - TypeScript: **ESLint** with stylistic rules (`@stylistic/eslint-plugin`), as in Chronovault: 2 spaces, no semicolons, single quotes; no Prettier. VS Code fixes on save; `make fix` fixes everything, files generated by shadcn/ui included. File naming and structure of the frontend: [C1.2](../concepts/C1-frontend.md#c12-folder-structure).
+  - TypeScript: **ESLint** with stylistic rules (`@stylistic/eslint-plugin`): 2 spaces, no semicolons, single quotes; no Prettier. VS Code fixes on save; `make fix` fixes everything, files generated by shadcn/ui included. File naming and structure of the frontend: [C1.2](../concepts/C1-frontend.md#c12-folder-structure).
 - **A new API endpoint:** the controller only authorises (a policy), validates (a Form Request) and calls an action or service; the rules live in the service, tested without HTTP; the answer is an API Resource. Every route is covered by a Pest test, the forbidden cases included (another user's plan, a public exercise edited by a non-admin).
 - **A new table or column:** [D3. Data model](../design/D3-data-model.md) first, then migration (commented) → model (casts, relations) → policy → factory → tests → API Resource → the frontend's API types. The commands and each step: [H1.2](../how-to/H1-database.md#h12-a-new-table-from-start-to-finish).
 - **Identifiers created on the device** (plans, sessions, logged sets: the full list is in [D3.2](../design/D3-data-model.md#d32-rules-for-every-table)) are UUIDs, and the endpoints that receive them are idempotent ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)).
@@ -60,13 +61,13 @@ How work is done in this repository: Git, code, comments, documentation and the 
   - `project/` (P): how we work, and the backlog.
 
   A document's code is its folder's letter and a number from 1, which is also the start of its file name: `docs/how-to/H2-backend.md` is H2.
-- **A change updates the section it touches, in the same commit.** A change to how the project is installed or started also updates the setup section, once it exists.
+- **A change updates the section it touches, in the same commit.**
+- **Docs describe the project as it is,** for a developer who knows the stack: decisions, constraints, rules of the app, recipes for this codebase. No dates of when something was done, no branch names, no lessons on the tools; the history lives in the commits.
 - **How-to guides are recipes.** When a task brings a new kind of work (a new kind of table, endpoint, job, screen, check), the guide for the area gains a short recipe: [H1. Database](../how-to/H1-database.md), [H2. Backend](../how-to/H2-backend.md), [H3. Frontend](../how-to/H3-frontend.md), [H5. Continuous integration](../how-to/H5-ci.md), or a new guide when none fits. A recipe gives the commands in order, the files and what goes in each, how to check the result, and the mistakes that are easy to make. [C1. Frontend](../concepts/C1-frontend.md) and [C2. Backend](../concepts/C2-backend.md) describe how the code is organised and why. The history of a task lives in its commits and its branch, not in the docs.
 - **Every document opens with a "Contents" list** of its sections, generated from the headings by [`scripts/docs-toc.mjs`](../../scripts/docs-toc.mjs). After adding, renaming or removing a heading, run `make toc`; never edit the list by hand. `make check` fails when a list is out of date. The script reads Windows line endings (CRLF) too.
 - **Headings carry the document's code** (`## H2.3 An endpoint that changes data`) and keep their numbers. References between documents give them ("see D1.4.9"). Code comments do not cite the docs ([P1.2](#p12-code)); messages printed by the project's scripts may, to say where a fix is described.
 - **A new document** goes in the folder that fits its purpose, with the next free number of that folder (the next how-to is `docs/how-to/H4-name.md`). It needs a row in [`docs/README.md`](../README.md), and the navigation lines at the bottom of the previous and next pages. Numbers are never reused, so a reference never points to the wrong document.
 - **Setup** ([S1](../start/S1-setup.md)) follows the project: a new service, port, command or prerequisite updates it in the same commit.
-- Sections still to come, as the code is written: architecture, project structure, data flows, security, API reference, configuration, testing, deployment, troubleshooting.
 
 ---
 
@@ -78,139 +79,62 @@ Work known and waiting goes in [`docs/project/backlog.md`](backlog.md), one entr
 
 ## P1.5 A public repository
 
-The repository on GitHub is **public**: anyone can read the code, the docs and the whole history of commits. It stays a personal project in development: it is not deployed, and nothing about how work is done changes. Made public in `docs/public-repo`.
+The repository is **public** and has **no licence**: the code can be read and studied, all rights are reserved. Contributions are not expected; a security problem is reported privately ([`SECURITY.md`](../../SECURITY.md)). Making a public repository private again does not undo anything, since every clone, fork and cache keeps the history: what follows is checked before a push, not after.
 
-**What public means here:**
-
-- **No licence, on purpose.** Without a `LICENSE` file the code is visible but all rights are reserved: it can be read and studied, not reused, copied or redistributed without permission. A licence can be added later; taking one back is not possible, since copies made under it keep it.
-- **No contributions expected.** Issues and pull requests from others are not part of the plan; the README says so.
-- **Public cannot really be undone.** Turning the repository private again hides it, but every clone, fork and cache made meanwhile keeps everything, history included. That is why the check below runs before, not after.
-
-**What never goes in a commit,** in code, docs, test data or commit messages, because it would stay readable in the history even after being deleted:
+**What never goes in a commit,** in code, docs, test data or commit messages, because it stays readable in the history after being deleted:
 
 - secrets: `.env` files (ignored by `.gitignore`), Laravel's `APP_KEY`, the Google client secret ([S1.11.5](../start/S1-setup.md#s1115-the-two-lines-on-each-computer)), tokens, private keys;
 - database dumps: `make db-dump` writes to `backups/`, ignored;
 - a real person's data: test accounts use `example.com` addresses (`ann@example.com`), the development admin is `test@example.com`;
-- private details of the people working on it: a real email (commits use the noreply address, [P1.1](#p11-git)), the computers' user names and paths, an employer.
+- private details of the people working on it: a real email (commits use the noreply address, [P1.1](#p11-git)), user names and paths of a computer, an employer.
 
-A secret committed by mistake is **revoked first** (a new Google client secret, a new `APP_KEY`), then removed: rewriting the history alone does not help once it has been pushed to a public repository.
+A secret committed by mistake is **revoked first** (a new Google client secret, a new `APP_KEY`), then removed: rewriting the history does not help once it has been pushed.
 
-### P1.5.1 The check before going public
+### P1.5.1 Checking the history
 
-Run from the repository's root in Git Bash, on an up-to-date `main`. Each command reads every commit of every branch (`git rev-list --all`), not only today's files. The outputs are those of 2026-11-13, 92 commits.
+Every command reads every commit of every branch (`git rev-list --all`), not only the current files. Run from the repository's root, in Git Bash on Windows.
 
-**1. Who wrote the commits.** `%an <%ae>` is the author's name and email, `%cn <%ce>` the committer's; `uniq -c` counts each pair:
+| Check | Command | Expected |
+|---|---|---|
+| Authors and committers | `git log --all --format='%an <%ae> \| %cn <%ce>' \| sort \| uniq -c` | one line, the noreply address |
+| Files that look like secrets or dumps | `git log --all --diff-filter=A --name-only --format= \| grep -iE '(^\|/)\.env\|\.pem$\|\.key$\|id_rsa\|credentials\|\.sql$\|\.dump$\|secret' \| sort -u` | `backend/.env.example` and `docker/postgres/init/01-test-database.sql` only |
+| Secrets in any commit | see below | no output |
+| Email addresses in the current files | `git grep -nIhoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" -- . ':!*.lock' ':!frontend/package-lock.json' \| sed 's/^[0-9]*://' \| sort \| uniq -c` | `example.com` addresses and the noreply one |
+| Private words (a surname, a user name, an employer) | `git grep -nIw '<word>' $(git rev-list --all) -- .` | no output |
+| Size | `git count-objects -vH \| grep size-pack` | a few MiB |
 
-```sh
-git log --all --format='%an <%ae> | %cn <%ce>' | sort | uniq -c
-```
-
-```
-     92 Alessandro <32982604+alesssz@users.noreply.github.com> | Alessandro <32982604+alesssz@users.noreply.github.com>
-```
-
-One line, the noreply address: no real email in the history.
-
-**2. Files that should never have been added.** `--diff-filter=A` lists the files each commit added; `grep` keeps the names that look like secrets or dumps:
-
-```sh
-git log --all --diff-filter=A --name-only --format= | grep -iE '(^|/)\.env|\.pem$|\.key$|id_rsa|credentials|\.sql$|\.dump$|secret' | sort -u
-```
-
-```
-backend/.env.example
-docker/postgres/init/01-test-database.sql
-```
-
-Both expected: the template of the settings with no values, and the script that creates the test database.
-
-**3. Secrets in the content, in every commit.** `git grep` searches the files of the commits given; the pattern catches the shape of common secrets: Laravel's key (`base64:` and 30 characters or more), a Google client secret (`GOCSPX-`) or client id, AWS, OpenAI-style and GitHub tokens, private keys, Slack tokens, Google API keys:
+The pattern for secrets matches Laravel's key, Google client secrets and ids, AWS, OpenAI-style and GitHub tokens, private keys, Slack tokens and Google API keys:
 
 ```sh
 git grep -nIE "(base64:[A-Za-z0-9+/=]{30,}|GOCSPX-[A-Za-z0-9_-]+|[0-9]+-[a-z0-9]{20,}\.apps\.googleusercontent\.com|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_|-----BEGIN [A-Z ]*PRIVATE KEY|xox[bp]-|AIza[0-9A-Za-z_-]{30,})" $(git rev-list --all) -- .
 ```
 
-No output: nothing found. `-I` skips binary files, `-n` gives line numbers.
+The exercise library comes from free-exercise-db, public domain ([D2.3](../design/D2-decisions.md#d23-exercise-library)): its data and the translations of it can be published. Its photos are downloaded into `storage/`, which Git ignores.
 
-**4. Email addresses in today's files.** `-o` prints only the match, `-h` leaves out the file name; the lock files are left out (`':!*.lock'`), as they hold the package authors' public addresses:
+### P1.5.2 The repository's settings on GitHub
 
-```sh
-git grep -nIhoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" -- . ':!*.lock' ':!frontend/package-lock.json' | sed 's/^[0-9]*://' | sort | uniq -c | sort -rn
-```
-
-```
-     54 ann@example.com
-      6 test@example.com
-      4 ann@x.com
-      …
-      3 32982604+alesssz@users.noreply.github.com
-```
-
-Only test addresses and the noreply one.
-
-**5. Private details.** The same `git grep … $(git rev-list --all)` with words of your own: a surname, a computer's user name (`/Users/<name>/`, `C:\Users\<name>\`), an employer. `-w` matches whole words only: without it, a short name also matches every longer word that contains it, and the Italian exercise translations hide it under hundreds of false hits. Found this way, and made neutral in `docs/public-repo`: "a Mac (a work computer)" in CLAUDE.md, P1.1 and S1.3. The older commits keep the old wording; it named no employer, so they were left as they were.
-
-**6. Third-party content.** The exercise library comes from free-exercise-db, public domain (Unlicense, [D2.3](../design/D2-decisions.md#d23-exercise-library)): its data and our translations of it can be published. The photos are downloaded by `make exercises-import` into `storage/`, which Git ignores, so none is in the repository.
-
-**7. Size.** `git count-objects -vH | grep size-pack` gives `size-pack: 2.41 MiB`: nothing large was committed by mistake.
-
-### P1.5.2 The account and the repository on GitHub
-
-All by hand on github.com, signed in as the owner, in this order: the account first, since whoever gets into it controls the repository; the repository's settings before it goes public; the protections GitHub gives free to public repositories right after. Done on 2026-11-13; the state below is the one in force. GitHub moves and renames its menus at times: when a name differs, the nearest one on the same page.
-
-**1. The account** (avatar, top right → **Settings**):
-
-| Page | Setting | Why |
-|---|---|---|
-| **Password and authentication** | Two-factor authentication on, with an authenticator app or a passkey rather than SMS; the recovery codes saved outside GitHub | A stolen password alone is not enough to get in |
-| **Emails** | **Keep my email addresses private**, **Block command line pushes that expose my email** | The server refuses a push with the real email, behind the local hook ([P1.1](#p11-git)) |
-| **Sessions** | Only sessions recognised | A forgotten signed-in browser is a way in |
-| **SSH and GPG keys** | None | Pushes go over HTTPS, through Git Credential Manager, which signs in with the browser and keeps the token in the computer's keychain |
-| **Developer settings → Personal access tokens** | None. If one is ever needed: fine-grained, this repository only, with an expiry date | A token works like a password, without two-factor authentication |
-| **Applications** | Only the apps in use (Git Credential Manager among them; revoking it only means signing in again at the next push) | Each one can act on the account |
-| **Security log** | Read now and then | Shows sign-ins and changes to the account |
-
-**2. The repository, before it goes public** (the repository → **Settings**):
+The owner's account has two-factor authentication, private email addresses with **Block command line pushes that expose my email**, and no SSH keys or personal access tokens: pushes go over HTTPS through Git Credential Manager. The repository is set up as follows (**Settings**):
 
 | Page | Setting | Why |
 |---|---|---|
 | **Collaborators** | Only the owner | Nobody else can push |
-| **Deploy keys**, **Webhooks**, **Integrations → GitHub Apps** | Empty | Nothing outside reads or writes the repository |
-| **Secrets and variables → Actions** | Empty | A public repository holds no secret until a CI needs one |
-| **Actions → General** | **Disable actions** | There is no workflow yet; with Actions off, a pull request from a stranger cannot make anything run. Turned on again with the CI, as in P1.5.3 |
+| **Deploy keys**, **Webhooks**, **GitHub Apps** | Empty | Nothing outside reads or writes the repository |
+| **Secrets and variables → Actions** | Empty | No workflow needs a secret |
 | **General → Features** | **Wikis**, **Projects**, **Discussions**, **Sponsorships** off | Everything is in `docs/` |
-| **General → Pull Requests** | **Allow merge commits**, **Allow auto-merge**, **Automatically delete head branches** | `make merge` hands the merge to GitHub, as a merge commit, once CI passes; merged branches do not pile up |
+| **General → Pull Requests** | **Allow merge commits**, **Allow auto-merge**, **Automatically delete head branches** | `make merge` hands the merge to GitHub, as a merge commit, once CI passes |
 | **Pages** | Off | Nothing is published as a website |
+| **Actions → General** | GitHub's own actions only; **Workflow permissions: Read repository contents**, no creating or approving pull requests; **Require approval for all external contributors** | A stranger's pull request runs nothing until it has been read ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)) |
+| **Advanced Security** | **Private vulnerability reporting**, **Dependency graph**, **Dependabot alerts**, **Secret Protection** with **Push protection**, **CodeQL → Default setup** | Private reports; alerts on vulnerable packages; a push holding a known kind of secret is refused; the TypeScript and the workflows are scanned |
+| **Rules → Rulesets** | `main`, **Active**, on the default branch: **Restrict deletions**, **Block force pushes**, **Require a pull request before merging** (no approvals), **Require status checks to pass** (**Frontend and docs**, **Backend**) | Nobody, the owner included, can delete `main`, rewrite its history, or merge a commit whose CI did not pass |
 
-**3. Public.** After merging the branch that prepared it (the README's paragraph, this section): **Settings → General → Danger Zone → Change repository visibility → Change to public**, confirmed by typing the repository's name.
+`make github-check` reads all of it with `gh` and compares it with this table ([H5.3.1](../how-to/H5-ci.md#h531-checking-everything-from-the-terminal-make-github-check)); it is run after changing a setting, and once a month.
 
-**4. Right after, free because the repository is public:**
+### P1.5.3 Alerts and reports
 
-| Page | Setting | Why |
-|---|---|---|
-| **Advanced Security** (on some accounts **Code security**) | **Private vulnerability reporting** on | Someone who finds a problem reports it privately, from the **Security** tab, instead of in a public issue ([`SECURITY.md`](../../SECURITY.md)) |
-| | **Dependency graph** and **Dependabot alerts** on | A warning when a Composer or npm package in use has a known vulnerability: `make audit`, by itself |
-| | **Secret Protection** and its **Push protection** on | GitHub scanned the whole history, and refuses any push holding a secret of a known kind, such as a Google client secret |
-| | **CodeQL analysis → Default setup** on ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)) | GitHub reads the TypeScript and the workflows for security mistakes, at every push to `main` and weekly |
-| **Rules → Rulesets → New branch ruleset** | Name `main`, **Active**, target **Include default branch**; **Restrict deletions**, **Block force pushes**, **Require a pull request before merging** (no approvals) and **Require status checks to pass** (**Frontend and docs**, **Backend**) | Nobody, the owner by mistake included, can delete `main`, rewrite its history, or bring in a commit whose CI did not pass |
-
-**How to check:** `make github-check` reads every setting of this section, and the CI's of [H5.3](../how-to/H5-ci.md#h53-the-settings-on-github), with GitHub's command line `gh`, and compares them with the ones decided ([H5.3.1](../how-to/H5-ci.md#h531-checking-everything-from-the-terminal-make-github-check)). By hand:
-
-- The repository's address in a private browser window, signed out: it shows the code.
-- **Security → Secret scanning**: no alerts.
-- **Security → Dependabot**: the packages with a known vulnerability, if any; `make audit` lists the same.
-- **Settings → Rules → Rulesets**: `main`, Active.
-
-### P1.5.3 From here on
-
-- **On each computer:** `git config core.hooksPath` answers `.githooks`, and `make doctor` passes. Secrets live in `.env` files only.
-- **The CI** (GitHub Actions, [H5](../how-to/H5-ci.md)) arrived with `chore/ci`, and with it the settings kept for it: **Settings → Actions → General** → **Allow alesssz, and select non-alesssz, actions and reusable workflows** with only GitHub's own actions allowed; **Workflow permissions: Read repository contents**, and no creating or approving pull requests; **Require approval for all external contributors**, so a stranger's pull request runs nothing until it has been read ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)). Its secrets, if any one day, in **Secrets and variables → Actions**, never in a workflow's file. A new action in a workflow is a decision: GitHub's own (`actions/*`) only, unless one is read and allowed by name.
-- **A secret committed by mistake:** revoke it first (a new Google client secret, a new `APP_KEY`), then remove it. Push protection stops the known kinds; it does not see everything.
-- **A Dependabot alert, or a Dependabot run that failed** (the email "Dependabot encountered an error performing the update"): a package in use has a known vulnerability, and Dependabot could not propose a pull request, usually because the fix is a major version its parents do not accept, or because no fixed version exists. `make audit` shows which; [H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides) is the way through, on a `chore/…` branch: who brings the package, whether it reaches the app or only the developer's tools, an `overrides` checked by hand, and **Dismiss** with a reason for what cannot be fixed. Never `npm audit fix --force`.
-- **A report through Private vulnerability reporting:** it arrives by email and in the **Security** tab. Answer there; the fix goes on a `fix/…` branch like any other.
-- **On deploying** ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)): anyone can read the code, so the app's own security matters more than before: `APP_DEBUG=false` in production, secrets only in the server's environment, and the security points still in the backlog ([BE-3](backlog.md#be-3-harden-the-public-sign-in-routes)). That is the app's security, a subject apart from the repository's.
-- **Now and then,** after changing a setting, or simply once a month: `make github-check`.
-- **Not done, possible later:** signing commits with an SSH key, with **Vigilant mode** (which marks unsigned commits as unverified). CodeQL, once here, is on since the CI ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)).
+- **A Dependabot alert, or a failed Dependabot run:** a package in use has a known vulnerability and no compatible fix was proposed, usually because the fix is a major version its parents do not accept. `make audit` shows which; [H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides) is the way through, on a `chore/…` branch: who brings the package, whether it reaches the app or only the tooling, an `overrides` checked by hand, and **Dismiss** with a reason for what cannot be fixed. Never `npm audit fix --force`.
+- **An open secret alert:** the secret is revoked first, then removed. Push protection stops the known kinds only.
+- **A report through Private vulnerability reporting:** answered in the **Security** tab; the fix goes on a `fix/…` branch like any other.
+- **Deploying** ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)): with the code public, the app's own hardening matters more: `APP_DEBUG=false`, secrets only in the server's environment, and [BE-3](backlog.md#be-3-harden-the-public-sign-in-routes).
 
 ---
 

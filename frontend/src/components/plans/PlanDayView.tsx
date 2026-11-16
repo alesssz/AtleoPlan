@@ -1,8 +1,3 @@
-/*
- * The content of one day of a plan, the panel under its tab: how many exercises
- * and sets it has, then the exercises in order, the supersets joined by a
- * coloured bar on the side.
- */
 import { useTranslation } from 'react-i18next'
 import type { PlanDay } from '@/api/plans'
 import { groupSupersets, workingSets } from '@/components/plans/plan-format'
@@ -31,7 +26,6 @@ export function PlanDayView({ day, weightUnit, defaultRestSeconds }: PlanDayView
 
   return (
     <div>
-      {/* "3 exercises · 7 sets" */}
       <p className="mb-2 text-sm text-muted-foreground">
         {t('plans.detail.exercises', { count: day.items.length })}
         {' · '}

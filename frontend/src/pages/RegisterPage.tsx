@@ -1,11 +1,6 @@
 /*
- * Sign up (route `/register`). Built as LoginPage, the model of a form. The new
- * account starts in the language of this browser, and Fortify signs the user in
- * at once, so RequireGuest, around this page, moves into the app.
- *
- * Under the form, "Continue with Google" (src/components/GoogleSignIn.tsx): the
- * same button as on the sign-in page, since Google makes the account when the
- * address is new.
+ * Fortify signs the new user in, so RequireGuest moves into the app. Google's
+ * button is offered here too: it creates the account for a new address.
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -31,7 +26,7 @@ export function RegisterPage() {
   const { errors } = form.formState
 
   function onSubmit(values: SignUpValues) {
-    // The browser's, the language in use now
+    // The new account starts in the language in use now
     const locale = isLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : FALLBACK_LANGUAGE
     signUp.mutate({ ...values, locale }, {
       onError: error => showRequestError(error, form.setError, ['name', 'email', 'password', 'password_confirmation'], t),
@@ -48,7 +43,6 @@ export function RegisterPage() {
 
         <FormField label={t('auth.fields.name')} autoComplete="name" error={errors.name?.message} {...form.register('name')} />
         <FormField label={t('auth.fields.email')} type="email" autoComplete="username" inputMode="email" error={errors.email?.message} {...form.register('email')} />
-        {/* new-password: password managers offer to generate and save one */}
         <FormField label={t('auth.fields.password')} type="password" autoComplete="new-password" error={errors.password?.message} {...form.register('password')} />
         <FormField label={t('auth.fields.passwordConfirmation')} type="password" autoComplete="new-password" error={errors.password_confirmation?.message} {...form.register('password_confirmation')} />
 

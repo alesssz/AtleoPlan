@@ -71,9 +71,8 @@ export function signedInAs(user: User = testUser): FakeAnswer {
 export const visitor: FakeAnswer = { status: 401, body: { message: 'Unauthenticated.' } }
 
 /**
- * Draws some routes as the app would: a fresh cache for each test, so nothing
- * leaks between tests, with retries off so failures show at once; the theme; and
- * a router kept in memory rather than in the address bar.
+ * Renders routes with the app's providers: a fresh cache per test, retries off
+ * so failures show at once, the theme, and a memory router.
  *
  * @param routes the routes to draw, as in src/router.tsx
  * @returns Testing Library's result, and the router, to read the current address

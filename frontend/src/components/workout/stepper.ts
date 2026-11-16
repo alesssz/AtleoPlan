@@ -37,20 +37,17 @@ export function fieldStep(field: SetField, weightStep: string | undefined): numb
 }
 
 /**
- * The field's text after one tap of − (a negative step) or + (a positive
- * one), in the user's language.
+ * The field's text after one tap of − or +, in the user's language.
  *
  * - An empty field, or one that does not read as a number, starts from 0:
  *   + on an empty weight gives one step (2.5).
  * - Reps, seconds and meters are whole numbers: "8,5" typed as reps, then
  *   +, gives 10 (the backend takes whole numbers only).
- * - The weight is written with at most two decimals, which also rounds it:
- *   in JavaScript 0.1 + 0.2 is 0.30000000000000004, written "0.3".
- * - Nothing goes below 0. A weight that reaches 0 becomes empty: no weight, the
- *   body alone, which is what an empty weight already means.
- * @param text the field's text, as typed or as the last tap left it
+ * - The weight is written with at most two decimals, which also absorbs
+ *   floating-point noise (0.1 + 0.2 is written "0.3").
+ * - Nothing goes below 0. A weight that reaches 0 becomes empty: the body
+ *   alone, which is what an empty weight already means.
  * @param delta the step, negative for −
- * @param language the interface's language, for the decimal separator
  */
 export function stepValue(text: string, field: SetField, delta: number, language: string): string {
   const current = parseDecimal(text)
@@ -58,7 +55,7 @@ export function stepValue(text: string, field: SetField, delta: number, language
   const sum = start + delta
   const next = field === 'weight' ? sum : Math.round(sum)
   if (next <= 0) return field === 'weight' ? '' : '0'
-  // Written as the fields are filled at the start (workout-session.ts): no
-  // thousands separator, at most two decimals (Intl rounds the rest away)
+  // Written as the fields are filled at the start: no thousands separator,
+  // at most two decimals
   return formatNumber(next, language, { useGrouping: false, maximumFractionDigits: 2 })
 }

@@ -1,7 +1,4 @@
-/*
- * Saving a file from the browser (download.ts): the file's name made safe.
- * The download itself is tested where it is used, PlanDetailPage.test.tsx.
- */
+// The download itself is tested where it is used, in PlanDetailPage.test.tsx
 import { describe, expect, it } from 'vitest'
 import { fileNameOf } from './download'
 

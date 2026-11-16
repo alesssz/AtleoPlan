@@ -1,13 +1,3 @@
-/*
- * Workout mode, used as a person would: a set ticked, the rest timer, Next,
- * pause with ✕, Finish sending the workout and opening its summary, early or
- * from the last exercise, a workout kept on the phone when the network is down,
- * and a free workout, whose exercises are added on the way. Then what came
- * after a real workout: the stopwatch docked under the sets, with Pause; a time
- * past a minute written as a clock; the exercise up next, a reminder; "How to
- * do it"; removing a set or an exercise added by hand, never the plan's; and
- * deleting the workout in progress from Finish's dialog.
- */
 import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -448,7 +438,7 @@ describe('WorkoutPage', () => {
     const user = userEvent.setup()
 
     // Under the bench press's sets, a reminder: the rows, with what the
-    // plan asks. Found by its role, "complementary" (an <aside>), and name
+    // plan asks
     const card = await screen.findByRole('complementary', { name: 'Up next' })
     expect(card).toHaveTextContent('Bent Over Barbell Row')
     expect(card).toHaveTextContent('2 × 10/8 · 60–70 kg')

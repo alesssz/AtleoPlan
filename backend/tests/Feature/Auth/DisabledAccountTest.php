@@ -4,11 +4,6 @@
  * A user disabled by an admin while signed in is signed out at their next
  * request (the middleware SignOutDisabledAccount). Signing in again is refused,
  * as SignInTest and GoogleSignInTest check.
- *
- * The scenarios sign in through the real route, as the React app does, then
- * an admin disables the account (here: the column set directly), then the
- * React app asks for something. The session is the test's own (the `array`
- * driver of phpunit.xml), kept from one request to the next.
  */
 
 use App\Models\User;
@@ -16,8 +11,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-// Scenario: signed in on the phone, disabled from the panel, then the app
-// asks who is signed in
 it('signs out a user disabled since signing in', function () {
     // Ann, signed in through the real route, as the React app does
     $user = User::factory()->create(['email' => 'ann@example.com']);
@@ -37,7 +30,6 @@ it('signs out a user disabled since signing in', function () {
 });
 
 it('signs them out of every route, not only /api/user', function () {
-    // A user signed in, then disabled
     $user = User::factory()->create();
     $this->actingAs($user);
     $user->forceFill(['disabled_at' => now()])->save();
@@ -47,7 +39,6 @@ it('signs them out of every route, not only /api/user', function () {
 });
 
 it('leaves an enabled user signed in', function () {
-    // A user who stays enabled
     $user = User::factory()->create();
 
     $this->actingAs($user)->getJson('/api/user')->assertOk();
@@ -55,7 +46,6 @@ it('leaves an enabled user signed in', function () {
 });
 
 it('lets a disabled user still reach the public routes, as a visitor', function () {
-    // A user already disabled, with a session still open
     $user = User::factory()->disabled()->create();
 
     $this->actingAs($user)->getJson('/api/health')->assertOk();

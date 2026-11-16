@@ -1,9 +1,3 @@
-/*
- * Home, used as a person would: the active plan's card with the suggested day,
- * Start, another day chosen with its chip, the workout in progress (resumed,
- * finished or deleted from its banner), Free workout, this week, and Home
- * without an active plan or without the network.
- */
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -15,7 +9,6 @@ import { fakeApi, renderRoutes, signedInAs } from '@/test/auth-helpers'
 import { testPlan, testPlanSummary } from '@/test/plan-helpers'
 import { HomePage } from './HomePage'
 
-/** The page, and a stand-in for workout mode. */
 const routes = [
   { path: '/', element: <HomePage /> },
   { path: 'session/:id', element: <p>workout mode</p> },
@@ -28,10 +21,7 @@ function today(changes: Partial<WorkoutSession> = {}): WorkoutSession {
   return { id: 'w-1', plan_id: 'plan-ppl', day_name: 'Day A – Push', started_at: now, finished_at: now, duration_seconds: 2700, sets_done: 8, ...changes }
 }
 
-/**
- * The answer of GET /api/home: the test plan active, Day A done last, Day B
- * suggested; changed as asked.
- */
+/** GET /api/home: the test plan active, Day A done last, Day B suggested. */
 function homeAnswer(changes: Partial<HomeData> = {}) {
   const data: HomeData = {
     active_plan: testPlanSummary(),
@@ -173,8 +163,8 @@ describe('HomePage', () => {
     const week = await screen.findByRole('region', { name: 'This week' })
     // Today: trained, said in words too
     expect(await within(week).findByText('workout done')).toBeInTheDocument()
-    // Two workouts, 12 sets, 70 minutes. Each label (dt) comes before its
-    // number (dd) in the page, though drawn under it
+    // Two workouts, 12 sets, 70 minutes. Each dt comes before its dd in the
+    // DOM, though drawn under it
     expect(within(week).getByText('Workouts').nextSibling).toHaveTextContent('2')
     expect(within(week).getByText('Sets').nextSibling).toHaveTextContent('12')
     expect(within(week).getByText('Minutes').nextSibling).toHaveTextContent('70')

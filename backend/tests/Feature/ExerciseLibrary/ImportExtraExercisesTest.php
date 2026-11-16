@@ -21,7 +21,6 @@ use Illuminate\Support\Facades\File;
 
 uses(RefreshDatabase::class);
 
-// The fixed lists the exercises point to
 beforeEach(function () {
     $this->seed([MuscleSeeder::class, EquipmentSeeder::class]);
 });
@@ -62,7 +61,6 @@ it('keeps their logging type, English aliases, equipment and muscles', function 
         ->and($frogStand->equipment->slug)->toBe('body-only')
         ->and($frogStand->muscles->pluck('slug')->sort()->values()->all())->toBe(['abdominals', 'forearms', 'shoulders', 'triceps'])
         ->and($frogStand->isPublic())->toBeTrue()
-        // A weight and reps, with a kettlebell
         ->and($swing->logging_type)->toBe(LoggingType::WeightReps)
         ->and($swing->equipment->slug)->toBe('kettlebells');
 });

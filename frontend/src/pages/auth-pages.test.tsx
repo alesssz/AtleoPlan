@@ -1,7 +1,5 @@
 /*
- * The sign-in screens, used the way a person would: typing, pressing the button,
- * reading what appears. They run with the real guards and router, and a fake API
- * (src/test/auth-helpers.tsx).
+ * The sign-in screens with the real guards and router, and a fake API.
  */
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -39,12 +37,8 @@ const routes = [
   },
 ]
 
-/**
- * A fake GET /api/user that answers "nobody" until `signIn` is called: what the
- * server does, as the session starts between two calls.
- */
+/** A fake GET /api/user that answers "nobody" until `signIn` is called. */
 function fakeSession() {
-  // Who the server would say is signed in
   let current: FakeAnswer = visitor
   return {
     answer: () => current,
@@ -59,20 +53,17 @@ describe('LoginPage', () => {
     const session = fakeSession()
     const fake = fakeApi({
       'GET /api/user': session.answer,
-      // The fake server starts the session when it receives the form
       'POST /api/auth/login': () => {
         session.signIn()
         return { status: 200, body: { two_factor: false } }
       },
     })
-    // A visitor opening /plans is sent to /login first
     const { router } = renderRoutes(routes, '/plans')
 
     await userEvent.type(await screen.findByLabelText('Email'), 'ann@example.com')
     await userEvent.type(screen.getByLabelText('Password'), 'secret-password')
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    // Back on the page first asked for
     expect(await screen.findByText('the plans')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/plans')
     // `remember` is always on: a phone at the gym stays signed in
@@ -88,9 +79,7 @@ describe('LoginPage', () => {
 
     expect(await screen.findByText('Enter a valid email address.')).toBeInTheDocument()
     expect(screen.getByText('This field is required.')).toBeInTheDocument()
-    // The field is marked for screen readers too
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true')
-    // Nothing went to the server
     expect(fake.mock.calls.some(([path]) => path === '/api/auth/login')).toBe(false)
   })
 
@@ -141,9 +130,6 @@ describe('LoginPage', () => {
 })
 
 describe('RegisterPage', () => {
-  /**
-   * Fills the form in.
-   */
   async function fillIn(confirmation: string) {
     await userEvent.type(await screen.findByLabelText('Name'), 'Ann')
     await userEvent.type(screen.getByLabelText('Email'), 'ann@example.com')
@@ -202,10 +188,8 @@ describe('Continue with Google', () => {
   it('links to Laravel with the language and the page the user was going to', async () => {
     await i18n.changeLanguage('it')
     fakeApi({ 'GET /api/user': visitor })
-    // A visitor opening /plans is sent to /login, which remembers /plans
     renderRoutes(routes, '/plans')
 
-    // A link, not a button: the browser itself goes to Google
     const link = await screen.findByRole('link', { name: 'Continua con Google' })
     expect(link).toHaveAttribute('href', '/auth/google/redirect?locale=it&from=%2Fplans')
   })
@@ -221,13 +205,11 @@ describe('Continue with Google', () => {
   it('shows that it is on its way, and is ready again after Back', async () => {
     fakeApi({ 'GET /api/user': visitor })
     renderRoutes(routes, '/login')
-    // jsdom cannot leave the page: stop the link's navigation, which would
-    // only print "Not implemented: navigation". React's onClick still runs
-    /** Cancels the browser's default action of a click. */
+    // jsdom cannot navigate and would only print "Not implemented:
+    // navigation"; React's onClick still runs
     const stayHere = (event: MouseEvent) => event.preventDefault()
     document.addEventListener('click', stayHere)
-    // Removed when the test ends, even if it fails half-way: left behind, it
-    // would cancel the clicks of every later test
+    // Even when the test fails: left behind, it cancels every later click
     onTestFinished(() => document.removeEventListener('click', stayHere))
 
     const link = await screen.findByRole('link', { name: 'Continue with Google' })
@@ -242,7 +224,6 @@ describe('Continue with Google', () => {
   it('says why Google sign-in did not work, in the user\'s language', async () => {
     await i18n.changeLanguage('de')
     fakeApi({ 'GET /api/user': visitor })
-    // Where Laravel sends the browser back to
     renderRoutes(routes, '/login?error=unverified')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Google hat diese E-Mail-Adresse nicht bestätigt')
@@ -291,10 +272,8 @@ describe('ForgotPasswordPage', () => {
 })
 
 describe('ResetPasswordPage', () => {
-  /** The address the email's link opens. */
   const link = '/reset-password?token=the-token&email=ann%2Bgym%40example.com'
 
-  /** Types the new password twice and submits. */
   async function chooseNewPassword() {
     await userEvent.type(await screen.findByLabelText('New password'), 'a-brand-new-password')
     await userEvent.type(screen.getByLabelText('Repeat the password'), 'a-brand-new-password')

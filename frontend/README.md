@@ -1,10 +1,9 @@
 # AtleoPlan — frontend
 
-The React app: React 19, TypeScript, Vite, React Router, TanStack Query, i18next (it, en, es, de), Tailwind CSS and shadcn/ui. It runs directly on your computer with Node 24 (`.nvmrc`), not in Docker, and talks to the Laravel backend through Vite's proxy.
+The React app: React 19, TypeScript, Vite, React Router, TanStack Query, i18next (it, en, es, de), Tailwind CSS and shadcn/ui. It runs on the host with Node 24 (`.nvmrc`), not in Docker, and reaches the Laravel API through Vite's proxy.
 
-**Architecture:** [docs/concepts/C1-frontend.md](../docs/concepts/C1-frontend.md): how the pieces fit, the folder structure, what happens when the app opens, routing, server data, translations, styles and theme, tests, and each feature's screens.
-
-**Recipes** (a new page, data from the API, a form, tests, translations, packages, common errors): [docs/how-to/H3-frontend.md](../docs/how-to/H3-frontend.md).
+- **Architecture:** [C1. Frontend](../docs/concepts/C1-frontend.md)
+- **Recipes** (pages, API data, forms, tests, translations, packages, common errors): [H3. Frontend](../docs/how-to/H3-frontend.md)
 
 ```sh
 npm install          # once, and after package.json changes (make fe-install)

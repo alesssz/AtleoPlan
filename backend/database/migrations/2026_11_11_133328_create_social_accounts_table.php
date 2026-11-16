@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * The outside accounts a user signs in with. A table rather than a `google_id`
- * column: Apple later is new rows, not a new column.
+ * column: another provider is new rows, not a new column.
  */
 return new class extends Migration
 {

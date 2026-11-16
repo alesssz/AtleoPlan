@@ -11,9 +11,8 @@ use Illuminate\Support\Facades\DB;
  *
  * What the copy gets:
  * - **The texts in the user's language only**, as any personal exercise:
- * the name, other names, description
- *   and steps the user is reading now, with the usual fallback to English
- *   when their language is missing.
+ *   the name, other names, description and steps the user is reading now,
+ *   with the usual fallback to English when their language is missing.
  * - The logging type, the equipment, the YouTube link, the muscles with their roles.
  * - **The photos**, copied as new files: deleting or changing the public
  *   exercise later leaves the copy as it is. Each copy gets its own

@@ -1,11 +1,6 @@
 /*
- * One plan: its days as tabs, each exercise summed up on one line
- * ("4 × 8–10 · 80 kg · 90 s"), the plan's actions, and Start this day.
- *
- * The open day is in the address (`?day=2`), so a reload or Back from an
- * exercise returns to it. After a save the editor may report, through the
- * navigation's state, that the plan had been changed elsewhere; the page then
- * warns about it.
+ * One plan, its days as tabs. The open day is in the address (`?day=2`), so a
+ * reload or Back from an exercise returns to it.
  */
 import { Archive, ArchiveRestore, ArrowLeft, Pencil, Play, Star, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -198,7 +193,6 @@ function PlanDetail({ plan }: PlanDetailProps) {
 }
 
 interface StartDayButtonProps {
-  /** The plan. */
   plan: Plan
   day: PlanDay
   /** True when a workout is already in progress on this phone. */

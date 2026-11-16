@@ -233,7 +233,6 @@ it('sends the equipment and the muscles, primary first', function () {
 });
 
 it('runs the same number of queries for one exercise or many', function () {
-    // The number of queries of one call to the list
     $countQueries = function (): int {
         DB::flushQueryLog();
         DB::enableQueryLog();

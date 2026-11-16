@@ -18,8 +18,7 @@ return new class extends Migration
             $table->id();
 
             // No cascade: a user who still owns exercises cannot be deleted
-            // until the code removes them. index() before constrained(), which
-            // returns another object
+            // until the code removes them
             $table->foreignId('owner_id')->nullable()->index()->constrained('users');
 
             // free-exercise-db's id, so the import updates rather than duplicates

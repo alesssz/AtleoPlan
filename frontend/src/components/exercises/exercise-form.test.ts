@@ -1,7 +1,3 @@
-/*
- * The editor's conversions and rules (exercise-form.ts), without React: from
- * the form to the API, from an exercise to the form, and the schema's messages.
- */
 import { describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
 import { testExercise } from '@/test/exercise-helpers'
@@ -76,7 +72,6 @@ describe('exerciseFormSchema', () => {
     const result = exerciseFormSchema(i18n.t).safeParse({ ...emptyFormValues(), youtube_url: 'https://vimeo.com/1' })
 
     expect(result.success).toBe(false)
-    // The message of each failed field: field name → message
     const messages = Object.fromEntries((result.error?.issues ?? []).map(issue => [issue.path[0], issue.message]))
     expect(messages).toEqual({
       name: 'Write a name.',

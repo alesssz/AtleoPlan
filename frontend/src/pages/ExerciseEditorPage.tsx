@@ -1,10 +1,8 @@
 /*
  * The exercise editor, for a new exercise and for one of the user's own
- * (others are refused before trying: the backend would answer 403). `?name=`
- * prefills the name, as the library's "Create «…»" does. On an existing
- * exercise the photos are managed under the form, one change at a time.
- * After saving, the exercise's page replaces the editor in the history, so
- * Back does not reopen the form.
+ * (others are refused before trying: the backend would answer 403). After
+ * saving, the exercise's page replaces the editor in the history, so Back
+ * does not reopen the form.
  */
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
@@ -94,8 +92,6 @@ function EditExercise({ id }: EditExerciseProps) {
         submitLabel={t('exercises.editor.save')}
         cancelTo={`/exercises/${id}`}
       />
-      {/* The photos, under the form and apart from it: each change is sent
-          at once, not with Save */}
       <div className="mt-8">
         <ExercisePhotoManager exercise={exercise.data} />
       </div>

@@ -1,11 +1,3 @@
-/*
- * The photos of a personal exercise on its edit page (ExercisePhotoManager),
- * and Duplicate as mine on a public exercise's page.
- *
- * Fixtures: fakeApi for the JSON requests, fakeUploads for the uploads,
- * which go through XMLHttpRequest; a fake server that remembers the photos,
- * so the exercise read again after a change shows them, as the real one does.
- */
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -15,29 +7,23 @@ import { fakeUploads, fixedLists, testExercise } from '@/test/exercise-helpers'
 import { ExerciseDetailPage } from './ExerciseDetailPage'
 import { ExerciseEditorPage } from './ExerciseEditorPage'
 
-/** The pages tested, and a stand-in for the list. */
 const routes = [
   { path: 'exercises', element: <p>the list</p> },
   { path: 'exercises/:id', element: <ExerciseDetailPage /> },
   { path: 'exercises/:id/edit', element: <ExerciseEditorPage /> },
 ]
 
-/**
- * A photo as the API sends it.
- */
 function photo(id: number): ExercisePhoto {
   return { id, url: `/storage/${id}/conversions/photo-large.webp`, thumb_url: `/storage/${id}/conversions/photo-thumb.webp` }
 }
 
 /**
- * A fake server for Ann's exercise 7, whose photos change with the requests.
- * @param start the photos it has at first
- * @returns the photos now, and the fake fetch
+ * A fake server for exercise 7 that remembers its photos, so the exercise read
+ * again after a change shows them, as the real one does. Uploads go through
+ * XMLHttpRequest: fakeUploads, not fakeApi.
  */
 function exerciseServer(start: ExercisePhoto[]) {
-  // The server's state: the photos, in order
   const state = { photos: [...start] }
-  // The fake fetch, whose answers read the state
   const fake = fakeApi({
     ...fixedLists,
     'GET /api/exercises/7': () => ({ status: 200, body: { data: testExercise({ id: 7, is_mine: true, photos: state.photos }) } }),
@@ -48,7 +34,6 @@ function exerciseServer(start: ExercisePhoto[]) {
 
 describe('the photos of my exercise', () => {
   it('uploads a photo with its bar, then shows it as the cover', async () => {
-    // Ann's exercise, with no photos yet
     const { state } = exerciseServer([])
     // Each upload adds photo 21 to the server, and answers with it
     const sent = fakeUploads(() => {
@@ -56,14 +41,11 @@ describe('the photos of my exercise', () => {
       return { status: 201, body: { data: photo(21) } }
     })
     renderRoutes(routes, '/exercises/7/edit')
-    // A user that types and clicks, and picks files
     const user = userEvent.setup()
 
-    // The file input, found by its label, the drop zone's text
     const input = await screen.findByLabelText(/Add photos/)
     await user.upload(input, new File(['jpeg bytes'], 'IMG_1.jpg', { type: 'image/jpeg' }))
 
-    // The new photo, the first one: the cover
     expect(await screen.findByText('Cover')).toBeInTheDocument()
     expect(sent).toHaveLength(1)
     expect(sent[0]?.path).toBe('/api/exercises/7/photos')
@@ -72,13 +54,11 @@ describe('the photos of my exercise', () => {
 
   it('refuses a HEIC photo and one over 10 MB before sending them', async () => {
     exerciseServer([])
-    // Uploads that would be accepted, recorded in `sent`
     const sent = fakeUploads({ status: 201, body: { data: photo(21) } })
     renderRoutes(routes, '/exercises/7/edit')
     // applyAccept: false lets the test pick a file the input's `accept` would hide
     const user = userEvent.setup({ applyAccept: false })
 
-    // The file input, found by its label
     const input = await screen.findByLabelText(/Add photos/)
     await user.upload(input, new File(['x'], 'IMG_2.heic', { type: 'image/heic' }))
     expect(await screen.findByText('«IMG_2.heic» is not a JPEG, PNG or WebP photo.')).toBeInTheDocument()
@@ -93,7 +73,6 @@ describe('the photos of my exercise', () => {
   })
 
   it('shows the server\'s reason when an upload fails, and tries again', async () => {
-    // Ann's exercise, with no photos yet
     const { state } = exerciseServer([])
     // The first upload is refused, the second accepted
     let calls = 0
@@ -104,7 +83,6 @@ describe('the photos of my exercise', () => {
       return { status: 201, body: { data: photo(22) } }
     })
     renderRoutes(routes, '/exercises/7/edit')
-    // A user that clicks and picks files, as a person would
     const user = userEvent.setup()
 
     await user.upload(await screen.findByLabelText(/Add photos/), new File(['x'], 'odd.jpg', { type: 'image/jpeg' }))
@@ -116,34 +94,26 @@ describe('the photos of my exercise', () => {
   })
 
   it('moves a photo earlier, sending the new order', async () => {
-    // Ann's exercise with two photos
     const { fake } = exerciseServer([photo(11), photo(12)])
     renderRoutes(routes, '/exercises/7/edit')
-    // A user that clicks and picks files, as a person would
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Move photo 2 earlier' }))
 
-    // The PUT's body: photo 12 first
     await waitFor(() => {
-      // The PUT sent to the photos' address
       const call = fake.mock.calls.find(([path, init]) => path === '/api/exercises/7/photos' && init?.method === 'PUT')
       expect(JSON.parse(String(call?.[1]?.body))).toEqual({ ids: [12, 11] })
     })
-    // The first photo cannot move earlier, the last cannot move later
     expect(screen.getByRole('button', { name: 'Move photo 1 earlier' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Move photo 2 later' })).toBeDisabled()
   })
 
   it('removes a photo after asking', async () => {
-    // Ann's exercise with one photo
     const { state, fake } = exerciseServer([photo(11)])
     renderRoutes(routes, '/exercises/7/edit')
-    // A user that clicks and picks files, as a person would
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Remove photo 1' }))
-    // The dialog asks first
     const dialog = await screen.findByRole('alertdialog')
     // The server forgets the photo, as the DELETE does (answered 204 by
     // fakeApi, which has no entry for it)
@@ -172,9 +142,7 @@ describe('Duplicate as mine', () => {
       'POST /api/exercises/12/duplicate': { status: 201, body: { data: testExercise({ id: 99, is_mine: true }) } },
       'GET /api/exercises/99': { status: 200, body: { data: testExercise({ id: 99, is_mine: true }) } },
     })
-    // The router, to read the address the app ends on
     const { router } = renderRoutes(routes, '/exercises/12')
-    // A user that clicks and picks files, as a person would
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Duplicate as mine' }))

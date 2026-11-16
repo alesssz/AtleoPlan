@@ -1,20 +1,9 @@
 #!/usr/bin/env node
 /**
- * Writes the "Contents" list at the top of every Markdown document, built from
- * its headings. Run with `make toc` after adding, renaming or removing a
- * heading; `make check` runs it with --check and fails if a list is out of
- * date.
- *
- * Which files: every .md under docs/ with at least two "##" headings; not the
- * README, the project's front page. Which headings: "##" and "###", nested;
- * headings inside code blocks (```) are skipped, since a "#" there is a shell
- * comment.
- *
- * Where the list goes: just before the first "##" heading, as a "## Contents"
- * section. If the document has a "---" line right before that heading, the
- * list goes before it, so the line still separates the introduction from the
- * sections. Running it again replaces the list it wrote, so it can run any
- * number of times.
+ * Writes a "## Contents" list of the "##" and "###" headings into every .md
+ * under docs/ with at least two "##" headings. Headings inside code blocks are
+ * skipped. The list goes before the first "##" heading, or before the "---"
+ * line right above it, and replaces the list written by an earlier run.
  *
  * Usage: node scripts/docs-toc.mjs [--check]
  * Exit code 1 with --check when a list differs from what it would write.
@@ -23,17 +12,14 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** The repository root (this file is in scripts/). */
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /** The title of the section this script writes, and owns. */
 const TITLE = '## Contents'
-/** True with --check: compare only, write nothing. */
 const CHECK_ONLY = process.argv.includes('--check')
 
 /**
- * Every .md file in a folder and its subfolders.
- * @param {string} dir absolute path of the folder
- * @returns {string[]} absolute paths
+ * @param {string} dir absolute path
+ * @returns {string[]} absolute paths of every .md below it
  */
 function markdownFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -120,17 +106,13 @@ function withContents(source) {
   return [...lines.slice(0, at), ...block, ...lines.slice(at)].join('\n')
 }
 
-/** The documents to handle. */
 const files = markdownFiles(join(ROOT, 'docs'))
-/** The files whose list is (or was) out of date. */
 const outdated = []
 
 for (const file of files) {
   const raw = readFileSync(file, 'utf8')
-  // On Windows, Git checks files out with CRLF line endings (core.autocrlf).
-  // Split on "\n" alone, every line would keep a "\r", no heading would
-  // match, and the list would silently never change. So the text is read
-  // with "\n" only, and written back with the endings it had
+  // A CRLF checkout (core.autocrlf on Windows) would leave a "\r" on every
+  // line and no heading would match: read with "\n", write back as found
   const eol = raw.includes('\r\n') ? '\r\n' : '\n'
   const source = raw.replace(/\r\n/g, '\n')
   const updated = withContents(source)

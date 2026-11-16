@@ -1,7 +1,3 @@
-/*
- * The plan list: the cards, the two views kept in the address, and the empty
- * and error states. The API is fakeApi's table (src/test/auth-helpers.tsx).
- */
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -18,9 +14,7 @@ const routes = [
 /** A plan file, as a plan's Export saves it: two days, three exercises in all. */
 const planFile = { format: 'atleoplan.plan', version: 1, plan: { name: 'Calisthenics', days: [{ name: 'Day A', items: [{}, {}] }, { name: 'Day B', items: [{}] }] }, exercises: [] }
 
-/**
- * The file input of Import plan: hidden, so not found by role.
- */
+/** The file input of Import plan: hidden, so not found by role. */
 function fileInput(): HTMLInputElement {
   return document.querySelector<HTMLInputElement>('input[type=file]')!
 }
@@ -39,13 +33,11 @@ describe('PlansPage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Import a plan' })
     expect(within(dialog).getByText(/its name ends in \.atleoplan\.json/)).toBeInTheDocument()
 
-    // upload(): what choosing a file in the browser's picker does. The
-    // preview, and nothing sent yet
+    // The preview, and nothing sent yet
     await user.upload(fileInput(), new File([JSON.stringify(planFile)], 'calisthenics.atleoplan.json', { type: 'application/json' }))
     expect(await within(dialog).findByText('Calisthenics')).toBeInTheDocument()
     expect(within(dialog).getByText('2 days · 3 exercises')).toBeInTheDocument()
     expect(within(dialog).getByText('calisthenics.atleoplan.json')).toBeInTheDocument()
-    // Nothing sent yet
     expect(fake.mock.calls.some(([path]) => path === '/api/plans/import')).toBe(false)
 
     // Import: sent as it is, then the new plan opens
@@ -65,12 +57,12 @@ describe('PlansPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Import plan' }))
     const dialog = await screen.findByRole('dialog', { name: 'Import a plan' })
 
-    // Not JSON, then another app's JSON: said at once, nothing sent. A. json
-    // name, or upload() would refuse it as the browser's picker does, by the
-    // input's `accept`
+    // Not JSON, then another app's JSON: said at once, nothing sent. Both
+    // named .json, or upload() would refuse them by the input's `accept`, as
+    // the browser's picker does
     await user.upload(fileInput(), new File(['day;exercise;sets'], 'plan.json', { type: 'application/json' }))
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('it is not even a JSON file')
-    await user.upload(fileInput(), new File([JSON.stringify({ ...planFile, format: 'chronovault.export' })], 'other.json', { type: 'application/json' }))
+    await user.upload(fileInput(), new File([JSON.stringify({ ...planFile, format: 'other-app.export' })], 'other.json', { type: 'application/json' }))
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('This file is not a plan exported from AtleoPlan.')
     expect(fake.mock.calls.some(([path]) => path === '/api/plans/import')).toBe(false)
 

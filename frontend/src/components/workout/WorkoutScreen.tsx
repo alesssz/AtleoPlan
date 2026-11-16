@@ -1,13 +1,8 @@
 /*
- * Workout mode, full screen: one exercise at a time with its sets, the rest
- * timer, Previous and Next, and the panels opened from it (stepper, exercise
- * menu, How to do it, stopwatch).
- *
- * The workout is written to the phone after every change (session-storage.ts),
- * so closing the app loses nothing and ✕ only pauses. Finishing queues the
- * workout, tries to send it at once (pending-sessions.ts) and opens the
- * summary. What was added by hand can be removed again, and only that: the
- * plan's exercises and sets stay, to be skipped or left unticked.
+ * Workout mode. The session is stored on the device after every change, so
+ * closing the app loses nothing and ✕ only pauses; nothing reaches the server
+ * before Finish. Only what was added by hand can be removed: the plan's
+ * exercises and sets are skipped or left unticked instead.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Dumbbell, Info, Link2, ListPlus, Plus, X } from 'lucide-react'
@@ -39,10 +34,7 @@ import { UpNextCard } from './UpNextCard'
 import { FALLBACK_REST_SECONDS } from './useStartWorkout'
 import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, canRemoveExercise, canRemoveSet, findSet, hasWorkLeft, isForTime, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, upNext, workoutReducer, type ActiveSession, type SetField, type WorkoutExercise } from './workout-session'
 
-/**
- * Add set and Add exercises are standard outline buttons, as Previous and Next,
- * with one touch: a lime ＋, the signal that something can be added.
- */
+// Add buttons are outlined like Previous and Next, with a lime ＋
 const ADD_ICON = '[&_svg]:text-primary'
 
 interface WorkoutScreenProps {
@@ -57,7 +49,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const unit = user?.weight_unit ?? 'kg'
   const [session, dispatch] = useReducer(workoutReducer, initial)
   const now = useNow(1000)
-  // Shown for a few seconds when a rest ends, and read out (aria-live)
+  // Announced through aria-live when a rest ends
   const [announce, setAnnounce] = useState('')
   const [finishing, setFinishing] = useState(false)
   // Kept apart from `open`, so the panel keeps its content while it slides away
@@ -77,8 +69,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
     storeActiveSession(session)
   }, [session])
 
-  // A timer for the moment the rest ends: the signal, a message read out,
-  // and the rest cleared. A new rest (or ±15 s) replaces it
+  // Fires when the rest ends; a new rest or an adjustment replaces it
   useEffect(() => {
     if (session.rest === null) return
     const delay = Math.max(0, Date.parse(session.rest.ends_at) - Date.now())
@@ -98,70 +89,52 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const cover = item?.exercise.photos[0]
   const superset = supersetOf(session, index)
   const forTime = item ? isForTime(item) : false
-  // W W 1 2 3: warm-ups counted apart
+  // W W 1 2 3: warm-ups numbered apart
   const numbers = setNumbers(item?.sets ?? [])
   const count = countSets(session)
   const finishProps = { count, disabled: finishing, onFinish: () => void finish(), onDiscard: discard }
-  // Time to finish: the last exercise, or nothing left to tick. The bottom bar
-  // then offers Finish workout instead of Next. Never with no exercise at all:
-  // a free workout just started has nothing to finish In a superset, where to
-  // go on: its next exercise with a set left (supersetNext); null on an
-  // exercise on its own, or a superset done. The bottom bar then offers it,
-  // "Next: Lateral Raise": the screen never moves by itself after a tick
+  // In a superset, its next exercise with a set left; null outside a superset
+  // or when it is done. The screen never moves by itself after a tick
   const supersetTarget = supersetNext(session, index)
   const supersetName = supersetTarget === null ? '' : (session.exercises[supersetTarget]?.exercise.name ?? '')
+  // Finish workout replaces Next on the last exercise or when nothing is left
+  // to tick; never with no exercise at all
   const finishTime = supersetTarget === null && total > 0 && (index >= total - 1 || allSetsDone(session))
-  // The right-hand button needs the bar's room: Finish workout, or the
-  // superset's next exercise with its name
+  // Finish workout, or the superset's next exercise by name, needs the bar's room
   const wide = finishTime || supersetTarget !== null
-  // A free workout with no exercise yet: the screen shows only how to add one
+  // A free workout before its first exercise
   const empty = total === 0
   const stepNumber = numbers[stepping.set]
   const stepName = stepNumber?.warmUp ? t('workout.warmUpName', { number: stepNumber.number }) : t('workout.setName', { number: stepNumber?.number ?? stepping.set + 1 })
-  // The stopwatch running, and its set: where it is, the exercise, the
-  // set's on-screen name. Looked up by the set's id: it may be on another
-  // exercise than the one on screen. null when none runs
+  // Looked up by set id: the running stopwatch may belong to another exercise
+  // than the one on screen
   const stopwatch = session.stopwatch ?? null
   const timed = stopwatch ? findSet(session, stopwatch.set_id) : null
   const timedItem = timed ? session.exercises[timed.exercise] : undefined
   const timedSet = timed ? timedItem?.sets[timed.set] : undefined
   const timedNumber = timed && timedItem ? setNumbers(timedItem.sets)[timed.set] : undefined
   const timedName = timedNumber?.warmUp ? t('workout.warmUpName', { number: timedNumber.number }) : t('workout.setName', { number: timedNumber?.number ?? 1 })
-  // The exercise after this one (after its superset), with sets left; null
-  // when none is (upNext). The "Up next" card under the sets names it
+  // The next exercise with sets left after this one and its superset
   const nextIndex = item ? upNext(session, index) : null
   const nextItem = nextIndex === null ? undefined : session.exercises[nextIndex]
-  // The rest bar names it too, when the rest leads there: the exercise on
-  // screen has no set left, and no exercise of its superset is waiting
+  // The rest bar names it only when the rest leads there: no set left here,
+  // and none waiting in the superset
   const restNext = item && !hasWorkLeft(item) && supersetTarget === null ? (nextItem?.exercise.name ?? null) : null
-  /**
-   * Where the running stopwatch is, from a row's point of view: on its
-   * set, on another set, or none (SetRow's `stopwatch` prop).
-   */
+  // SetRow's view of the running stopwatch: on this set, on another, or none
   const stopwatchFor = (setId: string) => (stopwatch === null ? null : stopwatch.set_id === setId ? 'this' : 'other')
-  /**
-   * What the plan asks of an exercise, "4 × 8–10 · 80 kg · 90 s"; null for
-   * one added on the way, which has no plan item.
-   */
+  /** "4 × 8–10 · 80 kg · 90 s"; null for an exercise added during the workout. */
   const planSummary = (exercise: WorkoutExercise) => (exercise.plan_item
     ? itemSummary(exercise.plan_item, { language: i18n.language, weightUnit: unit, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS, t })
     : null)
   const addOptions = { unit, language: i18n.language, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS }
 
-  /**
-   * The exercises picked in the library, added at the end with last time's
-   * sets (none offline), and the first of them opened.
-   * @param exercises the exercises ticked, in order
-   */
+  /** Appends the exercises with their last sets (none offline) and opens the first. */
   async function addExercises(exercises: Exercise[]) {
     const lastSets = await fetchLastSets(exercises.map(exercise => exercise.id)).catch(() => [])
     dispatch({ type: 'addExercises', exercises: exercises.map(exercise => exerciseFrom(exercise, lastSets, addOptions)) })
   }
 
-  /**
-   * Swap, from the exercise's menu: the exercise on screen gives its place
-   * to the one picked, with that one's sets of last time (none offline).
-   */
+  /** Replaces the exercise on screen, carrying the replacement's last sets (none offline). */
   async function swap(exercise: Exercise) {
     if (!item) return
     const lastSets = await fetchLastSets([exercise.id]).catch(() => [])
@@ -169,11 +142,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   }
 
   /**
-   * Delete workout, from the Finish dialog, and Cancel workout on an empty free
-   * workout: the workout is forgotten, and nothing is sent. Nothing needs
-   * undoing on the server: a workout reaches it only at Finish, so until then
-   * it lives on this phone alone. Then the plan's page, or Home for a free
-   * workout, as ✕ does; `replace`: Back does not return to a workout that no
+   * Forgets the workout without sending anything: a workout reaches the server
+   * only at Finish. `replace` keeps Back from returning to a workout that no
    * longer exists.
    */
   function discard() {
@@ -181,19 +151,17 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
     void navigate(session.plan_id ? `/plans/${session.plan_id}` : '/', { replace: true })
   }
 
-  /** ✕: pauses the workout, keeps it on the phone, and leaves. */
+  /** Pauses the workout, keeps it on the device, and leaves. */
   function pauseAndLeave() {
-    // The paused workout, written now: after navigate() this screen is gone
+    // Stored directly: after navigate() this screen is gone, so a dispatch would never be saved
     storeActiveSession(workoutReducer(session, { type: 'pause', now: new Date().toISOString() }))
     void navigate(session.plan_id ? `/plans/${session.plan_id}` : '/')
   }
 
-  /** Finish, confirmed: finishes, queues, tries to send, and opens the summary. */
+  /** Finishes, queues, tries to send, and opens the summary. */
   async function finish() {
     setFinishing(true)
-    // Finished, queued, sent if the network allows, kept for the summary
-    // (finish-workout.ts); then the summary. `replace`: Back does not
-    // return to a workout that is over
+    // `replace`: Back must not return to a finished workout
     const id = await finishWorkout(session, unit, queryClient)
     void navigate(`/session/${id}/summary`, { replace: true })
   }
@@ -210,18 +178,16 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
             <span className="sr-only">{`${t('workout.clock')}: `}</span>
             {clock(elapsedSeconds(session, now))}
           </p>
-          {/* Outlined: there to stop early, not the next thing to do */}
+          {/* Outlined: stopping early is not the next step */}
           {!empty && <FinishButton {...finishProps} label={t('workout.done')} variant="outline" className="px-4" />}
         </div>
       </header>
 
-      {/* Only the middle scrolls. `relative` keeps the absolutely positioned
-          sr-only "Rest over" inside it, or the page grew taller than the
-          screen */}
+      {/* Only the middle scrolls. `relative` contains the sr-only live region,
+          which otherwise made the page taller than the screen */}
       <main className="relative flex-1 overflow-y-auto py-5 sm:py-6">
         <div className={WORKOUT_COLUMN}>
-          {/* A free workout with no exercise yet: what to do, and the way
-              back for a workout started by mistake */}
+          {/* Cancel is the way out of a free workout started by mistake */}
           {empty && (
             <div className="flex flex-col items-start gap-4 py-6">
               <h2 className="font-heading text-xl font-extrabold">{t('workout.emptyTitle')}</h2>
@@ -242,14 +208,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
             </div>
           )}
 
-          {/* Where we are: a dot per exercise, each a button to jump to it,
-              and on the right of the row "＋ Add exercises" (the
-              library's picker, as in the plan editor:
-              src/components/plans/editor/ExercisePicker.tsx). The dots are
-              the workout's exercises, so adding one belongs beside them:
-              rare in a planned day, out of the way up here, yet
-              always at hand (a free workout's first exercises come from
-              the big lime button instead, above) */}
+          {/* Adding exercises sits beside the dots: rare in a planned day, so
+              out of the way, yet always at hand */}
           {!empty && (
             <nav aria-label={t('workout.exerciseOf', { number: index + 1, total })} className="mb-5">
               <div className="mb-2 flex items-center gap-3">
@@ -269,7 +229,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                     </li>
                   ))}
                 </ol>
-                {/* With its words: a ＋ alone was not understood */}
+                {/* Labelled: a ＋ alone is not understood */}
                 <ExercisePicker
                   trigger={(
                     <Button variant="outline" size="xl" className={cn('ml-auto px-4', ADD_ICON)}>
@@ -286,11 +246,9 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
 
           {item && (
             <section aria-labelledby="exercise-name">
-              {/* The exercise: photo, name, what was planned, the plan's
-                  notes, the user's own note, and its menu (⋯) on the right */}
               <div className="mb-6 flex gap-4">
-                {/* Opens "How to do it"; the ⓘ in its corner says it can be
-                    tapped. The photo is decoration: the button is named */}
+                {/* The ⓘ badge says the photo opens How to do it; the photo
+                    is decorative, the button carries the label */}
                 <button
                   type="button"
                   aria-label={t('workout.howTo.open', { name: item.exercise.name })}
@@ -306,7 +264,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   </span>
                 </button>
                 <div className="min-w-0 flex-1">
-                  {/* The larger target for the same panel, inside the heading
+                  {/* A larger target for the same panel, inside the heading
                       so the heading keeps the exercise's name */}
                   <h2 id="exercise-name" className="font-heading text-xl font-extrabold">
                     <button
@@ -320,15 +278,14 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   </h2>
                   {item.plan_item && <p className="text-sm text-muted-foreground tabular-nums">{planSummary(item)}</p>}
                   {item.plan_item?.notes && <p className="mt-1 text-sm italic">{item.plan_item.notes}</p>}
-                  {/* The note written from the menu, today */}
+                  {/* Today's note, written from the menu */}
                   {item.notes && (
                     <p className="mt-1 text-sm">
                       <span className="font-semibold">{`${t('workout.yourNote')}: `}</span>
                       {item.notes}
                     </p>
                   )}
-                  {/* In a superset: its exercises, in turn. It says why
-                      Next, at the bottom, names another exercise */}
+                  {/* Explains why Next, at the bottom, names another exercise */}
                   {superset.length > 1 && (
                     <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-primary">
                       <Link2 aria-hidden="true" className="size-4 shrink-0" />
@@ -341,13 +298,12 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   onSwap={() => setSwapOpen(true)}
                   onSkip={skipped => dispatch({ type: 'skipExercise', exercise: index, skipped })}
                   onSaveNote={notes => dispatch({ type: 'setNote', exercise: index, notes })}
-                  // Only for an exercise added by hand
+                  // Only exercises added by hand can be removed
                   onRemove={canRemoveExercise(item) ? () => dispatch({ type: 'removeExercise', exercise: index }) : undefined}
                 />
               </div>
 
-              {/* Skipped: said above the sets, with the way back. The sets
-                  stay, dimmed: ticking one takes the skip back too */}
+              {/* The sets stay, dimmed: ticking one undoes the skip */}
               {item.skipped && (
                 <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl bg-muted/50 p-3">
                   <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">{t('workout.skippedText')}</p>
@@ -378,7 +334,6 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   />
                 ))}
               </ol>
-              {/* The big stepper of the set tapped, one for the screen */}
               <SetStepper
                 open={stepperOpen}
                 onOpenChange={setStepperOpen}
@@ -400,16 +355,14 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   : undefined}
               />
               <ExercisePicker open={swapOpen} onOpenChange={setSwapOpen} replacing={item.exercise} onAdd={exercises => void (exercises[0] && swap(exercises[0]))} />
-              {/* For the set more than planned (a good day, a back-off set);
-                  it copies the last one's values */}
+              {/* Copies the last set's values */}
               <Button variant="outline" size="xl" onClick={() => dispatch({ type: 'addSet', exercise: index })} className={cn('mt-2 w-full sm:mt-3', ADD_ICON)}>
                 <Plus aria-hidden="true" />
                 {t('plans.editor.addSet')}
               </Button>
               <ExerciseInfoSheet open={infoOpen} onOpenChange={setInfoOpen} exercise={item.exercise} />
-              {/* Up next: a reminder of the exercise after this one, not a
-                  way to go there (the bottom bar is). None on the last
-                  one, where Finish workout waits below */}
+              {/* A reminder only: the bottom bar is the way there. Absent on
+                  the last exercise, where Finish workout waits */}
               {nextItem && <UpNextCard item={nextItem} summary={planSummary(nextItem)} />}
             </section>
           )}
@@ -418,11 +371,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         </div>
       </main>
 
-      {/* The stopwatch of a timed set, docked under the sets while it runs
-          (or is paused), where the rest bar goes. Last time's time as the
-          clock shows it, "1:31". Done as fast as possible, it is a race:
-          the target is a time to beat, and the reps to do are named after
-          the set */}
+      {/* Docked where the rest bar goes. In a race (as fast as possible) the
+          target is a time to beat, and the reps are named after the set */}
       {stopwatch && timedItem && timedSet && (
         <StopwatchPanel
           stopwatch={stopwatch}
@@ -437,8 +387,6 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         />
       )}
 
-      {/* The rest timer, while it runs, with the next exercise's name when
-          the rest leads to it */}
       {session.rest !== null && (
         <RestBar
           left={left}
@@ -452,15 +400,14 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
       {!empty && (
         <footer className="border-t pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className={cn(WORKOUT_COLUMN, 'flex justify-between gap-2')}>
-            {/* Outlined: lime is kept for Finish workout. On a phone, when
-                Finish workout needs the room, Previous is an arrow alone */}
+            {/* Outlined: lime is reserved for Finish workout. On a phone,
+                Previous shrinks to an arrow when the right button needs room */}
             <Button variant="outline" size="xl" className={cn('px-4', wide && 'max-sm:px-3.5')} disabled={index === 0} onClick={() => dispatch({ type: 'goTo', exercise: index - 1 })}>
               <ChevronLeft aria-hidden="true" />
               <span className={cn(wide && 'max-sm:sr-only')}>{t('workout.previous')}</span>
             </Button>
-            {/* In a superset, its next exercise by name: where the round goes
-                on. Otherwise Next, or Finish workout. Across the bar on a
-                phone, its own width from 640 px */}
+            {/* In a superset the round goes on to its next exercise, by name;
+                otherwise Next, or Finish workout */}
             {supersetTarget !== null
               ? (
                   <Button variant="outline" size="xl" className="min-w-0 flex-1 border-primary/70 px-4 sm:flex-none" onClick={() => dispatch({ type: 'goTo', exercise: supersetTarget })}>

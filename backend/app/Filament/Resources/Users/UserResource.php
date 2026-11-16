@@ -17,9 +17,8 @@ use UnitEnum;
  * The admin screen of the users, /admin/users.
  *
  * Only a list: admins do not create accounts (people sign up), edit them (each
- * user does, on Profile) or delete them (an action of its own, phase 2). What
- * an admin does here are the row actions of UsersTable, whose rules are in
- * ChangeUserAccess.
+ * user does, on Profile) or delete them. What an admin does here are the row
+ * actions of UsersTable, whose rules are in ChangeUserAccess.
  */
 class UserResource extends Resource
 {
