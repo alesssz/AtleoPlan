@@ -36,6 +36,9 @@ doctor: ## Check this computer and clone (Docker, disk, Node, npm cache, Git ide
 #   crashes and keeps restarting until the packages arrive.
 # - The key is generated only when empty: replacing it would invalidate
 #   existing sessions. grep -q prints nothing: the file holds secrets.
+# - `--wait` names the services the next steps need: on the queue worker,
+#   whose healthcheck is disabled, Compose fails with "no healthcheck
+#   configured".
 # - Muscles and equipment come right after the migrations: the app and the
 #   exercise import both need them.
 setup: ## New clone, or after a pull: Git hook, backend/.env and its key, image, packages, containers, test database, migrations, muscles and equipment
@@ -44,7 +47,8 @@ setup: ## New clone, or after a pull: Git hook, backend/.env and its key, image,
 	$(DC) build
 	$(DC) run --rm backend composer install
 	grep -q '^APP_KEY=.' backend/.env || $(DC) run --rm backend php artisan key:generate
-	$(DC) up -d --wait
+	$(DC) up -d
+	$(DC) up -d --wait backend postgres
 	$(NPM) install
 	$(MAKE) --no-print-directory test-db
 	$(ARTISAN) migrate
