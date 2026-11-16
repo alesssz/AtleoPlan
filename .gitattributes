@@ -1,5 +1,4 @@
 # Shell scripts run inside Linux containers: with CRLF, `#!/bin/sh` asks for
-# "/bin/sh\r" and the script fails before its first command. A file checked out
-# before this rule keeps its line endings until it is checked out again.
+# "/bin/sh\r" and the script fails before its first command.
 
 *.sh text eol=lf

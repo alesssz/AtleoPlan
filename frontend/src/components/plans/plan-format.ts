@@ -1,11 +1,6 @@
 /*
- * How a plan's exercises are summed up on its page: one line per exercise, such
- * as "4 × 8–10 · 80 kg · 90 s", with the warm-up sets counted apart ("+ 2
- * warm-up"), and the supersets as runs of neighbouring exercises.
- *
- * Numbers and units follow the user's language (src/lib/format.ts). A time past
- * a minute that is not whole minutes is written as a clock, "14:30", as the
- * stopwatch writes it.
+ * How a plan's exercises are summed up on its page ("4 × 8–10 · 80 kg · 90 s",
+ * warm-ups counted apart) and grouped into supersets.
  */
 import type { TFunction } from 'i18next'
 import type { LoggingType } from '@/api/exercises'
@@ -117,7 +112,7 @@ export interface SummaryOptions {
  *   when it changes from set to set; in the user's unit;
  * - the RPE, when every set asks for the same: "RPE 8";
  * - "as fast as possible", the words of the editor's switch, for an
- *   exercise done for time (`for_time`); first "for time", which said little;
+ *   exercise done for time (`for_time`);
  * - the rest, the exercise's own or the user's default: "90 s".
  *
  * @param item the exercise of the plan, with its sets
@@ -159,7 +154,7 @@ export function itemSummary(item: PlanItem, options: SummaryOptions): string {
     parts.push(t('plans.detail.rpe', { value: formatNumber(Number(rpe), language) }))
   }
 
-  // `=== true`: a plan item read before the field existed has none
+  // `=== true`: plan items stored before the field may lack it
   if (item.for_time === true) parts.push(t('plans.detail.forTime'))
 
   parts.push(formatSeconds(item.rest_seconds ?? defaultRestSeconds, language))

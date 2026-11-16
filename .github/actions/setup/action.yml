@@ -1,6 +1,4 @@
-# Shared by the frontend jobs, right after actions/checkout (a local action is
-# read from the checked-out code). Actions are pinned to a commit hash, release
-# in the comment.
+# Shared by the frontend jobs; runs after actions/checkout, which it is read from.
 name: Setup
 description: Node at the version in .nvmrc, the frontend's dependencies from the lockfile
 

@@ -1,7 +1,3 @@
-/*
- * The current moment, refreshed on an interval: workout mode's clock and rest
- * timer.
- */
 import { useEffect, useState } from 'react'
 
 export function useNow(intervalMs = 1000): Date {

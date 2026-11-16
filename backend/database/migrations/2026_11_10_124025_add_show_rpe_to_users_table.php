@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Whether the plan editor shows the RPE field. Off by default: most people
- * never set a target effort, and the field took a third of the row.
+ * never set a target effort, and the field takes a third of the row.
  */
 return new class extends Migration
 {

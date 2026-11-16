@@ -1,14 +1,8 @@
 /*
- * The set's type, chosen from a list: the button shows the set's number, or the
- * type's letter (W, D, F); a tap opens a list with every type written in full,
- * its letter and a line on what it means. Used by the plan editor
- * (EditorSet.tsx) and by workout mode (src/components/workout/SetRow.tsx).
- *
- * It replaced a button that went through the types one tap at a time: the
- * letters said nothing to someone who did not know them already.
- *
- * Radix's Select with our own trigger: shadcn's bordered field with a chevron
- * is too wide for a 48 px square.
+ * The set-type picker shared by the plan editor and workout mode. Each choice
+ * spells the type out, since the letters alone (W, D, F) mean nothing to a new
+ * user. Radix's Select with our own trigger: shadcn's bordered field with a
+ * chevron is too wide for a 48 px square.
  */
 import { useTranslation } from 'react-i18next'
 import { Select as SelectPrimitive } from 'radix-ui'

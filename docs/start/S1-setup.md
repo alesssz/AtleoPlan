@@ -1,6 +1,6 @@
 # S1. Setup
 
-How to get AtleoPlan running on a computer: what is already in place, what is needed, how the Laravel and React apps are created, the port rule, the commands for every day, useful links and known problems. The decisions behind these choices are in [D2. Decisions](../design/D2-decisions.md); how work is done is in [P1. Conventions](../project/P1-conventions.md).
+Getting AtleoPlan running locally: prerequisites, the port rule, the first start, how the two apps are configured, everyday commands, links and known problems. The decisions behind these choices are in [D2. Decisions](../design/D2-decisions.md); how work is done is in [P1. Conventions](../project/P1-conventions.md).
 
 ## Contents
 
@@ -9,8 +9,8 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 - [S1.3 Git identity](#s13-git-identity)
 - [S1.4 Ports](#s14-ports)
 - [S1.5 First start: the Docker stack](#s15-first-start-the-docker-stack)
-- [S1.6 Creating the Laravel backend](#s16-creating-the-laravel-backend)
-- [S1.7 Creating the React frontend](#s17-creating-the-react-frontend)
+- [S1.6 The backend's configuration](#s16-the-backends-configuration)
+- [S1.7 The frontend on the host](#s17-the-frontend-on-the-host)
 - [S1.8 Everyday commands](#s18-everyday-commands)
 - [S1.9 Useful links](#s19-useful-links)
 - [S1.10 Troubleshooting](#s110-troubleshooting)
@@ -27,16 +27,16 @@ How to get AtleoPlan running on a computer: what is already in place, what is ne
 
 ## S1.1 Where the project stands
 
-Both apps run locally; nothing is deployed yet ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)). What the app does today is in the [README](../../README.md); what comes next in the [backlog](../project/backlog.md).
+Both apps run locally; deployment is [OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server). What the app does is in the [README](../../README.md); what comes next in the [backlog](../project/backlog.md).
 
-The development stack ([`Dockerfile`](../../Dockerfile), [`compose.yaml`](../../compose.yaml), [`docker/php/dev.ini`](../../docker/php/dev.ini)) has four services; the React app runs on the computer ([S1.7](#s17-creating-the-react-frontend)):
+The development stack ([`Dockerfile`](../../Dockerfile), [`compose.yaml`](../../compose.yaml), [`docker/php/dev.ini`](../../docker/php/dev.ini)) has four services; the React app runs on the host ([S1.7](#s17-the-frontend-on-the-host)):
 
 | Service | What it is |
 |---|---|
-| `backend` | Laravel on FrankenPHP (PHP 8.4 inside the Caddy web server), with Composer, ffmpeg and the PHP extensions the app needs |
+| `backend` | Laravel on FrankenPHP (PHP 8.4 inside Caddy), with Composer, ffmpeg and the PHP extensions the app needs |
 | `queue` | Same image, runs the queued jobs (the photos' converted copies) |
-| `postgres` | PostgreSQL 18, data kept in the `postgres-data` volume |
-| `mailpit` | Catches every email the app sends and shows it in a web page |
+| `postgres` | PostgreSQL 18, data in the `postgres-data` volume |
+| `mailpit` | Catches every email the app sends |
 
 ---
 
@@ -44,14 +44,14 @@ The development stack ([`Dockerfile`](../../Dockerfile), [`compose.yaml`](../../
 
 | Tool | Why | Check |
 |---|---|---|
-| **Docker Desktop** | Runs PHP, Composer, Postgres and Mailpit: **no PHP or Composer needed on your computer** | `docker --version` |
-| **Node 24** with npm (the version in `.nvmrc`) | Runs the React app and Vite on your computer | `node --version` |
+| **Docker Desktop** | Runs PHP, Composer, Postgres and Mailpit: **no PHP or Composer on the host** | `docker --version` |
+| **Node 24** with npm (the version in `.nvmrc`) | Runs the React app and Vite on the host | `node --version` |
 | **Git** | | `git --version` |
-| **Make** | Runs the shortcuts of [S1.8](#s18-everyday-commands). Already on a Mac; on Windows it is a separate install, for example `choco install make` | `make --version` |
+| **Make** | Runs the shortcuts of [S1.8](#s18-everyday-commands). Preinstalled on macOS; on Windows a separate install, e.g. `choco install make` | `make --version` |
 
-**On Windows, run every command from Git Bash** (it comes with Git; in VS Code, the arrow next to the terminal's **+**). The recipes of the `Makefile` need `bash`, `grep` and `cp`: from the Command Prompt or PowerShell, `make` stops with `"grep" is not recognized`, and `cp` may not exist either. A PHP or Composer already installed on the computer is simply not used: the project's PHP is the one in the container.
+**On Windows, run every command from Git Bash.** The `Makefile`'s recipes need `bash`, `grep` and `cp`: from the Command Prompt or PowerShell, `make` stops with `"grep" is not recognized`. A PHP or Composer installed on the host is not used: the project's PHP is the container's.
 
-Git for Windows may check files out with Windows line endings (CRLF, `core.autocrlf`). It is harmless: the repository keeps LF, and the hook and every check of `make check` pass.
+Git for Windows may check files out with CRLF line endings (`core.autocrlf`). It is harmless: the repository keeps LF, and the hook and every check of `make check` pass.
 
 Docker Desktop needs free space on its virtual disk: when it is full, builds fail with misleading errors ([S1.10](#s110-troubleshooting)). `docker system df` shows the usage.
 
@@ -59,34 +59,30 @@ Docker Desktop needs free space on its virtual disk: when it is full, builds fai
 
 ## S1.3 Git identity
 
-A computer's global Git identity may be another one. In this repository every commit uses the **personal GitHub identity** (the same as Chronovault) with GitHub's **noreply address**, so no real email ever enters the history of this public repository ([P1.1](../project/P1-conventions.md#p11-git), [P1.5](../project/P1-conventions.md#p15-a-public-repository)).
-
-On a **new clone**, before the first commit:
+Every commit uses the maintainer's GitHub **noreply address**, so no real email enters the history of this public repository ([P1.1](../project/P1-conventions.md#p11-git), [P1.5](../project/P1-conventions.md#p15-a-public-repository)). A machine's global Git identity may be another one, so on a **new clone**, before the first commit:
 
 ```sh
 git config user.name "Alessandro"
 git config user.email "32982604+alesssz@users.noreply.github.com"
-git config core.hooksPath .githooks   # turns on the hook below
+git config core.hooksPath .githooks   # also done by make setup
 ```
 
-The hook [`.githooks/pre-commit`](../../.githooks/pre-commit) refuses a commit whose author or committer has any other email. Check the identity in use with `git var GIT_AUTHOR_IDENT`.
-
-On GitHub, **Settings → Emails → "Block command line pushes that expose my email"** adds a second guard on the server side.
+The hook [`.githooks/pre-commit`](../../.githooks/pre-commit) refuses a commit whose author or committer has any other email. `git var GIT_AUTHOR_IDENT` shows the identity in use. On GitHub, **Settings → Emails → "Block command line pushes that expose my email"** adds the same guard on the server side.
 
 ---
 
 ## S1.4 Ports
 
-**Rule: on your computer, each service uses its standard port + 500.** Standard ports are often taken by other projects (Chronovault adds 100); + 500 is kept for AtleoPlan. Inside the containers the standard ports stay.
+**Rule: on the host, each service uses its standard port + 500**, so it never clashes with other projects. Inside the containers the standard ports stay.
 
-| Service | Standard | On your computer | Variable to change it |
+| Service | Standard | On the host | Variable to change it |
 |---|---|---|---|
 | Laravel (API, Filament admin) | 8000 | **8500** | `APP_PORT` |
 | Postgres | 5432 | **5932** | `DB_FORWARD_PORT` |
-| Mailpit (web page) | 8025 | **8525** | `MAIL_UI_PORT` |
+| Mailpit (web UI) | 8025 | **8525** | `MAIL_UI_PORT` |
 | Vite (React dev server) | 5173 | **5673** | `server.port` in `frontend/vite.config.ts` |
 
-Mailpit's SMTP port (1025) is used by Laravel inside Docker only and is not opened on your computer. Every port is bound to `127.0.0.1`: reachable from your computer, not from the network.
+Mailpit's SMTP port (1025) is used inside Docker only. Every port is bound to `127.0.0.1`: reachable from the host, not from the network.
 
 A new service follows the same rule. To use another port once: `APP_PORT=8600 docker compose up -d`.
 
@@ -94,209 +90,75 @@ A new service follows the same rule. To use another port once: `APP_PORT=8600 do
 
 ## S1.5 First start: the Docker stack
 
-**On a new clone of the project as it is now, one command does everything:** set the Git identity ([S1.3](#s13-git-identity)), then run `make setup` and `make doctor`. In order, `make setup`:
+**On a new clone:** set the Git identity ([S1.3](#s13-git-identity)), then `make setup` and `make doctor`. In order, `make setup`:
 
 1. turns on the Git hook;
-2. creates `backend/.env` from `backend/.env.example`, if missing: without it Laravel believes it is in production and `migrate` stops to ask for confirmation;
+2. creates `backend/.env` from `backend/.env.example`, if missing: without it Laravel assumes production and `migrate` stops to ask for confirmation;
 3. builds the image;
-4. installs the Composer packages, before the stack starts: without `vendor/` the queue worker crashes and keeps restarting until they arrive. They go into the `vendor` Docker volume, which makes requests ten times faster than reading them through the folder shared with the computer, and Composer then copies them to `backend/vendor/` for the editor ([H2.10](../how-to/H2-backend.md#h210-adding-a-package));
+4. installs the Composer packages before the stack starts (without `vendor/` the queue worker crashes and restarts in a loop), into the `vendor` volume, then copied to `backend/vendor/` for the editor ([H2.10](../how-to/H2-backend.md#h210-adding-a-package));
 5. generates Laravel's key, only if it is empty: replacing it would invalidate existing sessions;
 6. starts the containers, installs the npm packages, creates the test database and runs the migrations;
-7. fills the muscles and the equipment (`make reference-data`): the fixed lists every exercise points to ([D3.4.1](../design/D3-data-model.md#d341-muscles-and-equipment)), which the app and the exercise import both need.
+7. fills the muscles and the equipment (`make reference-data`): the fixed lists every exercise points to ([D3.4.1](../design/D3-data-model.md#d341-muscles-and-equipment)), needed by the app and by the exercise import;
+8. links `public/storage`, so the web server serves the photos at `/storage/…`.
 
-It can be run again safely: what is already in place stays as it is.
+It is idempotent: the seeders write with `updateOrCreate()`, and what is already in place stays as it is.
 
-**Where the files live.** Docker Desktop runs Linux in a virtual machine, on the Mac and on Windows alike. A folder of the computer shared with a container (a *bind mount*) is seen by both at once, but every file read through it crosses from one system to the other; a Docker *named volume* sits on the virtual machine's own disk, fast, and the computer does not see it ([H2.10](../how-to/H2-backend.md#h210-adding-a-package)):
+**Where the files live:**
 
 | What | Where | Kind | Why there |
 |---|---|---|---|
-| The Laravel code, `backend/` | The computer's folder, at `/app` in the container | Bind mount | Edited in VS Code, seen at once by Laravel |
-| The Composer packages, `backend/vendor/` as the app reads them | The `vendor` volume (`atleoplan_vendor`), at `/app/vendor` | Named volume | Read a thousand at a time on every request: ten times faster than through the shared folder ([D2.10](../design/D2-decisions.md#d210-local-development)) |
-| The same packages, a copy for the editor | `backend/vendor/` on the computer, at `/vendor-host` | Bind mount | So VS Code can complete and open Laravel's classes; Composer refreshes it after every change, `make vendor` by hand |
+| The Laravel code, `backend/` | The host's folder, at `/app` in the container | Bind mount | Edited on the host, seen at once by Laravel |
+| The Composer packages, as the app reads them | The `vendor` volume (`atleoplan_vendor`), at `/app/vendor` | Named volume | Read a thousand at a time on every request: ten times faster than through the shared folder ([D2.10](../design/D2-decisions.md#d210-local-development)) |
+| The same packages, a copy for the editor | `backend/vendor/` on the host, at `/vendor-host` | Bind mount | So the editor resolves Laravel's classes; Composer refreshes it after every change, `make vendor` by hand |
 | The database | The `postgres-data` volume | Named volume | Survives `make down`; `make down-v` deletes it |
 | Composer's downloads | The `composer-cache` volume | Named volume | A package is downloaded once, even when the `vendor` volume is rebuilt |
-| The frontend, `frontend/` with its `node_modules/` | The computer only | — | Vite runs on the computer, not in Docker |
+| The frontend, `frontend/` with its `node_modules/` | The host only | — | Vite runs on the host, not in Docker |
 
 `make down-v` deletes every volume, the packages' too: `make setup` puts them back.
 
-**After a pull, on either computer,** run `make setup` again: it brings the image, the packages and the database up to date with what was pulled, so new packages and new migrations are never forgotten. `make doctor` is not enough for this: it checks that the packages are installed, not that they are the latest. Then, if the exercise library is empty (on a new database, or the first time after the library was added), run `make exercises-import`; if it is there but older than the extra exercises (no "Frog stand" in it), `make exercises-extra` adds them in seconds; if Plank is still logged as reps, `make exercises-correct` puts it right; if the library's photos have no small copies yet (their addresses end in `.jpg`, not `-thumb.webp`), `make exercises-thumbnails` makes them, in about 5 minutes.
+**After a pull**, run `make setup` again: it brings the image, the packages and the database up to date. `make doctor` checks that the packages are installed, not that they are the latest.
 
-What the last step of `make setup` prints. The seeders write with `updateOrCreate()`, so a second run changes nothing:
-
-```
-docker compose exec backend php artisan db:seed --class=MuscleSeeder
-
-   INFO  Seeding database.
-
-  Database\Seeders\MuscleSeeder ...................................... RUNNING
-  Database\Seeders\MuscleSeeder ................................... 74 ms DONE
-
-docker compose exec backend php artisan db:seed --class=EquipmentSeeder
-
-   INFO  Seeding database.
-
-  Database\Seeders\EquipmentSeeder ................................... RUNNING
-  Database\Seeders\EquipmentSeeder ................................ 58 ms DONE
-```
+**The exercise library.** On a new database, `make exercises-import` fills it ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)). A library imported by an earlier version of the import is brought up to date with `make exercises-extra` (no "Frog stand" in it), `make exercises-correct` (Plank logged as reps) and `make exercises-thumbnails` (photo addresses ending in `.jpg`, not `-thumb.webp`; about 5 minutes).
 
 **How to check:** `make psql`, then `select count(*) from muscles;` gives 17, and `select count(*) from equipment;` gives 12.
 
-**The first account.** The database starts empty: create an account at http://localhost:5673/register, after `make dev`. For an admin, which also opens the panel at http://localhost:8500/admin (or Profile → Administration in the app), run `make artisan c="db:seed"`: it creates `test@example.com`, password `password`; or make your own account an admin, a Google one included ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament), [C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
-
-The rest of this section and [S1.6](#s16-creating-the-laravel-backend) are how the project was created the first time, kept for reference. From the project folder:
-
-```sh
-docker compose build            # builds the backend image (a few minutes the first time)
-docker compose up -d postgres mailpit
-docker compose ps               # both should say "healthy"
-```
-
-The `backend` and `queue` services start only once the Laravel app exists ([S1.6](#s16-creating-the-laravel-backend)); before that they would stop at once, finding no `artisan` file.
+**The first account.** The database starts empty: register at http://localhost:5673/register, after `make dev`. For an admin, which also opens the panel at http://localhost:8500/admin (or Profile → Administration in the app), `make artisan c="db:seed"` creates `test@example.com`, password `password`; or make an existing account an admin, a Google one included ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament), [C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
 
 ---
 
-## S1.6 Creating the Laravel backend
+## S1.6 The backend's configuration
 
-How the backend is built: [C2. Backend](../concepts/C2-backend.md).
+How the backend is built: [C2. Backend](../concepts/C2-backend.md). What is set where, outside the application code:
 
-Backend commands run through the container: `docker compose run --rm backend <command>` while the stack is stopped, `docker compose exec backend <command>` once it runs; `/app` is the bind-mounted `./backend`.
-
-For `create-project`, `./backend` must be empty (or missing: Docker creates it). With today's `compose.yaml` it never is: Docker creates `backend/vendor/` as the place where the `vendor` volume is mounted, and Composer stops with `Project directory "/app/." is not empty.` To create the app again from scratch, comment out the two `vendor` lines under the `x-backend` block's `volumes:` for that one command ([H2.12](../how-to/H2-backend.md#h212-when-something-goes-wrong)).
-
-```sh
-# D1. Create the Laravel app in ./backend
-docker compose run --rm backend composer create-project laravel/laravel .
-
-# D2. Start everything: Laravel answers at http://localhost:8500
-docker compose up -d
-
-# P1. Add the API layer: Sanctum and routes/api.php
-docker compose exec backend php artisan install:api
-```
-
-The same can be done from inside the container, if preferred; it is equivalent, only longer:
-
-```sh
-docker compose run --rm backend bash      # a shell in the container, in /app
-composer create-project laravel/laravel .
-exit
-```
-
-A new Laravel app's `.env` points at SQLite: it does not matter here, because `compose.yaml` passes the Postgres settings as environment variables, and in Laravel those win over `.env`.
-
-**The packages of [D2.2](../design/D2-decisions.md#d22-stack)**, each with its own install step (check the linked page for the current version):
-
-```sh
-docker compose exec backend composer require filament/filament
-docker compose exec backend php artisan filament:install --panels     # admin panel at /admin
-docker compose exec backend composer require spatie/laravel-medialibrary \
-  spatie/laravel-query-builder spatie/laravel-translatable
-# -W: Pest needs one exact PHPUnit version, and a new app's composer.lock pins
-# another; -W lets Composer move PHPUnit (and laravel/pao) to fit
-docker compose exec backend composer require --dev pestphp/pest pestphp/pest-plugin-laravel -W
-docker compose exec backend vendor/bin/pest --init     # tests/Pest.php, tests rewritten for Pest
-```
-
-**The photo and video table** of spatie/laravel-medialibrary, published and then run (published migrations get comments like ours, [P1.2](../project/P1-conventions.md#p12-code)):
-
-```sh
-docker compose exec backend php artisan vendor:publish \
-  --provider="Spatie\MediaLibrary\MediaLibraryServiceProvider" --tag="medialibrary-migrations"
-docker compose exec backend php artisan migrate
-```
-
-**Cookie login from the React app (Sanctum SPA mode)**, so the browser at `localhost:5673` is recognised:
-
-- in `backend/bootstrap/app.php`, inside `withMiddleware`: `$middleware->statefulApi();`
-- `SANCTUM_STATEFUL_DOMAINS=localhost:5673`, set in `compose.yaml` with the other environment variables.
-
-**Signing in with Fortify** ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)):
-
-```sh
-docker compose exec backend composer require laravel/fortify
-docker compose exec backend php artisan fortify:install
-```
-
-`fortify:install` publishes `config/fortify.php`, `app/Providers/FortifyServiceProvider.php`, the actions and two migrations. Then:
-
-- in `config/fortify.php`: `prefix` to `api/auth`, `views` to `false`, `features` down to registration and password resets;
-- the migrations for two-factor and passkeys, and the actions for changing profile and password, are deleted, as their features are off;
-- `FRONTEND_URL`, for the links in emails, goes in `compose.yaml` and `.env.example`.
-
-**A separate database for the tests.** Tests run on `atleoplan_test`, in the same Postgres container, so `RefreshDatabase` never empties the development data:
-
-- `docker/postgres/init/01-test-database.sql` creates it when the Postgres volume is new; on a volume that already exists, create it once by hand: `docker compose exec postgres psql -U atleoplan -c "CREATE DATABASE atleoplan_test OWNER atleoplan;"`
-- `backend/phpunit.xml` points the tests at it. The variables set by `compose.yaml` are in `$_SERVER`, which Laravel reads first, so they are overridden with `<server>` entries as well as `<env force="true">`; `<env>` alone is not enough.
-- `tests/Feature/TestDatabaseTest.php` fails if the tests are ever on another database.
+- **Environment.** `compose.yaml` passes the development settings (database, mail, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`) as environment variables, which win over `backend/.env`. `backend/.env` holds the key and the secrets; `backend/.env.example` lists every variable with no secret.
+- **Cookie sign-in from the React app (Sanctum SPA mode):** `$middleware->statefulApi()` in `backend/bootstrap/app.php`, and `SANCTUM_STATEFUL_DOMAINS=localhost:5673` in `compose.yaml`. The browser must be on exactly that host and port.
+- **Fortify** ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)): `config/fortify.php` sets `prefix` to `api/auth`, `views` to `false`, and only the registration and password-reset features; the migrations and actions of the features that are off are not in the repository. `FRONTEND_URL` builds the links in emails.
+- **A separate database for the tests.** Tests run on `atleoplan_test`, in the same Postgres container, so `RefreshDatabase` never empties the development data:
+  - `docker/postgres/init/01-test-database.sql` creates it when the Postgres volume is new; on an older volume, `make test-db`;
+  - `backend/phpunit.xml` points the tests at it. The variables set by `compose.yaml` are in `$_SERVER`, which Laravel reads first, so they are overridden with `<server>` entries as well as `<env force="true">`; `<env>` alone is not enough;
+  - `tests/Feature/TestDatabaseTest.php` fails if the tests are ever on another database.
 
 ---
 
-## S1.7 Creating the React frontend
+## S1.7 The frontend on the host
 
-**No Docker here.** Unlike the backend, the frontend runs directly on your computer with its own Node and npm ([S1.2](#s12-prerequisites)), so the usual npm commands are used, with no `docker compose` in front. Why ([D2.2](../design/D2-decisions.md#d22-stack)):
+**No Docker here:** the frontend runs on the host with its own Node and npm ([S1.2](#s12-prerequisites)), so npm commands run in `frontend/` with no `docker compose` in front. Why ([D2.2](../design/D2-decisions.md#d22-stack)):
 
-- npm needs only Node, whose version is pinned in [`.nvmrc`](../../.nvmrc) (`nvm use` picks it up).
-- VS Code's TypeScript and ESLint read the types from `frontend/node_modules`, which must therefore be on your computer.
-- Vite reloads pages faster when it reads the files from your computer's own disk.
+- npm needs only Node, pinned in [`.nvmrc`](../../.nvmrc) (`nvm use` picks it up);
+- the editor's TypeScript and ESLint read the types from `frontend/node_modules`, which must be on the host;
+- Vite reloads faster from the host's own disk.
 
-Day to day this means two terminals: `docker compose up -d` for the backend, `npm run dev` in `frontend/` for React.
+`make start` brings up the stack, then Vite; `make up` and `make dev` do each half.
 
-`npm create vite` asks a couple of questions: the proposed answers are fine.
+**Port and proxy** ([`frontend/vite.config.ts`](../../frontend/vite.config.ts)): the dev server listens on `127.0.0.1:5673` with `strictPort` ([S1.4](#s14-ports)) and forwards `/api`, `/sanctum`, `/storage` and `/auth/` to Laravel. The browser sees a single origin, as it will in production behind Caddy ([D2.6](../design/D2-decisions.md#d26-hosting)), so Sanctum's cookies work without CORS. The Filament admin is opened directly at http://localhost:8500/admin.
 
-```sh
-# D1. Create the app in ./frontend (React + TypeScript template)
-npm create vite@latest frontend -- --template react-ts
-
-# D2. Install and start it
-cd frontend
-npm install
-npm run dev
-```
-
-**Port and proxy.** In `frontend/vite.config.ts`, the dev server moves to 5673 ([S1.4](#s14-ports)) and forwards the backend's paths to Laravel. The browser then sees a single address, as it will in production behind Caddy ([D2.6](../design/D2-decisions.md#d26-hosting)), and Sanctum's cookies work without CORS:
-
-```ts
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    // Standard port + 500 (docs/start/S1-setup.md S1.4); fail rather than pick another
-    port: 5673,
-    strictPort: true,
-    // Laravel's paths go to the backend container; everything else is React
-    proxy: {
-      '/api': 'http://localhost:8500',
-      '/sanctum': 'http://localhost:8500',
-      '/storage': 'http://localhost:8500',
-      '/auth/': 'http://localhost:8500',   // Sign in with Google
-    },
-  },
-})
-```
-
-The Filament admin is opened directly at http://localhost:8500/admin.
-
-**The base libraries,** as they were installed. `npm install` in `frontend/` restores them all on a new clone; this list is for reference only.
-
-```sh
-npm install tailwindcss @tailwindcss/vite @fontsource-variable/inter
-npx shadcn@latest init -t vite -b radix -p nova   # Radix base, Nova preset; needs the @/ alias first
-npx shadcn@latest add card select skeleton separator
-npm install react-router @tanstack/react-query i18next react-i18next i18next-browser-languagedetector
-npm install -D @tanstack/react-query-devtools vitest jsdom @testing-library/react \
-  @testing-library/jest-dom @testing-library/user-event @stylistic/eslint-plugin
-npm install react-hook-form zod @hookform/resolvers      # forms, with signing in
-npx shadcn@latest add input label
-```
-
-The others of [D2.2](../design/D2-decisions.md#d22-stack) come with the feature that needs them: dnd-kit with the plan editor (installed), vite-plugin-pwa with the offline work, Recharts with the progress charts (phase 2).
-
-How the frontend is built and how to work on it: [C1. Frontend](../concepts/C1-frontend.md).
+How the frontend is built: [C1. Frontend](../concepts/C1-frontend.md).
 
 ---
 
 ## S1.8 Everyday commands
 
-Run from the project folder. `exec` runs in the container already started (fast); `run --rm` starts a new one and removes it afterwards (works with the stack stopped).
+Run from the repository root. Backend commands use `docker compose exec backend …`, or `docker compose run --rm backend …` while the stack is stopped.
 
 **The stack**
 
@@ -323,7 +185,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Correct the logging types the import guessed wrong (Plank as time) in a library imported before the list | `make exercises-correct` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Make the small and large copies of photos added before they existed | `make exercises-thumbnails` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Example plans to look at (after the import) | `make plans-demo`: two plans for every user who has none ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
-| Add a package (it is then copied to `backend/vendor/` for the editor by itself, about 20 s on Windows) | `docker compose exec backend composer require <package>` |
+| Add a package (then copied to `backend/vendor/` for the editor) | `docker compose exec backend composer require <package>` |
 | Copy the packages to `backend/vendor/` by hand | `make vendor` ([H2.10](../how-to/H2-backend.md#h210-adding-a-package)) |
 | Interactive console | `docker compose exec backend php artisan tinker` |
 | Tests (on the `atleoplan_test` database) | `docker compose exec backend php artisan test` |
@@ -335,7 +197,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | What | Command |
 |---|---|
 | SQL console | `docker compose exec postgres psql -U atleoplan` |
-| From a GUI (TablePlus, DBeaver…) | host `localhost`, port `5932`, user, password and database `atleoplan` |
+| From a database client ([H4](../how-to/H4-database-tools.md)) | host `localhost`, port `5932`, user, password and database `atleoplan` |
 
 **Frontend** (in `frontend/`)
 
@@ -345,7 +207,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Production build | `npm run build` |
 | Tests | `npx vitest` |
 
-**Shortcuts: `make`.** The [`Makefile`](../../Makefile) wraps the commands above, so they need not be typed in full; `make help` lists them all. The most used:
+**`make`.** The [`Makefile`](../../Makefile) wraps the commands above; `make help` lists every target. The most used:
 
 | What | Command |
 |---|---|
@@ -373,7 +235,7 @@ Run from the project folder. `exec` runs in the container already started (fast)
 | Push the current branch | `make push` |
 | Merge the current branch into `main` | `make merge` ([P1.1](../project/P1-conventions.md#p11-git)) |
 
-Values go in variables (`c=`, `s=`), because Make reads anything after the target as more targets.
+Arguments go in variables (`c=`, `s=`, `f=`, `o=`): Make reads any other word after the target as another target.
 
 ---
 
@@ -383,17 +245,16 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 
 | What | Address |
 |---|---|
-| Laravel | http://localhost:8500 |
+| Laravel API | http://localhost:8500/api/health |
 | Filament admin | http://localhost:8500/admin |
 | React app | http://localhost:5673 |
 | Mailpit | http://localhost:8525 |
-| Postgres, from a database program | `127.0.0.1:5932`, database, user and password `atleoplan` ([H4](../how-to/H4-database-tools.md)) |
+| Postgres, from a database client | `127.0.0.1:5932`, database, user and password `atleoplan` ([H4](../how-to/H4-database-tools.md)) |
 
 **Documentation**
 
 | Topic | Link |
 |---|---|
-| Laravel | https://laravel.com/docs |
 | Sanctum, SPA authentication | https://laravel.com/docs/sanctum#spa-authentication |
 | Fortify | https://laravel.com/docs/fortify |
 | React Hook Form | https://react-hook-form.com |
@@ -403,12 +264,7 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | spatie/laravel-query-builder | https://spatie.be/docs/laravel-query-builder |
 | Pest | https://pestphp.com/docs |
 | FrankenPHP | https://frankenphp.dev/docs/ |
-| Docker Compose | https://docs.docker.com/compose/ |
-| React | https://react.dev |
-| Vite | https://vite.dev/guide/ |
 | TanStack Query | https://tanstack.com/query/latest/docs/framework/react/overview |
-| React Router | https://reactrouter.com |
-| Tailwind CSS | https://tailwindcss.com/docs |
 | shadcn/ui (Vite) | https://ui.shadcn.com/docs/installation/vite |
 | react-i18next | https://react.i18next.com |
 | vite-plugin-pwa | https://vite-pwa-org.netlify.app |
@@ -422,7 +278,7 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | Symptom | Cause and fix |
 |---|---|
 | A build fails in `apt-get update` with **"At least one invalid signature was encountered"** | Docker Desktop's disk is full, not a signature problem. `docker system df` shows it; `docker builder prune -af` (build cache) and `docker image prune -af` (unused images) free space without touching data. |
-| `exercises:import` fails with **`Unknown equipment "barbell"`** or **`Unknown muscle`** for every exercise | The muscles and the equipment are missing, as on a database made with `make migrate` alone. `make reference-data`, then the import again; `make exercises-import` and `make setup` now do it themselves ([S1.5](#s15-first-start-the-docker-stack)) |
+| `exercises:import` fails with **`Unknown equipment "barbell"`** or **`Unknown muscle`** for every exercise | The muscles and the equipment are missing, as on a database made with `make migrate` alone. `make reference-data`, then the import again; `make exercises-import` and `make setup` run it themselves ([S1.5](#s15-first-start-the-docker-stack)) |
 | A new screen shows an error after a pull, or a table "does not exist" | The pull brought new migrations or packages: `make setup` ([S1.5](#s15-first-start-the-docker-stack)) |
 | Every API call takes **1–2 seconds** on the local stack | Composer's packages are read through the folder shared with Docker's virtual machine. They belong in the `vendor` volume: `make setup`; `make doctor` says whether they are there ([H2.10](../how-to/H2-backend.md#h210-adding-a-package)) |
 | Every request fails with **`vendor/autoload.php: Failed to open stream`** | The `vendor` volume is empty, as after `make down-v`: `make setup` |
@@ -430,17 +286,14 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 | **"port is already allocated"** | Another project uses that port. Check with `lsof -nP -iTCP:8500 -sTCP:LISTEN` (on Windows, `netstat -ano \| grep :8500`); change it once with the variable of [S1.4](#s14-ports). |
 | `make` stops with **`"grep" is not recognized`**, or **`cp`** is not recognized | The terminal is the Command Prompt or PowerShell: on Windows, use Git Bash ([S1.2](#s12-prerequisites)). |
 | `migrate` says **"APPLICATION IN PRODUCTION"** on a new clone | `backend/.env` is missing, so Laravel assumes production. `make setup` creates it ([S1.5](#s15-first-start-the-docker-stack)). |
-| `backend` or `queue` stops at once: **"Could not open input file: artisan"** | The Laravel app does not exist yet: [S1.6](#s16-creating-the-laravel-backend). |
-| `create-project` says the **directory is not empty** | `./backend` must be empty: remove what is in it, hidden files included. |
 | `composer require` fails with **"… is locked to version … and an update of this package was not requested"** | The new package needs other versions of packages already in `composer.lock`. Add `-W` (`--with-all-dependencies`) so Composer may update them too; try first with `--dry-run` to see what would change. |
-| `queue` shows **unhealthy** | Fixed in `compose.yaml` (the image's healthcheck asks Caddy, which the worker does not run); recreate it with `docker compose up -d queue`. Whether the worker works is in `docker compose logs queue`. |
-| `make check` or `npm test` fails at once with **`ERR_REQUIRE_ESM`** ("require() of ES Module … encoding-lite.js … not supported"), 31 errors and no test run | The terminal's Node is older than the project's: Node 22 cannot `require()` an ES module, Node 24 can, and a test library depends on it. `node -v` shows it; `nvm use` in the repository's root switches to the version of `.nvmrc` (24), for that terminal; `nvm alias default 24` makes it the default for new ones. `make doctor` checks it too. Met during DATA-3 ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)). |
-| `npm install` fails with **EACCES** and "Your cache folder contains root-owned files" (macOS, Linux) | An npm command once run with `sudo` left files in `~/.npm` owned by root. Give them back to the user: `sudo chown -R $(id -u):$(id -g) ~/.npm`. Never run npm with `sudo`. |
-| Tests fail with **database "atleoplan_test" does not exist** | The Postgres volume predates the init script: `make test-db` creates it ([S1.6](#s16-creating-the-laravel-backend)). |
+| `make check` or `npm test` fails at once with **`ERR_REQUIRE_ESM`** ("require() of ES Module … encoding-lite.js … not supported") and no test runs | The terminal's Node is older than `.nvmrc`'s 24: a test library needs `require()` of an ES module, which Node 22 lacks. `nvm use` in the repository root; `nvm alias default 24` for new terminals. `make doctor` checks it. |
+| `npm install` fails with **EACCES** and "Your cache folder contains root-owned files" (macOS, Linux) | An npm command once run with `sudo` left files in `~/.npm` owned by root: `sudo chown -R $(id -u):$(id -g) ~/.npm`. Never run npm with `sudo`. |
+| Tests fail with **database "atleoplan_test" does not exist** | The Postgres volume predates the init script: `make test-db` creates it ([S1.6](#s16-the-backends-configuration)). |
 | Something odd, cause unknown | `make doctor` checks the usual suspects above and prints the fix for each. |
 | A commit is **refused by pre-commit** | The identity is not the noreply one: [S1.3](#s13-git-identity). |
 | A change to `dev.ini` or the `Dockerfile` has no effect | The image must be rebuilt: `docker compose build && docker compose up -d`. |
-| The React app gets **401 / CSRF token mismatch** | The browser is not on `localhost:5673`, or Sanctum's SPA settings are missing: [S1.6](#s16-creating-the-laravel-backend). |
+| The React app gets **401 / CSRF token mismatch** | The browser is not on `localhost:5673`, or Sanctum's SPA settings are missing: [S1.6](#s16-the-backends-configuration). |
 | **`/admin` answers 403** | The account is not an admin: [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament). |
 | **http://localhost:5673/admin** shows nothing, or the app's "page not found" | The panel is not in the React app and Vite does not forward `/admin`: it is at http://localhost:8500/admin, or Profile → Administration ([C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). |
 | The panel asks for a password, and the account was made with Google | **Continue with Google** under the panel's form. Or sign in to the app first, then open `localhost:8500/admin` with `localhost`, not `127.0.0.1`: the session cookie follows the host name ([C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). |
@@ -452,55 +305,39 @@ Values go in variables (`c=`, `s=`), because Make reads anything after the targe
 
 ## S1.11 Sign in with Google: the credentials
 
-"Continue with Google" ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)) needs an **OAuth client** created in the Google Cloud Console with the owner's Google account: the app sends people to Google with the client's id, and Google sends them back only to the addresses listed in it. Nobody else can do this part, and its two values are secrets. Done once for the project; then two lines in `backend/.env` on **each computer** (the Windows PC, the Mac).
-
-A plain Gmail account is enough. No credit card: signing in with Google is free. The console may show its menus in Italian, and Google moves them now and then: the names below are the English ones, with where they sit.
+"Continue with Google" ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)) needs an **OAuth client** in the Google Cloud Console: the app sends people to Google with the client's id, and Google sends them back only to the addresses listed in it. The client is made once, by the project's owner; each clone then needs its two values in `backend/.env`. Without them the rest of the app works, and the Google button fails with a logged warning.
 
 ### S1.11.1 The project
 
-1. https://console.cloud.google.com, signed in with the owner's account.
-2. Top left, next to the logo, the **project picker** → **New project**.
-3. Name `AtleoPlan`, the rest as it is → **Create**.
-4. Once made, choose it in the picker: every step below happens inside it.
+A Google Cloud project named `AtleoPlan` ([console.cloud.google.com](https://console.cloud.google.com), project picker → **New project**). Every step below happens inside it. No billing account is needed.
 
 ### S1.11.2 The consent screen
 
-What people see while choosing their account.
+**APIs & Services → OAuth consent screen** (the **Google Auth Platform**):
 
-1. Menu ☰ → **APIs & Services** → **OAuth consent screen**. It opens the **Google Auth Platform** → **Get started**.
-2. **App information:** App name `AtleoPlan`; User support email: the owner's Gmail.
-3. **Audience:** **External** (Internal is only for Google Workspace organisations).
-4. **Contact information:** the owner's Gmail.
-5. **Finish:** accept the policy → **Create**.
-
-**No logo.** With a logo Google asks for a brand verification first; not needed now.
-
-**Data access** stays empty: the app asks only for the basic scopes, `openid`, `email` and `profile` (name, address, photo), which need nothing added there.
+- **App name** `AtleoPlan`; support and contact email: the owner's;
+- **Audience: External** (Internal is only for Google Workspace organisations);
+- **no logo**: a logo makes Google ask for a brand verification first;
+- **Data access** stays empty: the app asks only for `openid`, `email` and `profile`, which need nothing added there.
 
 ### S1.11.3 The test users
 
-1. Google Auth Platform → **Audience** → **Test users** → **Add users**.
-2. The owner's Gmail, and any other account used for trying it.
-
-The publishing status stays **Testing**: only the accounts in this list can sign in, anyone else gets "Access blocked". Enough for development; going public is S1.11.6.
+**Audience → Test users**: the accounts allowed to sign in. The publishing status stays **Testing**, so anyone else gets "Access blocked"; publishing is S1.11.6.
 
 ### S1.11.4 The client, and its secret
 
-1. Google Auth Platform → **Clients** → **Create client**.
-2. Application type **Web application**; name `AtleoPlan dev`.
-3. **Authorized JavaScript origins:** empty. The app goes to Google through the backend, not from JavaScript.
-4. **Authorized redirect URIs** → **Add URI**, exactly:
+**Clients → Create client**, type **Web application** (`AtleoPlan dev`):
 
-   ```
-   http://localhost:5673/auth/google/callback
-   ```
+- **Authorized JavaScript origins:** empty. The app goes to Google through the backend, not from JavaScript.
+- **Authorized redirect URIs**, exactly:
 
-   `http`, not https; `localhost`, not `127.0.0.1`; port `5673`, Vite's ([S1.4](#s14-ports)); no `/` at the end. One character different and Google answers `redirect_uri_mismatch`. The same address works on both computers, and on a phone through `adb reverse` ([H3.8.2](../how-to/H3-frontend.md#h382-a-real-android-phone-over-usb)), which is `localhost:5673` for the phone too.
-5. **Create.**
+  ```
+  http://localhost:5673/auth/google/callback
+  ```
 
-A window shows the **Client ID** (ending in `.apps.googleusercontent.com`) and the **Client secret** (starting with `GOCSPX-`). **Download JSON**, or copy the secret now: for new clients Google shows it this once. Lost, it is not recovered: the client's page adds a new secret, and the old one is deleted.
+  `http`, `localhost` (not `127.0.0.1`), Vite's port `5673` ([S1.4](#s14-ports)), no final `/`; anything else is `redirect_uri_mismatch`. The same address serves every developer machine, and a phone through `adb reverse` ([H3.8.2](../how-to/H3-frontend.md#h382-a-real-android-phone-over-usb)).
 
-Keep the JSON file outside the repository (a password manager is the right place): it holds the secret.
+The **Client ID** ends in `.apps.googleusercontent.com`, the **Client secret** starts with `GOCSPX-`. Google shows a new client's secret only once: download the JSON and keep it outside the repository (a password manager). A lost secret is replaced from the client's page.
 
 ### S1.11.5 The two lines, on each computer
 
@@ -511,27 +348,20 @@ GOOGLE_CLIENT_ID=…apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-…
 ```
 
-- **Only these two.** The return address is not written here: the code builds it from `FRONTEND_URL` (`http://localhost:5673`, set in `compose.yaml`), so it cannot drift from the one given to Google.
-- **Never committed:** `backend/.gitignore` leaves `.env` out (`git check-ignore -v backend/.env` answers `backend/.gitignore:3:.env	backend/.env`). Not pasted in a chat either: the names go in `backend/.env.example` with empty values, the values only in `.env`.
-- **Then**, from the repository's root: `docker compose restart backend`.
-- **On the Mac** the same two lines in its own `backend/.env`: the same client serves both computers.
+- **Only these two.** The return address is built from `FRONTEND_URL` (set in `compose.yaml`), so it cannot drift from the one registered with Google.
+- **Never committed:** `backend/.env` is ignored; `backend/.env.example` holds the names with empty values.
+- **Then** `docker compose restart backend`.
 
-To check that both lines are there without showing them:
-
-```sh
-docker compose exec backend grep -c '^GOOGLE_CLIENT_' .env
-```
-
-`2` means both are there; `0` or `1`, one is missing (the container's working folder is the backend's, so `.env` is `backend/.env`).
+To check that both are set without printing them: `docker compose exec backend grep -c '^GOOGLE_CLIENT_' .env` answers `2`.
 
 ### S1.11.6 Later, when deploying
 
-Not now: with [OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server).
+With [OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server):
 
-1. The client's **Authorized redirect URIs** get the production address too, `https://<domain>/auth/google/callback`; the development one stays.
-2. **Branding** → **Authorized domains**: the domain.
-3. **Audience** → **Publish app**, so that anyone can sign in. With the basic scopes alone, Google asks for no review.
-4. The production server's `.env` gets the same two lines.
+1. the client's **Authorized redirect URIs** get `https://<domain>/auth/google/callback`; the development one stays;
+2. **Branding → Authorized domains**: the domain;
+3. **Audience → Publish app**, so that anyone can sign in; with the basic scopes alone, Google asks for no review;
+4. the production server's `.env` gets the same two lines.
 
 ### S1.11.7 When it does not work
 
@@ -540,9 +370,9 @@ Not now: with [OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server).
 | `Error 400: redirect_uri_mismatch` | The address the app sent is not in the client's list, character for character: `localhost` against `127.0.0.1`, a `/` at the end, https, another port. The error's details show the address sent |
 | "Access blocked: AtleoPlan has not completed the Google verification process" | The account is not among the test users (S1.11.3) |
 | `Error 401: invalid_client` | A wrong or old id or secret in `backend/.env`, or the backend not restarted after writing them |
-| `Error 401: deleted_client` | The client was deleted in the console: a new one (S1.11.4), new lines in every `.env` |
+| `Error 401: deleted_client` | The client was deleted in the console: a new one (S1.11.4), new lines in every `backend/.env` |
 
-**When the app says it,** back on its own sign-in page: "Signing in with Google didn't work" (`/login?error=failed`) means Laravel stopped before going to Google or after coming back. `make logs` says why: the two lines missing from `backend/.env`, a wrong secret (`invalid_client`), a return opened twice (`InvalidStateException`). More in [H2.11](../how-to/H2-backend.md#h211-finding-out-what-is-going-on).
+**When the app says it** ("Signing in with Google didn't work", `/login?error=failed`), Laravel stopped before going to Google or after coming back. `make logs` says why: the two lines missing from `backend/.env`, a wrong secret (`invalid_client`), a return opened twice (`InvalidStateException`). More in [H2.11](../how-to/H2-backend.md#h211-finding-out-what-is-going-on).
 
 ---
 

@@ -1,9 +1,6 @@
 /*
- * The banner of a workout left in progress on this phone, on Home and on the
- * plan's page: Resume, or Finish from here (the same question and steps as in
- * workout mode) for a workout done but never finished. Its dialog also offers
- * Delete workout; `onDiscarded` tells the page, which holds the workout in its
- * state, to drop it.
+ * The banner of a workout left in progress on this device, on Home and the
+ * plan's page: Resume, or Finish and Delete from here.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { Play } from 'lucide-react'
@@ -19,9 +16,7 @@ import { storeActiveSession } from './session-storage'
 import { countSets, type ActiveSession } from './workout-session'
 
 interface ResumeBannerProps {
-  /** The workout in progress, as kept on the phone. */
   session: ActiveSession
-  /** Extra classes, for the page's grid. */
   className?: string
   /**
    * Called once the workout is deleted from the banner: the page keeps the
@@ -37,14 +32,13 @@ export function ResumeBanner({ session, className, onDiscarded }: ResumeBannerPr
   const { data: user } = useCurrentUser()
   const [finishing, setFinishing] = useState(false)
 
-  /** Finish, confirmed: finished, queued, sent, then its summary. */
   async function finish() {
     setFinishing(true)
     const id = await finishWorkout(session, user?.weight_unit ?? 'kg', queryClient)
     void navigate(`/session/${id}/summary`)
   }
 
-  /** Delete workout, confirmed: forgotten on the phone; nothing was sent yet. */
+  /** Nothing to undo on the server: a workout is sent only at Finish. */
   function discard() {
     storeActiveSession(null)
     onDiscarded()
@@ -53,7 +47,6 @@ export function ResumeBanner({ session, className, onDiscarded }: ResumeBannerPr
   return (
     // Lime-tinted: the one thing to do before starting anything else
     <div className={cn('flex flex-wrap items-center gap-3 rounded-2xl border border-primary/50 bg-primary/10 p-4', className)}>
-      {/* A free workout has no day's name: "Free workout" instead */}
       <p className="flex-1 basis-48 font-semibold">{t('workout.inProgress', { day: session.day_name ?? t('workout.free') })}</p>
       <div className="flex flex-wrap gap-3">
         {/* Outlined: Resume is the main action; Finish asks first */}

@@ -1,7 +1,3 @@
-/*
- * The two guards (RequireAuth, RequireGuest) with the real router: who gets
- * sent where, and what happens when the server does not answer.
- */
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Outlet } from 'react-router'
@@ -11,10 +7,7 @@ import { fakeApi, renderRoutes, signedInAs, testUser, visitor } from '@/test/aut
 import { RequireAuth } from './RequireAuth'
 import { RequireGuest } from './RequireGuest'
 
-/**
- * A small route table with the same shape as src/router.tsx, with plain text in
- * place of the real pages: these tests are about the guards.
- */
+/** The shape of src/router.tsx, with placeholder pages. */
 const routes = [
   { element: <RequireGuest />, children: [{ path: 'login', element: <p>the sign-in form</p> }] },
   {
@@ -78,7 +71,6 @@ describe('RequireAuth', () => {
     await screen.findByText('the plans')
 
     expect(i18n.resolvedLanguage).toBe('de')
-    // The dark class is what the dark theme is (src/theme/theme.ts)
     expect(document.documentElement).not.toHaveClass('dark')
   })
 })

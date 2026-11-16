@@ -30,7 +30,6 @@ uses(RefreshDatabase::class);
  */
 const TINY_JPEG = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
 
-// The fixed lists the import points to, and a fake media disk
 beforeEach(function () {
     $this->seed([MuscleSeeder::class, EquipmentSeeder::class]);
     Storage::fake('public');
@@ -69,7 +68,6 @@ function sourceExercise(array $changes = []): array
  */
 function writeDataset(array $exercises): string
 {
-    // A folder of its own in the system's temporary directory, emptied first
     $path = sys_get_temp_dir().'/atleoplan-free-exercise-db';
     File::deleteDirectory($path);
     File::ensureDirectoryExists($path.'/dist');
@@ -105,7 +103,6 @@ it('imports an exercise with its texts, equipment, muscles and photos', function
         ->and($exercise->logging_type)->toBe(LoggingType::WeightReps)
         ->and($exercise->machine_translated)->toBe([]);
 
-    // muscle slug => role
     $roles = $exercise->muscles->mapWithKeys(fn (Muscle $m) => [$m->slug => $m->pivot->role])->all();
     expect($roles)->toEqualCanonicalizing([
         'chest' => MuscleRole::Primary,
@@ -235,7 +232,6 @@ it('imports the whole dataset and prints a summary', function () {
 
     expect(Exercise::count())->toBe(2);
 
-    // A second run creates nothing
     $this->artisan('exercises:import', ['--path' => $path])
         ->expectsOutputToContain('Unchanged: 2')
         ->expectsOutputToContain('Photos added: 0')

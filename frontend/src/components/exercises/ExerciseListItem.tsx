@@ -1,7 +1,3 @@
-/*
- * One row of the exercise library: the cover photo, the name, the main muscle
- * and, for the user's own exercises, the Mine badge.
- */
 import { Dumbbell } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -9,13 +5,11 @@ import type { Exercise } from '@/api/exercises'
 import { Badge } from '@/components/ui/badge'
 
 interface ExerciseListItemProps {
-  /** The exercise to show, as the list's API sends it. */
   exercise: Exercise
 }
 
 export function ExerciseListItem({ exercise }: ExerciseListItemProps) {
   const { t } = useTranslation()
-  // The 400 px copy, not the full photo
   const cover = exercise.photos[0]
   // The API sends the primary muscles first
   const mainMuscle = exercise.muscles.find(muscle => muscle.role === 'primary')

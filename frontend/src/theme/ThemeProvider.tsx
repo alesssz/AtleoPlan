@@ -1,6 +1,3 @@
-/*
- * Holds, applies and saves the theme.
- */
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { applyTheme, readStoredTheme, storeTheme, watchSystemTheme, type Theme } from './theme'
 import { ThemeContext } from './ThemeContext'

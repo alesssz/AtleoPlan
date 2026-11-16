@@ -1,11 +1,7 @@
 /*
- * Import plan: a file saved by a plan's Export, here or on another server,
- * becomes a new plan, whose page then says which exercises had to be created.
- *
- * A window in three steps, so nothing is sent by surprise: what file is
- * expected; the browser's picker, the file read and checked in the browser
- * (plan-file.ts: too big, not JSON, not a plan, a newer version); the preview,
- * and Import. The backend checks every field again (ImportPlanRequest).
+ * Imports a file saved by a plan's Export as a new plan. The file is read and
+ * previewed in the browser first, so nothing is sent by surprise; the backend
+ * checks every field again (ImportPlanRequest).
  */
 import { FileJson, Upload } from 'lucide-react'
 import { useRef, useState, type ChangeEvent } from 'react'
@@ -103,7 +99,6 @@ export function ImportPlanButton() {
       </DialogTrigger>
 
       <DialogContent closeLabel={t('common.close')} className="flex flex-col gap-4 sm:max-w-lg">
-        {/* Step 1: what file is expected, and what happens */}
         <DialogHeader>
           <DialogTitle className="font-heading text-xl font-extrabold">{t('plans.import.title')}</DialogTitle>
           <DialogDescription>{t('plans.import.description')}</DialogDescription>
@@ -111,7 +106,6 @@ export function ImportPlanButton() {
 
         <input ref={input} type="file" accept=".json,application/json" className="hidden" onChange={event => void choose(event)} />
 
-        {/* Step 3: the preview of the file chosen and read */}
         {chosen && (
           <div className="flex items-start gap-3 rounded-2xl border bg-muted/40 p-4">
             <FileJson aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />

@@ -50,11 +50,11 @@ const REMOTE = 'origin'
 const assumeYes = process.argv.includes('--yes') || process.argv.includes('-y')
 /** `--no-checks`: skip the local checks (CI still runs them before the merge). */
 const skipChecks = process.argv.includes('--no-checks')
-/** The checks run before opening the pull request; the tests replace them (their throwaway repositories hold no project). */
+/** The checks run before opening the pull request; overridable to test the script in a throwaway repository. */
 const CHECK_COMMAND = process.env.MERGE_MAIN_CHECK_COMMAND || 'make check'
 /**
- * The gh command, as program and leading arguments. The tests put a stand-in
- * for GitHub here (a JSON array such as ["node", "fake-gh.mjs"]).
+ * The gh command, as program and leading arguments; overridable with a JSON
+ * array to test the script against a stand-in for GitHub.
  */
 const GH = process.env.MERGE_MAIN_GH ? JSON.parse(process.env.MERGE_MAIN_GH) : ['gh']
 /** Time between two looks at the pull request while waiting (CI takes about ten minutes). */
@@ -112,10 +112,8 @@ function reason(error) {
 async function confirm(question) {
   if (assumeYes) return true
   if (!process.stdin.isTTY) throw new Stop('No terminal to ask for confirmation: run it again with yes=1.')
-  // A prompt on this terminal.
   const rl = createInterface({ input: process.stdin, output: process.stdout })
   try {
-    // What the user typed.
     const answer = await rl.question(question)
     return /^y(es)?$/i.test(answer.trim())
   }
@@ -129,7 +127,6 @@ async function confirm(question) {
  * first, else the most recently merged or closed. Null when there is none.
  */
 function findPullRequest(branch) {
-  // Every pull request from this branch into main, newest first.
   const found = ghJson('pr', 'list', '--head', branch, '--base', MAIN, '--state', 'all', '--json', 'number,state,url,headRefOid', '--limit', '10')
   return found.find(pr => pr.state === 'OPEN') ?? found[0] ?? null
 }
@@ -179,7 +176,7 @@ async function waitAndMerge(pr, sha, mergeFlags, authorEmail) {
   console.log(`▸ Waiting for CI (${pr.url}/checks). Ctrl+C stops waiting; with auto-merge on, GitHub still merges.`)
 
   for (;;) {
-    // The pull request now; a failed look is retried, a few times in a row at most.
+    // A failed look is retried, a few times in a row at most
     let now
     try {
       now = viewPullRequest(pr.number)
@@ -200,7 +197,7 @@ async function waitAndMerge(pr, sha, mergeFlags, authorEmail) {
     // Someone pushed to the branch meanwhile: what was checked here is no longer what would be merged.
     if (now.headRefOid !== sha) throw new Stop(`The branch changed on GitHub while waiting. Pull, check, then run this again.`)
 
-    // Where the checks stand, printed when it changed.
+    // Printed only when it changed
     const checks = summarizeChecks(now.statusCheckRollup)
     const line = describeChecks(checks)
     if (line !== lastLine) console.log(`  CI: ${line}`)
@@ -248,7 +245,6 @@ async function waitAndMerge(pr, sha, mergeFlags, authorEmail) {
 
 /** The whole procedure; resolves with the exit code, throws Stop for expected refusals. */
 async function run() {
-  // The branch checked out (empty when HEAD is detached).
   const branch = git('branch', '--show-current')
   if (!branch) throw new Stop('You are not on a branch (detached HEAD): switch to the branch to merge.')
   if (branch === MAIN) {
@@ -263,7 +259,7 @@ async function run() {
   catch {
     throw new Stop('gh, GitHub\'s command line, is missing or not signed in: install it (brew install gh, or winget install GitHub.cli), then run "gh auth login" with your personal account, answering No to "Authenticate Git with your GitHub credentials?".')
   }
-  // The email the merge commit will carry: the clone's own identity.
+  // The merge commit carries the clone's own identity
   const email = gitSucceeds('config', 'user.email') ? git('config', 'user.email') : ''
   if (!email.endsWith('@users.noreply.github.com')) {
     throw new Stop(`This clone's commit email (${email || 'none'}) is not your GitHub noreply address, and the merge commit would carry it into a public repository. Set it first: git config user.email "<id>+<user>@users.noreply.github.com"`)
@@ -277,11 +273,9 @@ async function run() {
   console.log(`▸ Fetching ${REMOTE}…`)
   if (!gitVisible('fetch', '--prune', REMOTE)) throw new Stop(`Could not reach ${REMOTE}: check your connection.`)
 
-  // The branch as GitHub has it (after the fetch above).
   const upstream = `${REMOTE}/${branch}`
   if (!gitSucceeds('rev-parse', '--verify', '--quiet', `refs/remotes/${upstream}`)) {
-    // Gone from GitHub: deleted after its pull request was merged, while this script waited elsewhere or not at all.
-    // The branch's latest pull request, merged if that is what happened.
+    // Gone from GitHub: possibly deleted after its pull request was merged
     const merged = findPullRequest(branch)
     if (merged?.state === 'MERGED' && merged.headRefOid === git('rev-parse', branch)) {
       console.log(`✔ "${branch}" was already merged (${merged.url}). Cleaning up.`)
@@ -290,12 +284,10 @@ async function run() {
     }
     throw new Stop(`"${branch}" has never been pushed. Push it first: git push -u ${REMOTE} ${branch}`)
   }
-  // Local commits the remote does not have yet.
   const unpushed = countCommits(`${upstream}..${branch}`)
   if (unpushed > 0) {
     throw new Stop(`"${branch}" has ${unpushed} local commit(s) not pushed yet. Push them first: git push`)
   }
-  // Remote commits this checkout does not have yet.
   const unpulled = countCommits(`${branch}..${upstream}`)
   if (unpulled > 0) {
     throw new Stop(`${REMOTE} has ${unpulled} commit(s) on "${branch}" that you don't have. Pull them first: git pull`)
@@ -304,7 +296,6 @@ async function run() {
     throw new Stop(`Your local ${MAIN} has commits that are not on ${REMOTE}: push or remove them before merging.`)
   }
 
-  // The commit that will be merged, and the branch's latest pull request.
   const sha = git('rev-parse', branch)
   let pr = findPullRequest(branch)
   // Merged on GitHub already (auto-merge finished after Ctrl+C): only the clean-up is left.
@@ -314,7 +305,6 @@ async function run() {
     return 0
   }
 
-  // The subjects of the branch's own commits, oldest first, for the messages.
   const subjects = git('log', '--reverse', '--no-merges', '--format=%s', `${REMOTE}/${MAIN}..${branch}`)
     .split('\n')
     .filter(Boolean)
@@ -328,13 +318,13 @@ async function run() {
   }
 
   // --- Checks --------------------------------------------------------------------------
-  // On the branch as pushed (the working tree is clean): the quick ones, before waiting for CI.
+  // On the branch as pushed (the working tree is clean), minutes before CI would say the same
   if (skipChecks) {
     console.log(`▸ Checks skipped (checks=0); CI still runs them.`)
   }
   else {
     console.log(`▸ Running the checks (${CHECK_COMMAND})…`)
-    // Through a shell, so the command runs as typed in Git Bash; the output is shown live.
+    // Through a shell, so the command runs as typed in Git Bash
     if (spawnSync(CHECK_COMMAND, { shell: true, stdio: 'inherit' }).status !== 0) {
       throw new Stop(`The checks failed: fix them, push, then run this again (or skip them with checks=0). Nothing was opened or merged.`)
     }
@@ -342,7 +332,6 @@ async function run() {
   }
 
   // --- Confirmation --------------------------------------------------------------------
-  // The merge commit's message, shown now and given to GitHub for the merge.
   const message = buildMergeMessage(branch, subjects)
   console.log(`\n"${branch}" → ${MAIN}: ${subjects.length} commit(s)\n`)
   console.log(message.replace(/^/gm, '    '))
@@ -358,7 +347,6 @@ async function run() {
   }
   else {
     console.log(`▸ Opening the pull request…`)
-    // What GitHub shows on the pull request's page.
     const { title, body } = buildPullRequest(branch, subjects)
     try {
       gh('pr', 'create', '--base', MAIN, '--head', branch, '--title', title, '--body', body)
@@ -370,12 +358,10 @@ async function run() {
     console.log(`  ${pr.url}`)
   }
 
-  // How GitHub merges it, now or by auto-merge: a merge commit (--no-ff) with the usual message,
+  // The same for a merge from here and for auto-merge: a merge commit with the usual message,
   // and only if the branch is still the commit checked here. The author's email is added for a
   // merge from here only (see waitAndMerge).
-  // The message's first line (the commit's subject) and the lines after it (its body).
   const [subject, ...rest] = message.split('\n')
-  // gh pr merge's options, the same for a merge from here and for auto-merge.
   const mergeFlags = [
     '--merge',
     '--subject', subject,

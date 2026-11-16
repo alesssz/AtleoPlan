@@ -1,11 +1,7 @@
 /*
- * One past workout (route `/progress/history/:id`): when, which day of which
- * plan, its four numbers, how it felt and the notes, then every exercise
- * against the last time it was done before this workout (compare.ts), with its
- * sets. **Delete workout**, with a question first.
- *
- * Read from the server (GET /api/sessions/{id}, useSession): it may come from
- * another phone. Editing a workout's sets is not here yet.
+ * One past workout (`/progress/history/:id`), read from the server since it
+ * may come from another phone; each exercise against the last time it was
+ * done before this workout.
  */
 import { ArrowLeft, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -52,8 +48,7 @@ export function HistoryDetailPage() {
   }
 
   if (workout.isError) {
-    // 404: deleted, never sent, or someone else's (the backend answers 403
-    // for that: both mean "not here" to the user)
+    // Deleted, never sent, or someone else's (403): all "not here" to the user
     const missing = workout.error instanceof ApiError && [403, 404].includes(workout.error.status)
     return (
       <div role="alert" className="flex flex-col items-start gap-4">
@@ -80,7 +75,6 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
   const { session, lastSets } = data
   const remove = useDeleteSession(session.id)
   const totals = sessionTotals(session)
-  // Each exercise against the last time it was done before this workout
   const comparisons = compareWorkout(session.exercises, lastSets)
   const started = new Date(session.started_at)
   const when = new Intl.DateTimeFormat(i18n.language, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(started)

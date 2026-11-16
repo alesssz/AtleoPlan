@@ -141,7 +141,7 @@ make composer c="require vendor/package"          # for the app
 make composer c="require --dev vendor/package"    # development and tests only
 ```
 
-- **Commit `composer.json` and `composer.lock`.** Other computers get the code with `make composer c=install` (or `make setup`) after pulling; until then Laravel stops with `Class "…" not found`.
+- **Commit `composer.json` and `composer.lock`.** Other clones get the packages with `make composer c=install` (or `make setup`) after pulling; until then Laravel stops with `Class "…" not found`.
 - **Install steps** the package's README asks for (`vendor:publish`, `…:install`) are part of the same commit; remove what they publish for features not in use.
 - **`backend/vendor/` on the computer is a copy for the editor;** the app reads the `vendor` Docker volume ([C2.4](../concepts/C2-backend.md#c24-the-life-of-a-request)). Composer refreshes the copy after every command (`make vendor` does it by hand). Never edit it.
 - **Audit:** `make audit`; review an advisory before ignoring it ([H5](H5-ci.md)).

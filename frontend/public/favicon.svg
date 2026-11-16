@@ -1,9 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- The browser tab's icon (docs/design/D1-ui.md D1.5, "Brand"): the
-       logo's mark, a heavy italic A with a tick cut out of it, lime on the
-       dark theme's background. The same drawing as
-       src/components/brand/Brand.tsx and docs/design/brand/mark-dark.svg,
-       which explains the mask: one mark everywhere -->
+  <!-- The logo's mark on the dark theme's background: the same drawing as
+       src/components/brand/Brand.tsx. The mask cuts the tick out of the A -->
   <defs>
     <mask id="cut" maskUnits="userSpaceOnUse" x="-10" y="0" width="84" height="64">
       <g transform="translate(6 0) skewX(-12)">

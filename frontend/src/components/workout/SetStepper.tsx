@@ -1,11 +1,8 @@
 /*
- * The big stepper: every field of the tapped set between a − and a + as large
- * as a thumb, the step written on them (stepper.ts); typing still works for a
- * value far away.
- *
- * Each tap changes the set at once, so there is no Cancel and Done only
- * closes. A set added by hand gets Remove this set here (canRemoveSet): the
- * row itself has no room for one more button at 360 px.
+ * The big stepper: each field of the tapped set between thumb-sized − and +,
+ * typing still possible for a value far away. Each tap changes the set at
+ * once, so there is no Cancel and Done only closes. Remove this set lives
+ * here: the row has no room for another button at 360 px.
  */
 import { Trash2 } from 'lucide-react'
 import { useRef } from 'react'
@@ -22,9 +19,7 @@ import { fieldStep, stepValue } from './stepper'
 import type { SetField, WorkoutSet } from './workout-session'
 
 interface SetStepperProps {
-  /** Whether the panel is open. */
   open: boolean
-  /** Called to close it (Done, the X, a tap outside, Escape). */
   onOpenChange: (open: boolean) => void
   /** The set; undefined while none is chosen. */
   set: WorkoutSet | undefined
@@ -32,11 +27,9 @@ interface SetStepperProps {
   name: string
   /** The exercise's name, under the title. */
   exerciseName: string
-  /** How the exercise is logged: decides the fields. */
   loggingType: LoggingType
   /** Done as fast as possible: the reps and the seconds (fieldsFor). */
   forTime: boolean
-  /** The user's weight unit. */
   unit: WeightUnit
   /** The user's weight step, as the API sends it ("2.50"). */
   weightStep: string | undefined
@@ -51,10 +44,8 @@ interface SetStepperProps {
 export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggingType, forTime, unit, weightStep, focus, onChange, onRemove }: SetStepperProps) {
   const { t, i18n } = useTranslation()
   const language = i18n.language
-  // The + of each field: the tapped one gets the focus on opening
   const plusButtons = useRef<Partial<Record<SetField, HTMLButtonElement | null>>>({})
 
-  // Last time, as in the row's Last column: "80×8", or nothing
   const lastText = set?.last ? loggedSetText(set.last, loggingType, unit, language) : null
 
   return (
@@ -74,7 +65,6 @@ export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggin
         <div className="mx-auto flex w-full max-w-md flex-col gap-5 px-5">
           <SheetHeader className="px-0 pb-0">
             <SheetTitle className="font-heading text-xl font-extrabold">{name}</SheetTitle>
-            {/* The exercise, and last time's set in this place */}
             <SheetDescription>
               {lastText ? `${exerciseName} · ${t('workout.colLast')}: ${lastText}` : exerciseName}
             </SheetDescription>
@@ -83,10 +73,6 @@ export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggin
           {set && fieldsFor(loggingType, unit, t, forTime).map(({ field, label, spoken, placeholder, inputMode }) => {
             const step = fieldStep(field, weightStep)
             const stepText = formatNumber(step, language, { maximumFractionDigits: 2 })
-            /**
-             * One tap of − or +: the field's next value, at once.
-             * @param sign -1 for −, 1 for +
-             */
             const tap = (sign: number) => onChange(field, stepValue(set[field], field, sign * step, language))
             // The title above the field. The time is typed in seconds, so
             // its title says so, "Seconds", rather than the row's "Time";
@@ -96,15 +82,12 @@ export function SetStepper({ open, onOpenChange, set, name, exerciseName, loggin
             const title = field === 'seconds' ? (shown.includes(':') ? `${spoken} · ${shown}` : spoken) : label
             return (
               <div key={field} role="group" aria-label={spoken} className="flex flex-col gap-2">
-                {/* The field's title; lime for the one tapped in the row */}
                 <p aria-hidden="true" className={cn('text-xs font-bold tracking-wider uppercase', field === focus ? 'text-primary' : 'text-muted-foreground')}>{title}</p>
                 <div className="flex items-center gap-3">
                   {/* "−" is the minus sign (U+2212), not a hyphen */}
                   <Button variant="outline" aria-label={t('workout.stepDown', { field: spoken, step: stepText })} onClick={() => tap(-1)} className="size-16 shrink-0 rounded-2xl text-lg font-bold tabular-nums">
                     {`−${stepText}`}
                   </Button>
-                  {/* The value, big, and typeable. Named as the row's field
-                      once was: "Set 1, kg" */}
                   <Input
                     aria-label={`${name}, ${spoken}`}
                     placeholder={placeholder}

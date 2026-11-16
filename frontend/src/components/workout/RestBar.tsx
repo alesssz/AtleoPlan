@@ -1,13 +1,7 @@
 /*
- * The rest timer, a bar fixed at the bottom of workout mode: the seconds left,
- * a bar that empties, and −15 s, +15 s, Skip. The time left is worked out by
- * the screen from the session's `rest.ends_at` and the current moment, so the
- * timer survives a reload: it is a moment, not a counter.
- *
- * When the rest leads to another exercise (the one on screen has no set
- * left), a line under the time names it, "Up next: Lateral Raise": the rest is
- * when the next machine is got ready, and this bar is always in sight,
- * unlike the "Up next" card at the end of a long table (UpNextCard.tsx).
+ * The rest timer, docked at the bottom of workout mode. When the rest leads to
+ * another exercise it names it: the rest is when the next machine gets ready,
+ * and this bar is always in sight, unlike the Up next card.
  */
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -15,13 +9,11 @@ import { clock } from './clock'
 import { WORKOUT_COLUMN } from './layout'
 
 interface RestBarProps {
-  /** Seconds left. */
   left: number
   /** How long the rest was meant to last, for the bar. */
   total: number
   /** Adds (positive) or removes (negative) seconds. */
   onAdjust: (seconds: number) => void
-  /** Ends the rest now. */
   onSkip: () => void
   /** The exercise the rest leads to, by name; null or missing when the sets on screen go on. */
   next?: string | null

@@ -1,12 +1,8 @@
 /*
- * The plan editor, in two steps on one draft: the plan's details and days
- * (EditorOverview), then the days as tabs with their exercises (EditorDays).
- *
- * The step is in the address (`?day=2`), so the phone's Back goes from the
- * exercises to the details and a reload stays put. The draft is one reducer
- * state (plan-draft.ts) passed down with `dispatch`; it is kept in the browser
- * at every change (draft-storage.ts), and saved as the whole plan in one
- * request.
+ * The plan editor, in two steps on one draft: the plan's details and days,
+ * then the days' exercises. The step is in the address (`?day=2`), so the
+ * phone's Back goes from the exercises to the details and a reload stays put.
+ * The draft is stored locally at every change and saved as a whole plan.
  */
 import { Save, Undo2 } from 'lucide-react'
 import { useEffect, useReducer, useState } from 'react'
@@ -29,16 +25,14 @@ import { EditorOverview } from './EditorOverview'
 const FALLBACK_REST_SECONDS = 90
 
 /**
- * The path of an error in a day's exercises, "days.2.items.0.sets.1.reps":
- * the first group, (\d+), catches the day's index. Such an error shows in
- * the second step; any other (the name, a day's name) in the first.
+ * An error in a day's exercises ("days.2.items.0.sets.1.reps"), capturing the
+ * day's index. Such an error shows in the second step; any other in the first.
  */
 const ITEM_ERROR = /^days\.(\d+)\.items\./
 
 /**
- * What the editor keeps in a history entry's `state` (the second argument of a
- * navigation): whether the second step was opened from the first, so the entry
- * before it is the first step's.
+ * The history entry's state: whether the second step was opened from the
+ * first, so the entry before it is the first step's.
  */
 interface EditorHistoryState {
   fromPlan: boolean

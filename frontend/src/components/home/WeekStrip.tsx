@@ -1,20 +1,12 @@
-/*
- * "This week" on Home: the seven days, Monday to Sunday, with today highlighted
- * and the days trained marked: a lime tint and a dot under the number, and the
- * words "workout done" for screen readers. Home works the days out from the
- * recent workouts (week-summary.ts). Day names and numbers come from Intl in
- * the user's language (src/lib/format.ts); the week itself from
- * src/lib/week.ts.
- */
+/* "This week" on Home: Monday to Sunday, today and the days trained marked. */
 import { useTranslation } from 'react-i18next'
 import { formatDayParts } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { getWeekDays, isBeforeDay, isSameDay } from '@/lib/week'
 
 interface WeekStripProps {
-  /** Passed in so tests can fix a date. */
+  /** Injectable so tests can fix a date. */
   today?: Date
-  /** The days with a workout this week; none by default. */
   trainedDays?: Date[]
 }
 
@@ -23,7 +15,6 @@ export function WeekStrip({ today = new Date(), trainedDays = [] }: WeekStripPro
   const days = getWeekDays(today)
 
   return (
-    // A list, so screen readers announce "list, 7 items"
     <ol className="grid grid-cols-7 gap-2">
       {days.map((day) => {
         const isToday = isSameDay(day, today)

@@ -1,9 +1,3 @@
-/*
- * The account's hooks, on their own. The one worth testing apart is
- * useUpdatePreferences: two changes close together once made the language jump
- * back, because the server's answer to the second carried the old value of the
- * first.
- */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -11,13 +5,10 @@ import { describe, expect, it, vi } from 'vitest'
 import { fakeApi, signedInAs, testUser, visitor } from '@/test/auth-helpers'
 import { authKeys, fetchCurrentUser, useUpdatePreferences, type User } from './auth'
 
-/**
- * A cache already holding the signed-in user, and the wrapper that provides it.
- */
+/** A cache already holding the signed-in user, and its wrapper. */
 function setUp(user: User) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   queryClient.setQueryData(authKeys.user, user)
-  // The function a React provider needs: it draws its children inside the provider
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
@@ -52,7 +43,7 @@ describe('fetchCurrentUser', () => {
 
 describe('useUpdatePreferences', () => {
   it('shows the change at once, before the server answers', async () => {
-    // The answer never arrives during this test: a Promise nobody resolves
+    // The answer never arrives
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
     document.cookie = 'XSRF-TOKEN=token'
     const { queryClient, wrapper } = setUp(testUser)
@@ -64,10 +55,9 @@ describe('useUpdatePreferences', () => {
   })
 
   it('keeps both of two changes close together, whatever the answers say', async () => {
-    // What the server has saved, updated as requests arrive. The first request
-    // is held until the test lets it go, as a slow network would
+    // What the server has saved. The language's request is held until
+    // finishFirst(), as on a slow network
     const saved = { ...testUser }
-    // Set below: lets the held request finish
     let finishFirst = () => {}
     const fake = vi.fn(async (_path: string, init?: RequestInit) => {
       if (init?.method === 'PATCH') {
@@ -85,7 +75,7 @@ describe('useUpdatePreferences', () => {
     vi.stubGlobal('fetch', fake)
     document.cookie = 'XSRF-TOKEN=token'
     const { queryClient, wrapper } = setUp(testUser)
-    // Two uses of the hook, as the two pickers in Profile
+    // As the two pickers in Profile
     const language = renderHook(() => useUpdatePreferences(), { wrapper })
     const theme = renderHook(() => useUpdatePreferences(), { wrapper })
 
@@ -97,11 +87,10 @@ describe('useUpdatePreferences', () => {
     await waitFor(() => expect(theme.result.current.isSuccess).toBe(true))
     expect(queryClient.getQueryData<User>(authKeys.user)).toMatchObject({ locale: 'it', theme: 'light' })
 
-    // The language's request finishes too, and the last one reads from the server
+    // The last change to finish reads the user again
     await act(async () => finishFirst())
     await waitFor(() => expect(language.result.current.isSuccess).toBe(true))
     expect(queryClient.getQueryData<User>(authKeys.user)).toMatchObject({ locale: 'it', theme: 'light' })
-    // The server agrees
     expect(saved).toMatchObject({ locale: 'it', theme: 'light' })
   })
 })

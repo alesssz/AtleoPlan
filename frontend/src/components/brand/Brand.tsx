@@ -1,7 +1,6 @@
 /*
- * The brand (its files in docs/design/brand/): a heavy italic A with a tick cut
- * out of it, on a lime tile, and the wordmark. The same mark is the favicon
- * (public/favicon.svg).
+ * The logo: a heavy italic A with a tick cut out of it, on a lime tile, and the
+ * wordmark. public/favicon.svg draws the same mark.
  */
 import { useId } from 'react'
 import { cn } from '@/lib/utils'

@@ -1,10 +1,7 @@
-/*
- * The entry point.
- */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-// Before any component asks for a text
+// Before any component renders, so the first render has the texts
 import './i18n'
 import { App } from './App'
 

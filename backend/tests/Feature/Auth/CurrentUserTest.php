@@ -19,7 +19,6 @@ it('answers 401 to a visitor', function () {
 });
 
 it('returns the signed-in user, without anything secret', function () {
-    // Ann, in Italian, signed in below
     $user = User::factory()->create(['name' => 'Ann', 'locale' => Locale::It]);
 
     $this->actingAs($user)->getJson('/api/user')
@@ -28,7 +27,6 @@ it('returns the signed-in user, without anything secret', function () {
         ->assertJsonPath('data.locale', 'it')
         ->assertJsonPath('data.theme', 'dark')
         ->assertJsonPath('data.is_admin', false)
-        // No admin panel link for someone who is not an admin
         ->assertJsonPath('data.admin_url', null)
         ->assertJsonPath('data.show_rpe', false)
         ->assertJsonMissingPath('data.password')
@@ -45,7 +43,6 @@ it('gives an admin the address of the admin panel', function () {
 });
 
 it('saves the theme alone, leaving the language as it is', function () {
-    // A user whose language is Italian, which must not change
     $user = User::factory()->create(['locale' => Locale::It]);
 
     $this->actingAs($user)->patchJson('/api/user/preferences', ['theme' => 'light'])
@@ -57,7 +54,6 @@ it('saves the theme alone, leaving the language as it is', function () {
 });
 
 it('saves the language', function () {
-    // A user in English
     $user = User::factory()->create();
 
     $this->actingAs($user)->patchJson('/api/user/preferences', ['locale' => 'de'])
@@ -67,7 +63,6 @@ it('saves the language', function () {
 });
 
 it('refuses values outside the lists', function () {
-    // A user in English
     $user = User::factory()->create();
 
     $this->actingAs($user)->patchJson('/api/user/preferences', ['theme' => 'pink', 'locale' => 'fr'])
@@ -76,7 +71,6 @@ it('refuses values outside the lists', function () {
 });
 
 it('ignores anything that is not a preference', function () {
-    // A plain user, not an admin
     $user = User::factory()->create();
 
     $this->actingAs($user)->patchJson('/api/user/preferences', ['theme' => 'light', 'is_admin' => true, 'email' => 'new@example.com'])
@@ -88,7 +82,6 @@ it('ignores anything that is not a preference', function () {
 });
 
 it('saves the workout preferences, one at a time', function () {
-    // A user with the default preferences
     $user = User::factory()->create();
 
     // Each request sends one, as the Profile's rows do
@@ -106,7 +99,6 @@ it('saves the workout preferences, one at a time', function () {
 });
 
 it('refuses workout preferences out of range', function () {
-    // A user with the default preferences
     $user = User::factory()->create();
 
     // A unit not in the list, a rest over 10 minutes, a step too small and
@@ -118,7 +110,6 @@ it('refuses workout preferences out of range', function () {
     $this->actingAs($user)->patchJson('/api/user/preferences', ['weight_step' => 1.125])
         ->assertJsonValidationErrors(['weight_step']);
 
-    // Nothing changed
     expect($user->fresh())
         ->weight_unit->toBe(WeightUnit::Kg)
         ->weight_step->toBe('2.50');

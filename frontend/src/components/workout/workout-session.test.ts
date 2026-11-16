@@ -1,10 +1,3 @@
-/*
- * The workout in progress (workout-session.ts), without React: starting from a
- * plan's day with last time's values, ticking sets, the rest timer, the
- * supersets, the clock with its pauses, and the body sent at the end; the
- * stopwatch with its pauses, the exercise up next, and removing what was added
- * by hand.
- */
 import { describe, expect, it } from 'vitest'
 import type { LastSets } from '@/api/sessions'
 import { testPlan } from '@/test/plan-helpers'
@@ -16,10 +9,7 @@ import { allSetsDone, canComplete, canRemoveExercise, canRemoveSet, countSets, e
 /** The moment the workout starts: 18:00 UTC. */
 const START = new Date('2026-11-09T18:00:00Z')
 
-/**
- * A moment some seconds after the start, as ISO 8601 text.
- * @param seconds the seconds after START
- */
+/** A moment `seconds` after START, as ISO 8601. */
 function at(seconds: number): string {
   return new Date(START.getTime() + seconds * 1000).toISOString()
 }
@@ -41,10 +31,7 @@ function dayA(): ActiveSession {
   return startSession(plan, plan.days[0]!, { unit: 'kg', defaultRestSeconds: 90, lastSets: [lastBench], language: 'en', now: START })
 }
 
-/**
- * Runs actions in turn, as the screen does one at a time.
- * @param start the first state
- */
+/** Runs actions in turn, as the screen dispatches them. */
 function run(start: ActiveSession, ...actions: WorkoutAction[]): ActiveSession {
   return actions.reduce(workoutReducer, start)
 }
@@ -524,7 +511,6 @@ describe('the exercise\'s menu: swap, skip, note', () => {
   }
   /** The exercise swapped in for the bench press. */
   const dumbbell = testExercise({ id: 50, name: 'Dumbbell Bench Press' })
-  /** Unit and language of the new sets. */
   const options = { unit: 'kg' as const, language: 'en' }
 
   it('swaps an exercise: same place, sets and types; values from its own last time', () => {

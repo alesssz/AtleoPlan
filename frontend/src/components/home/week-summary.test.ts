@@ -1,7 +1,3 @@
-/*
- * Home's "This week" (week-summary.ts): only this week's workouts count,
- * by the device's clock, and a day with two workouts is marked once.
- */
 import { describe, expect, it } from 'vitest'
 import type { WorkoutSession } from '@/api/sessions'
 import { weekSummary } from './week-summary'

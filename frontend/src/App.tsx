@@ -1,7 +1,3 @@
-/*
- * The providers, outside in: the server-data cache, the theme, the router.
- * i18next is set up globally and needs none.
- */
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { RouterProvider } from 'react-router/dom'

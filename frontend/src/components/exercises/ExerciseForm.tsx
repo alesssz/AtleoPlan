@@ -1,12 +1,7 @@
 /*
- * The exercise editor's form: name, description, instructions, main and
- * secondary muscles, equipment, logging type and YouTube link. Used to create
- * an exercise and to change one (src/pages/ExerciseEditorPage.tsx), and to
- * create one without leaving the plan editor, inside its exercise picker
- * (ExercisePicker). The photos are not fields of this form: the edit page shows
- * them under it (ExercisePhotoManager), each change sent at once.
- *
- * Built like every form of the app.
+ * The exercise editor's form, used by the editor page and inside the plan
+ * editor's exercise picker. Photos are not part of it: each photo change is
+ * sent at once (ExercisePhotoManager).
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useId } from 'react'
@@ -29,15 +24,11 @@ import { exerciseFormSchema, toExerciseInput, type ExerciseFormValues } from './
 
 interface ExerciseFormProps {
   defaultValues: ExerciseFormValues
-  /** The page knows whether it creates or changes. */
   save: (input: ExerciseInput) => Promise<Exercise>
   onSaved: (exercise: Exercise) => void
   submitLabel: string
   cancelTo?: string
-  /**
-   * What Cancel does instead of going to an address: inside the plan
-   * editor's exercise picker, back to the search (ExercisePicker).
-   */
+  /** Replaces the Cancel link, inside the exercise picker. */
   onCancel?: () => void
 }
 
@@ -57,7 +48,6 @@ export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancel
     resolver: zodResolver(exerciseFormSchema(t)),
     defaultValues,
   })
-  // isSubmitting covers the request: handleSubmit awaits onSubmit
   const { errors, isSubmitting } = form.formState
   // Watched, so its tick below is disabled at once
   const primaryMuscle = useWatch({ control: form.control, name: 'primary_muscle' })
@@ -89,7 +79,6 @@ export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancel
     <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="@container flex flex-col gap-6">
       {errors.root?.message && <FormBanner variant="error">{errors.root.message}</FormBanner>}
 
-      {/* Which language this exercise is written in */}
       <p className="text-sm text-muted-foreground">
         {t('exercises.editor.languageHint', { language: LANGUAGE_NAMES[language] })}
       </p>
@@ -189,7 +178,6 @@ export function ExerciseForm({ defaultValues, save, onSaved, submitLabel, cancel
       {/* Save first for the keyboard: the main action */}
       <div className="flex flex-wrap gap-3">
         <Button type="submit" size="xl" pending={isSubmitting}>{submitLabel}</Button>
-        {/* A function inside a window, a link otherwise */}
         {onCancel
           ? <Button type="button" size="xl" variant="outline" onClick={onCancel}>{t('exercises.editor.cancel')}</Button>
           : (

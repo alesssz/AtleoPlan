@@ -1,12 +1,7 @@
 /*
- * "This week" on Home, worked out from the recent workouts that GET /api/home
- * sends: which days were trained, and the week's three numbers: workouts, sets,
- * minutes.
- *
- * The backend sends the finished workouts of the last 8 days, not "this week":
- * a week starts at midnight on Monday *in the user's time zone*, which only the
- * device knows. So the app picks this week's workouts here, with the device's
- * clock.
+ * "This week" on Home, from the recent workouts of GET /api/home. The backend
+ * sends the last 8 days, not "this week": a week starts at midnight on Monday
+ * in the user's time zone, which only the device knows.
  */
 import type { WorkoutSession } from '@/api/sessions'
 import { isInWeek, isSameDay } from '@/lib/week'
@@ -22,7 +17,6 @@ export interface WeekSummary {
 }
 
 /**
- * Sums up this week's workouts.
  * @param sessions the recent workouts, with their totals (sets_done) and duration
  * @param today the current moment, which decides the week
  */

@@ -6,8 +6,8 @@ use App\Models\Plan;
 use App\Models\User;
 
 /**
- * A plan is its owner's only, for everything; sharing and templates come in
- * phase 2. The plan list reads `$user->plans()`, which is view() as a query.
+ * A plan is its owner's only, for everything. The plan list reads
+ * `$user->plans()`, which is view() as a query.
  */
 class PlanPolicy
 {

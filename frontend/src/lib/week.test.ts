@@ -1,6 +1,3 @@
-/*
- * The Monday-to-Sunday week of Home's "This week".
- */
 import { describe, expect, it } from 'vitest'
 import { getWeekDays, isBeforeDay, isInWeek, isSameDay } from './week'
 
@@ -11,7 +8,7 @@ function ymd(date: Date): string {
 
 describe('getWeekDays', () => {
   it('starts on Monday and ends on Sunday', () => {
-    // Thursday 5 November 2026, mid-afternoon (months count from 0: 10 = November)
+    // Thursday 5 November 2026, mid-afternoon
     const days = getWeekDays(new Date(2026, 10, 5, 15, 30))
     expect(days.map(ymd)).toEqual([
       '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08',

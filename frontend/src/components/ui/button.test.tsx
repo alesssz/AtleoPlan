@@ -1,7 +1,5 @@
 /*
- * The Button's `pending` prop, ours (src/components/ui/button.tsx): a button
- * whose request runs cannot be pressed again, shows a spinner and says it is
- * busy; with asChild it still draws its one child.
+ * `pending`, our addition to shadcn's Button.
  */
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'

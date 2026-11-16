@@ -4,10 +4,6 @@
  * The rules of a public exercise saved from the admin panel: the action
  * SavePublicExercise called directly, without Filament, as
  * SavePersonalExerciseTest does for the API.
- *
- * Fixtures: the real muscles and equipment, from their seeders; the form's
- * state built by publicExerciseForm(), with every language filled and
- * reviewed unless a test changes it.
  */
 
 use App\Actions\Exercises\SavePublicExercise;
@@ -60,7 +56,6 @@ function overForm(array $base, array $changes): array
  */
 function publicExerciseForm(array $changes = []): array
 {
-    // One language's texts
     $texts = fn (string $name, string $step, bool $reviewed = true) => [
         'name' => $name, 'aliases' => [], 'description' => null,
         'instructions' => [$step], 'reviewed' => $reviewed,
@@ -82,7 +77,6 @@ function publicExerciseForm(array $changes = []): array
 }
 
 it('creates a public exercise with every language', function () {
-    // The plank of publicExerciseForm(), as it is
     $exercise = app(SavePublicExercise::class)->create(publicExerciseForm());
 
     expect($exercise->isPublic())->toBeTrue()
@@ -97,10 +91,7 @@ it('creates a public exercise with every language', function () {
         ->and($exercise->fresh()->search_text)->toContain('plancha');
 });
 
-// Scenario: the import's Spanish and German, not yet reviewed, and the
-// admin's Italian, reviewed
 it('keeps a language not reviewed in machine_translated', function () {
-    // The exercise saved with those two switches off
     $exercise = app(SavePublicExercise::class)->create(publicExerciseForm([
         'translations' => ['es' => ['reviewed' => false], 'de' => ['reviewed' => false]],
     ]));
@@ -109,7 +100,6 @@ it('keeps a language not reviewed in machine_translated', function () {
 });
 
 it('never puts English in machine_translated, nor a language with no text', function () {
-    // The exercise saved with English "not reviewed" and German empty
     $exercise = app(SavePublicExercise::class)->create(publicExerciseForm([
         // English has no switch on the form; sent false, it is ignored
         'translations' => [
@@ -121,9 +111,7 @@ it('never puts English in machine_translated, nor a language with no text', func
     expect($exercise->machine_translated)->toBe([]);
 });
 
-// Scenario: the admin empties the German tab
 it('removes a language left empty, and keeps the others', function () {
-    // The action, and an exercise in four languages
     $save = app(SavePublicExercise::class);
     $exercise = $save->create(publicExerciseForm());
 
@@ -141,25 +129,21 @@ it('renumbers the steps, as the repeater keeps them under random keys', function
     $form = publicExerciseForm();
     $form['translations']['en']['instructions'] = ['a1b2' => 'Lie down.', 'c3d4' => ' ', 'e5f6' => 'Lift.'];
 
-    // The exercise saved from that form
     $exercise = app(SavePublicExercise::class)->create($form);
 
     expect($exercise->getTranslation('instructions', 'en'))->toBe(['Lie down.', 'Lift.']);
 });
 
 it('saves the muscles with their roles, a muscle in both lists as primary', function () {
-    // Three muscles by slug, as ids
     [$abs, $lowerBack, $shoulders] = collect(['abdominals', 'lower-back', 'shoulders'])
         ->map(fn (string $slug) => Muscle::where('slug', $slug)->value('id'))
         ->all();
 
-    // Abdominals in both lists
     $exercise = app(SavePublicExercise::class)->create(publicExerciseForm([
         'primary_muscles' => [$abs],
         'secondary_muscles' => [$lowerBack, $shoulders, $abs],
     ]));
 
-    // The role of each muscle, by slug
     $roles = $exercise->muscles->mapWithKeys(fn (Muscle $m) => [$m->slug => $m->pivot->role])->all();
 
     expect($roles)->toEqual([
@@ -170,7 +154,6 @@ it('saves the muscles with their roles, a muscle in both lists as primary', func
 });
 
 it('gives back as form state what it saved', function () {
-    // A form with the Italian not reviewed, and the exercise saved from it
     $form = publicExerciseForm(['translations' => ['it' => ['reviewed' => false]]]);
     $exercise = app(SavePublicExercise::class)->create($form);
 
@@ -185,7 +168,6 @@ it('gives back as form state what it saved', function () {
 });
 
 it('refuses to change a personal exercise', function () {
-    // A user's own exercise
     $personal = Exercise::factory()->personal()->create();
 
     expect(fn () => app(SavePublicExercise::class)->update($personal, publicExerciseForm()))

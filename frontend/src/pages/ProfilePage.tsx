@@ -1,12 +1,3 @@
-/*
- * Profile (route `/profile`):
- * - an account header: name, email and the button to sign out;
- * - the preferences, language and theme, as rows of a settings list;
- * - the workout's preferences: unit, default rest, weight step, the rest
- *   timer's sound and vibration (WorkoutPreferences);
- * - for an admin only, the link to the admin panel;
- * - the connection to the server.
- */
 import { ExternalLink, Languages, LogOut, Palette, Server, ShieldCheck, UserRound } from 'lucide-react'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -38,7 +29,6 @@ export function ProfilePage() {
       <PageHeader title={t('pages.profile.title')} description={t('pages.profile.description')} />
 
       <div className="flex flex-col gap-6">
-        {/* The decorative glow is cut at the card's edges */}
         <section className="border-glow relative flex flex-col gap-5 overflow-hidden rounded-3xl p-6 sm:flex-row sm:items-center sm:p-8">
           <div aria-hidden="true" className="absolute -top-16 -right-16 size-48 rounded-full bg-primary/15 blur-3xl" />
           {/* The outer circle's gradient shows as a ring around the inner one */}

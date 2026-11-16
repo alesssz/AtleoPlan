@@ -1,7 +1,3 @@
-/*
- * The big stepper's arithmetic (stepper.ts): the step of each field, and the
- * text after a tap of − or +, in the user's language.
- */
 import { describe, expect, it } from 'vitest'
 import { FALLBACK_WEIGHT_STEP, fieldStep, stepValue } from './stepper'
 

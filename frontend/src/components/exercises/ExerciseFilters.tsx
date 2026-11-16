@@ -1,14 +1,7 @@
 /*
- * The library's search and filters, in as little room as they can take:
- *
- *   phone:    [🔍 Search          ] [⚙2]     ← sticks to the top
- *             [ All | Mine | Public ]
- *   640 px+:  [🔍 Search                    ] [⚙ Filters 2] [All|Mine|Public]
- *
- * Muscle and equipment, used less often, wait in a panel from the bottom; the
- * button counts the filters on, so a filtered list never passes for the whole
- * library. The filters live in the page's address; only the panel's open
- * state lives here.
+ * The library's search and filters. Muscle and equipment, used less often,
+ * wait in a bottom sheet whose button counts the filters on, so a filtered
+ * list never passes for the whole library. The values live in the URL.
  */
 import { SlidersHorizontal } from 'lucide-react'
 import { useId, useState } from 'react'

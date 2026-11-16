@@ -17,12 +17,9 @@
  * @returns {{ title: string, body: string }} the pull request's title and description
  */
 export function buildPullRequest(branch, subjects) {
-  // The subjects, trimmed, empty ones dropped.
   const cleaned = subjects.map(s => s.trim()).filter(Boolean)
-  // How it gets merged, at the end of every description.
   const footer = 'Opened by `make merge`: merged into `main` once CI passes.'
   if (cleaned.length === 1) return { title: cleaned[0], body: footer }
-  // One "- subject" line per commit, oldest first.
   const list = cleaned.map(subject => `- ${subject}`).join('\n')
   return { title: `${branch} (${cleaned.length} commits)`, body: `${list}\n\n${footer}` }
 }
@@ -43,19 +40,17 @@ const STATUS_PENDING = new Set(['PENDING', 'EXPECTED'])
  * @returns {{ passed: string[], pending: string[], failed: string[] }} the checks' names, by outcome
  */
 export function summarizeChecks(rollup) {
-  // The names, sorted into the three outcomes.
   const summary = { passed: [], pending: [], failed: [] }
   for (const check of rollup ?? []) {
     if (check.__typename === 'StatusContext') {
-      // A commit status: its state alone tells. Its name is the service's context (e.g. "Vercel").
+      // A commit status: its state alone tells; its name is the service's context
       const name = check.context ?? 'status'
       if (STATUS_PASSED.has(check.state)) summary.passed.push(name)
       else if (STATUS_PENDING.has(check.state)) summary.pending.push(name)
       else summary.failed.push(name)
       continue
     }
-    // A check run: not finished yet (queued, in progress, waiting…), or finished with a conclusion.
-    // Its name is the job's (e.g. "Lint, types and unit tests").
+    // A check run: pending until COMPLETED, then judged by its conclusion
     const name = check.name ?? 'check'
     if (check.status !== 'COMPLETED') summary.pending.push(name)
     else if (PASSED.has(check.conclusion)) summary.passed.push(name)
@@ -72,10 +67,8 @@ export function summarizeChecks(rollup) {
  * @returns {string} e.g. "1 of 2 checks passed, 1 running"
  */
 export function describeChecks(summary) {
-  // Every check reported so far.
   const total = summary.passed.length + summary.pending.length + summary.failed.length
   if (total === 0) return 'waiting for the checks to start'
-  // The passed count, then what is still running or failed, when any.
   const parts = [`${summary.passed.length} of ${total} check${total === 1 ? '' : 's'} passed`]
   if (summary.pending.length) parts.push(`${summary.pending.length} running`)
   if (summary.failed.length) parts.push(`${summary.failed.length} failed`)

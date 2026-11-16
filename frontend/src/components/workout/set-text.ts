@@ -15,31 +15,24 @@ import { clock } from './clock'
 /** The values of a set that its text needs: from the API (weight as text) or from the phone (a number). */
 export type SetTextValues = Pick<LoggedSet, 'reps' | 'duration_seconds' | 'distance_meters'> & { weight_kg: string | number | null }
 
-/**
- * A weight, as a field and the Last column write it: 82.5 → "82,5" in Italian.
- * @param kilograms the weight in kilograms, as the API sends it ("82.500") or as a number
- * @param unit the user's unit
- */
+/** A weight as a field and the Last column write it: 82.5 → "82,5" in Italian. */
 export function weightText(kilograms: string | number, unit: WeightUnit, language: string): string {
   return formatNumber(weightIn(Number(kilograms), unit), language, { maximumFractionDigits: 2 })
 }
 
 /**
  * One logged set as short text, in the user's unit and language.
- * @param set the set, as the API sends it, or its values from the phone
- * @param loggingType how its exercise is logged: decides what is written
- * @param unit the user's unit
  * @returns "80×8", "+10×6", "12", "1 min", "14:30", "400 m" or "50 in 1:12"
  */
 export function loggedSetText(set: SetTextValues, loggingType: LoggingType, unit: WeightUnit, language: string): string {
-  // A time over a minute as a clock, "14:30", not "870 s" (durationText)
+  // A time over a minute as a clock, "14:30", not "870 s"
   if (loggingType === 'time') return durationText(set.duration_seconds ?? 0, language)
   if (loggingType === 'distance') return formatDistance(set.distance_meters ?? 0, language)
   // By reps: the weight first when there is one, with "+" when it is added
   // to the body (an exercise logged as reps), then "×"
   const weight = set.weight_kg === null ? '' : `${loggingType === 'reps' ? '+' : ''}${weightText(set.weight_kg, unit, language)}×`
   const reps = `${weight}${set.reps ?? '–'}`
-  // Done as fast as possible: the time too, as a clock shows it
+  // Done as fast as possible: the time too
   if (set.duration_seconds !== null) return i18n.t('workout.repsInTime', { lng: language, reps, time: clock(set.duration_seconds) })
   return reps
 }

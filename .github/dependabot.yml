@@ -1,20 +1,13 @@
-# Dependabot: version updates of the GitHub Actions the workflows use
-# (checkout, setup-node), as one pull request a week. The CI run of its
-# branch is the check; it is merged on the computer like any branch.
-#
-# npm and Composer packages are left out of version updates on purpose: they are
-# updated by hand, a few at a time, with `make check`. Their security is watched
-# by Dependabot's alerts and security updates (turned on in the repository's
-# settings) and by .github/workflows/audit.yml.
+# Version updates for the GitHub Actions only, one grouped pull request a week.
+# npm and Composer are updated by hand; their advisories are covered by
+# Dependabot alerts and audit.yml.
 version: 2
 updates:
   - package-ecosystem: github-actions
-    # The workflows' folder is found from the root
     directories: ['/', '/.github/actions/*']
     schedule:
       interval: weekly
       day: monday
     groups:
-      # Every action's update in a single pull request
       github-actions:
         patterns: ['*']

@@ -2,9 +2,6 @@
 
 /**
  * The admin panel's exercise library screen.
- *
- * Fixtures: an admin signed in, the real muscles and equipment, and
- * exercises made by the factory.
  */
 
 use App\Enums\LoggingType;
@@ -26,7 +23,6 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-// The fixed lists, and an admin signed in, in English
 beforeEach(function () {
     $this->seed([MuscleSeeder::class, EquipmentSeeder::class]);
     $this->admin = User::factory()->admin()->create(['locale' => 'en']);
@@ -46,7 +42,6 @@ function libraryExercise(string $en, string $it, array $attributes = []): Exerci
 }
 
 it('lists the public exercises and never the personal ones', function () {
-    // One public exercise, and one of a user's own
     $public = libraryExercise('Bench Press', 'Panca piana');
     $personal = Exercise::factory()->personal()->create();
 
@@ -56,7 +51,6 @@ it('lists the public exercises and never the personal ones', function () {
 });
 
 it('searches as the library does, in every language', function () {
-    // Two exercises; only the first has "panca" in a name
     $bench = libraryExercise('Bench Press', 'Panca piana');
     $squat = libraryExercise('Squat', 'Squat con bilanciere');
 
@@ -78,9 +72,7 @@ it('filters the exercises still machine translated in a language', function () {
         ->assertCanNotSeeTableRecords([$reviewed]);
 });
 
-// Scenario: the admin fills the create form, English and Italian only
 it('creates a public exercise from the form', function () {
-    // The id of one muscle, for the select
     $abs = Muscle::where('slug', 'abdominals')->value('id');
 
     Livewire::test(CreateExercise::class)
@@ -96,7 +88,6 @@ it('creates a public exercise from the form', function () {
         ->call('create')
         ->assertHasNoFormErrors();
 
-    // The new exercise, found by its English name
     $exercise = Exercise::where('name->en', 'Hollow Rock')->firstOrFail();
 
     expect($exercise->isPublic())->toBeTrue()
@@ -114,7 +105,6 @@ it('requires an English name', function () {
         ->assertHasFormErrors(['translations.en.name' => 'required']);
 });
 
-// Scenario: the admin reviews the Italian of an imported exercise, fixing its name
 it('opens an exercise by language and saves a reviewed translation', function () {
     // Four languages, as the import leaves them; three not reviewed
     $plank = libraryExercise('Plank', 'Plank frontale', [
@@ -143,9 +133,7 @@ it('opens an exercise by language and saves a reviewed translation', function ()
         ->and($plank->fresh()->machine_translated)->toBe(['es', 'de']);
 });
 
-// Scenario: the admin adds a photo to a public exercise with the plugin's field
 it('adds photos to a public exercise', function () {
-    // A public exercise with no photos
     Storage::fake('public');
     $plank = libraryExercise('Plank', 'Plank');
 
@@ -161,20 +149,17 @@ it('adds photos to a public exercise', function () {
 });
 
 it('does not open a personal exercise', function () {
-    // A user's own exercise
     $personal = Exercise::factory()->personal()->create();
 
     $this->get("/admin/exercises/{$personal->id}/edit")->assertNotFound();
 });
 
 it('deletes an exercise softly, and restores it', function () {
-    // A public exercise, to delete and bring back
     $plank = libraryExercise('Plank', 'Plank');
 
     Livewire::test(EditExercise::class, ['record' => $plank->getRouteKey()])
         ->callAction(DeleteAction::class);
 
-    // Still in the table, with deleted_at set
     expect(Exercise::withTrashed()->find($plank->id)->trashed())->toBeTrue();
 
     Livewire::test(EditExercise::class, ['record' => $plank->getRouteKey()])
@@ -197,7 +182,6 @@ it('offers no delete for good', function () {
         ->and(ExerciseResource::canEdit($plank))->toBeTrue();
 });
 
-// Scenario: the same page for an admin whose app is in Italian
 it('speaks the admin\'s language', function () {
     $this->admin->update(['locale' => 'it']);
     libraryExercise('Bench Press', 'Panca piana');

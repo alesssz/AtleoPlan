@@ -134,14 +134,12 @@ it('creates a personal exercise in the request\'s language', function () {
         ],
     ], ['Accept-Language' => 'it']);
 
-    // 201 Created, with the new exercise
     $response->assertCreated()
         ->assertJsonPath('data.name', 'Panca mia')
         ->assertJsonPath('data.is_mine', true)
         ->assertJsonPath('data.logging_type', 'reps')
         ->assertJsonPath('data.muscles.0.id', $chest->id);
 
-    // In the database: mine, and written in Italian only
     $exercise = Exercise::findOrFail($response->json('data.id'));
     expect($exercise->isOwnedBy($me))->toBeTrue()
         ->and($exercise->getTranslations('name'))->toBe(['it' => 'Panca mia'])
@@ -224,7 +222,6 @@ it('changes my exercise, only in the fields sent', function () {
         ->patchJson("/api/exercises/{$exercise->id}", ['name' => 'Panca stretta'], ['Accept-Language' => 'it'])
         ->assertOk()
         ->assertJsonPath('data.name', 'Panca stretta')
-        // Not sent, so unchanged
         ->assertJsonPath('data.description', 'Presa larga.');
 });
 
@@ -240,7 +237,6 @@ it('refuses to change someone else\'s exercise', function () {
 
 it('refuses to change a public exercise, even to an admin', function (bool $admin) {
     $exercise = Exercise::factory()->create();
-    // A user, or an admin, by the dataset below
     $user = User::factory()->state(['is_admin' => $admin])->create();
 
     $this->actingAs($user)
@@ -266,12 +262,10 @@ it('deletes my exercise, keeping the row for plans and history', function () {
 
     $this->actingAs($me)->deleteJson("/api/exercises/{$exercise->id}")->assertNoContent();
 
-    // A soft delete: deleted_at is filled
     $this->assertSoftDeleted($exercise);
 });
 
 it('refuses to delete someone else\'s exercise or a public one', function (Closure $makeExercise) {
-    // The exercise of the scenario, made by the dataset's function
     $exercise = $makeExercise();
 
     $this->actingAs(User::factory()->admin()->create())

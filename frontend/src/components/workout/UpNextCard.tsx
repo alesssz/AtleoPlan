@@ -1,18 +1,13 @@
 /*
- * "Up next" under the exercise's sets: the exercise that follows (upNext(),
- * after the whole superset), with its photo and the plan's line, so the next
- * machine can be got ready during the rest.
- *
- * A reminder, not a button: moving on is the bottom bar's job, and a second
- * way out in the middle of the screen invites mis-taps. With nothing left,
- * no card: the bottom bar offers Finish workout.
+ * Up next, under the sets: a reminder, so the next machine can be got ready
+ * during the rest. Not a button: moving on is the bottom bar's job, and a
+ * second way out mid-screen invites mis-taps.
  */
 import { Dumbbell } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { WorkoutExercise } from './workout-session'
 
 interface UpNextCardProps {
-  /** The exercise that comes next. */
   item: WorkoutExercise
   /** What the plan asks of it, "3 × 12 · 60 s"; null for an exercise added on the way. */
   summary: string | null
@@ -23,8 +18,7 @@ export function UpNextCard({ item, summary }: UpNextCardProps) {
   const cover = item.exercise.photos[0]
 
   return (
-    // A named aside, so screen readers can find it. A dashed border and no
-    // hover: a note, not something to tap
+    // Dashed and without hover: a note, not something to tap
     <aside aria-label={t('workout.upNext')} className="mt-6 flex items-center gap-3 rounded-2xl border border-dashed p-3">
       {cover
         ? <img src={cover.thumb_url} alt="" className="size-12 shrink-0 rounded-xl bg-muted object-cover" />

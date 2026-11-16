@@ -1,11 +1,6 @@
 /*
- * The active plan's card on Home: the day chosen (the suggested one at first),
- * its numbers, Start, and a chip per day.
- *
- * A chip only chooses; Start starts. One tap that started a workout would be
- * too easy to make by mistake, and a workout started by mistake stays in
- * progress until it is finished. The card only shows; Home starts
- * (useStartWorkout).
+ * The active plan's card on Home. A day chip only chooses and Start starts:
+ * a workout started by a stray tap stays in progress until it is finished.
  */
 import { Clock, Dumbbell, Play } from 'lucide-react'
 import { useState } from 'react'
@@ -18,9 +13,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface ActivePlanCardProps {
-  /** The active plan (not null: Home shows the empty state otherwise). */
   plan: PlanSummary
-  /** Home's answer: the days, the suggested day, the day done last. */
   home: HomeData
   /** True when a workout is already in progress on this phone. */
   busy: boolean
@@ -28,16 +21,12 @@ interface ActivePlanCardProps {
   starting: boolean
   /** True when the plan could not be read to start (offline). */
   failed: boolean
-  /**
-   * Called by Start with the day chosen.
-   */
   onStart: (dayId: string) => void
   className?: string
 }
 
 export function ActivePlanCard({ plan, home, busy, starting, failed, onStart, className }: ActivePlanCardProps) {
   const { t } = useTranslation()
-  // The suggested day at first, else the first
   const [chosenId, setChosenId] = useState(home.suggested_day_id ?? home.days[0]?.id ?? null)
   // The first day when the chosen one has gone (the plan changed meanwhile)
   const day = home.days.find(candidate => candidate.id === chosenId) ?? home.days[0]
@@ -80,7 +69,6 @@ export function ActivePlanCard({ plan, home, busy, starting, failed, onStart, cl
                 {lastName && <p className="mt-1 text-sm text-muted-foreground">{t('home.lastTime', { day: lastName })}</p>}
               </div>
 
-              {/* Home's one main action */}
               <div className="mt-6 flex flex-col items-start gap-2">
                 <Button size="xl" className="px-6" disabled={busy || day.exercises === 0} pending={starting} onClick={() => onStart(day.id)}>
                   <Play aria-hidden="true" />

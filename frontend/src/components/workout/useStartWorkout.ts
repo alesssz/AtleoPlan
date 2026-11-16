@@ -1,10 +1,7 @@
 /*
- * The one way a workout starts, shared by the plan's page and Home: builds the
- * workout on the phone, stores it and opens workout mode.
- *
- * Home has only the days' names, so the whole plan is read first, from the
- * cache when there (queryClient.fetchQuery). Last time's sets are asked for
- * too; offline, the workout starts with the plan's targets alone.
+ * The one way a workout starts, from the plan's page or Home. Home has only
+ * the days' names, so the plan is read first, from the cache when fresh.
+ * Offline, the workout starts with the plan's targets alone.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -27,13 +24,9 @@ export interface StartWorkout {
   starting: boolean
   /** True when the plan could not be read (offline, never opened before). */
   failed: boolean
-  /**
-   * Starts a day of a plan already loaded (the plan's page).
-   */
+  /** Starts a day of a plan already loaded (the plan's page). */
   startDay: (plan: Plan, day: PlanDay) => Promise<void>
-  /**
-   * Starts a day of a plan known by its id only (Home): reads the plan first.
-   */
+  /** Starts a day of a plan known by its id only (Home): reads the plan first. */
   startPlanDay: (planId: string, dayId: string) => Promise<void>
   /** Starts a workout with no plan and no exercises yet (Home's Free workout). */
   startFree: () => void
@@ -41,10 +34,8 @@ export interface StartWorkout {
 
 /** The steps that start a workout, and whether they are running. */
 export function useStartWorkout(): StartWorkout {
-  // i18n.language: the language of the exercises' names and of the numbers
   const { i18n } = useTranslation()
   const navigate = useNavigate()
-  // TanStack Query's cache, for the plan Home does not have
   const queryClient = useQueryClient()
   // Already cached: RequireAuth asked before any page opened
   const { data: user } = useCurrentUser()
@@ -53,9 +44,6 @@ export function useStartWorkout(): StartWorkout {
   const unit = user?.weight_unit ?? 'kg'
   const defaultRestSeconds = user?.default_rest_seconds ?? FALLBACK_REST_SECONDS
 
-  /**
-   * Keeps the new workout on the phone and opens it.
-   */
   function open(session: ActiveSession) {
     storeActiveSession(session)
     void navigate(`/session/${session.id}`)
@@ -63,7 +51,6 @@ export function useStartWorkout(): StartWorkout {
 
   async function startDay(plan: Plan, day: PlanDay) {
     setStarting(true)
-    // Last time's sets; an empty list when they cannot be read (offline)
     const lastSets = await fetchLastSets(day.items.map(item => item.exercise_id)).catch(() => [])
     open(startSession(plan, day, { unit, defaultRestSeconds, lastSets, language: i18n.language, now: new Date() }))
   }
@@ -84,7 +71,6 @@ export function useStartWorkout(): StartWorkout {
       await startDay(plan, day)
     }
     catch {
-      // No plan, no workout: say so, and let the user try again
       setStarting(false)
       setFailed(true)
     }

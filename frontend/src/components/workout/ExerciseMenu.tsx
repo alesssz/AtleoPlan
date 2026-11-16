@@ -1,10 +1,7 @@
 /*
- * The exercise's "⋯" menu in workout mode, as a panel from the bottom with rows
- * as wide as the phone, easy to hit mid-workout: swap (only before a set is
- * ticked), skip or take the skip back, a note, the video, and remove, offered
- * only for an exercise added by hand (canRemoveExercise) and asked first,
- * since its sets go with it. The plan's exercises can only be skipped, so the
- * day stays whole.
+ * The exercise's ⋯ menu in workout mode, a bottom sheet with full-width rows,
+ * easy to hit mid-workout. Remove is offered only for an exercise added by
+ * hand, and asks first since its sets go with it.
  */
 import { ArrowLeftRight, CirclePlay, Ellipsis, NotebookPen, SkipForward, Trash2, Undo2 } from 'lucide-react'
 import { useId, useState } from 'react'
@@ -15,20 +12,17 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Textarea } from '@/components/ui/textarea'
 import type { WorkoutExercise } from './workout-session'
 
-/** The longest note the backend takes on an exercise (SaveSessionRequest: max:500). */
+/** The backend's limit on an exercise's note (SaveSessionRequest). */
 const NOTE_MAX = 500
 
-/** The classes of the menu's rows: as wide as the panel, text on the left. */
 const ROW = 'w-full justify-start px-3 text-base'
 
 interface ExerciseMenuProps {
-  /** The exercise on screen. */
   item: WorkoutExercise
   /** Swap: the panel closes and the picker opens. */
   onSwap: () => void
   /** Skip (true), or take the skip back (false). */
   onSkip: (skipped: boolean) => void
-  /** The note, as written. */
   onSaveNote: (notes: string) => void
   /** Remove the exercise from the workout; missing for one of the plan's. */
   onRemove?: () => void
@@ -38,8 +32,6 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
   const { t } = useTranslation()
   // Controlled, so the actions can close it
   const [open, setOpen] = useState(false)
-  // What the panel shows: the actions, the note's text box, or the
-  // question before removing the exercise
   const [view, setView] = useState<'menu' | 'note' | 'remove'>('menu')
   // Kept by Save only
   const [draft, setDraft] = useState('')
@@ -47,18 +39,12 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
   // A set already ticked: the exercise can no longer be swapped
   const started = item.sets.some(set => set.done)
 
-  /**
-   * Opens or closes the panel; closed, it goes back to the list of actions.
-   * @param next true to open
-   */
+  /** Closing returns the panel to the list of actions. */
   function change(next: boolean) {
     setOpen(next)
     if (!next) setView('menu')
   }
 
-  /**
-   * Runs an action and closes the panel.
-   */
   function act(action: () => void) {
     change(false)
     action()
@@ -66,7 +52,6 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
 
   return (
     <Sheet open={open} onOpenChange={change}>
-      {/* "⋯", 48 px, named after the exercise for screen readers */}
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon-xl" aria-label={t('workout.menu', { name: item.exercise.name })} className="shrink-0">
           <Ellipsis aria-hidden="true" />
@@ -83,7 +68,7 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
 
           {view === 'menu' && (
             <>
-              {/* Swap; disabled once a set is ticked, saying why */}
+              {/* Disabled once a set is ticked, with the reason below */}
               <div>
                 <Button variant="ghost" size="xl" className={ROW} disabled={started} onClick={() => act(onSwap)}>
                   <ArrowLeftRight aria-hidden="true" />
@@ -92,13 +77,11 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
                 {started && <p className="px-3 text-sm text-muted-foreground">{t('workout.swapLocked')}</p>}
               </div>
 
-              {/* Skip, or take it back */}
               <Button variant="ghost" size="xl" className={ROW} onClick={() => act(() => onSkip(!item.skipped))}>
                 {item.skipped ? <Undo2 aria-hidden="true" /> : <SkipForward aria-hidden="true" />}
                 {item.skipped ? t('workout.unskip') : t('workout.skip')}
               </Button>
 
-              {/* The note: the panel turns into its text box */}
               <Button
                 variant="ghost"
                 size="xl"
@@ -112,7 +95,6 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
                 {item.notes ? t('workout.editNote') : t('workout.addNote')}
               </Button>
 
-              {/* rel="noreferrer": the new tab gets no handle on this page */}
               {item.exercise.youtube_url && (
                 <Button asChild variant="ghost" size="xl" className={ROW}>
                   <a href={item.exercise.youtube_url} target="_blank" rel="noreferrer" onClick={() => change(false)}>
@@ -122,7 +104,7 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
                 </Button>
               )}
 
-              {/* Last, red, and asking first: the panel turns into the question */}
+              {/* Asks first: the panel turns into the question */}
               {onRemove && (
                 <Button variant="ghost" size="xl" className={`${ROW} text-destructive hover:text-destructive`} onClick={() => setView('remove')}>
                   <Trash2 aria-hidden="true" />
@@ -132,7 +114,6 @@ export function ExerciseMenu({ item, onSwap, onSkip, onSaveNote, onRemove }: Exe
             </>
           )}
 
-          {/* The question: what goes, then Remove (red) and Back */}
           {view === 'remove' && onRemove && (
             <>
               <p className="font-semibold">{t('workout.removeExerciseTitle', { name: item.exercise.name })}</p>

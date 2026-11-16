@@ -1,11 +1,10 @@
 /*
- * The one way the app talks to the API: fetch() with what every request needs,
- * and every failure turned into an ApiError.
+ * The one way the app talks to the API; every failure becomes an ApiError.
  *
- * - Relative paths: Vite in development and Caddy in production forward /api to
- *   Laravel, so Sanctum's session cookie travels with every request.
- * - CSRF: every request that changes data sends the XSRF-TOKEN cookie back
- *   in X-XSRF-TOKEN, which another site cannot read to forge.
+ * - Relative paths: Vite in development and Caddy in production forward /api
+ *   to Laravel, so Sanctum's session cookie travels with every request.
+ * - Every request that changes data sends the XSRF-TOKEN cookie back in
+ *   X-XSRF-TOKEN.
  * - Accept: application/json, so Laravel answers errors in JSON rather than
  *   with an HTML page or a redirect.
  * - Accept-Language, so validation messages arrive translated.
@@ -89,8 +88,8 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
 }
 
 /**
- * The decoded JSON answer, typed as T: a promise of the caller's, kept in
- * step with the backend by hand.
+ * The decoded JSON answer. T is not checked at runtime: the API types are kept
+ * in step with the backend by hand.
  * @throws ApiError on any failure
  */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {

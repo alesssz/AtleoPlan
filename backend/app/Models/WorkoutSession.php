@@ -105,9 +105,9 @@ class WorkoutSession extends Model
      * - `sets_done`: sets, warm-ups excluded;
      * - `reps_done`: their reps, bodyweight sets included, which is what the
      *   screens show;
-     * - `volume_kg`: weight × reps, warm-ups excluded. Still sent, but no
-     *   screen shows it as a workout's total: it adds up unlike exercises and
-     *   misses bodyweight work.
+     * - `volume_kg`: weight × reps, warm-ups excluded. Sent, but no screen
+     *   shows it as a workout's total: it adds up unlike exercises and misses
+     *   bodyweight work.
      *
      * Correlated subqueries: one query for a whole page of sessions, summed
      * exactly on numeric values.

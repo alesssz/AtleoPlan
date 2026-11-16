@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Validation messages: only the rules the app uses so far, the others fall back
+ * Validation messages: only the rules the app uses; the others fall back
  * to English. A new rule in a Form Request adds its message to the three
  * languages. :attribute is filled from the attributes list below.
  */

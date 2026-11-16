@@ -1,10 +1,7 @@
 /*
- * The exercises of a workout and their sets, in the summary and on a workout's
- * page in history: each exercise with its photo and name; how it went against
- * last time ("Better", then "82,5×8 · last time 80×8", compare.ts); its sets as
- * a gym writes them, numbered as in workout mode: warm-ups as W1, W2, then 1,
- * 2, 3 ("W1 40×10", "1 80×8"); and, for an exercise with weights, its own
- * volume. An exercise skipped (no set) says so.
+ * A workout's exercises and their sets, in the summary and on a workout's page
+ * in history: each with its verdict against last time, its sets numbered as in
+ * workout mode (W1 W2 1 2 3), and its own volume when weighted.
  */
 import { Dumbbell, Minus, Sparkles, TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -53,7 +50,7 @@ export function SessionExercises({ exercises, comparisons, unit }: SessionExerci
               : <div aria-hidden="true" className="grid size-14 shrink-0 place-items-center rounded-xl bg-muted"><Dumbbell className="size-6 text-muted-foreground" /></div>}
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold">{item.exercise.name}</h3>
-              {/* Two lines at every width: on one, the second part wrapped
+              {/* Two lines at every width: on one line, the second part wraps
                   half-way on a phone */}
               {comparison && look && (
                 <>
@@ -73,12 +70,12 @@ export function SessionExercises({ exercises, comparisons, unit }: SessionExerci
                     <ul className="mt-2 flex flex-wrap gap-2">
                       {item.sets.map((set, position) => {
                         const number = numbers[position] ?? { warmUp: false, number: position + 1 }
-                        // A drop set or a set to failure says so in words
                         const label = number.warmUp ? `W${number.number}` : String(number.number)
                         return (
                           <li key={set.id} className={cn('rounded-lg px-2.5 py-1 text-sm tabular-nums', number.warmUp ? 'bg-muted text-muted-foreground' : 'bg-primary/10')}>
                             <span className="mr-1.5 font-bold">{label}</span>
                             {loggedSetText(set, loggingType, unit, language)}
+                            {/* A drop set or a set to failure says so in words */}
                             {set.set_type !== 'normal' && set.set_type !== 'warm_up' && (
                               <span className="ml-1.5 text-xs text-muted-foreground">{t(`plans.editor.setTypes.${set.set_type}`)}</span>
                             )}

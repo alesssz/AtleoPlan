@@ -1,12 +1,8 @@
 /*
- * Where the plan editor keeps its draft between visits: the browser's
- * localStorage, one entry per plan, saved automatically. Leaving the editor,
- * closing the tab or losing the battery keeps the changes; opening the editor
- * again brings them back; "Discard changes" and a save remove them.
- *
- * IndexedDB, planned for drafts, comes with the offline work; for one draft at
- * a time localStorage is enough. Every access is guarded: private mode, or full
- * or blocked storage, throws, and the editor must still work.
+ * The plan editor's draft, kept in localStorage per plan so that leaving the
+ * editor or closing the tab loses nothing; a save or "Discard changes" removes
+ * it. Every access is guarded: private mode, or full or blocked storage,
+ * throws, and the editor must still work.
  */
 import type { PlanDraft } from './plan-draft'
 

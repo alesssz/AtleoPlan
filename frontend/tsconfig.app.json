@@ -1,57 +1,34 @@
 {
-  // TypeScript settings for the app's own code (everything in src/).
-  // TypeScript here only checks types (`npm run typecheck`, and live in the
-  // editor); Vite does the actual conversion to JavaScript.
-  // Guide: docs/concepts/C1-frontend.md (C1.10 for the checks, C1.12 for the syntax).
   "compilerOptions": {
-    // Where tsc -b keeps its notes to make the next check faster
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    // The JavaScript version the code may use, and the built-in APIs it
-    // knows about: modern JavaScript plus the browser's (DOM) objects
     "target": "es2023",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "esnext",
-    // Types of Vite's extras (import.meta.env, importing .css and images)
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
-    // Lets `import en from './locales/en.json'` work and be typed
-    // (the translation keys are checked from it: src/i18n/i18next.d.ts)
+    // The translation keys are typed from en.json (src/i18n/i18next.d.ts)
     "resolveJsonModule": true,
-    // Do not type-check the libraries' own .d.ts files: faster, and their
-    // problems are not ours
     "skipLibCheck": true,
 
-    /* Bundler mode: Vite resolves imports, TypeScript only checks */
+    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    // Type-only imports must say so (`import type { X }`), so they can be
-    // dropped from the JavaScript without guessing
     "verbatimModuleSyntax": true,
-    // Every file is a module, with its own scope (not shared globals)
     "moduleDetection": "force",
-    // Check only: write no .js files (Vite builds the app)
     "noEmit": true,
-    // JSX compiled by React 17+'s runtime: no `import React` needed in files
     "jsx": "react-jsx",
 
-    /* Imports: "@/components/…" means "src/components/…" (also in vite.config.ts) */
+    // Mirrored in vite.config.ts and tsconfig.json
     "paths": {
       "@/*": ["./src/*"]
     },
 
-    /* Strictness: every strict check on, so mistakes show in the editor */
-    // Includes strictNullChecks: a value that may be null or undefined must
-    // be checked before use (hence `?.`, `??` and `!` in the code)
+    /* Linting */
     "strict": true,
-    // Unused variables and parameters are errors
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    // Only TypeScript syntax that can simply be erased to give JavaScript
-    // (no enums, namespaces or constructor parameter properties): remove
-    // the types and what is left is plain JavaScript
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    // array[i] may be undefined: TypeScript makes you handle it
     "noUncheckedIndexedAccess": true
   },
   "include": ["src"]

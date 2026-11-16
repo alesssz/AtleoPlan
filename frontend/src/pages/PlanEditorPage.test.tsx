@@ -1,11 +1,3 @@
-/*
- * The plan editor: creating a plan from the library, changing a saved one, the
- * rules before sending, the server's messages, the warning of a plan changed
- * elsewhere, the draft kept between visits, supersets, the number of days, the
- * two steps (the plan's details, then the days as tabs) with the history's Back
- * between them, and an exercise created from the picker. What the editor sends
- * is read from the fake API (sentBody, src/test/auth-helpers.tsx).
- */
 import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -62,8 +54,8 @@ describe('PlanEditorPage', () => {
 
     // Open the bench press: its row's button starts with its name
     await user.click(screen.getByRole('button', { name: /^Barbell Bench Press/ }))
-    // Set 1 becomes a warm-up at 40 kg; set 2 asks for 82,5 kg at RPE 8
-    // The set's number opens the list of types, each written in full
+    // Set 1 becomes a warm-up at 40 kg, picked from the list the set's
+    // number opens; set 2 asks for 82,5 kg at RPE 8
     await user.click(screen.getByRole('combobox', { name: 'Set 1, normal: change the type' }))
     await user.click(await screen.findByRole('option', { name: /^Warm-up/ }))
     expect(screen.getByRole('combobox', { name: 'Set 1, warm-up: change the type' })).toHaveTextContent('W')

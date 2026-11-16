@@ -1,10 +1,7 @@
 /*
- * The photos of an exercise, at the top of its page. Imported exercises have
- * two: the start and the end position, side by side so the movement reads at a
- * glance. Each is drawn from its large copy, `url` (at most 1600 px).
- *
- * A simpler start than the planned `ExerciseMedia` carousel, which will also
- * hold videos (phase 2) and the YouTube link.
+ * The photos at the top of an exercise's page, side by side: imported
+ * exercises have two, the start and the end position, so the movement reads
+ * at a glance.
  */
 import { useTranslation } from 'react-i18next'
 import type { ExercisePhoto } from '@/api/exercises'

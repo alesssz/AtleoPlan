@@ -1,17 +1,11 @@
 /*
- * What the tests of the plan screens share: plans, days, exercises of a plan
- * and sets, shaped as the backend sends them, to put in fakeApi's table
- * (src/test/auth-helpers.tsx).
- *
- * Each builder takes `changes`, the fields to replace:
- * `testPlanSet({ set_type: 'warm_up' })`.
+ * Plans, items and sets shaped as the API sends them, for the plan screens'
+ * tests. Each builder takes `changes`, the fields to replace.
  */
 import type { Plan, PlanItem, PlanSet, PlanSummary } from '@/api/plans'
 import { testExercise } from './exercise-helpers'
 
-/**
- * A working set of 8–10 reps at 80 kg.
- */
+/** A working set of 8–10 reps at 80 kg. */
 export function testPlanSet(changes: Partial<PlanSet> = {}): PlanSet {
   return {
     set_type: 'normal',
@@ -50,9 +44,7 @@ export function testPlanItem(changes: Partial<PlanItem> = {}): PlanItem {
   }
 }
 
-/**
- * A plan in the list: "Push Pull Legs", active, with three days.
- */
+/** A plan in the list: "Push Pull Legs", active, with three days. */
 export function testPlanSummary(changes: Partial<PlanSummary> = {}): PlanSummary {
   return {
     id: 'plan-ppl',

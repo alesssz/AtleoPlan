@@ -1,11 +1,7 @@
 /*
- * The plan editor's second step: the way back to the first step
- * (EditorOverview, the plan's details and days), then the days as tabs, and
- * under the open tab that day's exercises (EditorDay).
- *
- * The open tab is in the address, `?day=2`, as on the plan's page
- * (PlanDetailPage): PlanEditor reads it and passes it here, and a tap on a tab
- * asks PlanEditor to change it.
+ * The plan editor's second step: the days as tabs, with their exercises. The
+ * open tab lives in the address (`?day=2`, as on the plan's page), owned by
+ * PlanEditor.
  */
 import { ArrowLeft } from 'lucide-react'
 import type { Dispatch } from 'react'

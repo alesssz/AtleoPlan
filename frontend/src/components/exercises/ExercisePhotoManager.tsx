@@ -1,11 +1,9 @@
 /*
- * The photos of a personal exercise on its edit page: upload with progress,
- * reorder, remove, retry a failed upload.
- *
- * Each change is its own request, apart from the form's Save: a photo is a
- * file on the server, not a field of the exercise. The exercise is read again
- * after each answer, so the list shows what the server has. The limits are
- * checked before sending, for an immediate message; the server checks again.
+ * The photos of a personal exercise on its edit page. Each change is its own
+ * request, apart from the form's Save: a photo is a file on the server, not a
+ * field of the exercise. The exercise is read again after each answer, so the
+ * list shows what the server has. The limits are checked before sending for
+ * an immediate message; the server checks again.
  */
 import { ArrowDown, ArrowUp, ImagePlus, RotateCcw, Trash2, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react'
@@ -62,8 +60,8 @@ export function ExercisePhotoManager({ exercise }: ExercisePhotoManagerProps) {
   const uploadPhoto = useUploadExercisePhoto(exercise.id)
   const removePhoto = useDeleteExercisePhoto(exercise.id)
   const reorder = useReorderExercisePhotos(exercise.id)
-  // Failed uploads do not count: they will be retried or dismissed
   const photos = exercise.photos
+  // Failed uploads do not count: they will be retried or dismissed
   const room = MAX_PHOTOS - photos.length - pending.filter(upload => upload.error === null).length
 
   // The previews hold their files in memory until revoked. The ref gives
@@ -76,18 +74,12 @@ export function ExercisePhotoManager({ exercise }: ExercisePhotoManagerProps) {
     for (const upload of pendingRef.current) URL.revokeObjectURL(upload.preview)
   }, [])
 
-  /**
-   * Changes one upload of the list, found by its key.
-   */
   function patch(key: string, change: Partial<PendingUpload>) {
-    // The updater form: several uploads change the list in turn, and each
-    // must start from the others' changes
+    // Several uploads change the list in turn: each must start from the
+    // others' changes
     setPending(list => list.map(upload => upload.key === key ? { ...upload, ...change } : upload))
   }
 
-  /**
-   * Takes one upload off the list and frees its preview.
-   */
   function drop(upload: PendingUpload) {
     URL.revokeObjectURL(upload.preview)
     setPending(list => list.filter(item => item.key !== upload.key))
@@ -117,7 +109,6 @@ export function ExercisePhotoManager({ exercise }: ExercisePhotoManagerProps) {
    * Checks the files picked or dropped, then sends those that pass, one
    * after the other: in order, and without many large files at once on a
    * phone's connection.
-   * @param files the files, as the input or the drop gives them
    */
   async function addFiles(files: FileList | File[]) {
     const accepted: File[] = []
@@ -136,10 +127,7 @@ export function ExercisePhotoManager({ exercise }: ExercisePhotoManagerProps) {
     for (const upload of uploads) await send(upload)
   }
 
-  /**
-   * Moves a photo one place earlier (-1) or later (+1), and sends the new order.
-   * @param step -1 or +1
-   */
+  /** Moves a photo one place earlier or later, and sends the new order. */
   function move(index: number, step: -1 | 1) {
     const ids = photos.map(photo => photo.id)
     const [moved] = ids.splice(index, 1)
@@ -179,8 +167,6 @@ export function ExercisePhotoManager({ exercise }: ExercisePhotoManagerProps) {
                   ? <Badge>{t('exercises.photos.cover')}</Badge>
                   : <span className="text-sm text-muted-foreground">{t('exercises.photos.number', { number: index + 1 })}</span>}
               </div>
-              {/* Each icon-only button's label is also its tooltip
-                  */}
               <Button
                 variant="ghost"
                 size="icon-xl"
@@ -305,10 +291,7 @@ interface RemovePhotoButtonProps {
   onRemove: () => Promise<unknown>
 }
 
-/**
- * Remove, behind a question: the file is deleted on the server for good.
- * The same dialog as deleting an exercise (ExerciseDetailPage).
- */
+/** Remove, behind a question: the file is deleted on the server for good. */
 function RemovePhotoButton({ photo, number, onRemove }: RemovePhotoButtonProps) {
   const { t } = useTranslation()
   // Controlled, so it can close when the request ends

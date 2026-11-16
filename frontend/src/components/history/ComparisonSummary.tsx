@@ -1,8 +1,6 @@
 /*
- * The workout against last time, in one line, above its exercises: "Against
- * last time: 3 better · 1 same · 1 lower · 2 new". Only the verdicts that occur
- * are written; nothing when no exercise was done. The verdicts come from
- * compare.ts.
+ * The workout against last time in one line, "3 better · 1 same · 1 lower ·
+ * 2 new": only the verdicts that occur; nothing when no exercise was done.
  */
 import { useTranslation } from 'react-i18next'
 import type { VerdictCount } from './compare'

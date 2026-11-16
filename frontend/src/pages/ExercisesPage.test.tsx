@@ -1,8 +1,3 @@
-/*
- * The library's list: what it shows, what it asks the server for (search,
- * filters, pages), and its empty and error states. The API is fakeApi's table
- * (src/test/auth-helpers.tsx).
- */
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -10,22 +5,17 @@ import { fakeApi, renderRoutes } from '@/test/auth-helpers'
 import { exercisePage, fixedLists, testExercise } from '@/test/exercise-helpers'
 import { ExercisesPage } from './ExercisesPage'
 
-/** The list, and plain stand-ins for the pages its links open. */
 const routes = [
   { path: 'exercises', element: <ExercisesPage /> },
   { path: 'exercises/new', element: <p>the editor</p> },
   { path: 'exercises/:id', element: <p>an exercise</p> },
 ]
 
-/**
- * The values of one filter in every list request sent so far, in order.
- * @param name the parameter, such as 'filter[search]'
- */
+/** One filter's value in every list request sent so far, in order. */
 function sentFilter(fake: ReturnType<typeof fakeApi>, name: string): (string | null)[] {
   return fake.mock.calls
     .map(([path]) => String(path))
     .filter(path => path.startsWith('/api/exercises?'))
-    // new URL() needs a full address to read a path's query string
     .map(path => new URL(path, 'http://localhost').searchParams.get(name))
 }
 
@@ -40,11 +30,10 @@ describe('ExercisesPage', () => {
     })
     renderRoutes(routes, '/exercises')
 
-    // The whole row is a link, named by its text
     const publicRow = await screen.findByRole('link', { name: /Barbell Bench Press/ })
     expect(publicRow).toHaveAttribute('href', '/exercises/12')
     expect(within(publicRow).getByText('Chest')).toBeInTheDocument()
-    // The cover, from its small copy (thumb_url)
+    // The small copy (thumb_url), not the large one
     expect(publicRow.querySelector('img')).toHaveAttribute('src', '/storage/1/conversions/0-thumb.webp')
     expect(within(publicRow).queryByText('Mine')).not.toBeInTheDocument()
 
@@ -69,14 +58,12 @@ describe('ExercisesPage', () => {
     fakeApi({ ...fixedLists, 'GET /api/exercises': exercisePage([testExercise()]) })
     renderRoutes(routes, '/exercises')
     await screen.findByRole('link', { name: /Barbell Bench Press/ })
-    // No search running: no spinner
     expect(screen.queryByRole('status', { name: 'Searching…' })).not.toBeInTheDocument()
 
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search exercises' }), 'panca')
 
-    // Right after typing: the search waits for the pause, and says so
+    // Right after typing: the search waits for the pause
     expect(screen.getByRole('status', { name: 'Searching…' })).toBeInTheDocument()
-    // Once the answer is in, the spinner goes
     await waitFor(() => expect(screen.queryByRole('status', { name: 'Searching…' })).not.toBeInTheDocument())
   })
 
@@ -88,8 +75,6 @@ describe('ExercisesPage', () => {
 
     expect(sentFilter(fake, 'filter[muscle]')).toEqual(['chest'])
     expect(sentFilter(fake, 'filter[source]')).toEqual(['mine'])
-    // The controls show them: the pressed button, the number on Filters,
-    // and, in the panel it opens, the select's value
     expect(screen.getByRole('button', { name: 'Mine' })).toHaveAttribute('aria-pressed', 'true')
     await userEvent.click(screen.getByRole('button', { name: 'Filters, 1 active' }))
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Muscle group' })).toHaveValue('chest'))
@@ -99,14 +84,11 @@ describe('ExercisesPage', () => {
     const fake = fakeApi({ ...fixedLists, 'GET /api/exercises': exercisePage([testExercise()]) })
     const { router } = renderRoutes(routes, '/exercises')
 
-    // Muscle and equipment are in the Filters panel, from the bottom
     await userEvent.click(screen.getByRole('button', { name: 'Filters' }))
-    // The panel: a dialog named by its title
     const panel = screen.getByRole('dialog', { name: 'Filters' })
     // The option exists once GET /api/equipment has answered
     await within(panel).findByRole('option', { name: 'Barbell' })
     await userEvent.selectOptions(within(panel).getByRole('combobox', { name: 'Equipment' }), 'barbell')
-    // Show closes the panel; the button now says one filter is on
     await userEvent.click(within(panel).getByRole('button', { name: 'Show exercises' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Filters, 1 active' })).toBeInTheDocument()
@@ -154,7 +136,6 @@ describe('ExercisesPage', () => {
 
     expect(await screen.findByRole('link', { name: /Squat/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Barbell Bench Press/ })).toBeInTheDocument()
-    // The last page: no more button
     expect(screen.queryByRole('button', { name: 'Show more' })).not.toBeInTheDocument()
   })
 

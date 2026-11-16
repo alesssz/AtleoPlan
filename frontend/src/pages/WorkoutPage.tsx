@@ -1,11 +1,7 @@
 /*
- * Workout mode's page (route `/session/:id`): full screen, outside the app's
- * frame and its tab bar (src/router.tsx). It finds the workout on the phone
- * (session-storage.ts) and hands it to WorkoutScreen.
- *
- * The workout lives on the phone, not on the server, until Done: an address
- * whose workout is not here (another phone, a workout already finished)
- * says so.
+ * Workout mode's route, full screen outside the app's frame. The workout lives
+ * on the device until Finish, so an address whose workout is not here
+ * (another device, already finished) says so.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'

@@ -76,7 +76,6 @@ it('makes the muscles exactly the list sent, and leaves them when none is sent',
     // A change without `muscles`
     $save->update($exercise, ['name' => 'Panca stretta']);
 
-    // muscle id => role, as the database has them now
     $roles = $exercise->fresh()->muscles->mapWithKeys(fn (Muscle $m) => [$m->id => $m->pivot->role])->all();
     expect($roles)->toEqualCanonicalizing([$chest->id => MuscleRole::Secondary, $shoulders->id => MuscleRole::Primary]);
 });

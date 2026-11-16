@@ -37,10 +37,8 @@ function planToExport(User $owner): Plan
     // The public push-ups, with the id free-exercise-db gives them
     $pushups = Exercise::factory()->create(['external_id' => 'Pushups', 'name' => ['en' => 'Pushups', 'it' => 'Piegamenti'], 'logging_type' => LoggingType::Reps, 'equipment_id' => $bodyOnly->id]);
     $pushups->muscles()->attach($chest, ['role' => MuscleRole::Primary]);
-    // The owner's own frog stand, timed, with two steps of instructions
     $frog = Exercise::factory()->for($owner, 'owner')->create(['name' => ['en' => 'Frog stand'], 'logging_type' => LoggingType::Time, 'instructions' => ['en' => ['Squat', 'Lean forward']]]);
 
-    // The plan, its day, then each item with its sets
     $plan = Plan::factory()->for($owner)->create(['name' => 'Calisthenics', 'goal' => 'Skills']);
     $day = PlanDay::factory()->for($plan)->create(['name' => 'Day A', 'position' => 0]);
     $race = PlanItem::factory()->for($day, 'day')->for($pushups)->create(['position' => 0, 'superset_group' => 1, 'for_time' => true, 'rest_seconds' => 60]);
@@ -66,7 +64,6 @@ it('exports a plan as a file: no ids, each exercise described once', function ()
         ->assertJsonMissingPath('plan.days.0.id')
         ->json();
 
-    // The day's two items, as the file writes them
     $items = $file['plan']['days'][0]['items'];
     expect(array_column($items, 'exercise'))->toBe(['e1', 'e2'])
         ->and($items[0])->toMatchArray(['superset_group' => 1, 'for_time' => true, 'rest_seconds' => 60])
@@ -104,7 +101,6 @@ it('imports a file as a new plan, finding the public exercise by its external id
         ->assertJsonPath('data.days.0.items.1.notes', 'Hands wide')
         ->assertJsonPath('meta.created_exercises', ['Frog stand']);
 
-    // The new plan, read again from the database with its exercises
     $plan = Plan::with('days.items.exercise')->find($answer->json('data.id'));
     $items = $plan->days[0]->items;
     expect($plan->user_id)->toBe($other->id)
@@ -127,7 +123,6 @@ it('uses the importer\'s own exercise of the same name, and never creates one tw
         ->assertCreated()
         ->assertJsonPath('data.days.0.items.1.exercise_id', $mine->id)
         ->assertJsonPath('meta.created_exercises', []);
-    // A second import: the same plan again, still no new exercise
     $this->actingAs($other)->postJson('/api/plans/import', $file)
         ->assertJsonPath('meta.created_exercises', []);
 
@@ -160,7 +155,6 @@ it('creates a missing exercise without the muscles and equipment this server lac
         // Used twice, created once
         ->assertJsonPath('meta.created_exercises', ['Wall handstand']);
 
-    // The exercise the import created
     $created = Exercise::with('muscles')->find($answer->json('data.days.0.items.0.exercise_id'));
     expect($created->owner_id)->toBe($user->id)
         ->and($created->external_id)->toBeNull()
@@ -204,14 +198,13 @@ it('refuses a file that is not a plan, or names an exercise it does not describe
     $owner = User::factory()->create();
     $file = $this->actingAs($owner)->getJson('/api/plans/'.planToExport($owner)->id.'/export')->json();
 
-    // The real file, with the dataset's change written over it
     $this->actingAs($owner)->postJson('/api/plans/import', array_replace_recursive($file, $change))
         ->assertUnprocessable()
         ->assertJsonValidationErrors([$field]);
-    // Nothing written
+    // Only the plan exported above
     expect($owner->plans()->count())->toBe(1);
 })->with([
-    'another format' => [['format' => 'chronovault.export'], 'format'],
+    'another format' => [['format' => 'other-app.export'], 'format'],
     'a later version' => [['version' => 2], 'version'],
     'an unknown exercise' => [['plan' => ['days' => [['items' => [['exercise' => 'e9']]]]]], 'plan.days.0.items.0.exercise'],
     'reps upside down' => [['plan' => ['days' => [['items' => [['sets' => [['target_reps_min' => 10, 'target_reps_max' => 8]]]]]]]], 'plan.days.0.items.0.sets.0.target_reps_max'],

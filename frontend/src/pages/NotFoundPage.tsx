@@ -1,6 +1,5 @@
 /*
- * Shown for any address that matches no route (the `*` route in
- * src/router.tsx), inside the normal frame so the navigation stays.
+ * Inside the app's frame, so the navigation stays.
  */
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'

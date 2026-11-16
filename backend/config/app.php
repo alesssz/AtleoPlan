@@ -74,8 +74,8 @@ return [
     |
     | Where the Filament admin panel is, for the React app's link to it and
     | for coming back from Google to the panel. In development Laravel's own
-    | port, since Vite does not forward
-    | /admin; in production the same host as the app, APP_URL + /admin.
+    | port, since Vite does not forward /admin; in production the same host as
+    | the app, APP_URL + /admin.
     |
     */
 

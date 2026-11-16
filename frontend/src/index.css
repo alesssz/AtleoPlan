@@ -1,45 +1,22 @@
 /*
- * Global styles of the app: Tailwind CSS, the design system's colour tokens
- * for the dark and light themes, the font, and a few base rules.
- *
- * How it works:
- * - Colours are CSS variables ("tokens") such as --primary. Components never
- *   use a colour directly: they use Tailwind classes made from the tokens
- *   (bg-primary, text-muted-foreground…). Switching theme only changes the
- *   variables' values, here below, and every component follows.
- * - The light values sit on :root; the dark values on .dark, a class put on
- *   <html> by the theme code (src/theme/). Dark is the default: easier to read
- *   on a phone lying on the bench.
- * - The token names are shadcn/ui's, so its components work unchanged; the
- *   values are AtleoPlan's.
+ * Colour tokens for both themes: light on :root, dark on .dark (set on <html>
+ * by src/theme/). Token names are shadcn/ui's, so its components work
+ * unchanged; components use only the tokens, never a raw colour.
  */
 
-/* Tailwind itself: its reset ("preflight") and every utility class */
 @import "tailwindcss";
-/* Ready-made enter/leave animations used by shadcn/ui (menus, selects) */
 @import "tw-animate-css";
-/* shadcn/ui's own helper styles */
 @import "shadcn/tailwind.css";
-/* Inter, served from the app itself rather than Google Fonts, so it also
-   works offline (the PWA) */
+/* Self-hosted, so the font works offline */
 @import "@fontsource-variable/inter";
 
-/* `dark:` classes apply inside an element with the .dark class (our <html>),
-   not following the operating system: the user picks the theme in Profile */
+/* The theme is the user's choice (the .dark class), not the system's */
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Tokens → Tailwind. Each line makes a Tailwind colour out of a CSS variable:
- * --color-primary: var(--primary) is what makes `bg-primary`, `text-primary`,
- * `border-primary`… exist. `inline` means the class uses the variable itself,
- * so it changes with the theme.
- */
 @theme inline {
-  /* Fonts: Inter for everything */
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sans);
 
-  /* shadcn/ui's tokens */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -72,13 +49,11 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* AtleoPlan's own tokens: bg-timer, text-success… */
+  /* AtleoPlan's own tokens */
   --color-timer: var(--timer);
   --color-success: var(--success);
   --color-warning: var(--warning);
 
-  /* Corner radii, all derived from --radius (8 px): rounded-lg = 8 px for
-     buttons and inputs, rounded-xl ≈ 12 px for cards */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -92,18 +67,16 @@
 :root {
   --radius: 0.5rem;
 
-  /* App background and text */
   --background: #FFFFFF;
   --foreground: #0B0B0F;
-  /* The design's "surface": cards, sheets, menus */
+  /* Cards, sheets, menus */
   --card: #F4F4F6;
   --card-foreground: #0B0B0F;
   --popover: #FFFFFF;
   --popover-foreground: #0B0B0F;
-  /* Main actions, completed set; a darker lime, readable on white */
+  /* A darker lime, readable on white */
   --primary: #5A7A00;
   --primary-foreground: #FFFFFF;
-  /* Secondary buttons */
   --secondary: #E8E8EC;
   --secondary-foreground: #0B0B0F;
   /* The design's "muted" is the secondary *text*; shadcn's --muted is a quiet
@@ -115,7 +88,6 @@
   --accent: #E8E8EC;
   --accent-foreground: #0B0B0F;
   --destructive: #B91C1C;
-  /* Lines and form fields; the focus ring is the primary colour */
   --border: #E2E2E8;
   --input: #D4D4DC;
   --ring: #5A7A00;
@@ -132,7 +104,6 @@
   --chart-4: #B45309;
   --chart-5: #7C3AED;
 
-  /* The side navigation (tablet and desktop) */
   --sidebar: #F4F4F6;
   --sidebar-foreground: #0B0B0F;
   --sidebar-primary: #5A7A00;
@@ -151,7 +122,6 @@
   --card-foreground: #EDEDF2;
   --popover: #16161D;
   --popover-foreground: #EDEDF2;
-  /* The lime: on the near-black background, with near-black text on it */
   --primary: #C6F432;
   --primary-foreground: #0B0B0F;
   --secondary: #22222B;
@@ -188,13 +158,11 @@
 /* --- Base rules ---------------------------------------------------------------- */
 @layer base {
   * {
-    /* Borders and focus outlines take the theme's colours by default */
     @apply border-border outline-ring/50;
   }
   html {
     @apply font-sans;
-    /* Tells the browser which theme is on, so scrollbars and form controls
-       it draws itself match it */
+    /* Native scrollbars and form controls follow the app's theme */
     color-scheme: light;
   }
   html.dark {
@@ -203,14 +171,9 @@
   body {
     @apply bg-background text-foreground antialiased;
     /*
-     * The energetic look: two soft glows of colour fading into the background,
-     * lime from the top centre and the timer's blue from the top right. Each
-     * radial-gradient() is an ellipse of colour that turns transparent towards
-     * its edge. color-mix(in oklab, X 14%, transparent) is "colour X at 14%
-     * strength", so the glow follows the theme: bright lime on dark, a faint
-     * olive on light. `fixed`: the glow stays put while the page scrolls
-     * (browsers that ignore it, such as iOS Safari, simply scroll it with the
-     * page).
+     * Two soft glows, lime from the top centre and the timer's blue from the
+     * top right, mixed from the tokens so they follow the theme. iOS Safari
+     * ignores `fixed` and scrolls them with the page.
      */
     background-image:
       radial-gradient(ellipse 90% 55% at 50% -12%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%),
@@ -219,29 +182,20 @@
   }
 }
 
-/*
- * Our own Tailwind utilities, usable with prefixes like the built-in ones
- * (`lg:text-gradient-primary`).
- */
-
-/* Text painted with a lime gradient, for the highlighted word of a big
-   heading: the gradient is the element's background, cut to the shape of
-   the letters (background-clip: text) and shown through transparent text */
+/* The highlighted word of a big heading */
 @utility text-gradient-primary {
   background-image: linear-gradient(100deg, var(--primary) 0%, color-mix(in oklab, var(--primary) 55%, var(--timer)) 100%);
   background-clip: text;
   color: transparent;
 }
 
-/* A soft lime halo around an element (logo, illustration, active tab) */
 @utility glow-primary {
   box-shadow: 0 0 32px -6px color-mix(in oklab, var(--primary) 55%, transparent);
 }
 
-/* A card with a 1 px gradient border, lime at the top-left fading out:
-   the gradient is painted under a padding of 1 px, and the card's own
-   background covers everything inside it (the first layer, clipped to the
-   padding box). Used for the cards that matter most (Home's plan card). */
+/* A 1 px gradient border, lime at the top left, for the cards that matter
+   most. The card's colour covers the padding box; the gradient shows only in
+   the transparent border */
 @utility border-glow {
   border: 1px solid transparent;
   background:

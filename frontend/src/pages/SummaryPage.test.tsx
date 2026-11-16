@@ -1,9 +1,3 @@
-/*
- * The summary after Finish, used as a person would: the numbers and each
- * exercise against last time, worked out on the phone with no request, Save
- * with the feeling and the notes, Save with nothing to add, Delete (sent or
- * still waiting), and an address whose workout is not on this phone.
- */
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
@@ -36,13 +30,11 @@ const lastBench: LastSets = {
  * Day A finished with the warm-up (40 × 10) and the first set that counts
  * (80 × 8, the plan's target) of the bench press ticked, kept on the phone
  * as Finish keeps it.
- * @param outcome what happened when it was sent at Finish
  */
 function finishDayA(outcome: WorkoutOutcome): { id: string, input: SessionInput } {
   const plan = testPlan()
   const now = new Date('2026-11-16T18:00:00Z')
   const started = startSession(plan, plan.days[0]!, { unit: 'kg', defaultRestSeconds: 90, lastSets: [lastBench], language: 'en', now })
-  // [action, …].reduce(workoutReducer, start): the actions one after another
   const finished = [
     { type: 'toggleSet', exercise: 0, set: 0, now: '2026-11-16T18:05:00Z' },
     { type: 'toggleSet', exercise: 0, set: 2, now: '2026-11-16T18:08:00Z' },

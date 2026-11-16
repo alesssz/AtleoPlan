@@ -1,8 +1,6 @@
 /*
- * "Forgot password" (route `/forgot-password`), the first of two steps: it asks
- * for the address and sends the email. Its link opens ResetPasswordPage. In
- * development the email is in Mailpit (http://localhost:8525). Built as
- * LoginPage.
+ * The first step of a password reset: sends the email whose link opens
+ * ResetPasswordPage. In development the email lands in Mailpit.
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'

@@ -1,15 +1,10 @@
 /*
- * The exercise editor's rules and conversions, apart from ExerciseForm.tsx.
+ * The exercise editor's rules and conversions. The form's fields are shaped
+ * for the screen (instructions as one text, the main muscle as one choice);
+ * toExerciseInput() and formValuesFrom() convert to and from the API's shape.
  *
- * The form's fields are shaped for the screen, not for the API: the
- * instructions are one text, a step per line; the main muscle is one choice
- * and the secondary ones a list of ticks. toExerciseInput() turns them into
- * what the backend expects (StoreExerciseRequest), and formValuesFrom() does
- * the opposite for an exercise being changed.
- *
- * The rules repeat the backend's few that a user can break while typing, so
- * that the message comes at once and in the user's language; the backend checks
- * everything again.
+ * The rules repeat only the backend's few that a user can break while typing,
+ * so the message comes at once; the backend checks everything again.
  */
 import type { TFunction } from 'i18next'
 import { z } from 'zod'
@@ -26,11 +21,8 @@ export const DESCRIPTION_MAX_LENGTH = 2000
 const YOUTUBE_URL = /^https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//i
 
 /**
- * The form's rules, with messages in the current language.
- *
- * The names of the fields are the backend's where they match (`name`,
- * `equipment_id`, `youtube_url`…), so that its 422 answers land on the right
- * field (showRequestError, src/lib/form.ts).
+ * Field names match the backend's where they can (`name`, `equipment_id`,
+ * `youtube_url`…), so its 422 errors land on the right field.
  */
 export function exerciseFormSchema(t: TFunction) {
   return z.object({
@@ -46,20 +38,15 @@ export function exerciseFormSchema(t: TFunction) {
     primary_muscle: z.string(),
     secondary_muscles: z.array(z.number()),
     equipment_id: z.string(),
-    // Empty, or a YouTube address
     youtube_url: z.string().trim().refine(value => value === '' || YOUTUBE_URL.test(value), {
       error: t('exercises.editor.errors.youtube'),
     }),
   })
 }
 
-/** Derived from the schema, so the two cannot drift apart. */
 export type ExerciseFormValues = z.infer<ReturnType<typeof exerciseFormSchema>>
 
-/**
- * The values of an empty form.
- * @param name a name to start with, such as the search that found nothing; '' by default
- */
+/** @param name a name to start with, such as the search that found nothing */
 export function emptyFormValues(name = ''): ExerciseFormValues {
   return {
     name,
@@ -73,10 +60,6 @@ export function emptyFormValues(name = ''): ExerciseFormValues {
   }
 }
 
-/**
- * The form's values for an exercise being changed.
- * @param exercise the exercise, as the API sent it
- */
 export function formValuesFrom(exercise: Exercise): ExerciseFormValues {
   // The first primary muscle goes in the select; any other primary one, and
   // the secondary ones, become ticks
@@ -95,14 +78,11 @@ export function formValuesFrom(exercise: Exercise): ExerciseFormValues {
 }
 
 /**
- * What to send to the API for the form's values.
- *
  * - Empty texts become null, which empties the field on the backend.
  * - The instructions are split at line breaks; blank lines are dropped.
  * - The muscles become one list: the main one as primary, the ticked ones as
  *   secondary, without the main one if it was also ticked.
  *
- * @param values the form's values, already checked by the schema
  * @returns the body of POST or PATCH /api/exercises
  */
 export function toExerciseInput(values: ExerciseFormValues): ExerciseInput {

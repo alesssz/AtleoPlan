@@ -15,7 +15,7 @@ export interface Totals {
   durationSeconds: number | null
   exercises: number
   sets: number
-  /** Their reps; a timed or distance set adds 0. */
+  /** A timed or distance set adds 0. */
   reps: number
 }
 
@@ -33,10 +33,7 @@ export function inputTotals(input: SessionInput): Totals {
   }
 }
 
-/**
- * The numbers of a workout as the backend sends them, with its totals.
- * @param session a workout of GET /api/sessions or /api/sessions/{id}
- */
+/** From a workout of GET /api/sessions or /api/sessions/{id}, with its totals. */
 export function sessionTotals(session: WorkoutSession): Totals {
   return {
     durationSeconds: session.duration_seconds ?? null,

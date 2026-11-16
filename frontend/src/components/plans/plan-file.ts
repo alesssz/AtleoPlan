@@ -1,12 +1,7 @@
 /*
- * A plan file read in the browser, before anything is sent (Import plan,
- * ImportPlanButton.tsx): is it a plan file at all, and what does it hold? The
- * answer lets the window say so at once, and show what will be imported before
- * the user confirms.
- *
- * Only a first look: the backend checks every field (ImportPlanRequest),
- * and stays the one that decides. Here, what a person can be told in
- * words: too big, not JSON, not a plan, a plan of a later version.
+ * A first look at a plan file before Import sends it, to name the problem at
+ * once and preview the plan. The backend checks every field (ImportPlanRequest)
+ * and stays the one that decides.
  */
 
 /** backend ExportPlan::FORMAT, VERSION */

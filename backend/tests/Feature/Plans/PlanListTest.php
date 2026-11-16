@@ -115,7 +115,6 @@ it('shows a whole plan: days, exercises and sets in order', function () {
         ->and(array_column($json['days'], 'id'))->toBe([$push->id, $pull->id])
         ->and($json['days'][1]['items'])->toBe([]);
 
-    // The item: its own fields, the exercise as the library sends it, the sets
     $sent = $json['days'][0]['items'][0];
     expect($sent['id'])->toBe($item->id)
         ->and($sent['exercise_id'])->toBe($bench->id)

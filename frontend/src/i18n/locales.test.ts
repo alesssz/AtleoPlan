@@ -1,8 +1,6 @@
 /*
- * Checks that the four translation files agree: every language has exactly
- * the English keys, no text is empty, and every {{placeholder}} of the
- * English text is kept in the translation. A key forgotten in one language
- * would show English to that user (the fallback); this catches it first.
+ * A key missing in one language would silently fall back to English: every
+ * locale must have exactly the English keys and placeholders.
  */
 import { describe, expect, it } from 'vitest'
 import { SUPPORTED_LANGUAGES } from './languages'

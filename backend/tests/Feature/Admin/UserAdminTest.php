@@ -4,8 +4,6 @@
  * The admin panel's Users screen and its rules: the list, the four row actions,
  * and the action ChangeUserAccess, which refuses an admin's change to their own
  * account.
- *
- * Fixtures: an admin signed in, and the users each test makes.
  */
 
 use App\Actions\Users\ChangeUserAccess;
@@ -17,14 +15,12 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-// An admin signed in, in English
 beforeEach(function () {
     $this->admin = User::factory()->admin()->create(['locale' => 'en']);
     $this->actingAs($this->admin);
 });
 
 it('lists every user', function () {
-    // Three plain users, besides the admin
     $users = User::factory()->count(3)->create();
 
     Livewire::test(ListUsers::class)
@@ -32,7 +28,6 @@ it('lists every user', function () {
 });
 
 it('makes a user an admin, and back', function () {
-    // A plain user
     $user = User::factory()->create();
 
     Livewire::test(ListUsers::class)
@@ -45,7 +40,6 @@ it('makes a user an admin, and back', function () {
 });
 
 it('disables an account, and enables it', function () {
-    // An enabled user
     $user = User::factory()->create();
 
     Livewire::test(ListUsers::class)
@@ -58,7 +52,6 @@ it('disables an account, and enables it', function () {
 });
 
 it('shows only the actions that make sense for a row', function () {
-    // A plain user, enabled: Make admin and Disable, not their opposites
     $user = User::factory()->create();
 
     Livewire::test(ListUsers::class)

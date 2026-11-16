@@ -80,8 +80,7 @@ function phoneSession(Exercise $exercise, array $changes = []): array
     ];
 }
 
-// --- The five situations
-// ---------------------------------------------------------
+// --- The five situations -------------------------------------------------------
 
 it('saves a new workout with the ids of the phone, and answers 201', function () {
     $user = User::factory()->create();

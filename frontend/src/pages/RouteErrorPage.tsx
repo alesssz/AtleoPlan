@@ -1,8 +1,6 @@
 /*
- * The safety net: React Router draws this instead of a screen that crashed
- * while rendering (an `errorElement` in src/router.tsx), so one broken
- * component shows a message and a way out instead of a blank page.
- * It replaces the whole frame, so it draws its own <main>.
+ * A screen that throws while rendering shows this instead of a blank page. It
+ * replaces the whole frame, so it draws its own <main>.
  */
 import { useTranslation } from 'react-i18next'
 import { useRouteError } from 'react-router'
@@ -10,7 +8,6 @@ import { Button } from '@/components/ui/button'
 
 export function RouteErrorPage() {
   const { t } = useTranslation()
-  // Logged for the developer
   const error = useRouteError()
   console.error(error)
 

@@ -20,7 +20,6 @@ it('answers 401 to a visitor', function (string $url) {
 it('lists the 17 muscles, sorted by name in the request\'s language', function () {
     $this->seed(MuscleSeeder::class);
 
-    // The names in Spanish, in the order received
     $names = $this->actingAs(User::factory()->create())
         ->getJson('/api/muscles', ['Accept-Language' => 'es'])
         ->assertOk()

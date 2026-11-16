@@ -1,9 +1,7 @@
 /*
- * "Continue with Google".
- *
- * A plain link, not a request: the browser itself goes to Google through
- * Laravel and comes back to the app, which then loads afresh and finds the
- * user as after any reload.
+ * "Continue with Google": a plain link, not a request. The browser goes to
+ * Google through Laravel and comes back to a fresh load of the app, which finds
+ * the user as after any reload.
  */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -14,8 +12,8 @@ import { Spinner } from '@/components/ui/spinner'
 import { FALLBACK_LANGUAGE, isLanguage } from '@/i18n/languages'
 
 /**
- * backend app/Enums/SocialSignInError.php. Literal keys, so t() checks them;
- * a template string could not be checked.
+ * The codes of the backend's SocialSignInError enum. Literal keys, so t()
+ * type-checks them.
  */
 const ERROR_MESSAGES = {
   cancelled: 'auth.google.errors.cancelled',

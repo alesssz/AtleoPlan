@@ -13,8 +13,8 @@ use Throwable;
 /**
  * `php artisan exercises:translate`: writes the Italian, Spanish and German
  * names, other names and steps of the imported exercises, from the translation
- * files of the repository. In this project it runs right after the import, in
- * `make exercises-import`.
+ * files of the repository. `make exercises-import` runs it right after the
+ * import.
  *
  * The files, keyed by external_id (TranslateExercise shows an entry), are
  * versioned with the code: a fresh database gets the same translations with

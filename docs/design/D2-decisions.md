@@ -1,6 +1,6 @@
 # D2. Decisions
 
-The choices made before writing code, each with its reason and what was set aside. A decision changes by editing its section here, with the reason for the change; the screens it affects are described in [D1. UI design](D1-ui.md).
+The project's technical and product decisions, each with its reason and the alternatives set aside. A decision changes by editing its section here, with the reason for the change; the screens it affects are described in [D1. UI design](D1-ui.md).
 
 ## Contents
 
@@ -30,7 +30,7 @@ Before buying a domain or opening store accounts, the name is checked against do
 
 | Layer | Choice | Why | Set aside |
 |---|---|---|---|
-| Backend | **Laravel**, API only | Known stack; Sanctum, policies, queues, Pint and Pest out of the box | Inertia (ties the frontend to the server: no offline, no mobile app later) |
+| Backend | **Laravel**, API only | Sanctum, policies, queues, Pint and Pest out of the box | Inertia (ties the frontend to the server: no offline, no mobile app later) |
 | Auth | **Sanctum**: cookies for the web app, tokens for the future mobile app. **Fortify** for signing up, in and out and resetting a password, with the screens in React. **Socialite** for signing in with Google | Official, simple; cookie auth needs frontend and API on the same domain, which the hosting gives ([D2.6](#d26-hosting)). Fortify keeps the security-sensitive parts in Laravel's own maintained code ([C2.7.6](../concepts/C2-backend.md#c276-fortify-or-by-hand)); Socialite does the same for OAuth, and Apple later is one more of its drivers ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)) | Passport (OAuth server, more than needed); hand-written controllers (more of our own code to keep safe); Breeze and Jetstream (screens not in React) |
 | Database | **PostgreSQL** | JSON columns for translations, solid constraints | MySQL (works too; Postgres is the choice for its JSON and constraint support) |
 | Admin | **Filament** | Admin panel for the public library and the users without writing a back office in React ([D1.4.15](D1-ui.md#d1415-admin-panel-filament)) | A React admin (weeks of work for an internal tool) |
@@ -42,8 +42,8 @@ Before buying a domain or opening store accounts, the name is checked against do
 | Drag and drop | **dnd-kit** | Touch and keyboard support | — |
 | Charts | **Recharts** | Simple line and bar charts | — |
 | Translations | **react-i18next** (frontend), Laravel language files and **spatie/laravel-translatable** (backend) | See [D2.4](#d24-languages) | — |
-| Tests | **Pest** (backend), **Vitest** + Testing Library (frontend), **Playwright** (end to end) | Same tools as Chronovault for the frontend | — |
-| Local development | **Backend in Docker**, **frontend directly on the computer** (macOS or Windows) with Node 24 (pinned in `.nvmrc`) ([S1.7](../start/S1-setup.md#s17-creating-the-react-frontend)) | The backend needs PHP, its extensions and ffmpeg, which stay off the computer, and runs the same image as production. The frontend needs only Node; VS Code's TypeScript and ESLint read `frontend/node_modules` from the computer; Vite's hot reload is faster on the computer's own disk. In production the React app is static files served by Caddy, so the dev server has no production twin to match | Frontend in Docker: `node_modules` would live in a Docker volume, invisible to VS Code (or installed twice), and hot reload is slower through Docker's file sharing on macOS |
+| Tests | **Pest** (backend), **Vitest** + Testing Library (frontend), **Playwright** (end to end) | Vitest runs on Vite's own configuration | — |
+| Local development | **Backend in Docker**, **frontend directly on the host** (macOS or Windows) with Node 24 (pinned in `.nvmrc`) ([S1.7](../start/S1-setup.md#s17-the-frontend-on-the-host)) | The backend needs PHP, its extensions and ffmpeg, which stay off the host, and runs the same image as production. The frontend needs only Node; VS Code's TypeScript and ESLint read `frontend/node_modules` from the host; Vite's hot reload is faster on the host's own disk. In production the React app is static files served by Caddy, so the dev server has no production twin to match | Frontend in Docker: `node_modules` would live in a Docker volume, invisible to VS Code (or installed twice), and hot reload is slower through Docker's file sharing on macOS |
 
 ---
 
@@ -63,9 +63,9 @@ Before buying a domain or opening store accounts, the name is checked against do
 - **The logging type is guessed,** since the source does not say: stretching and cardio are timed, exercises with the body only or no equipment count reps, the rest are weight and reps. The exceptions found so far (Plank, guessed as reps, is held for a time) are a list in the repository, applied after the import ([C2.14.6](../concepts/C2-backend.md#c2146-the-logging-types-corrected-after-the-import)); an admin corrects the others.
 - **Running it again never undoes people's work:** exercises already there are left alone unless asked to refresh, and then only their English texts and the source's data change; other languages, the logging type and the photos stay. An exercise deleted by an admin stays deleted.
 
-**Extra exercises of our own.** free-exercise-db is mostly weights and machines; calisthenics was missing (frog stand, front lever, burpees, dead hang…). The project keeps a few more public exercises in a file of the repository, `backend/database/data/extra-exercises.json`, in free-exercise-db's shape, with the logging type stated rather than guessed, and imports them with the same rules (`make exercises-extra`, which `make exercises-import` runs too; [C2.14.5](../concepts/C2-backend.md#c2145-the-extra-exercises)). Their external ids start with `AtleoPlan_`, so they never meet the dataset's. Written by Claude, in the four languages, flagged as machine translated like the rest.
+**Extra exercises of our own.** free-exercise-db is mostly weights and machines; calisthenics was missing (frog stand, front lever, burpees, dead hang…). The project keeps a few more public exercises in a file of the repository, `backend/database/data/extra-exercises.json`, in free-exercise-db's shape, with the logging type stated rather than guessed, and imports them with the same rules (`make exercises-extra`, which `make exercises-import` runs too; [C2.14.5](../concepts/C2-backend.md#c2145-the-extra-exercises)). Their external ids start with `AtleoPlan_`, so they never meet the dataset's. They are machine-written in the four languages and flagged as machine translated like the rest.
 
-**Translations.** free-exercise-db is in English only. Names and instructions were translated into Italian, Spanish and German once, by Claude, with other names people search for ("rematore alto" for the upright row); the translations are files of the repository, written into the database by `exercises:translate`, which `make exercises-import` runs after the import ([C2.14.4](../concepts/C2-backend.md#c2144-the-translation-of-the-library)). All three languages keep a **Machine translated** flag until a person reviews them in the admin panel ([D1.4.15](D1-ui.md#d1415-admin-panel-filament)): Italian first, then Spanish and German by native speakers. free-exercise-db has no descriptions, so there were none to translate.
+**Translations.** free-exercise-db is in English only. Names and instructions are machine-translated into Italian, Spanish and German, with other names people search for ("rematore alto" for the upright row); the translations are files of the repository, written into the database by `exercises:translate`, which `make exercises-import` runs after the import ([C2.14.4](../concepts/C2-backend.md#c2144-the-translation-of-the-library)). All three languages keep a **Machine translated** flag until a person reviews them in the admin panel ([D1.4.15](D1-ui.md#d1415-admin-panel-filament)): Italian first, then Spanish and German by native speakers. free-exercise-db has no descriptions.
 
 **wger: only the muscle drawings.** [wger](https://wger.de) has its own exercise database, translated into many languages, under CC-BY-SA 4.0: using it means crediting every author and releasing what is derived from it (the translations, for example) under the same licence. It is not imported. Its SVG drawings of the muscles may be used for a muscle map in the interface, credited on a Credits page.
 
@@ -95,26 +95,25 @@ Before buying a domain or opening store accounts, the name is checked against do
 
 Why these numbers: two or three reps are enough to show how an exercise is done (10–15 s), so 30 s leaves room. 100 MB covers 30 s of 4K from an iPhone. The server converts every video (a queue job running ffmpeg), also because the HEVC videos of iPhones do not play in every browser. Media are handled with spatie/laravel-medialibrary.
 
-**Photos, as implemented** ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)), with two changes to the first plan, decided with the owner:
+**Photos** ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)):
 - **The original is kept.** medialibrary always keeps the file uploaded, and its copies are files beside it. Keeping it lets the copies be made again if their sizes change (`make exercises-thumbnails`, `media-library:regenerate`); the app never shows it once the copies exist. At most 50 MB per exercise, on a 200 GB disk.
 - **No HEIC.** GD, the image library of the Docker image, writes WebP but cannot read HEIC, and Imagick with libheif would make the image heavier. An iPhone's browser sends a JPEG anyway when the form does not ask for HEIC, so nobody uploading from a phone notices.
 
-The imported photos weighed 98.7 MB; their small copies weigh 20.7 MB (about 12 KB each instead of 56), and the lists load those.
+The imported photos take 98.7 MB; their small copies 20.7 MB (about 12 KB each instead of 56), and the lists load those.
 
 **Videos come in phase 2** ([D1.8](D1-ui.md#d18-release-phases-and-open-questions)): the `videos` collection exists, with nothing that fills it yet.
 
 **Storage: the server's disk first, R2 later.**
 
 - **Now:** files are stored on the disk of the server that runs the app ([D2.6](#d26-hosting)): free, simple, and 200 GB are far more than needed (the imported photos take 98 MB; a thousand videos about 8 GB).
-- **Later**, with real users: Cloudflare R2 on a **Cloudflare account of its own**, with its own free 10 GB, separate costs and an easy hand-over if the app is sold. Laravel writes to a "disk": switching is a change of `FILESYSTEM_DISK` in `.env`, not of the code.
-- **Not Chronovault's R2:** its FLAC files already use that account's free 10 GB, and the two projects stay apart.
+- **Later**, with real users: Cloudflare R2 (10 GB free) on a **dedicated Cloudflare account**, so the app's storage, quota and costs stay separate and the app can be handed over on its own. Switching is a change of `FILESYSTEM_DISK` in `.env`, not of the code.
 - Files on the server's disk need **backups**, planned with the deployment.
 
 ---
 
 ## D2.6 Hosting
 
-**Not yet.** During development everything runs on the local machine with Docker; deploying is postponed until the app is worth putting online ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)). What follows is the plan for that day.
+**Not deployed yet.** Everything runs locally with Docker; deployment is postponed until the app is worth putting online ([OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server)). What follows is the target setup.
 
 **One free server runs everything:** the React app, Laravel, its queue worker, Postgres and the media.
 
@@ -174,64 +173,67 @@ Free tiers change often: they are checked again when the app is first deployed.
 - **Warm-up sets count neither for volume nor for records**, or the statistics would be inflated.
 - **Estimated one-rep max:** Epley formula, weight × (1 + reps / 30), on every set that is not a warm-up.
 - **Volume:** sets × reps × weight, warm-up excluded, **per exercise** (and, in phase 2, per muscle group). Only the weight that is known counts: a set with the body alone adds nothing, a weighted pull-up adds its added weight (+10 kg × 6 = 60 kg). The body's own weight is not known, so bodyweight work is followed by its reps rather than by volume.
-- **No workout volume.** A workout's or a week's volume, everything added together, is not shown: it adds up unlike exercises (a kilogram of squat is not a kilogram of curl), and counts nothing done with the body alone, so a calisthenics workout weighed 0. A workout shows its time, exercises, sets and **reps** (the body alone included); a week its workouts, sets and **minutes**. Volume stays beside each exercise with weights. (Decided in FEAT-4, after the first summary showed the total.)
+- **No workout volume.** A workout's or a week's volume, everything added together, is not shown: it adds up unlike exercises (a kilogram of squat is not a kilogram of curl), and counts nothing done with the body alone, so a calisthenics workout weighed 0. A workout shows its time, exercises, sets and **reps** (the body alone included); a week its workouts, sets and **minutes**. Volume stays beside each exercise with weights.
 - **Better than last time, exercise by exercise.** Each exercise is compared with the last time it was done, in any plan, by its best set, the rule fitting how it is logged: weight × reps by the estimated one-rep max; reps by the added weight, then the reps; time and distance by the longest; reps done as fast as possible by the reps, then the shortest time, and only against last time done the same way. When the best sets tie, the total reps decide. The verdict is better, the same, lower, or first time; the summary and history count them ("2 better · 1 same", [D1.4.10](D1-ui.md#d1410-workout-summary)). This works for bodyweight exercises, which a volume cannot.
+
+---
 
 ## D2.9 Plan files
 
-A plan can be saved as a file and imported again, on the same server or another ([D1.4.7](D1-ui.md#d147-plan-details), [D3.5.8](D3-data-model.md#d358-the-plan-file)). Decided to move a real plan from development to production without writing it again.
+A plan can be saved as a file and imported again, on the same server or another ([D1.4.7](D1-ui.md#d147-plan-details), [D3.5.8](D3-data-model.md#d358-the-plan-file)). The first use: moving a plan from the development server to production without entering it again.
 
 - **JSON, not CSV or Excel.** A plan is a tree: days, their exercises with supersets and notes, their sets; each exercise with several muscles and a list of instructions. JSON holds that as it is, and both Laravel and the browser read it with nothing added. A CSV is one table: a row per set, the plan, day and exercise repeated on each, lists squeezed into a cell; a semicolon in a note, or a spreadsheet turning "8-10" into a date, breaks it. Excel has the same limits and needs a library. A spreadsheet stays a good way to **write** a plan by hand, a different feature with a format made for people ([FEAT-8](../project/backlog.md#feat-8-write-a-plan-in-a-spreadsheet-and-import-it)).
 - **The plan only, with the exercises it uses.** No workout history and no photos: the plan is what takes time to write again; a personal exercise's photos are few and can be added by hand. History and photos belong to the full **Export my data** the GDPR asks for ([D1.4.14](D1-ui.md#d1414-profile-and-settings)).
 - **Each exercise described in full,** public ones too, so that an exercise missing on the other server is created as the importer's own rather than refusing the file: an extra exercise not yet imported there, a personal one.
-- **Nothing is sent by surprise.** Import plan explains what file it wants, looks at the file on the device (size, JSON, format, version), and shows what it holds before **Import**; the backend still checks every field. Added after a first look: a picker that sent whatever was chosen gave no idea of what it expected.
+- **Nothing is sent by surprise.** Import plan explains what file it wants, looks at the file on the device (size, JSON, format, version), and shows what it holds before **Import**; the backend still checks every field. A bare file picker gives no idea of what it expects.
 - **An import never changes anything:** the plan arrives as a new one. Exercises already there are reused, found by their stable id or their name, so importing twice does not duplicate them.
 
 ---
 
 ## D2.10 Local development
 
-**The stack runs in Docker on both computers, the Mac and the Windows PC; the frontend runs directly on the computer** (Vite, Node 24). PHP and Composer are never installed on the computer: one image gives the same PHP, the same extensions and ffmpeg everywhere ([S1.5](../start/S1-setup.md#s15-first-start-the-docker-stack)).
+**The backend stack runs in Docker on macOS and Windows; the frontend runs directly on the host** (Vite, Node 24). PHP and Composer are never installed on the host: one image gives the same PHP, the same extensions and ffmpeg everywhere ([S1.5](../start/S1-setup.md#s15-first-start-the-docker-stack)).
 
-**The code is shared, the Composer packages are in a volume.** Decided when every API call took 1 to 2 seconds locally on both computers. Docker Desktop runs Linux in a virtual machine; `./backend`, shared with it, is slow to read file by file, and after every pause of two seconds PHP's OPcache checks the date of the thousand files a request uses, 96% of them in `vendor/` ([C2.4](../concepts/C2-backend.md#c24-the-life-of-a-request)). With `vendor/` in a Docker named volume, a request after a pause went from about 1,200 ms to about 90 ms. The code stays shared, so a saved change is still seen at the next request. The computer's `backend/vendor/` becomes a copy for the editor, refreshed by Composer after every change. How to measure it: [H2.11](../how-to/H2-backend.md#h211-finding-out-what-is-going-on).
+**The code is shared, the Composer packages are in a volume.** With `vendor/` in the bind mount, every API call takes 1 to 2 seconds locally, on macOS and Windows alike. Docker Desktop runs Linux in a virtual machine; `./backend`, shared with it, is slow to read file by file, and after every pause of two seconds PHP's OPcache checks the date of the thousand files a request uses, 96% of them in `vendor/` ([C2.4](../concepts/C2-backend.md#c24-the-life-of-a-request)). With `vendor/` in a Docker named volume, a request after a pause went from about 1,200 ms to about 90 ms. The code stays shared, so a saved change is still seen at the next request. The host's `backend/vendor/` is a copy for the editor, refreshed by Composer after every change. How to measure it: [H2.11](../how-to/H2-backend.md#h211-finding-out-what-is-going-on).
 
 | Choice | Why |
 |---|---|
-| `vendor/` in a named volume | Same fix on the Mac and on Windows, free, a few lines of `compose.yaml`, nothing to install on the computers |
-| A copy on the computer, made by Composer's `post-autoload-dump` | The editor keeps completing Laravel's classes and opening their source; it follows every Composer command by itself, whoever types it |
+| `vendor/` in a named volume | Same fix on macOS and Windows, free, a few lines of `compose.yaml`, nothing to install on the host |
+| A copy on the host, made by Composer's `post-autoload-dump` | The editor keeps completing Laravel's classes and opening their source; it follows every Composer command by itself, whoever types it |
 | rsync for the copy | Sends only what changed; still about 20 s on Windows, where checking 24,722 files through the shared folder is slow, but only after a Composer command |
 
 **Set aside:**
 
-- **The repository inside WSL2's own disk** (on Windows): what Laravel's documentation advises there, and the fastest. Windows only, so the Mac would stay slow; it also moves the whole way of working (Node, Git, the editor through VS Code's WSL extension) into Linux.
-- **A longer `opcache.revalidate_freq`** (30 s, say): one line, but a saved change would be seen only up to 30 s later, which is confusing while learning; requests after a long pause would stay slow.
+- **The repository inside WSL2's own disk** (on Windows): what Laravel's documentation advises there, and the fastest. Windows only, so macOS would stay slow; it also moves the whole way of working (Node, Git, the editor through VS Code's WSL extension) into Linux.
+- **A longer `opcache.revalidate_freq`** (30 s, say): one line, but a saved change would be seen only up to 30 s later, which breaks the edit-and-reload loop; requests after a long pause would stay slow.
 - **`opcache.validate_timestamps=0`:** the fastest, but no change is ever seen without a restart.
 - **FrankenPHP's worker mode with Laravel Octane:** the app stays loaded between requests, fastest of all. One more package, and a different way of thinking: what a request leaves in memory is still there for the next. Its reload on save watches the files, which does not work through the shared folder on Windows. It may still come with production ([D2.6](#d26-hosting)).
 - **Docker Desktop's synchronized file shares:** Docker's own answer, a synchronized copy inside the virtual machine, as fast as a volume for all the code. Only with a paid Docker subscription.
-- **Mutagen, docker-sync, OrbStack:** the same synchronization for free, but one more tool to install and keep running on each computer; OrbStack is for the Mac only.
+- **Mutagen, docker-sync, OrbStack:** the same synchronization for free, but one more tool to install and keep running on each host; OrbStack is for the Mac only.
+
+---
 
 ## D2.11 Continuous integration
 
-**GitHub Actions checks every push, with the same layout in AtleoPlan, Chronovault and Flowboard:** a CI workflow on any branch, an audit of the dependencies every week and when they change, Dependabot proposing the actions' new versions, and merges only through a pull request whose CI passed. How it works: [H5](../how-to/H5-ci.md).
+**GitHub Actions checks every push:** a CI workflow on any branch, an audit of the dependencies every week and when they change, Dependabot proposing the actions' new versions, and merges only through a pull request whose CI passed. How it works: [H5](../how-to/H5-ci.md).
 
 | Choice | Why |
 |---|---|
 | Runs on a push to any branch | A branch is checked as soon as it is pushed; its pull request needs no run of its own, since checks belong to the commit |
-| The backend in its own Docker image, with Docker Compose | The rule of the project, PHP only through Docker ([D2.10](#d210-local-development)), holds in CI too: the same PHP, extensions and Postgres as on the computers; a failure in CI is one on the computer, and the other way round |
+| The backend in its own Docker image, with Docker Compose | The rule of the project, PHP only through Docker ([D2.10](#d210-local-development)), holds in CI too: the same PHP, extensions and Postgres as locally; a failure in CI reproduces locally, and the other way round |
 | Only GitHub's own actions (`actions/checkout`, `actions/setup-node`), pinned to a commit hash | An action is someone's code run with the repository's token. The backend needs none (Docker is on the runner), so the setting "GitHub's actions only" holds with no exception ([H5.3](../how-to/H5-ci.md#h53-the-settings-on-github)). A tag can be moved to other code, a hash cannot; Dependabot proposes the new hashes |
 | A read-only token in every workflow | The jobs read the code and run checks; nothing they run could push, comment or open a pull request |
 | An audit workflow beside Dependabot's alerts | The alerts only warn, on GitHub's page; the audit fails the branch that brings a vulnerable version, before the merge, and fails weekly on a new advisory, by email |
 | The advisories reviewed listed with their reason (`auditIgnore`, `config.audit.ignore`) | Some advisories have no fix (deepmerge's, [H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)); a failure always there would hide the new one. Each one left out is written down, with why |
 | Dependabot's version updates for the actions only | npm and Composer updates are made by hand, a few at a time, with `make check`; their security is covered by the alerts and the audit |
 | CodeQL's default setup, not a workflow of ours | GitHub's own analysis, configured and updated by GitHub, with no file to keep; it also reads the workflows, the part of a CI most often written carelessly. It does not read PHP |
-| `make github-check` reads the settings with `gh` | Settings live on GitHub's pages, outside the repository, where a change goes unnoticed; one command compares them all with the ones decided, as `make doctor` does for the computer |
-| Merges only through a pull request, both CI jobs required | GitHub merges only a commit whose CI passed: nothing reaches `main` from a computer, by mistake or in a hurry. `make merge` opens the pull request and lets auto-merge finish it |
+| `make github-check` reads the settings with `gh` | Settings live on GitHub's pages, outside the repository, where a change goes unnoticed; one command compares them all with the ones decided, as `make doctor` does for the local setup |
+| Merges only through a pull request, both CI jobs required | GitHub merges only a commit whose CI passed: nothing reaches `main` directly from a local clone. `make merge` opens the pull request and lets auto-merge finish it |
 
 **Set aside:**
 
 - **PHP set up on the runner by a third-party action** (`shivammathur/setup-php`): faster than building the image, but one more author's code with the token, an exception to "GitHub's actions only", and a PHP that is not the project's image.
 - **Caching the Docker image between runs** (`docker/build-push-action` with GitHub's cache): a minute or two saved per run, for another third-party action. Worth it if the backend job grows slow.
-- **Pinning the actions by commit** (`actions/checkout@<sha>` instead of `@v7`): protects against a tag moved by a compromised author. For GitHub's own actions the tag is accepted here, as in Chronovault; Dependabot proposes the new ones.
 
 ---
 

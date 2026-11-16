@@ -1,10 +1,6 @@
 /*
- * Export, on a plan's page: the plan saved as a file, `<name>.atleoplan.json`,
- * to import on another server or account (ImportPlanButton.tsx).
- *
- * Not a mutation: nothing changes on the server. The file is asked for when
- * the button is tapped, never kept in the cache, and saved by the browser
- * (src/lib/download.ts).
+ * Saves the plan as `<name>.atleoplan.json`, for ImportPlanButton on another
+ * server or account. Not a mutation: the file is fetched on tap, never cached.
  */
 import { Download } from 'lucide-react'
 import { useState } from 'react'

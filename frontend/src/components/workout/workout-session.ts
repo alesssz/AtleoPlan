@@ -1,13 +1,8 @@
 /*
- * The workout in progress: its shape, how it starts from a day of a plan or
- * empty (Home's Free workout), the exercises added on the way, everything that
- * happens to it (a set ticked, the rest timer, a pause), and the body sent to
- * the backend at the end. The screen holds it with workoutReducer and keeps it
- * in the browser after every change (session-storage.ts).
- *
- * Every moment is ISO 8601 text, which survives JSON in localStorage, and
- * is compared through Date.parse(). The functions that need "now" take it as
- * a parameter, so the tests can choose it.
+ * The workout in progress and its reducer, from the start (a plan's day or a
+ * free workout) to the body sent at Finish. Moments are ISO 8601 strings,
+ * which survive localStorage; functions that need "now" take it as a
+ * parameter, so tests can choose it.
  */
 import type { Exercise, LoggingType } from '@/api/exercises'
 import type { Plan, PlanDay, PlanItem, PlanSet, SetType } from '@/api/plans'
@@ -19,13 +14,11 @@ import { weightIn } from '@/components/plans/plan-format'
 
 /** One set of the workout: planned, or added; done or not yet. */
 export interface WorkoutSet {
-  /** A UUID made here; the backend keeps it. */
+  /** A UUID made on the device; the backend keeps it. */
   id: string
-  /** Its type, chosen from the list under its number (SetTypeSelect). */
   set_type: SetType
   /** The weight as typed, in the user's unit, "82,5" or "82.5". */
   weight: string
-  /** The reps as typed. */
   reps: string
   /** The seconds, for a timed exercise. */
   seconds: string
@@ -41,9 +34,8 @@ export interface WorkoutSet {
 
 /** One exercise of the workout. */
 export interface WorkoutExercise {
-  /** A UUID made here. */
+  /** A UUID made on the device. */
   id: string
-  /** The exercise, as the library sends it: its name, photo and logging type. */
   exercise: Exercise
   /** The plan's item it comes from, kept to show what was planned. */
   plan_item: PlanItem | null
@@ -51,26 +43,22 @@ export interface WorkoutExercise {
   superset_group: number | null
   /** The rest after a set, in seconds: the item's, or the user's default. */
   rest_seconds: number
-  /** Its sets, in order. */
   sets: WorkoutSet[]
   /**
-   * All of last time's sets of this exercise, from GET /api/sessions/last-sets
-   * at the start; empty when never done or offline. Each set above keeps the
-   * one in its own place (`last`); this keeps the whole list, for the summary's
-   * comparison (src/components/history/compare.ts), which works offline because
-   * of it. Missing in a workout saved by an older version.
+   * All of last time's sets of this exercise (each set's `last` holds only its
+   * own place), so the summary's comparison works offline. Empty when never
+   * done or offline; may be missing from a workout already stored.
    */
   previous?: LoggedSet[]
   /**
-   * The user's own note on it, written during the workout from the exercise's
-   * menu ("seat on 4"); sent as the exercise's `notes`. Missing in a workout
-   * saved by an older version, which reads as no note.
+   * The user's note from the exercise's menu, sent as the exercise's `notes`.
+   * May be missing from a workout already stored, which reads as no note.
    */
   notes?: string
   /**
-   * True once **Skip** in the exercise's menu was tapped: its sets not
-   * ticked no longer count as work left (Next, Finish, the count of sets).
-   * Ticking one of its sets takes the skip back. Missing reads as false.
+   * Set by Skip in the exercise's menu: its unticked sets no longer count as
+   * work left (Next, Finish, the count of sets). Ticking one of its sets
+   * undoes the skip. Missing reads as false.
    */
   skipped?: boolean
 }
@@ -84,21 +72,16 @@ export interface Rest {
 }
 
 /**
- * The stopwatch of a timed set: like the rest, a moment rather than a counter,
- * so it keeps running with the screen off or the app closed. The set is named
- * by its id, which stays the same when exercises are added or sets are added.
+ * The stopwatch of a timed set. Like the rest, stored as moments rather than a
+ * counter, so it keeps running with the screen off or the app closed. The set
+ * is named by id, stable when exercises or sets are added.
  *
- * It can be paused (Pause, in StopwatchPanel.tsx), still without a counter:
- * the moment of the pause is kept, and on Resume the length of the pause is
- * added to `paused_ms`; the time is then "from the start to now (or to the
- * pause), minus the pauses" (stopwatchSeconds). The two fields are optional
- * (`?`): a stopwatch kept on the phone before Pause existed has neither,
- * which reads as never paused.
+ * A pause stores its moment; Resume adds its length to `paused_ms`, so the
+ * time is "start to now (or to the pause), minus the pauses". Both fields may
+ * be missing from a stopwatch already stored, which reads as never paused.
  */
 export interface Stopwatch {
-  /** The id of the set being timed. */
   set_id: string
-  /** When it started, as ISO 8601 text. */
   started_at: string
   /** The seconds to reach, from the set's field at the start; null when empty. */
   target: number | null
@@ -110,34 +93,30 @@ export interface Stopwatch {
 
 /** The whole workout in progress. */
 export interface ActiveSession {
-  /** A UUID made here when Start was tapped; the backend keeps it. */
+  /** A UUID made on the device when Start is tapped; the backend keeps it. */
   id: string
-  /** The plan followed. */
   plan_id: string | null
-  /** The day followed. */
   plan_day_id: string | null
   /** The plan's name at the start, kept by history whatever happens to the plan. */
   plan_name: string | null
   /** The day's name at the start. */
   day_name: string | null
-  /** When Start was tapped. */
   started_at: string
   /** Seconds trained before the last pause. */
   accumulated_seconds: number
   /** Since when it has been running; null while paused. */
   running_since: string | null
-  /** When Done was tapped; null until then. */
+  /** When the workout was finished; null until then. */
   finished_at: string | null
   /** The index of the exercise on screen. */
   current: number
   /** The rest timer; null when not resting. */
   rest: Rest | null
   /**
-   * The stopwatch of a timed set; null when none runs. Optional (`?`): a
-   * workout kept on the phone before the stopwatch existed has no such key.
+   * The stopwatch of a timed set; null when none runs. May be missing from a
+   * workout already stored.
    */
   stopwatch?: Stopwatch | null
-  /** The exercises, in order. */
   exercises: WorkoutExercise[]
 }
 
@@ -153,7 +132,6 @@ export interface StartOptions {
   lastSets: LastSets[]
   /** The interface's language, for the decimal separator. */
   language: string
-  /** The moment of the start. */
   now: Date
 }
 
@@ -167,11 +145,9 @@ function field(value: number, language: string): string {
 
 /**
  * A set of the workout, from a planned set and what was done in its place last
- * time. The fields are filled with last time's values when there are some, the
- * plan's targets otherwise, so that a set done as last time is one tap.
- * @param planned the planned set; null for a set added with no plan
- * @param last last time's set in the same place, or null
- * @param options the unit and the language
+ * time. The fields hold last time's values when there are some, the plan's
+ * targets otherwise, so that a set done as last time is one tap.
+ * @param planned null for a set added with no plan
  */
 function setFrom(planned: PlanSet | null, last: LoggedSet | null, options: Pick<StartOptions, 'unit' | 'language'>): WorkoutSet {
   const { unit, language } = options
@@ -205,21 +181,18 @@ export function isForTime(item: Pick<WorkoutExercise, 'plan_item' | 'exercise'>)
 }
 
 /**
- * Last time's sets of an exercise, of the kind it is done now: timed (an
- * exercise logged by time, or one done as fast as possible) or not. The
- * API gives one last time of each kind (FindLastSets); 3 × 15 is no time
- * to beat. Empty when never done that way, or offline.
- * @param lastSets the answer of GET /api/sessions/last-sets
+ * Last time's sets of an exercise, of the kind it is done now: timed (logged
+ * by time, or done as fast as possible) or not. The API returns the last time
+ * of each kind, since 3 × 15 is no time to beat. Empty when never done that
+ * way, or offline.
  */
 function lastOfKind(lastSets: readonly LastSets[], exerciseId: number, timed: boolean): LoggedSet[] {
   return lastSets.find(entry => entry.exercise_id === exerciseId && hasTimedSets(entry.sets) === timed)?.sets ?? []
 }
 
 /**
- * Starts a workout of a plan's day: every item becomes an exercise of the
- * workout, every planned set a set to do, and the clock starts.
- * @param plan the plan, as GET /api/plans/{id} sends it
- * @param options unit, default rest, last time, language, now
+ * Starts a workout of a plan's day: every item becomes an exercise, every
+ * planned set a set to do, and the clock starts.
  */
 export function startSession(plan: Plan, day: PlanDay, options: StartOptions): ActiveSession {
   return {
@@ -229,8 +202,6 @@ export function startSession(plan: Plan, day: PlanDay, options: StartOptions): A
     plan_name: plan.name,
     day_name: day.name,
     exercises: day.items.map((item) => {
-      // Last time's sets of this exercise, done the same way, if it was
-      // done before: timed when logged by time or done as fast as possible
       const last = lastOfKind(options.lastSets, item.exercise_id, item.exercise.logging_type === 'time' || isForTime({ plan_item: item, exercise: item.exercise }))
       // A planned item without sets still gets one row to tick
       const planned: (PlanSet | null)[] = item.sets.length > 0 ? item.sets : [null]
@@ -248,21 +219,14 @@ export function startSession(plan: Plan, day: PlanDay, options: StartOptions): A
 }
 
 /**
- * A workout with no plan and no exercises yet, its clock running: Home's Free
- * workout. The exercises are added on the workout screen (exerciseFrom below,
- * and the `addExercises` action). No day name: the screen shows "Free workout",
- * in the user's language, and history will show the same.
+ * A free workout: no plan, no exercises yet, the clock running. No day name:
+ * the screen and history show "Free workout" in the user's language.
  */
 export function startFreeSession(now: Date): ActiveSession {
   return emptySession(now)
 }
 
-/**
- * The fields every new workout starts with: a new UUID, the clock running
- * from `now`, nothing done. `startSession` adds the plan's day to it.
- */
 function emptySession(now: Date): ActiveSession {
-  // The start, as ISO 8601 text: the clock runs from here
   const start = now.toISOString()
   return {
     id: newId(),
@@ -282,20 +246,12 @@ function emptySession(now: Date): ActiveSession {
 }
 
 /**
- * An exercise added during the workout, from the library: not in any plan,
- * so its sets come from last time, one per set done then, with its values;
- * one empty set when it was never done. Rest: the user's default.
- *
- * Built here, outside the reducer, because it makes new UUIDs: a reducer
- * must give the same result every time it is called with the same action
- * (React may call it twice to check), and newId() never does.
- * @param exercise the exercise, as the library sends it
- * @param lastSets the sets of last time, from GET /api/sessions/last-sets; empty when offline
- * @param options unit, default rest, language
+ * An exercise added during the workout: its sets come from last time, one per
+ * set done then, or one empty set when never done. Rest: the user's default.
+ * Built outside the reducer because newId() is not pure.
  */
 export function exerciseFrom(exercise: Exercise, lastSets: LastSets[], options: Pick<StartOptions, 'unit' | 'language' | 'defaultRestSeconds'>): WorkoutExercise {
-  // Last time's sets of this exercise, not done for time (no plan says so
-  // here); empty when it was never done
+  // Not for time: no plan item says so
   const last = lastOfKind(lastSets, exercise.id, exercise.logging_type === 'time')
   return {
     id: newId(),
@@ -303,28 +259,21 @@ export function exerciseFrom(exercise: Exercise, lastSets: LastSets[], options: 
     plan_item: null,
     superset_group: null,
     rest_seconds: options.defaultRestSeconds,
-    // One per set of last time, or a single empty one
     sets: (last.length > 0 ? last : [null]).map(set => setFrom(null, set, options)),
     previous: last,
   }
 }
 
 /**
- * The exercise that takes another's place, from the exercise's menu
- * (**Swap**): the same place in the workout, the same number of sets with
- * the same types, the same plan item, superset and rest; the values and
- * "Last" from the new exercise's own last time.
+ * Swap, from the exercise's menu: the new exercise keeps the place, the
+ * number and types of sets, the plan item, superset and rest; values and
+ * "Last" come from its own last time.
  *
- * With no last time, the plan's targets fill the reps, seconds and meters,
- * but not the weight: the plan's 80 kg were meant for the old exercise, and
- * a dumbbell press is not done with them. Only before any set is ticked
- * (the reducer checks): a ticked set belongs to the exercise it was done
- * with.
- *
- * Built outside the reducer, as exerciseFrom, because it makes new UUIDs.
- * @param exercise the new exercise, as the library sends it
- * @param lastSets the sets of last time, from GET /api/sessions/last-sets; empty when offline
- * @param options unit and language
+ * With no last time, the plan's targets fill reps, seconds and meters but not
+ * the weight: 80 kg planned for one exercise mean nothing for another. The
+ * reducer allows a swap only before any set is ticked: a ticked set belongs
+ * to the exercise it was done with. Built outside the reducer because newId()
+ * is not pure.
  */
 export function swappedExercise(current: WorkoutExercise, exercise: Exercise, lastSets: LastSets[], options: Pick<StartOptions, 'unit' | 'language'>): WorkoutExercise {
   // The new exercise's sets of last time, of the kind the plan item asks
@@ -337,10 +286,10 @@ export function swappedExercise(current: WorkoutExercise, exercise: Exercise, la
     notes: undefined,
     skipped: undefined,
     sets: current.sets.map((set, index) => {
-      // The plan's set in this place, without its weight (see above)
+      // The plan's set in this place, without its weight
       const planned = current.plan_item?.sets[index]
       const target = planned ? { ...planned, target_weight_kg: null } : null
-      // set_type: the type the set has now, which the user may have changed
+      // Keeps the type the set has now, which the user may have changed
       return { ...setFrom(target, last[index] ?? null, options), set_type: set.set_type }
     }),
     previous: last,
@@ -378,14 +327,13 @@ export function restLeft(session: ActiveSession, now: Date): number {
  */
 export function stopwatchSeconds(stopwatch: Stopwatch, now: Date): number {
   const end = stopwatch.paused_at ? Date.parse(stopwatch.paused_at) : now.getTime()
-  // `?? 0`: a stopwatch from before Pause existed has no paused_ms
+  // paused_ms may be missing from a stopwatch already stored
   return Math.max(0, Math.floor((end - Date.parse(stopwatch.started_at) - (stopwatch.paused_ms ?? 0)) / 1000))
 }
 
 /**
- * The moment a running stopwatch reaches its target, in milliseconds since
- * 1970 (as Date.now()); null with no target or while paused, when it will
- * not be reached until Resume. Used to set the signal's timer.
+ * The moment a running stopwatch reaches its target, in epoch milliseconds;
+ * null with no target or while paused. Used to schedule the signal.
  */
 export function stopwatchTargetAt(stopwatch: Stopwatch): number | null {
   if (stopwatch.target === null || stopwatch.paused_at) return null
@@ -410,7 +358,6 @@ export function findSet(session: ActiveSession, setId: string): { exercise: numb
  * left empty: on a weighted exercise, a set done with the body alone; on a
  * bodyweight one (pull-ups), no added weight. When typed, it must read. Done as
  * fast as possible, the seconds are needed too.
- * @param forTime whether it is done as fast as possible (isForTime)
  */
 export function canComplete(set: WorkoutSet, loggingType: LoggingType, forTime = false): boolean {
   const isNumber = (value: number | null) => value !== null && !Number.isNaN(value)
@@ -423,37 +370,28 @@ export function canComplete(set: WorkoutSet, loggingType: LoggingType, forTime =
   }
 }
 
-/**
- * Whether an exercise still has work: a set not ticked, and not skipped.
- * Next in a superset, Finish workout and the dots read it.
- */
+/** Whether an exercise still has work: a set not ticked, and not skipped. */
 export function hasWorkLeft(item: WorkoutExercise): boolean {
   return !item.skipped && item.sets.some(set => !set.done)
 }
 
 /**
- * Whether an exercise can be removed from the workout: only one added by
- * hand during it (Add exercises, or any exercise of a free workout), which
- * has no plan item. What the plan holds stays: it can be skipped, not
- * removed, so the plan's day is always there whole.
- *
- * Read from the exercise itself, with no flag stored: a workout kept on the
- * phone before removing existed works the same.
+ * Only an exercise added during the workout, which has no plan item, can be
+ * removed. The plan's exercises can be skipped, not removed, so the plan's
+ * day stays whole. Derived from the exercise rather than a stored flag, so
+ * workouts already stored work the same.
  */
 export function canRemoveExercise(item: WorkoutExercise): boolean {
   return item.plan_item === null
 }
 
 /**
- * Whether a set can be removed: only one added by hand during the workout.
- * The plan's sets of an exercise are the first ones, as many as the plan
- * item has (startSession makes one per planned set, Swap keeps the count);
- * Add set always adds at the end, so any set after them was added. Every
- * set of an exercise added by hand was added too. Never the only set left:
- * an exercise with no set is removed as a whole, from its menu.
+ * Only a set added during the workout can be removed. The plan's sets come
+ * first, as many as the plan item has (startSession makes one per planned
+ * set, Swap keeps the count), and Add set appends, so any set after them was
+ * added. Never the only set left: an empty exercise is removed from its menu.
  */
 export function canRemoveSet(item: WorkoutExercise, index: number): boolean {
-  // How many sets come from the plan: none for an exercise added by hand
   const planned = item.plan_item?.sets.length ?? 0
   return index >= planned && index < item.sets.length && item.sets.length > 1
 }
@@ -474,18 +412,16 @@ export function supersetOf(session: ActiveSession, index: number): number[] {
 }
 
 /**
- * Where to go from an exercise in a superset: the next exercise of the
- * round with a set still to tick; at the end of a round, the superset's
- * first exercise with a set left, for the next round. Null when the
- * exercise is not in a superset, or nothing else in it is left to do. The
- * screen's Next goes there (WorkoutScreen); the reducer starts the rest
- * when the round is over.
+ * Where to go from an exercise in a superset: the next exercise of the round
+ * with a set to tick; at the end of a round, the superset's first exercise
+ * with a set left. Null outside a superset or when nothing else in it is
+ * left. Next goes there; the reducer starts the rest when the round is over.
  *
  * Only exercises with work left count: supersets often pair different
  * numbers of sets (3 leg curls, 4 calf raises), and pointing to a finished
- * exercise would show only green sets.
- * @param scope 'round' to look only after this exercise, in this round;
- *   'next' (the default) to go back to the start for the next round too
+ * exercise would show only ticked sets.
+ * @param scope 'round' looks only after this exercise, in this round; 'next'
+ *   also wraps to the start for the next round
  */
 export function supersetNext(session: ActiveSession, index: number, scope: 'round' | 'next' = 'next'): number | null {
   const group = supersetOf(session, index)
@@ -502,16 +438,13 @@ export function supersetNext(session: ActiveSession, index: number, scope: 'roun
 }
 
 /**
- * The exercise to do after this one, for the "Up next" card under the sets
- * and the rest bar (WorkoutScreen): the first one after it with work left;
- * in a superset, after the whole superset, whose own exercises the bottom
- * bar already names (supersetNext). When none is left after it, the first
- * one from the top that still has work: an exercise jumped over with the
- * dots. Null when nothing else is left to do: the last exercise, then
- * Finish workout.
+ * The exercise after this one with work left, for the "Up next" card and the
+ * rest bar. A superset is skipped as a whole: the bottom bar already names
+ * its exercises. When nothing is left after it, the first one from the top
+ * with work (an exercise jumped over with the dots). Null when nothing else
+ * is left.
  */
 export function upNext(session: ActiveSession, index: number): number | null {
-  // This one's superset (or itself) is left out
   const group = supersetOf(session, index)
   // The positions after the superset, then the ones before it
   const after = Array.from({ length: session.exercises.length }, (_, i) => i).filter(i => i > Math.max(...group))
@@ -522,7 +455,7 @@ export function upNext(session: ActiveSession, index: number): number | null {
   }) ?? null
 }
 
-/** How a set is called on screen. */
+/** How a set is named on screen. */
 export interface SetNumber {
   /** True for a warm-up, counted apart from the others. */
   warmUp: boolean
@@ -535,7 +468,6 @@ export interface SetNumber {
  * that count are 1, 2, 3 whatever warm-ups come first ("W W 1 2 3", not "W W 3
  * 4 5"). Drop and failure sets are numbered with the normal ones: they count
  * for volume.
- * @param sets the exercise's sets, in order
  */
 export function setNumbers(sets: readonly { set_type: SetType }[]): SetNumber[] {
   let warmUps = 0
@@ -547,13 +479,9 @@ export function setNumbers(sets: readonly { set_type: SetType }[]): SetNumber[] 
 
 // --- What happens to it -------------------------------------------------------------
 
-/** A field of a set that the user types in. */
 export type SetField = 'weight' | 'reps' | 'seconds' | 'meters'
 
-/**
- * Everything the screen can do to the workout; `exercise` and `set` are
- * indexes, `now` the moment of the action as ISO 8601 text.
- */
+/** `exercise` and `set` are indexes; `now` is the moment of the action, ISO 8601. */
 export type WorkoutAction
   = | { type: 'toggleSet', exercise: number, set: number, now: string }
     | { type: 'setField', exercise: number, set: number, field: SetField, value: string }
@@ -577,11 +505,7 @@ export type WorkoutAction
     | { type: 'resume', now: string }
     | { type: 'finish', now: string }
 
-/**
- * Stops the clock: the time since it last started is added to the time
- * trained. Changes the session in place: the reducer calls it on its copy.
- * @param now the moment, ISO 8601
- */
+/** Adds the time since the clock last started to the time trained. Mutates `session`. */
 function stopClock(session: ActiveSession, now: string): void {
   if (session.running_since === null) return
   session.accumulated_seconds = elapsedSeconds(session, new Date(now))
@@ -589,15 +513,14 @@ function stopClock(session: ActiveSession, now: string): void {
 }
 
 /**
- * Works on a structuredClone() of the workout, like the plan editor's
- * reducer (plan-draft.ts).
+ * Works on a structuredClone() of the workout.
  *
- * The one rule with some thought in it is ticking a set. The screen never
- * moves by itself; what changes is the rest:
- * - **on its own**, the rest timer starts, with the exercise's rest;
- * - **in a superset**, no rest while another exercise of the round has a set
- *   left: the user goes straight to it with Next, which points there
- *   (supersetNext); after the round's last, the rest starts.
+ * Ticking a set never moves the screen: moving left the set just ticked out
+ * of sight. What changes is the rest:
+ * - on its own, the rest timer starts, with the exercise's rest;
+ * - in a superset, no rest while another exercise of the round has a set
+ *   left: Next points there (supersetNext); after the round's last, the rest
+ *   starts.
  * A rest of 0 seconds starts no timer.
  */
 export function workoutReducer(session: ActiveSession, action: WorkoutAction): ActiveSession {
@@ -609,7 +532,7 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
     case 'toggleSet': {
       if (!exercise || !set) break
       if (set.done) {
-        // Unticking: the set is to do again; the timer is left alone
+        // Unticking leaves the rest timer alone
         set.done = false
         set.completed_at = null
         break
@@ -617,20 +540,17 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       if (!canComplete(set, exercise.exercise.logging_type, isForTime(exercise))) break
       set.done = true
       set.completed_at = action.now
-      // A set ticked on a skipped exercise: it is being done after all
+      // Ticking a set of a skipped exercise means it is done after all
       exercise.skipped = false
-      // The screen never moves by itself: the user goes on with Next, which in
-      // a superset points to its next exercise (supersetNext). Moving on its
-      // own, the screen left the set just ticked out of sight, and looked
-      // broken. The rest starts at the end of a round only: when no exercise
-      // after this one in its superset has a set left (always, on its own)
+      // The rest starts at the end of a round only: when no exercise after
+      // this one in its superset has a set left (always, on its own)
       if (supersetNext(next, action.exercise, 'round') === null) {
         next.rest = exercise.rest_seconds > 0
           ? { ends_at: new Date(Date.parse(action.now) + exercise.rest_seconds * 1000).toISOString(), total: exercise.rest_seconds }
           : null
       }
       else {
-        // The round goes on, straight to the next exercise: no rest
+        // The round goes on, straight to the next exercise
         next.rest = null
       }
       break
@@ -659,7 +579,6 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       break
     }
     case 'removeSet': {
-      // Only a set added by hand (canRemoveSet): the plan's stay
       if (!exercise || !canRemoveSet(exercise, action.set)) break
       const [removed] = exercise.sets.splice(action.set, 1)
       // A stopwatch running on it would time a set that is gone
@@ -667,37 +586,30 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       break
     }
     case 'removeExercise': {
-      // Only an exercise added by hand (canRemoveExercise)
       if (!exercise || !canRemoveExercise(exercise)) break
       next.exercises.splice(action.exercise, 1)
-      // A stopwatch on one of its sets goes with it: findSet() looks for
-      // its set by id in what is left, and no longer finds it
+      // A stopwatch on one of its sets goes with it
       if (next.stopwatch && !findSet(next, next.stopwatch.set_id)) next.stopwatch = null
-      // The exercise on screen: one after the removed one moves back one
-      // place, as the list does; the removed one itself is replaced by the
-      // exercise that took its place, or, when it was the last, by the one
-      // before. Math.max: never below 0, a free workout left empty
+      // Keep the same exercise on screen; when it was the one removed, show
+      // the one that took its place, or the one before when it was the last
       if (next.current > action.exercise || next.current >= next.exercises.length) next.current = Math.max(0, next.current - 1)
       break
     }
     case 'addExercises':
-      // Added at the end, and the first of them opened: the user picked
-      // them to do them now
+      // The first added opens: the user picked them to do them now
       if (action.exercises.length === 0) break
       next.current = next.exercises.length
       next.exercises.push(...structuredClone(action.exercises))
       break
     case 'swapExercise':
-      // Only before any of its sets is ticked (swappedExercise)
+      // A ticked set belongs to the exercise it was done with
       if (!exercise || exercise.sets.some(candidate => candidate.done)) break
       next.exercises[action.exercise] = structuredClone(action.replacement)
       break
     case 'skipExercise':
       if (!exercise) break
       exercise.skipped = action.skipped
-      // Skipping is a choice to move on: the next exercise opens, when there is
-      // one. A tap, not a tick, so the rule that the screen never moves by
-      // itself after a tick still holds
+      // Skipping is a tap, not a tick, so it may move on to the next exercise
       if (action.skipped && action.exercise < next.exercises.length - 1) next.current = action.exercise + 1
       break
     case 'setNote':
@@ -708,8 +620,8 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       break
     case 'adjustRest':
       if (next.rest) {
-        // ±15 seconds: the end moves, and the total with it. An end moved
-        // into the past simply reads as 0 seconds left, and the screen ends it
+        // The total moves with the end. An end moved into the past reads as
+        // 0 seconds left, and the screen ends the rest
         next.rest.ends_at = new Date(Date.parse(next.rest.ends_at) + action.seconds * 1000).toISOString()
         next.rest.total = Math.max(0, next.rest.total + action.seconds)
       }
@@ -725,8 +637,8 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       break
     case 'startStopwatch': {
       if (!set || set.done) break
-      // The target: the seconds in the set's field, the plan's or last
-      // time's, when it holds a number above 0
+      // The target is the seconds in the set's field (planned or last time's)
+      // when above 0
       const target = parseWhole(set.seconds)
       next.stopwatch = { set_id: set.id, started_at: action.now, target: target !== null && target > 0 ? target : null }
       // The set begins: the rest before it is over
@@ -739,7 +651,7 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
         next.stopwatch = null
         break
       }
-      // The time, in whole seconds, never 0: the backend wants at least 1
+      // Never 0: the backend requires at least 1 second
       const seconds = Math.max(1, stopwatchSeconds(next.stopwatch, new Date(action.now)))
       next.stopwatch = null
       const timedSet = next.exercises[timed.exercise]?.sets[timed.set]
@@ -751,14 +663,12 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       break
     }
     case 'pauseStopwatch':
-      // Only a running one: a second Pause would move the moment of the
-      // pause, and the seconds between the two would be lost
+      // A second Pause would move the pause's moment and lose the seconds
+      // between the two
       if (next.stopwatch && !next.stopwatch.paused_at) next.stopwatch.paused_at = action.now
       break
     case 'resumeStopwatch':
       if (next.stopwatch?.paused_at) {
-        // The pause just over joins the ones before; the count goes on
-        // from where it stopped
         next.stopwatch.paused_ms = (next.stopwatch.paused_ms ?? 0) + Date.parse(action.now) - Date.parse(next.stopwatch.paused_at)
         next.stopwatch.paused_at = null
       }
@@ -779,12 +689,11 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
 // --- Sending it -----------------------------------------------------------------------
 
 /**
- * The body of PUT /api/sessions/{id}: every exercise, the ticked sets only, the
- * values that fit how each exercise is logged, weights in kilograms. The weight
- * goes with weight_reps and reps (the added weight), null when empty. An
- * exercise with no set ticked is sent with none: skipped.
- * @param unit the user's weight unit
- * @param now the current moment, for the time trained
+ * The body of PUT /api/sessions/{id}: every exercise, ticked sets only, the
+ * values that fit each exercise's logging type, weights in kilograms. The
+ * weight goes with weight_reps and reps (the added weight), null when empty.
+ * An exercise with no set ticked is sent with none: skipped.
+ * @param now for the time trained
  */
 export function toSessionInput(session: ActiveSession, unit: WeightUnit, now: Date): SessionInput {
   return {
@@ -829,24 +738,18 @@ export interface SetCount {
 }
 
 /**
- * How many sets were ticked and how many there are, warm-ups excluded, for
- * the Finish dialog: finishing early says how many will not be saved. A
- * skipped exercise counts only the sets ticked before the skip: the others
- * were given up on purpose, and are no surprise at the end.
+ * Ticked and total sets, warm-ups excluded, for the Finish dialog: finishing
+ * early says how many will not be saved. A skipped exercise counts only the
+ * sets ticked before the skip: the others were given up on purpose.
  */
 export function countSets(session: ActiveSession): SetCount {
-  // Every set of every exercise, warm-ups left out, and the sets not done
-  // of a skipped exercise
   const counted = session.exercises
     .flatMap(item => (item.skipped ? item.sets.filter(set => set.done) : item.sets))
     .filter(set => set.set_type !== 'warm_up')
   return { done: counted.filter(set => set.done).length, total: counted.length }
 }
 
-/**
- * Whether nothing is left to do, warm-ups included: every set ticked, or
- * its exercise skipped. The screen then offers to finish.
- */
+/** Whether every set is ticked or its exercise skipped, warm-ups included. */
 export function allSetsDone(session: ActiveSession): boolean {
   return session.exercises.every(item => !hasWorkLeft(item))
 }

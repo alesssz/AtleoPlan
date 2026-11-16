@@ -1,10 +1,3 @@
-/*
- * One plan in the plan list: its name, its goal, how many days it has, when it
- * was last used ("Used 3 days ago", from its latest finished workout), and the
- * Active badge. The whole card is a link to the plan's page.
- *
- * Not here yet: the Shared badge (phase 2).
- */
 import { CalendarDays, ChevronRight, History } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -37,7 +30,6 @@ export function PlanCard({ plan }: PlanCardProps) {
           {plan.is_active && <Badge>{t('plans.active')}</Badge>}
         </div>
         {plan.goal && <p className="truncate text-sm text-muted-foreground">{plan.goal}</p>}
-        {/* "3 days · Used 3 days ago" */}
         <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays aria-hidden="true" className="size-4" />

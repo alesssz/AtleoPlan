@@ -1,11 +1,7 @@
 /*
- * One exercise of a day in the plan editor: a row with a drag handle, its
- * cover, its name and the line that sums up its sets; a tap opens it, to change
- * its sets, rest and notes, move it to another day, take it out of its superset
- * or remove it.
- *
- * The row is sortable (dnd-kit's useSortable): only the handle starts a drag,
- * so the rest of the row can be tapped and scrolled.
+ * One exercise of a day in the plan editor, a sortable row that opens to edit
+ * its sets. Only the handle starts a drag, so the rest of the row can be
+ * tapped and scrolled.
  */
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -86,13 +82,12 @@ export function EditorItem(props: EditorItemProps) {
         // An exercise in a superset: the lime bar on its left, as on the plan's page
         item.superset_group !== null && 'border-l-4 border-l-primary',
         hasError && 'border-destructive',
-        // While dragged: above the others, with a shadow
         isDragging && 'relative z-10 shadow-lg',
       )}
     >
       <div className="flex items-center gap-1 p-1">
-        {/* touch-none: on a phone a drag here moves the row, not the page.
-            A button, so the keyboard can pick the row up */}
+        {/* touch-none: a drag here moves the row, not the page. A button, so
+            the keyboard can pick the row up */}
         <button
           type="button"
           aria-label={t('plans.editor.dragHandle', { name: item.exercise.name })}

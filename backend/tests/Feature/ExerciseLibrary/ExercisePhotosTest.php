@@ -20,7 +20,6 @@ use Illuminate\Testing\TestResponse;
 
 uses(RefreshDatabase::class);
 
-// Ann signed in, with an exercise of her own
 beforeEach(function () {
     Storage::fake('public');
     $this->ann = User::factory()->create();
@@ -44,7 +43,6 @@ describe('adding', function () {
         // The answer: the new photo, as it is before the queue converts it
         $response = uploadPhoto($this->mine)->assertCreated();
 
-        // The row medialibrary wrote
         $photo = $this->mine->fresh()->getFirstMedia('photos');
 
         expect($response->json('data.id'))->toBe($photo->id)
@@ -62,7 +60,6 @@ describe('adding', function () {
     it('makes the thumbnail at most 400 px, keeping the proportions', function () {
         uploadPhoto($this->mine)->assertCreated();
 
-        // The thumbnail's file, read from the fake disk
         $photo = $this->mine->fresh()->getFirstMedia('photos');
         [$width, $height] = getimagesize($photo->getPath('thumb'));
 
@@ -73,7 +70,6 @@ describe('adding', function () {
         uploadPhoto($this->mine);
         uploadPhoto($this->mine);
 
-        // The two photos, as the exercise's page reads them
         $photos = $this->getJson("/api/exercises/{$this->mine->id}")->assertOk()->json('data.photos');
 
         expect($photos)->toHaveCount(2)
@@ -91,7 +87,6 @@ describe('adding', function () {
         // GD cannot read HEIC, and an iPhone's browser sends a JPEG anyway
         'a HEIC photo' => fn () => UploadedFile::fake()->create('IMG_1.heic', 500, 'image/heic'),
         'a PDF' => fn () => UploadedFile::fake()->create('plan.pdf', 100, 'application/pdf'),
-        // 11 MB, over the limit of 10
         'a photo over 10 MB' => fn () => UploadedFile::fake()->image('big.jpg')->size(11 * 1024),
     ]);
 
@@ -108,7 +103,6 @@ describe('adding', function () {
 
 describe('ordering and removing', function () {
     it('puts the photos in a new order, the cover first', function () {
-        // Three photos, by id in the order they were added
         $ids = collect(range(1, 3))->map(fn () => uploadPhoto($this->mine)->json('data.id'))->all();
 
         $this->putJson("/api/exercises/{$this->mine->id}/photos", ['ids' => [$ids[2], $ids[0], $ids[1]]])
@@ -119,7 +113,6 @@ describe('ordering and removing', function () {
     });
 
     it('refuses an order that leaves a photo out or adds another\'s', function () {
-        // Two photos of Ann's exercise, and one of another exercise
         $ids = collect(range(1, 2))->map(fn () => uploadPhoto($this->mine)->json('data.id'))->all();
         $other = uploadPhoto(Exercise::factory()->for($this->ann, 'owner')->create())->json('data.id');
 
@@ -130,7 +123,6 @@ describe('ordering and removing', function () {
     });
 
     it('removes a photo with its files', function () {
-        // A photo, and where its files are on the disk
         $id = uploadPhoto($this->mine)->json('data.id');
 
         $this->deleteJson("/api/exercises/{$this->mine->id}/photos/{$id}")->assertNoContent();
@@ -140,7 +132,6 @@ describe('ordering and removing', function () {
     });
 
     it('answers 404 for a photo of another exercise', function () {
-        // A photo of another of Ann's exercises
         $other = Exercise::factory()->for($this->ann, 'owner')->create();
         $id = uploadPhoto($other)->json('data.id');
 
@@ -152,7 +143,6 @@ describe('ordering and removing', function () {
 
 describe('who may', function () {
     it('refuses someone else\'s exercise and a public one', function (string $whose) {
-        // Bob's exercise, or a public one
         $exercise = $whose === 'public'
             ? Exercise::factory()->create()
             : Exercise::factory()->for(User::factory(), 'owner')->create();
@@ -176,7 +166,6 @@ describe('Duplicate as mine', function () {
     });
 
     it('copies a public exercise as mine, in my language, with its photos', function () {
-        // A public exercise in English and Italian, with a muscle and a photo
         $public = Exercise::factory()->create([
             'name' => ['en' => 'Bench Press', 'it' => 'Panca piana'],
             'instructions' => ['en' => ['Lie down.'], 'it' => ['Sdraiati.']],
@@ -184,14 +173,12 @@ describe('Duplicate as mine', function () {
         $public->muscles()->attach(Muscle::where('slug', 'chest')->value('id'), ['role' => 'primary']);
         $public->addMedia(UploadedFile::fake()->image('0.jpg', 800, 600))->toMediaCollection('photos');
 
-        // The answer: the copy, read in Italian
         $response = $this->postJson("/api/exercises/{$public->id}/duplicate", [], ['Accept-Language' => 'it'])
             ->assertCreated()
             ->assertJsonPath('data.name', 'Panca piana')
             ->assertJsonPath('data.is_mine', true)
             ->assertJsonPath('data.muscles.0.slug', 'chest');
 
-        // The copy, from the database
         $copy = Exercise::findOrFail($response->json('data.id'));
         expect($copy->owner_id)->toBe($this->ann->id)
             // One language only, as any personal exercise
@@ -203,7 +190,6 @@ describe('Duplicate as mine', function () {
     });
 
     it('falls back to English when my language is missing', function () {
-        // A public exercise in English only
         $public = Exercise::factory()->create(['name' => ['en' => 'Plank']]);
 
         $this->postJson("/api/exercises/{$public->id}/duplicate", [], ['Accept-Language' => 'de'])

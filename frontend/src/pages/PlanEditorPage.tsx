@@ -1,12 +1,4 @@
-/*
- * The plan editor's page (routes `/plans/new` and `/plans/:id/edit`): one page
- * for both, like ExerciseEditorPage. A new plan starts with one empty day; a
- * saved one is read first, then turned into a draft (plan-draft.ts).
- *
- * After a save the app opens the plan's page, replacing the editor in the
- * history, and tells that page when the plan had been changed elsewhere,
- * through the navigation's `state`.
- */
+// One page for `/plans/new` and `/plans/:id/edit`, like ExerciseEditorPage
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'

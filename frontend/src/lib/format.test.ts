@@ -1,7 +1,3 @@
-/*
- * Each language's formats: the decimal comma in Italian, Spanish and German,
- * the point in English.
- */
 import { describe, expect, it } from 'vitest'
 import { formatDayParts, formatDaysAgo, formatDuration, formatLongDate, formatNumber, formatWeight } from './format'
 
@@ -38,7 +34,7 @@ describe('formatNumber', () => {
 })
 
 describe('formatLongDate and formatDayParts', () => {
-  // Thursday 5 November 2026 (months count from 0: 10 = November)
+  // Thursday 5 November 2026
   const date = new Date(2026, 10, 5)
 
   it('writes the full date in each language’s words and order', () => {
@@ -67,7 +63,7 @@ describe('formatDuration', () => {
 
 describe('formatDaysAgo', () => {
   it('counts calendar days, in each language\'s words', () => {
-    // Sunday 8 November 2026, 08:00 (months count from 0: 10 is November)
+    // Sunday 8 November 2026, 08:00
     const today = new Date(2026, 10, 8, 8, 0)
 
     expect(formatDaysAgo(new Date(2026, 10, 8, 6, 0), today, 'en')).toBe('today')

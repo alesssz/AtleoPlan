@@ -2,7 +2,7 @@
 
 /**
  * Routes the browser visits itself. The admin panel registers its own /admin
- * routes.
+ * routes. Nothing answers at `/`: the interface is the React app.
  */
 
 use App\Http\Controllers\GoogleSignInController;
@@ -15,7 +15,3 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('/auth/google/redirect', [GoogleSignInController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleSignInController::class, 'callback'])->name('google.callback');
-
-Route::get('/', function () {
-    return view('welcome');
-});

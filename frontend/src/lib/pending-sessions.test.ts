@@ -1,7 +1,3 @@
-/*
- * The queue of finished workouts (pending-sessions.ts): which answers take a
- * workout off the queue, and which leave it there.
- */
 import { describe, expect, it } from 'vitest'
 import type { SessionInput } from '@/api/sessions'
 import { addPending, loadPending } from '@/components/workout/session-storage'

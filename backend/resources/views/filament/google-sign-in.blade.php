@@ -1,6 +1,7 @@
 {{--
     "Continue with Google" under the admin panel's login form, for an admin
-    who signed up with Google and has no password. Inserted by a render hook in AdminPanelProvider.
+    who signed up with Google and has no password. Inserted by a render hook
+    in AdminPanelProvider.
 
     `to=admin` brings an admin back to the panel; an error comes back here as
     ?google_error=<reason>.

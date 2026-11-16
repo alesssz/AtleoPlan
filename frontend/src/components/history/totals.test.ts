@@ -1,15 +1,7 @@
-/*
- * A workout's numbers (totals.ts): the summary's, from the body sent at
- * Finish, and history's, from the backend, counted the same way: reps, the
- * body alone included.
- */
 import { describe, expect, it } from 'vitest'
 import type { LoggedSetInput, SessionInput } from '@/api/sessions'
 import { inputTotals, sessionTotals } from './totals'
 
-/**
- * A set as the phone sends it.
- */
 function set(changes: Partial<LoggedSetInput>): LoggedSetInput {
   return { id: 's', set_type: 'normal', weight_kg: 80, reps: 8, duration_seconds: null, distance_meters: null, completed_at: '2026-11-09T18:00:00Z', ...changes }
 }

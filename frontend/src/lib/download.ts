@@ -1,8 +1,3 @@
-/*
- * Saving data as a file from the browser, with no server page and no new tab: a
- * plan's Export.
- */
-
 /**
  * Indented, so a person can read the file. The object URL is revoked at once,
  * or the Blob would stay in memory until the page closes.

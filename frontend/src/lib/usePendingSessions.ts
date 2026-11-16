@@ -1,7 +1,6 @@
 /*
- * Sends the finished workouts still waiting for the network
- * (src/lib/pending-sessions.ts) when the app opens and whenever the browser
- * comes back online. Mounted once, in RequireAuth, so it runs on every page.
+ * Sends the queued workouts when the app opens and whenever the browser comes
+ * back online. Mounted once, in RequireAuth, so it runs on every page.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
