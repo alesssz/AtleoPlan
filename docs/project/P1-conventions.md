@@ -96,7 +96,7 @@ Every command reads every commit of every branch (`git rev-list --all`), not onl
 
 | Check | Command | Expected |
 |---|---|---|
-| Authors and committers | `git log --all --format='%an <%ae> \| %cn <%ce>' \| sort \| uniq -c` | one line, the noreply address |
+| Authors and committers | `git log --all --format='%an <%ae> \| %cn <%ce>' \| sort \| uniq -c` | the noreply address as every author; as committer too, except `GitHub <noreply@github.com>` on the merges GitHub makes |
 | Files that look like secrets or dumps | `git log --all --diff-filter=A --name-only --format= \| grep -iE '(^\|/)\.env\|\.pem$\|\.key$\|id_rsa\|credentials\|\.sql$\|\.dump$\|secret' \| sort -u` | `backend/.env.example` and `docker/postgres/init/01-test-database.sql` only |
 | Secrets in any commit | see below | no output |
 | Email addresses in the current files | `git grep -nIhoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" -- . ':!*.lock' ':!frontend/package-lock.json' \| sed 's/^[0-9]*://' \| sort \| uniq -c` | `example.com` addresses and the noreply one |
