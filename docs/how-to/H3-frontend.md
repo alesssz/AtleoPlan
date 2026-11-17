@@ -202,6 +202,7 @@ make fix                    # quotes and semicolons to our style
 | 404 on `/api/…` | The route is missing, or the backend is down | `make artisan c="route:list --path=api"`, `make up` |
 | `Port 5673 is already in use` | Another `make dev` is running (`strictPort`) | Close it |
 | Photos 404 on `/storage/…` | No `public/storage` link on this computer | `make artisan c="storage:link"` |
+| A page scrolls sideways on a phone, though the long names are truncated | A `grid` with no column template below `sm:`: its one column grows to the widest item | `grid-cols-1`, so the column is `minmax(0, 1fr)` |
 | A tab bar with no tab selected | `Tabs`' `value` matches no trigger | Validate the value read from the address |
 | The editor brings back old changes | A draft kept from an earlier visit | **Discard changes**, or clear `atleoplan.planDraft.…` |
 | `Found multiple elements with the role "button" and name "Save"` | The same control drawn twice | One of each: it confuses screen readers too |

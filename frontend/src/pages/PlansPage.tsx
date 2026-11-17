@@ -66,7 +66,7 @@ export function PlansPage() {
 
       <section aria-label={t(`plans.view.${archived ? 'archived' : 'current'}`)}>
         {plans.isPending && (
-          <div role="status" className="grid gap-3 sm:grid-cols-2">
+          <div role="status" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {Array.from({ length: SKELETON_CARDS }, (_, index) => <Skeleton key={index} className="h-28 w-full rounded-3xl" />)}
             <span className="sr-only">{t('plans.loading')}</span>
           </div>
@@ -101,7 +101,7 @@ export function PlansPage() {
 
         {plans.isSuccess && plans.data.length > 0 && (
           // The API puts the active one first
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {plans.data.map(plan => (
               <li key={plan.id}>
                 <PlanCard plan={plan} />
