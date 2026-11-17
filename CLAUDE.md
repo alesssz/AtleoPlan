@@ -19,7 +19,7 @@ A workout-plan app: Laravel 13 API (`backend/`) and React 19 / TypeScript / Vite
 - **PHP and Composer only through Docker.** Never install PHP, Composer or Laravel Boost, and never use a copy already on the computer. Backend commands run from the repository root: `docker compose exec backend php artisan …`, `docker compose exec backend composer …` (`run --rm` instead of `exec` when the stack is stopped).
 - **The frontend runs on the host** with Node 24 (`.nvmrc`): `npm …` inside `frontend/`. Never `npm audit fix --force`, never `sudo npm`.
 - **On Windows,** commands run from Git Bash: the `Makefile` needs `bash`, `grep` and `cp`.
-- **Ports** are the standard ones + 500: Laravel 8500, Postgres 5932, Mailpit 8525, Vite 5673.
+- **Ports** are the standard ones + 500: Laravel 8500, Postgres 5932, Mailpit 8525, Vite 5673, Vite's preview of the build 4673.
 - **`make help`** lists every command. `make check` runs every check (Pint, tests, ESLint, TypeScript, docs' contents lists) and must pass before a merge; CI runs the same, plus the build ([H5](docs/how-to/H5-ci.md)).
 - **Tests** (`make test`) run on the `atleoplan_test` database, guarded by `tests/Feature/TestDatabaseTest.php`. Never weaken the `<server>` / `<env force>` overrides in `backend/phpunit.xml`.
 - **`.env` files hold secrets:** never read or print them. A new variable goes in `.env.example`, or in `compose.yaml` when it is a development setting.

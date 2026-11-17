@@ -195,7 +195,7 @@ A single setting by hand, e.g. `gh api repos/alesssz/AtleoPlan/actions/permissio
 
 ## H5.4 The audit and the advisories reviewed
 
-**npm** has no way to leave an advisory out of `npm audit`, and some cannot be fixed: `deepmerge`'s has no patched version, and only shadcn's command, a development tool, uses it ([H3.7.1](H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)). Plain `npm audit` would fail every run on it, and a failure that is always there hides the new one that matters. So `scripts/npm-audit.mjs`:
+**npm** has no way to leave an advisory out of `npm audit`, and some cannot be fixed: no patched version exists, or the packages that bring it do not work with the patched one. Plain `npm audit` would fail every run on it, and a failure that is always there hides the new one that matters. So `scripts/npm-audit.mjs`:
 
 1. runs `npm audit --json` in `frontend/`;
 2. keeps the **advisories** (the objects in each package's `via`), one each, by their GHSA id;
@@ -204,9 +204,11 @@ A single setting by hand, e.g. `gh api repos/alesssz/AtleoPlan/actions/permissio
 
 ```json
 "auditIgnore": {
-  "GHSA-gcqx-w48m-w2h4": "deepmerge, low: only in shadcn's command, a development tool, never in the app; no patched version exists (docs/how-to/H3-frontend.md H3.7.1)"
+  "GHSA-xxxx-xxxx-xxxx": "package, severity: who brings it, why it cannot reach the app, why there is no fix"
 }
 ```
+
+It is empty today.
 
 ```sh
 make audit                       # Composer's audit, then this script

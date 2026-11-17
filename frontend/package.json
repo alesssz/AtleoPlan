@@ -56,20 +56,24 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1",
     "vite": "^8.3.6",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.1.0"
   },
   "//": [
     "overrides: minimatch is forced to 11, which fixes GHSA-g3hv-75wg-m249, a denial of service;",
     "eslint, typescript-eslint and shadcn (through ts-morph) still ask for 10. Development tools only, nothing of it reaches the browser.",
-    "Remove it once they accept 11 by themselves."
+    "Remove it once they accept 11 by themselves.",
+    "workbox-build's glob is forced to 14: its own ^11 finds no file at all with minimatch 11, which fails the build, and 14 also fixes GHSA-3g3m-2fjr-6pw4.",
+    "Build time only. Remove it once workbox-build accepts 14 by itself."
   ],
   "//auditIgnore": [
     "auditIgnore: npm advisories reviewed and accepted, by GHSA id, with the reason. scripts/npm-audit.mjs fails on any other."
   ],
-  "auditIgnore": {
-    "GHSA-gcqx-w48m-w2h4": "deepmerge, low: only in shadcn's command, a development tool, never in the app; no patched version exists"
-  },
+  "auditIgnore": {},
   "overrides": {
-    "minimatch": "^11.0.8"
+    "minimatch": "^11.0.8",
+    "workbox-build": {
+      "glob": "^14.0.2"
+    }
   }
 }

@@ -5,7 +5,7 @@
  */
 import { useTranslation } from 'react-i18next'
 import { Navigate, Outlet, useLocation } from 'react-router'
-import { useCurrentUser } from '@/api/auth'
+import { isAwaitingUser, useCurrentUser } from '@/api/auth'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePendingSessions } from '@/lib/usePendingSessions'
@@ -20,7 +20,7 @@ export function RequireAuth() {
 
   // Skeletons, never a spinner: the app or /login here would flash the wrong
   // screen
-  if (currentUser.isPending) {
+  if (isAwaitingUser(currentUser)) {
     return (
       <div role="status" className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col gap-4 p-8">
         <Skeleton className="h-10 w-48" />

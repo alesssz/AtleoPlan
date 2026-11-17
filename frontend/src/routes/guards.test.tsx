@@ -1,7 +1,8 @@
-import { screen } from '@testing-library/react'
+import { onlineManager } from '@tanstack/react-query'
+import { act, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Outlet } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
 import { fakeApi, renderRoutes, signedInAs, testUser, visitor } from '@/test/auth-helpers'
 import { RequireAuth } from './RequireAuth'
@@ -21,6 +22,11 @@ const routes = [
     }],
   },
 ]
+
+// The online state is TanStack Query's, shared by every test
+afterEach(() => {
+  onlineManager.setOnline(true)
+})
 
 describe('RequireAuth', () => {
   it('opens the page for a signed-in user', async () => {
@@ -64,6 +70,18 @@ describe('RequireAuth', () => {
     expect(await screen.findByText('the plans')).toBeInTheDocument()
   })
 
+  it('says so when the phone is offline, and opens once it is back', async () => {
+    onlineManager.setOnline(false)
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, '/plans')
+
+    expect(await screen.findByRole('heading', { name: i18n.t('auth.unreachableTitle') })).toBeInTheDocument()
+
+    act(() => onlineManager.setOnline(true))
+
+    expect(await screen.findByText('the plans')).toBeInTheDocument()
+  })
+
   it('applies the language and the theme of the account', async () => {
     fakeApi({ 'GET /api/user': signedInAs({ ...testUser, locale: 'de', theme: 'light' }) })
     renderRoutes(routes, '/plans')
@@ -89,6 +107,14 @@ describe('RequireGuest', () => {
 
     expect(await screen.findByText('home')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/')
+  })
+
+  it('opens the form when the phone is offline', async () => {
+    onlineManager.setOnline(false)
+    fakeApi({ 'GET /api/user': visitor })
+    renderRoutes(routes, '/login')
+
+    expect(await screen.findByText('the sign-in form')).toBeInTheDocument()
   })
 
   it('still opens the form when the server is down, so it can say why', async () => {
