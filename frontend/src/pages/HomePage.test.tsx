@@ -1,7 +1,9 @@
+import { onlineManager } from '@tanstack/react-query'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import type { HomeData } from '@/api/home'
+import { planKeys } from '@/api/plans'
 import type { WorkoutSession } from '@/api/sessions'
 import { loadActiveSession, loadFinished, storeActiveSession } from '@/components/workout/session-storage'
 import { startSession } from '@/components/workout/workout-session'
@@ -43,6 +45,11 @@ const startAnswers = {
   'GET /api/plans/plan-ppl': { status: 200, body: { data: testPlan() } },
   'GET /api/sessions/last-sets': { status: 200, body: { data: [] } },
 }
+
+// The online state is TanStack Query's, shared by every test
+afterEach(() => {
+  onlineManager.setOnline(true)
+})
 
 describe('HomePage', () => {
   it('shows the active plan with the suggested day, and starts it', async () => {
@@ -88,6 +95,34 @@ describe('HomePage', () => {
     renderRoutes(routes, '/')
 
     await userEvent.click(await screen.findByRole('button', { name: 'Start' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The plan could not be loaded.')
+    expect(loadActiveSession()).toBeNull()
+  })
+
+  it('starts offline from the plan kept on the phone, even an old copy', async () => {
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer(), ...startAnswers })
+    const { queryClient } = renderRoutes(routes, '/')
+    const card = await screen.findByRole('region', { name: 'Push Pull Legs' })
+    // Opened days ago, so stale
+    queryClient.setQueryData(planKeys.detail('plan-ppl', 'en'), testPlan(), { updatedAt: 0 })
+
+    onlineManager.setOnline(false)
+    await userEvent.click(within(card).getByRole('button', { name: 'Start' }))
+
+    expect(await screen.findByText('workout mode')).toBeInTheDocument()
+    expect(loadActiveSession()?.day_name).toBe('Day B – Legs')
+    // Not even tried: it would have waited for the network
+    expect(fake.mock.calls.map(([path]) => path)).not.toContain('/api/plans/plan-ppl')
+  })
+
+  it('says at once, offline, that a plan never opened cannot start', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer(), ...startAnswers })
+    renderRoutes(routes, '/')
+    const card = await screen.findByRole('region', { name: 'Push Pull Legs' })
+
+    onlineManager.setOnline(false)
+    await userEvent.click(within(card).getByRole('button', { name: 'Start' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The plan could not be loaded.')
     expect(loadActiveSession()).toBeNull()

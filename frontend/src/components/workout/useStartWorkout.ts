@@ -1,9 +1,9 @@
 /*
  * The one way a workout starts, from the plan's page or Home. Home has only
- * the days' names, so the plan is read first, from the cache when fresh.
+ * the days' names, so the plan is read first, from the cache when there.
  * Offline, the workout starts with the plan's targets alone.
  */
-import { useQueryClient } from '@tanstack/react-query'
+import { onlineManager, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -59,11 +59,19 @@ export function useStartWorkout(): StartWorkout {
     setStarting(true)
     setFailed(false)
     try {
-      // The cached plan when fresh, else a request whose answer the plan's
-      // page reuses: same key and function as usePlan()
-      const plan = await queryClient.fetchQuery({
-        queryKey: planKeys.detail(planId, i18n.language),
+      const queryKey = planKeys.detail(planId, i18n.language)
+      // Offline, a request for a plan never opened would wait for the network
+      // with the button spinning: better to say at once that it cannot start
+      if (!onlineManager.isOnline() && queryClient.getQueryData(queryKey) === undefined) {
+        throw new Error('plan not cached')
+      }
+      // The cached plan even when stale, read again in the background: the
+      // gym's network must not hold the start. Else a request whose answer
+      // the plan's page reuses: same key and function as usePlan()
+      const plan = await queryClient.ensureQueryData({
+        queryKey,
         queryFn: ({ signal }) => fetchPlan(planId, signal),
+        revalidateIfStale: true,
       })
       // The day, found in the plan; it may have been deleted on another device
       const day = plan.days.find(candidate => candidate.id === dayId)

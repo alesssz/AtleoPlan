@@ -144,18 +144,21 @@ export function useSignUp() {
 }
 
 /**
- * The cache is emptied even after an error: the user wanted out. Everything
- * else is removed, so the next user on this device sees none of it; the user
- * becomes null, which sends the guards to /login.
+ * Nobody is signed in any more: the user becomes null, which sends the guards
+ * to /login, and everything else is removed, so the next user on this device
+ * sees none of it, in memory or in the copy kept on the phone.
  */
+export function forgetAccount(queryClient: QueryClient): void {
+  queryClient.setQueryData(authKeys.user, null)
+  queryClient.removeQueries({ predicate: query => query.queryKey[0] !== authKeys.user[0] })
+}
+
+/** The cache is emptied even after an error: the user wanted out. */
 export function useSignOut() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => request<void>('/api/auth/logout', { method: 'POST' }),
-    onSettled: () => {
-      queryClient.setQueryData(authKeys.user, null)
-      queryClient.removeQueries({ predicate: query => query.queryKey[0] !== authKeys.user[0] })
-    },
+    onSettled: () => forgetAccount(queryClient),
   })
 }
 
