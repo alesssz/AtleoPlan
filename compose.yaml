@@ -43,8 +43,9 @@ x-backend: &backend
     MAIL_PORT: 1025
     # No Redis to run
     QUEUE_CONNECTION: database
-    # Requests from this origin authenticate with the session cookie
-    SANCTUM_STATEFUL_DOMAINS: localhost:5673
+    # Requests from these origins authenticate with the session cookie: the
+    # dev server and the preview of the production build
+    SANCTUM_STATEFUL_DOMAINS: localhost:5673,localhost:4673
   depends_on:
     postgres:
       condition: service_healthy

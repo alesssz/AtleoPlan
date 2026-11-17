@@ -6,7 +6,7 @@
  * null for a visitor. The guards (src/routes/) read it; signing in and out
  * change it, and the screens follow.
  */
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import type { Language } from '@/i18n/languages'
 import { ApiError, ensureCsrfCookie, request } from '@/lib/http'
 import type { Theme } from '@/theme/theme'
@@ -106,6 +106,15 @@ export function useCurrentUser() {
     queryKey: authKeys.user,
     queryFn: ({ signal }) => fetchCurrentUser(signal),
   })
+}
+
+/**
+ * Whether the guards must still wait for the answer. Offline, TanStack Query
+ * pauses the request instead of failing it, so the query stays pending until
+ * the network returns: waiting for that would keep a skeleton on screen for good.
+ */
+export function isAwaitingUser(currentUser: UseQueryResult<User | null>): boolean {
+  return currentUser.isPending && currentUser.fetchStatus !== 'paused'
 }
 
 export function useSignIn() {

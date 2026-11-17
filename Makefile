@@ -7,7 +7,7 @@ SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
         artisan composer vendor migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
-        node-version dev phone fe-install fe-build \
+        node-version dev phone fe-install fe-build fe-preview \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit github-check toc toc-check \
         branch sync push merge
 
@@ -207,6 +207,9 @@ fe-install: node-version ## Install the frontend's npm packages
 
 fe-build: node-version ## Production build of the React app
 	$(NPM) run build
+
+fe-preview: fe-build ## The production build, service worker included, at http://localhost:4673
+	$(NPM) run preview
 
 # --- Quality and tests --------------------------------------------------------
 

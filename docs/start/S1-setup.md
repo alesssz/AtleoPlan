@@ -81,6 +81,7 @@ The hook [`.githooks/pre-commit`](../../.githooks/pre-commit) refuses a commit w
 | Postgres | 5432 | **5932** | `DB_FORWARD_PORT` |
 | Mailpit (web UI) | 8025 | **8525** | `MAIL_UI_PORT` |
 | Vite (React dev server) | 5173 | **5673** | `server.port` in `frontend/vite.config.ts` |
+| Vite preview (the production build, [H3.8.4](../how-to/H3-frontend.md#h384-the-app-with-no-network)) | 4173 | **4673** | `preview.port` in `frontend/vite.config.ts` |
 
 Mailpit's SMTP port (1025) is used inside Docker only. Every port is bound to `127.0.0.1`: reachable from the host, not from the network.
 
@@ -131,7 +132,7 @@ It is idempotent: the seeders write with `updateOrCreate()`, and what is already
 How the backend is built: [C2. Backend](../concepts/C2-backend.md). What is set where, outside the application code:
 
 - **Environment.** `compose.yaml` passes the development settings (database, mail, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`) as environment variables, which win over `backend/.env`. `backend/.env` holds the key and the secrets; `backend/.env.example` lists every variable with no secret.
-- **Cookie sign-in from the React app (Sanctum SPA mode):** `$middleware->statefulApi()` in `backend/bootstrap/app.php`, and `SANCTUM_STATEFUL_DOMAINS=localhost:5673` in `compose.yaml`. The browser must be on exactly that host and port.
+- **Cookie sign-in from the React app (Sanctum SPA mode):** `$middleware->statefulApi()` in `backend/bootstrap/app.php`, and `SANCTUM_STATEFUL_DOMAINS=localhost:5673,localhost:4673` in `compose.yaml`, the dev server and the preview of the build. The browser must be on exactly one of those hosts and ports.
 - **Fortify** ([C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)): `config/fortify.php` sets `prefix` to `api/auth`, `views` to `false`, and only the registration and password-reset features; the migrations and actions of the features that are off are not in the repository. `FRONTEND_URL` builds the links in emails.
 - **A separate database for the tests.** Tests run on `atleoplan_test`, in the same Postgres container, so `RefreshDatabase` never empties the development data:
   - `docker/postgres/init/01-test-database.sql` creates it when the Postgres volume is new; on an older volume, `make test-db`;
@@ -205,6 +206,7 @@ Run from the repository root. Backend commands use `docker compose exec backend 
 |---|---|
 | Dev server, http://localhost:5673 | `npm run dev` |
 | Production build | `npm run build` |
+| The build with its service worker, http://localhost:4673 | `npm run build && npm run preview` |
 | Tests | `npx vitest` |
 
 **`make`.** The [`Makefile`](../../Makefile) wraps the commands above; `make help` lists every target. The most used:
@@ -223,6 +225,7 @@ Run from the repository root. Backend commands use `docker compose exec backend 
 | A change seems ignored (config, routes cached) | `make clear` |
 | Logs | `make logs` (backend), `make logs s=queue` |
 | React dev server | `make dev` |
+| The production build with its service worker, to try the app with no network ([H3.8.4](../how-to/H3-frontend.md#h384-the-app-with-no-network)) | `make fe-preview` |
 | An Android phone on USB opens the dev app at its own `localhost:5673` ([H3.8.2](../how-to/H3-frontend.md#h382-a-real-android-phone-over-usb)) | `make phone` |
 | Tests, all or some | `make test`, `make test f=TestDatabase` |
 | Fix PHP format and ESLint problems automatically | `make fix` |

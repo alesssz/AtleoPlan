@@ -6,6 +6,7 @@
 import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
 
 /** APP_PORT as in compose.yaml. */
@@ -15,6 +16,22 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // Production builds only: in development a service worker would serve
+    // stale modules over Vite's
+    VitePWA({
+      // The new worker takes over in the background and the page keeps the
+      // version it loaded until it is next opened: never a reload mid-workout
+      registerType: 'autoUpdate',
+      // Installing the app comes later (phase 2): for now it only opens offline
+      manifest: false,
+      workbox: {
+        // The fonts too, or the first offline start draws in a fallback face
+        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        // Laravel's pages, which share the origin in production: a navigation
+        // there must reach the server, not get the React app
+        navigateFallbackDenylist: [/^\/api\//, /^\/sanctum\//, /^\/storage\//, /^\/auth\//, /^\/admin(\/|$)/],
+      },
+    }),
   ],
 
   resolve: {
@@ -42,6 +59,15 @@ export default defineConfig({
       // a route such as /authors in the React app
       '/auth/': backendUrl,
     },
+  },
+
+  // The production build with its service worker. Not on the dev server's
+  // port: the worker would outlive the preview there and serve the build in
+  // place of `make dev`. Same proxy as the dev server (Vite's default)
+  preview: {
+    port: 4673,
+    strictPort: true,
+    host: '127.0.0.1',
   },
 
   test: {

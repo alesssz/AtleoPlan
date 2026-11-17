@@ -5,7 +5,7 @@
  */
 import { useTranslation } from 'react-i18next'
 import { Navigate, Outlet, useLocation } from 'react-router'
-import { useCurrentUser } from '@/api/auth'
+import { isAwaitingUser, useCurrentUser } from '@/api/auth'
 import { Skeleton } from '@/components/ui/skeleton'
 
 /** RequireAuth's `from`, or Home. */
@@ -20,7 +20,7 @@ export function RequireGuest() {
   const location = useLocation()
 
   // The form's size, so a signed-in user does not see it flash on the way in
-  if (currentUser.isPending) {
+  if (isAwaitingUser(currentUser)) {
     return (
       <div role="status" className="grid min-h-dvh place-items-center p-5">
         <Skeleton className="h-96 w-full max-w-md rounded-3xl" />

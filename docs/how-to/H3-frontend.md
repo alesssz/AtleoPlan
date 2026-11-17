@@ -16,6 +16,7 @@ Recipes for the React app: a new page, data from the API, a form, tests, transla
   - [H3.8.1 Phone, tablet and desktop widths](#h381-phone-tablet-and-desktop-widths)
   - [H3.8.2 A real Android phone over USB](#h382-a-real-android-phone-over-usb)
   - [H3.8.3 The README's screenshots](#h383-the-readmes-screenshots)
+  - [H3.8.4 The app with no network](#h384-the-app-with-no-network)
 - [H3.9 A shadcn/ui component](#h39-a-shadcnui-component)
 - [H3.10 When something goes wrong](#h310-when-something-goes-wrong)
 - [H3.11 Commands at a glance](#h311-commands-at-a-glance)
@@ -114,7 +115,9 @@ When an advisory is in a transitive dependency whose parents do not accept the f
    Then `npm install`, `npm ls <package>`, `npm audit`, and read the lockfile's diff.
 4. **Prove it still works:** `npm run lint && npm run typecheck && npx vitest run && npm run build`, and the tools that use the package on what they use it for (ESLint selects its files with `minimatch`: `npx eslint . --format json` must still list them).
 5. **An advisory with no fix** that is not reachable in production is dismissed on GitHub as "risk is tolerable", with a note.
-6. **Plan the removal:** a backlog entry ([OPS-5](../project/backlog.md#ops-5-drop-the-minimatch-override)) to drop the override once the parents accept the fixed version.
+6. **Plan the removal:** a backlog entry ([OPS-5](../project/backlog.md#ops-5-drop-the-minimatch-override), [OPS-6](../project/backlog.md#ops-6-drop-the-glob-override)) to drop the override once the parents accept the fixed version.
+
+**An override also binds the packages added later.** `glob` 11, asked for by `workbox-build`, finds no file at all with the forced `minimatch` 11, and `npm install` says nothing: the build failed with "Couldn't find configuration for either precaching or runtime caching". Hence a second override, scoped to the one parent, `"workbox-build": { "glob": "^14.0.2" }`: `glob` 14 is built on `minimatch` 11, and also fixes an advisory of 11. After adding a package, `npm ls minimatch` shows whether it brings a new user of the forced version.
 
 ---
 
@@ -170,6 +173,17 @@ The screenshots in `docs/screenshots/` show a demo account, never a real one: pl
 4. **Hide the TanStack Query Devtools button,** which only development shows: a style `[class*="tsqd"] { display: none }` added by `context.addInitScript()`.
 5. **Review each image** before committing.
 
+### H3.8.4 The app with no network
+
+The service worker exists only in the production build ([C1.21](../concepts/C1-frontend.md#c121-opening-with-no-network)), served by `make fe-preview` at http://localhost:4673, a port Sanctum knows too. Not on 5673: a worker registered there would keep answering in place of `make dev`.
+
+1. `make fe-preview` (the stack up), sign in, open a few screens.
+2. DevTools → **Application**: under **Service workers**, `sw.js` *activated and is running*; under **Cache storage**, `workbox-precache-v2-…` with the build's files.
+3. **Network → Offline**, then reload, and open an address typed by hand (`/plans/…`): the app opens; the signed-in screens say "Can't reach the server", and open by themselves when Offline is unticked.
+4. Offline, `/admin` and `/auth/google/redirect` fail as a page with no network does: they are Laravel's, never the React app.
+
+After a new build the first reload still shows the old one (the worker swaps in the background); the next has it. To start clean: **Application → Storage → Clear site data**. On a phone, `adb reverse tcp:4673 tcp:4673` and Chrome at `http://localhost:4673` ([H3.8.2](#h382-a-real-android-phone-over-usb)).
+
 ---
 
 ## H3.9 A shadcn/ui component
@@ -203,6 +217,8 @@ make fix                    # quotes and semicolons to our style
 | `Port 5673 is already in use` | Another `make dev` is running (`strictPort`) | Close it |
 | Photos 404 on `/storage/…` | No `public/storage` link on this computer | `make artisan c="storage:link"` |
 | A page scrolls sideways on a phone, though the long names are truncated | A `grid` with no column template below `sm:`: its one column grows to the widest item | `grid-cols-1`, so the column is `minmax(0, 1fr)` |
+| `make fe-preview` still shows the previous build | The page came from the old service worker; the new one took over meanwhile | Reload once more |
+| `make fe-build` fails with "Couldn't find configuration for either precaching or runtime caching" | Workbox found no file: a `glob` the forced `minimatch` breaks ([H3.7.1](#h371-a-vulnerable-package-deep-in-the-tree-overrides)) | `npm ls glob`: workbox-build's must be 14 |
 | A tab bar with no tab selected | `Tabs`' `value` matches no trigger | Validate the value read from the address |
 | The editor brings back old changes | A draft kept from an earlier visit | **Discard changes**, or clear `atleoplan.planDraft.…` |
 | `Found multiple elements with the role "button" and name "Save"` | The same control drawn twice | One of each: it confuses screen readers too |
@@ -224,6 +240,7 @@ Setup problems: [S1.10](../start/S1-setup.md#s110-troubleshooting).
 | A package | `npm install name` in `frontend/`; after a pull, `make fe-install` |
 | A shadcn/ui component | `npx shadcn add name`, then `make fix` |
 | Production build | `make fe-build` |
+| The build with its service worker, http://localhost:4673 ([H3.8.4](#h384-the-app-with-no-network)) | `make fe-preview` |
 | A real phone | `make phone` |
 | Example data | `make exercises-import`, then `make plans-demo` |
 | Every check, backend included | `make check` |

@@ -77,6 +77,7 @@ The stack's rationale is in [D2.2](../design/D2-decisions.md#d22-stack), the scr
   - [C1.19.4 History: pages from the server](#c1194-history-pages-from-the-server)
   - [C1.19.5 Testing it](#c1195-testing-it)
 - [C1.20 Showing that something is loading](#c120-showing-that-something-is-loading)
+- [C1.21 Opening with no network](#c121-opening-with-no-network)
 
 ---
 
@@ -87,6 +88,7 @@ The stack's rationale is in [D2.2](../design/D2-decisions.md#d22-stack), the scr
 | **React 19** | StrictMode in development | everywhere |
 | **TypeScript 6** | Strict mode | `tsconfig.app.json` |
 | **Vite 8** | Dev server with the API proxy, production build | `vite.config.ts` |
+| **vite-plugin-pwa** (Workbox) | The service worker: the app opens with no network ([C1.21](#c121-opening-with-no-network)) | `vite.config.ts` |
 | **React Router 8** | Data router (`createBrowserRouter`), guards as parent routes | `src/router.tsx` |
 | **TanStack Query 5** | Every piece of server data, the signed-in user included | `src/lib/query-client.ts`, `src/api/` |
 | **react-hook-form + zod** | Forms, rules with translated messages ([C1.13.3](#c1133-anatomy-of-a-form)) | `src/pages/auth-schemas.ts`, `src/lib/form.ts` |
@@ -115,7 +117,7 @@ One origin for both is what lets Sanctum's session cookie work without CORS.
 ```
 frontend/
 ├── index.html              applies the saved theme before React loads
-├── vite.config.ts          plugins, the @/ alias, dev server + proxy, Vitest
+├── vite.config.ts          plugins (the service worker's too), the @/ alias, dev server + proxy, preview, Vitest
 ├── components.json         shadcn/ui settings
 ├── public/                 favicon.svg, the logo's mark
 └── src/
@@ -165,11 +167,12 @@ frontend/
 
 ## C1.3 What happens when the app opens
 
-1. **`index.html`**'s inline script reads the saved theme and sets `class="dark"` on `<html>` before first paint, so a light-theme user never sees a dark flash.
-2. **`src/main.tsx`** imports `index.css` and `src/i18n` (language: saved choice, else browser's, else English), then renders `<App />`.
-3. **`App.tsx`** nests `QueryClientProvider` → `ThemeProvider` → `RouterProvider`.
-4. On a signed-in route, **`RequireAuth`** asks `GET /api/user` and shows skeletons until it answers; a visitor goes to `/login`, a user continues with the account's language and theme applied ([C1.13](#c113-signing-in-and-forms)).
-5. **`AppLayout`** draws the navigation around the page's `<Outlet />`.
+1. **In a production build, the service worker** answers first: `index.html` and the app's files come from its cache, network or not ([C1.21](#c121-opening-with-no-network)).
+2. **`index.html`**'s inline script reads the saved theme and sets `class="dark"` on `<html>` before first paint, so a light-theme user never sees a dark flash.
+3. **`src/main.tsx`** imports `index.css` and `src/i18n` (language: saved choice, else browser's, else English), then renders `<App />`.
+4. **`App.tsx`** nests `QueryClientProvider` → `ThemeProvider` → `RouterProvider`.
+5. On a signed-in route, **`RequireAuth`** asks `GET /api/user` and shows skeletons until it answers (with no network, "Can't reach the server" at once); a visitor goes to `/login`, a user continues with the account's language and theme applied ([C1.13](#c113-signing-in-and-forms)).
+6. **`AppLayout`** draws the navigation around the page's `<Outlet />`.
 
 The frame, the query cache and component state survive navigation between screens.
 
@@ -326,7 +329,7 @@ Two layers, both Vitest on jsdom, next to the code:
 - **Bundle size.** The production build is one JavaScript chunk, above Vite's 500 kB warning. The first candidate for a `lazy` route is the plan editor (dnd-kit, Dialog).
 - **A plan draft follows the unit of the moment.** An unsaved draft kept in the browser holds weights as typed; after a unit change it is read in the new unit. Unguarded, unlike a workout in progress ([C1.13.4](#c1134-preferences-on-the-account)).
 - **A preference changed offline is not saved.** It stays on screen until reload, then the account's value returns. Preferences will join a general offline queue (FEAT-3); finished workouts already have one ([C1.17.5](#c1175-the-queue-of-workouts-to-send)).
-- **Workout mode needs the app loaded.** A workout in progress survives a reload, but with no network the app itself does not open until the PWA's offline cache exists (FEAT-3). Charts come in phase 2.
+- **Workout mode needs the server.** A workout in progress survives a reload, and the app opens with no network ([C1.21](#c121-opening-with-no-network)), but every signed-in screen waits for `GET /api/user`, which is not kept on the phone yet: the cache of server data in IndexedDB comes with FEAT-3. Charts come in phase 2.
 - **`fsevents`'s install script** is blocked by npm's install-scripts guard. It is an optional macOS watcher Vite does not need; leave it blocked.
 
 ---
@@ -988,7 +991,7 @@ The confirmation counts working sets (`countSets()`): "3 of 7 sets done, warm-up
 
 **Resending is harmless.** The request is a `PUT` to the workout's own UUID: the first creates, the next replace with the same content. A request whose answer was lost is sent again, and the server never holds two copies. This is why ids are made on the device.
 
-**When it retries:** `usePendingSessions(enabled)`, in `RequireAuth`, sends the queue when the signed-in app starts and on the `online` event; a round that sent something invalidates the cached lists. This is the part of offline sync ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)) a workout needs; the PWA, IndexedDB and background sync come with FEAT-3.
+**When it retries:** `usePendingSessions(enabled)`, in `RequireAuth`, sends the queue when the signed-in app starts and on the `online` event; a round that sent something invalidates the cached lists. This is the part of offline sync ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)) a workout needs; IndexedDB and background sync come with FEAT-3; the service worker that opens the app with no network is in [C1.21](#c121-opening-with-no-network).
 
 **Resuming.** ✕ pauses, persists and opens the plan's page (Home for a free workout), where `ResumeBanner` shows "Workout in progress: Day A – Push" with **Resume**; Home shows it too. A reload, a closed tab or a flat battery lead to the same place; the clock resumes only when the workout is reopened.
 
@@ -1355,6 +1358,20 @@ When nothing changes on screen during a request, the app looks frozen and the an
 **Two buttons, one mutation.** Activate and Archive share `usePlanAction`: both are disabled while it runs, but only the pressed one is `pending`, read from `action.variables`. The summary's Save and Delete share `busy: 'save' | 'delete' | null` the same way.
 
 **No sign** for background refetches (the data is already on screen and updates in place) or for workout actions (they are stored on the phone and never wait for the server, [C1.17](#c117-workout-mode)).
+
+---
+
+## C1.21 Opening with no network
+
+The production build has a service worker, made by **vite-plugin-pwa** (Workbox, `generateSW`) from `vite.config.ts`. The first visit online stores the app's files; from then on the app opens with no network ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)). It is the first part of working offline: what the screens show with no network comes with the cache of server data (FEAT-3).
+
+- **What it keeps:** the build's files, `index.html`, the JavaScript, the CSS, the Inter fonts and the favicon (`globPatterns`), about 1.3 MB, most of it the one JavaScript chunk ([C1.11](#c111-known-limits)). Nothing from the API: server data is TanStack Query's.
+- **Any address opens the app.** A navigation gets `index.html` from the cache and the router takes it from there, so `/plans/abc` opens with no network too. Not Laravel's paths, which share the origin in production (`navigateFallbackDenylist`: `/api/`, `/sanctum/`, `/storage/`, `/auth/`, `/admin`): Google's sign-in and the admin panel must reach the server, and offline they fail as any page would.
+- **Updates without a reload** (`registerType: 'autoUpdate'`). A new build's worker installs in the background and takes over at once (`skipWaiting`, `clientsClaim`), but an open page keeps the code it loaded: the new version shows at the next opening, never in the middle of a workout or of an unsaved form. The registration is the plugin's `registerSW.js`, which the build adds to `index.html`.
+- **Not in development.** `make dev` has no worker: it would serve old modules over Vite's. `make fe-preview` serves the build, worker included, on a port of its own, 4673: a worker registered on 5673 would outlive the preview and answer in place of the dev server ([H3.8.4](../how-to/H3-frontend.md#h384-the-app-with-no-network)).
+- **No manifest yet.** The app opens offline in the browser; installing it on the home screen, with a manifest and icons, is phase 2 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)).
+
+**Offline, the guards do not wait.** With no network TanStack Query pauses a request instead of failing it, so `GET /api/user` would stay pending, and the guards' skeletons on screen, until the network returns. `isAwaitingUser()` (`api/auth.ts`) counts a paused request as no answer: `RequireAuth` shows "Can't reach the server", `RequireGuest` the form. When the network returns, the request resumes and the app opens by itself.
 
 ---
 
