@@ -7,7 +7,7 @@ SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
         artisan composer vendor migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
-        dev phone fe-install fe-build \
+        node-version dev phone fe-install fe-build \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit github-check toc toc-check \
         branch sync push merge
 
@@ -41,7 +41,7 @@ doctor: ## Check this computer and clone (Docker, disk, Node, npm cache, Git ide
 #   configured".
 # - Muscles and equipment come right after the migrations: the app and the
 #   exercise import both need them.
-setup: ## New clone, or after a pull: Git hook, backend/.env and its key, image, packages, containers, test database, migrations, muscles and equipment
+setup: node-version ## New clone, or after a pull: Git hook, backend/.env and its key, image, packages, containers, test database, migrations, muscles and equipment
 	git config core.hooksPath .githooks
 	test -f backend/.env || cp backend/.env.example backend/.env
 	$(DC) build
@@ -186,7 +186,13 @@ plans-demo: ## Give every user with no plans two example plans (after exercises-
 
 # --- Frontend -----------------------------------------------------------------
 
-dev: ## Start the React dev server (http://localhost:5673)
+# Every npm target runs on the Node of .nvmrc: another npm rewrites the
+# lockfile (an older one drops the libc fields of the platform packages)
+node-version:
+	@want=$$(tr -d '\r\n' < .nvmrc); have=$$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null); \
+	[ "$$have" = "$$want" ] || { echo "✖ Node $${have:-not found}, the project wants $$want (.nvmrc): nvm use $$want" >&2; exit 1; }
+
+dev: node-version ## Start the React dev server (http://localhost:5673)
 	$(NPM) run dev
 
 # The adb on the PATH, or the copy unzipped into the home folder
@@ -196,10 +202,10 @@ phone: ## Android phone on USB: its own localhost:5673 opens this computer's dev
 	@"$(ADB)" devices -l
 	@"$(ADB)" reverse tcp:5673 tcp:5673 >/dev/null && echo "✔ On the phone, in Chrome: http://localhost:5673 (until the cable is unplugged)"
 
-fe-install: ## Install the frontend's npm packages
+fe-install: node-version ## Install the frontend's npm packages
 	$(NPM) install
 
-fe-build: ## Production build of the React app
+fe-build: node-version ## Production build of the React app
 	$(NPM) run build
 
 # --- Quality and tests --------------------------------------------------------
@@ -213,21 +219,21 @@ pint: ## Format the PHP code
 pint-check: ## Check the PHP format without changing files
 	$(DC) exec backend vendor/bin/pint --test
 
-lint: ## ESLint on the frontend
+lint: node-version ## ESLint on the frontend
 	$(NPM) run lint
 
-lint-fix: ## ESLint with automatic fixes
+lint-fix: node-version ## ESLint with automatic fixes
 	$(NPM) run lint -- --fix
 
-typecheck: ## TypeScript check of the frontend
+typecheck: node-version ## TypeScript check of the frontend
 	$(NPM) run typecheck
 
-fe-test: ## Frontend tests (Vitest); npm --prefix frontend run test:watch reruns them on save
+fe-test: node-version ## Frontend tests (Vitest); npm --prefix frontend run test:watch reruns them on save
 	$(NPM) test
 
 fix: pint lint-fix ## Fix what can be fixed automatically: PHP format and ESLint
 
-check: pint-check test lint typecheck fe-test toc-check ## Everything before a merge (needs the stack up)
+check: node-version pint-check test lint typecheck fe-test toc-check ## Everything before a merge (needs the stack up)
 
 # --- Docs ---------------------------------------------------------------------
 
