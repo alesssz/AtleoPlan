@@ -146,7 +146,7 @@ export function ExercisesPage() {
             {/* Announced when the filters change */}
             <p aria-live="polite" className="mb-3 text-sm text-muted-foreground">{t('exercises.count', { count: total })}</p>
 
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {exercises.map(exercise => (
                 <li key={exercise.id}>
                   <ExerciseListItem exercise={exercise} />
