@@ -179,8 +179,8 @@ The screenshots in `docs/screenshots/` show a demo account, never a real one: pl
 The service worker exists only in the production build ([C1.21](../concepts/C1-frontend.md#c121-opening-with-no-network)), served by `make fe-preview` at http://localhost:4673, a port Sanctum knows too. Not on 5673: a worker registered there would keep answering in place of `make dev`.
 
 1. `make fe-preview` (the stack up), sign in, open Home, a plan and the plans list.
-2. DevTools → **Application**: under **Service workers**, `sw.js` *activated and is running*; under **Cache storage**, `workbox-precache-v2-…` with the build's files; under **IndexedDB**, `atleoplan` → `query-cache` with the answers.
-3. **Network → Offline**, then reload: Home, the plan and the list open as last seen, and **Start** opens workout mode. A screen never opened says so, as with no server.
+2. DevTools → **Application**: under **Service workers**, `sw.js` *activated and is running*; under **Cache storage**, `workbox-precache-v2-…` with the build's files and `photos` with the active plan's; under **IndexedDB**, `atleoplan` → `query-cache` with the answers.
+3. **Network → Offline**, then reload: Home, the plan and the list open as last seen, and **Start** opens workout mode, its photos and How to do it's included. A screen never opened says so, as with no server.
 4. Offline, `/admin` and `/auth/google/redirect` fail as a page with no network does: they are Laravel's, never the React app.
 5. **With nothing kept** (**Application → Storage → Clear site data**, then online once to install the worker again): offline, the app still opens, on "Can't reach the server", and goes on by itself when Offline is unticked.
 

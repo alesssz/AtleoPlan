@@ -30,6 +30,21 @@ export default defineConfig({
         // Laravel's pages, which share the origin in production: a navigation
         // there must reach the server, not get the React app
         navigateFallbackDenylist: [/^\/api\//, /^\/sanctum\//, /^\/storage\//, /^\/auth\//, /^\/admin(\/|$)/],
+        // Exercise photos, once seen or read ahead (usePrepareWorkouts), for
+        // workout mode offline. Cache first: a new photo has a new address.
+        // Images only: videos are read in ranges, which this would break
+        runtimeCaching: [{
+          urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/storage\/.+\.(?:webp|jpe?g|png|gif)$/i.test(url.pathname),
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'photos',
+            // The least recently used go first: the active plan's are used
+            // again at each visit to Home. A conversion made again is seen
+            // after a month at most
+            expiration: { maxEntries: 500, maxAgeSeconds: 30 * 24 * 60 * 60, purgeOnQuotaError: true },
+            cacheableResponse: { statuses: [200] },
+          },
+        }],
       },
     }),
   ],
