@@ -527,7 +527,7 @@ A plan saved as a file by **Export** and read back by **Import plan** ([D1.4.7](
 | `id` | uuid | Created on the device |
 | `user_id` | bigint → `users`, cascade | Indexed with `started_at`, for history by date |
 | `plan_id` | uuid, nullable → `plans`, set to empty | Empty for a free workout, or once the plan is deleted |
-| `plan_day_id` | uuid, nullable → `plan_days`, set to empty | The same. Also finds "the last time this day was done" ([D1.4.10](D1-ui.md#d1410-workout-summary)) |
+| `plan_day_id` | uuid, nullable → `plan_days`, set to empty, checked at commit | The same. Also finds "the last time this day was done" ([D1.4.10](D1-ui.md#d1410-workout-summary)) |
 | `plan_name`, `day_name` | string, nullable | Copies of the names when the session started |
 | `started_at` | timestampTz | |
 | `finished_at` | timestampTz, nullable | Empty: still in progress, which is what Home's banner looks for ([D1.4.2](D1-ui.md#d142-home)) |
@@ -648,6 +648,8 @@ Its days, items and sets go. Its sessions stay:
 | `session_exercises.plan_item_id` | *(empty)* |
 | Logged sets of the session | unchanged |
 | `users.active_plan_id`, if it was this plan | *(empty)*, so Home shows its empty state |
+
+**`workout_sessions.plan_day_id` is checked at commit** (`DEFERRABLE INITIALLY DEFERRED`). The delete empties `plan_id` and deletes the days, which empties `plan_day_id`, in an order Postgres takes from the triggers' names, which end in an OID compared as text. With `plan_id` first, its update checks `plan_day_id` again when the session was inserted in the same transaction, as in the tests, and the day is already gone; at commit it is empty, whatever the order.
 
 Progress on each exercise is unaffected: it follows `exercise_id`.
 
