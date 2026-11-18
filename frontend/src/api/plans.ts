@@ -6,7 +6,7 @@
  * has no language; a whole plan holds exercises named in the user's
  * language, so its key has one.
  */
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { exerciseKeys, type Exercise } from '@/api/exercises'
 import { homeKeys } from '@/api/home'
 import { request } from '@/lib/http'
@@ -92,11 +92,16 @@ export function usePlans(archived: boolean) {
   })
 }
 
-export function usePlan(id: string, language: string) {
-  return useQuery({
+/** Shared by the plan's page, Home's Start and the reading ahead for offline. */
+export function planQuery(id: string, language: string) {
+  return queryOptions({
     queryKey: planKeys.detail(id, language),
     queryFn: ({ signal }) => fetchPlan(id, signal),
   })
+}
+
+export function usePlan(id: string, language: string) {
+  return useQuery(planQuery(id, language))
 }
 
 /** Also used on its own by Home's Start, which needs the plan only when tapped. */

@@ -108,16 +108,45 @@ describe('HomePage', () => {
     queryClient.setQueryData(planKeys.detail('plan-ppl', 'en'), testPlan(), { updatedAt: 0 })
 
     onlineManager.setOnline(false)
+    const sentBefore = fake.mock.calls.length
     await userEvent.click(within(card).getByRole('button', { name: 'Start' }))
 
     expect(await screen.findByText('workout mode')).toBeInTheDocument()
     expect(loadActiveSession()?.day_name).toBe('Day B – Legs')
     // Not even tried: it would have waited for the network
-    expect(fake.mock.calls.map(([path]) => path)).not.toContain('/api/plans/plan-ppl')
+    expect(fake.mock.calls.slice(sentBefore).map(([path]) => path)).not.toContain('/api/plans/plan-ppl')
   })
 
-  it('says at once, offline, that a plan never opened cannot start', async () => {
-    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer(), ...startAnswers })
+  it('reads ahead the active plan and last time\'s sets, so Start fills Last offline', async () => {
+    const lastSquat = { exercise_id: 40, session_id: 'w-0', started_at: '2026-11-09T18:00:00Z', sets: [
+      { id: 's-1', set_type: 'normal', weight_kg: '95.000', reps: 5, duration_seconds: null, distance_meters: null, completed_at: '2026-11-09T18:05:00Z' },
+    ] }
+    const fake = fakeApi({
+      'GET /api/user': signedInAs(),
+      'GET /api/home': homeAnswer(),
+      'GET /api/plans/plan-ppl': { status: 200, body: { data: testPlan() } },
+      'GET /api/sessions/last-sets': { status: 200, body: { data: [lastSquat] } },
+    })
+    renderRoutes(routes, '/')
+    const card = await screen.findByRole('region', { name: 'Push Pull Legs' })
+
+    // One request per day, the exercises in order
+    await waitFor(() => expect(fake.mock.calls.map(([path]) => path)).toEqual(expect.arrayContaining([
+      '/api/plans/plan-ppl',
+      '/api/sessions/last-sets?exercises=12,30,31',
+      '/api/sessions/last-sets?exercises=40',
+    ])))
+
+    onlineManager.setOnline(false)
+    await userEvent.click(within(card).getByRole('button', { name: 'Start' }))
+
+    expect(await screen.findByText('workout mode')).toBeInTheDocument()
+    expect(loadActiveSession()?.exercises[0]?.previous).toEqual(lastSquat.sets)
+  })
+
+  it('says at once, offline, that a plan never read cannot start', async () => {
+    // Home reads the plan ahead: here that read failed
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer(), 'GET /api/plans/plan-ppl': 'network' })
     renderRoutes(routes, '/')
     const card = await screen.findByRole('region', { name: 'Push Pull Legs' })
 

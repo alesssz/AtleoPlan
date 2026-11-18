@@ -8,8 +8,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useCurrentUser } from '@/api/auth'
-import { fetchPlan, planKeys, type Plan, type PlanDay } from '@/api/plans'
-import { fetchLastSets } from '@/api/sessions'
+import { planQuery, type Plan, type PlanDay } from '@/api/plans'
+import { lastSetsQuery, type LastSets } from '@/api/sessions'
 import { storeActiveSession } from './session-storage'
 import { startFreeSession, startSession, type ActiveSession } from './workout-session'
 
@@ -49,9 +49,24 @@ export function useStartWorkout(): StartWorkout {
     void navigate(`/session/${session.id}`)
   }
 
+  /**
+   * The server's when it answers, since a workout may have been done on
+   * another device; else the copy read ahead (usePrepareWorkouts); else none,
+   * and the Last column stays empty.
+   */
+  async function readLastSets(exerciseIds: number[]): Promise<LastSets[]> {
+    if (exerciseIds.length === 0) return []
+    const query = lastSetsQuery(exerciseIds)
+    const kept = () => queryClient.getQueryData(query.queryKey) ?? []
+    // Offline the request would wait for the network
+    if (!onlineManager.isOnline()) return kept()
+    // No retries: the gym's network must not hold the start
+    return queryClient.fetchQuery({ ...query, retry: false }).catch(kept)
+  }
+
   async function startDay(plan: Plan, day: PlanDay) {
     setStarting(true)
-    const lastSets = await fetchLastSets(day.items.map(item => item.exercise_id)).catch(() => [])
+    const lastSets = await readLastSets(day.items.map(item => item.exercise_id))
     open(startSession(plan, day, { unit, defaultRestSeconds, lastSets, language: i18n.language, now: new Date() }))
   }
 
@@ -59,20 +74,15 @@ export function useStartWorkout(): StartWorkout {
     setStarting(true)
     setFailed(false)
     try {
-      const queryKey = planKeys.detail(planId, i18n.language)
+      const query = planQuery(planId, i18n.language)
       // Offline, a request for a plan never opened would wait for the network
       // with the button spinning: better to say at once that it cannot start
-      if (!onlineManager.isOnline() && queryClient.getQueryData(queryKey) === undefined) {
+      if (!onlineManager.isOnline() && queryClient.getQueryData(query.queryKey) === undefined) {
         throw new Error('plan not cached')
       }
       // The cached plan even when stale, read again in the background: the
-      // gym's network must not hold the start. Else a request whose answer
-      // the plan's page reuses: same key and function as usePlan()
-      const plan = await queryClient.ensureQueryData({
-        queryKey,
-        queryFn: ({ signal }) => fetchPlan(planId, signal),
-        revalidateIfStale: true,
-      })
+      // gym's network must not hold the start
+      const plan = await queryClient.ensureQueryData({ ...query, revalidateIfStale: true })
       // The day, found in the plan; it may have been deleted on another device
       const day = plan.days.find(candidate => candidate.id === dayId)
       if (!day) throw new Error('day not found')
