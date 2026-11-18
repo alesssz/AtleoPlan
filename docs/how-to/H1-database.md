@@ -164,6 +164,7 @@ A factory used as a column's value creates the linked row only when the test giv
   expect(fn () => DB::transaction(fn () => $exercise->owner->delete()))
       ->toThrow(QueryException::class, 'Foreign key violation');
   ```
+- **A key checked at commit** (`DEFERRABLE INITIALLY DEFERRED`, [D3.7.1](../design/D3-data-model.md#d371-deleting-a-plan)) is never checked in a test, whose transaction is rolled back: `DB::statement('SET CONSTRAINTS ALL IMMEDIATE')` runs the check where the test needs it.
 - **`jsonb` reorders an object's keys** (shorter keys first): compare translated columns with `toEqual()`, which ignores the order of keys, not `toBe()`.
 - **Prove a new test can fail:** break the line it guards, see it fail, put the line back.
 
@@ -203,6 +204,7 @@ The public library is built by four commands ([C2.14](../concepts/C2-backend.md#
 | `column "updated_at" … does not exist` | A table without timestamps, a model without `$timestamps = false` | Add it to the model |
 | `23505` unique violation | A second row with the same unique value; often a seeder run twice | `updateOrCreate()` on the stable key |
 | `23503` foreign key violation | A row pointing to nothing, or deleting a row still pointed to | Seeder order; [D3.7](../design/D3-data-model.md#d37-what-happens-on-delete) |
+| `23503` on `workout_sessions_plan_day_id_foreign` when deleting a plan, in a test only, now and then | The two foreign-key actions ran in the other order ([D3.7.1](../design/D3-data-model.md#d371-deleting-a-plan)) | The key must be checked at commit: `make migrate` |
 | `23502` not null, while migrating | A required column added to a table with rows | `->default(…)` or `->nullable()` |
 | `25P02` current transaction is aborted, in a test | A query after a database error in the same transaction | Wrap the failing statement in `DB::transaction()` |
 | `08006`, connection refused, host "postgres" unknown | Postgres is not running | `make up`, `make ps` |

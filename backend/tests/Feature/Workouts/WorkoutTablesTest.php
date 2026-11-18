@@ -56,6 +56,33 @@ it('keeps the workout when its plan is deleted, with the names it copied', funct
         ->and($exercise->fresh()->plan_item_id)->toBeNull();
 });
 
+it('keeps the workout when its plan is deleted, whichever cascade Postgres runs first', function () {
+    // Postgres runs a delete's foreign-key actions by trigger name, which ends
+    // in an OID compared as text: past 99999 a later key can run first.
+    // Re-created in this order, the sessions' key runs before the days' one
+    DB::statement('ALTER TABLE workout_sessions DROP CONSTRAINT workout_sessions_plan_id_foreign');
+    DB::statement('ALTER TABLE workout_sessions ADD CONSTRAINT workout_sessions_plan_id_foreign
+        FOREIGN KEY (plan_id) REFERENCES plans (id) ON DELETE SET NULL');
+    DB::statement('ALTER TABLE plan_days DROP CONSTRAINT plan_days_plan_id_foreign');
+    DB::statement('ALTER TABLE plan_days ADD CONSTRAINT plan_days_plan_id_foreign
+        FOREIGN KEY (plan_id) REFERENCES plans (id) ON DELETE CASCADE');
+    $order = DB::scalar("SELECT string_agg(c.conname, ',' ORDER BY t.tgname) FROM pg_trigger t
+        JOIN pg_constraint c ON c.oid = t.tgconstraint
+        WHERE t.tgrelid = 'plans'::regclass AND t.tgname LIKE 'RI_ConstraintTrigger_a_%' AND t.tgtype & 8 = 8
+        AND c.conname IN ('plan_days_plan_id_foreign', 'workout_sessions_plan_id_foreign')");
+    expect($order)->toBe('workout_sessions_plan_id_foreign,plan_days_plan_id_foreign');
+
+    $plan = Plan::factory()->has(PlanDay::factory(), 'days')->create();
+    $session = WorkoutSession::factory()->for($plan->user)->create(['plan_id' => $plan->id, 'plan_day_id' => $plan->days[0]->id]);
+
+    $plan->delete();
+    // Deferred checks would wait for a commit, which the test never makes
+    DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+
+    $fresh = $session->fresh();
+    expect($fresh->plan_id)->toBeNull()->and($fresh->plan_day_id)->toBeNull();
+});
+
 it('hides a deleted workout, and deletes its rows only for good', function () {
     $session = mondayWorkout();
 
