@@ -20,11 +20,14 @@
     "@fontsource-variable/inter": "^5.3.0",
     "@hookform/resolvers": "^7.0.3",
     "@tailwindcss/vite": "^4.3.4",
+    "@tanstack/query-async-storage-persister": "^5.106.1",
     "@tanstack/react-query": "^5.106.1",
+    "@tanstack/react-query-persist-client": "^5.106.1",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "i18next": "^26.7.2",
     "i18next-browser-languagedetector": "^8.3.0",
+    "idb-keyval": "^6.3.0",
     "lucide-react": "^1.69.0",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
@@ -69,7 +72,9 @@
   "//auditIgnore": [
     "auditIgnore: npm advisories reviewed and accepted, by GHSA id, with the reason. scripts/npm-audit.mjs fails on any other."
   ],
-  "auditIgnore": {},
+  "auditIgnore": {
+    "GHSA-fc5q-39xc-vjpf": "picomatch, high: only in development and build tools (Vite, Vitest, ESLint, Rollup, Workbox, shadcn), never in the app's bundle; the ReDoS needs a crafted glob pattern, and ours come from config files; no patched version exists"
+  },
   "overrides": {
     "minimatch": "^11.0.8",
     "workbox-build": {

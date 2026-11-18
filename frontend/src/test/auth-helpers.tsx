@@ -75,13 +75,15 @@ export const visitor: FakeAnswer = { status: 401, body: { message: 'Unauthentica
  * so failures show at once, the theme, and a memory router.
  *
  * @param routes the routes to draw, as in src/router.tsx
- * @returns Testing Library's result, and the router, to read the current address
+ * @returns Testing Library's result, the router, to read the current address,
+ *   and the query client, to put data in the cache as if kept from earlier
  */
 export function renderRoutes(routes: RouteObject[], initialPath: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const router = createMemoryRouter(routes, { initialEntries: [initialPath] })
   return {
     router,
+    queryClient,
     ...render(
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>

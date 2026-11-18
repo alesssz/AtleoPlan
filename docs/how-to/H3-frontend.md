@@ -45,6 +45,7 @@ Recipes for the React app: a new page, data from the API, a form, tests, transla
 
 1. **The backend** endpoint and its test ([H2.2](H2-backend.md#h22-an-endpoint-that-reads)).
 2. **`src/api/thing.ts`**: the types of the answer (mirroring the Resource), a `thingKeys` object, `fetchThing(…, signal)` with `request<T>()`, and `useThing()`. The language goes in the key whenever the server translates the answer.
+   The answer is kept on the phone with the rest of the cache: when a later change adds a field the screens read without a default, raise `CACHE_VERSION` ([C1.12](../concepts/C1-frontend.md#c112-typescript-conventions)).
 3. **In the component:** a `Skeleton` while `isPending`, a message and **Retry** on `isError`, the data otherwise ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)).
 4. **A list read in pages:** `useInfiniteQuery` with `placeholderData: keepPreviousData`, **Show more**, and the old rows dimmed while new ones load ([C1.20](../concepts/C1-frontend.md#c120-showing-that-something-is-loading)).
 5. **Filters or an open tab** live in the address (`useSearchParams`, `replace: true`), and a value read from it is validated before use.
@@ -177,12 +178,13 @@ The screenshots in `docs/screenshots/` show a demo account, never a real one: pl
 
 The service worker exists only in the production build ([C1.21](../concepts/C1-frontend.md#c121-opening-with-no-network)), served by `make fe-preview` at http://localhost:4673, a port Sanctum knows too. Not on 5673: a worker registered there would keep answering in place of `make dev`.
 
-1. `make fe-preview` (the stack up), sign in, open a few screens.
-2. DevTools → **Application**: under **Service workers**, `sw.js` *activated and is running*; under **Cache storage**, `workbox-precache-v2-…` with the build's files.
-3. **Network → Offline**, then reload, and open an address typed by hand (`/plans/…`): the app opens; the signed-in screens say "Can't reach the server", and open by themselves when Offline is unticked.
+1. `make fe-preview` (the stack up), sign in, open Home, a plan and the plans list.
+2. DevTools → **Application**: under **Service workers**, `sw.js` *activated and is running*; under **Cache storage**, `workbox-precache-v2-…` with the build's files; under **IndexedDB**, `atleoplan` → `query-cache` with the answers.
+3. **Network → Offline**, then reload: Home, the plan and the list open as last seen, and **Start** opens workout mode. A screen never opened says so, as with no server.
 4. Offline, `/admin` and `/auth/google/redirect` fail as a page with no network does: they are Laravel's, never the React app.
+5. **With nothing kept** (**Application → Storage → Clear site data**, then online once to install the worker again): offline, the app still opens, on "Can't reach the server", and goes on by itself when Offline is unticked.
 
-After a new build the first reload still shows the old one (the worker swaps in the background); the next has it. To start clean: **Application → Storage → Clear site data**. On a phone, `adb reverse tcp:4673 tcp:4673` and Chrome at `http://localhost:4673` ([H3.8.2](#h382-a-real-android-phone-over-usb)).
+After a new build the first reload still shows the old one (the worker swaps in the background); the next has it. On a phone, `adb reverse tcp:4673 tcp:4673` and Chrome at `http://localhost:4673` ([H3.8.2](#h382-a-real-android-phone-over-usb)).
 
 ---
 

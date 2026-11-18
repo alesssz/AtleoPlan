@@ -90,7 +90,7 @@ The stack's rationale is in [D2.2](../design/D2-decisions.md#d22-stack), the scr
 | **Vite 8** | Dev server with the API proxy, production build | `vite.config.ts` |
 | **vite-plugin-pwa** (Workbox) | The service worker: the app opens with no network ([C1.21](#c121-opening-with-no-network)) | `vite.config.ts` |
 | **React Router 8** | Data router (`createBrowserRouter`), guards as parent routes | `src/router.tsx` |
-| **TanStack Query 5** | Every piece of server data, the signed-in user included | `src/lib/query-client.ts`, `src/api/` |
+| **TanStack Query 5** | Every piece of server data, the signed-in user included; kept on the phone in IndexedDB (`react-query-persist-client`, `idb-keyval`) | `src/lib/query-client.ts`, `src/lib/query-persistence.ts`, `src/api/` |
 | **react-hook-form + zod** | Forms, rules with translated messages ([C1.13.3](#c1133-anatomy-of-a-form)) | `src/pages/auth-schemas.ts`, `src/lib/form.ts` |
 | **i18next + react-i18next** | Four languages, type-checked keys | `src/i18n/` |
 | **Tailwind CSS 4** | Styling, design tokens as CSS variables | `src/index.css` |
@@ -148,7 +148,7 @@ frontend/
     ├── pages/              one component per route; auth-schemas.ts
     ├── routes/             RequireAuth, RequireGuest, useAccountPreferences (C1.13)
     ├── i18n/               setup, languages.ts, i18next.d.ts (typed keys), locales/{it,en,es,de}.json
-    ├── lib/                framework-free helpers (http, query-client, form, format, week, download, alarm,
+    ├── lib/                framework-free helpers (http, query-client, query-persistence, form, format, week, download, alarm,
     │                       pending-sessions) and app-wide hooks (useDebouncedValue, useNow, useWakeLock, usePendingSessions)
     ├── theme/              theme logic, context, provider, hook
     └── test/               setup.ts; fake API and page rendering (auth-helpers.tsx); fixtures per area
@@ -230,6 +230,7 @@ The frame, the query cache and component state survive navigation between screen
 
 - **Keys** come from each resource's `xxxKeys` object and include the language wherever the server translates the answer.
 - **`staleTime`** is 30 seconds (`query-client.ts`).
+- **Kept on the phone** for a week, in IndexedDB, and restored when the app starts ([C1.21](#c121-opening-with-no-network)); `gcTime` matches it.
 - **Retries:** twice, only for network and 5xx errors; a 4xx would fail the same way again.
 - **Mutations** invalidate broadly (`['plans']`, not one plan): the server's answer is the truth, and only the optimistic preferences patch the cache by hand ([C1.13.4](#c1134-preferences-on-the-account)).
 - **A 401 on any request** marks the user as signed out, and the guards go to `/login` ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)).
@@ -329,7 +330,7 @@ Two layers, both Vitest on jsdom, next to the code:
 - **Bundle size.** The production build is one JavaScript chunk, above Vite's 500 kB warning. The first candidate for a `lazy` route is the plan editor (dnd-kit, Dialog).
 - **A plan draft follows the unit of the moment.** An unsaved draft kept in the browser holds weights as typed; after a unit change it is read in the new unit. Unguarded, unlike a workout in progress ([C1.13.4](#c1134-preferences-on-the-account)).
 - **A preference changed offline is not saved.** It stays on screen until reload, then the account's value returns. Preferences will join a general offline queue (FEAT-3); finished workouts already have one ([C1.17.5](#c1175-the-queue-of-workouts-to-send)).
-- **Workout mode needs the server.** A workout in progress survives a reload, and the app opens with no network ([C1.21](#c121-opening-with-no-network)), but every signed-in screen waits for `GET /api/user`, which is not kept on the phone yet: the cache of server data in IndexedDB comes with FEAT-3. Charts come in phase 2.
+- **Offline, only what was opened.** With no network the screens show the answers kept on the phone ([C1.21](#c121-opening-with-no-network)): a plan never opened cannot start, a library search finds nothing, and workout mode's **Last** column is empty, since last time's sets are read at Start. Charts come in phase 2.
 - **`fsevents`'s install script** is blocked by npm's install-scripts guard. It is an optional macOS watcher Vite does not need; leave it blocked.
 
 ---
@@ -342,6 +343,7 @@ Two layers, both Vitest on jsdom, next to the code:
 - **Results and actions are discriminated unions:** `readPlanFile()` returns `{ ok: true, … } | { ok: false, problem }`; the reducers take `DraftAction` and `WorkoutAction`.
 - **API types mirror the Resources**, in `src/api/`; decimals the backend sends as exact text (`"80.000"`) stay `string` and are read with `Number()` where computed.
 - **Fields added to a stored shape are optional.** A workout or draft saved by an older build lacks them (`stopwatch?`, `paused_ms?`, `notes?`, `for_time?`); readers default them (`?? 0`).
+- **The API's answers are stored too,** in the cache kept on the phone. A field added to a Resource and read without a default would be missing from an answer saved by the older build: raise `CACHE_VERSION` (`lib/query-persistence.ts`) in the same change, and the old copy is dropped.
 
 ---
 
@@ -365,7 +367,7 @@ signing out ──▶ cache holds null ─────────────�
 any 401     ──▶ cache holds null ────────────────────────────────▶ RequireAuth moves to /login
 ```
 
-The forms never navigate after signing in, and no screen handles an expired session. The last line is in `src/lib/query-client.ts`.
+The forms never navigate after signing in, and no screen handles an expired session. The last line is in `src/lib/query-client.ts`. Both of the last two go through `forgetAccount()`: with the user, every other answer leaves the cache, and so the copy kept on the phone, so the next account on the device finds nothing of this one.
 
 **`fetchCurrentUser` distinguishes errors.** A 401 means "nobody" and returns `null`. No connection or a 5xx stays an error: it says nothing about who is signed in, and must not send anyone to `/login`.
 
@@ -1210,7 +1212,7 @@ const start = useStartWorkout()
 // start.starting, start.failed
 ```
 
-**Home has only the days' names.** `startPlanDay()` loads the plan with `queryClient.fetchQuery()` under the same key and function as `usePlan()`, so the plan page later finds it cached; then `startDay()` runs as in [C1.17.2](#c1172-starting-the-plan-becomes-a-workout). When the plan cannot be loaded (offline, never cached), `failed` is set, the card says so and nothing starts.
+**Home has only the days' names.** `startPlanDay()` loads the plan with `queryClient.ensureQueryData()` under the same key and function as `usePlan()`, so the plan page later finds it cached; then `startDay()` runs as in [C1.17.2](#c1172-starting-the-plan-becomes-a-workout). A cached plan is used even when stale and read again in the background (`revalidateIfStale`): the start never waits for the network, and offline it works from the copy kept on the phone. When the plan cannot be loaded (an error, or offline with no copy, said at once instead of waiting), `failed` is set, the card says so and nothing starts.
 
 **Free workout** is `startFreeSession(now)`: no request, works offline ([C1.17.3](#c1173-the-workout-and-its-reducer)).
 
@@ -1363,13 +1365,20 @@ When nothing changes on screen during a request, the app looks frozen and the an
 
 ## C1.21 Opening with no network
 
-The production build has a service worker, made by **vite-plugin-pwa** (Workbox, `generateSW`) from `vite.config.ts`. The first visit online stores the app's files; from then on the app opens with no network ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)). It is the first part of working offline: what the screens show with no network comes with the cache of server data (FEAT-3).
+The production build has a service worker, made by **vite-plugin-pwa** (Workbox, `generateSW`) from `vite.config.ts`. The first visit online stores the app's files; from then on the app opens with no network ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)). Together with the data kept on the phone, below, the screens already opened work with no network too.
 
 - **What it keeps:** the build's files, `index.html`, the JavaScript, the CSS, the Inter fonts and the favicon (`globPatterns`), about 1.3 MB, most of it the one JavaScript chunk ([C1.11](#c111-known-limits)). Nothing from the API: server data is TanStack Query's.
 - **Any address opens the app.** A navigation gets `index.html` from the cache and the router takes it from there, so `/plans/abc` opens with no network too. Not Laravel's paths, which share the origin in production (`navigateFallbackDenylist`: `/api/`, `/sanctum/`, `/storage/`, `/auth/`, `/admin`): Google's sign-in and the admin panel must reach the server, and offline they fail as any page would.
 - **Updates without a reload** (`registerType: 'autoUpdate'`). A new build's worker installs in the background and takes over at once (`skipWaiting`, `clientsClaim`), but an open page keeps the code it loaded: the new version shows at the next opening, never in the middle of a workout or of an unsaved form. The registration is the plugin's `registerSW.js`, which the build adds to `index.html`.
 - **Not in development.** `make dev` has no worker: it would serve old modules over Vite's. `make fe-preview` serves the build, worker included, on a port of its own, 4673: a worker registered on 5673 would outlive the preview and answer in place of the dev server ([H3.8.4](../how-to/H3-frontend.md#h384-the-app-with-no-network)).
 - **No manifest yet.** The app opens offline in the browser; installing it on the home screen, with a manifest and icons, is phase 2 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)).
+
+**The data kept on the phone** (`lib/query-persistence.ts`, `PersistQueryClientProvider` in `App.tsx`). TanStack Query's cache is kept in IndexedDB (`@tanstack/query-async-storage-persister` over `idb-keyval`, database `atleoplan`, store `query-cache`). Offline, the guards find the signed-in user there and the screens their answers, as last seen online.
+
+- **What is kept:** successful answers, for a week (`maxAge`). Not the library's searches, a new key for each word typed; not failed requests; not mutations: changes made offline have their own queue ([C1.17.5](#c1175-the-queue-of-workouts-to-send)).
+- **`CACHE_VERSION`** is the persister's `buster`: a copy saved under another version is dropped instead of restored. Raised by hand when an answer changes shape ([C1.12](#c112-typescript-conventions)), not tied to the build, which would drop the copy at every update, maybe at the first opening offline at the gym.
+- **Storage that fails** (blocked in a private window, a full disk) reads as empty and writes nothing: the app works online as without the copy.
+- **Signing out, or a 401,** empties the cache and so the copy ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)).
 
 **Offline, the guards do not wait.** With no network TanStack Query pauses a request instead of failing it, so `GET /api/user` would stay pending, and the guards' skeletons on screen, until the network returns. `isAwaitingUser()` (`api/auth.ts`) counts a paused request as no answer: `RequireAuth` shows "Can't reach the server", `RequireGuest` the form. When the network returns, the request resumes and the app opens by itself.
 
