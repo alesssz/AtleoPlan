@@ -72,7 +72,9 @@
   "//auditIgnore": [
     "auditIgnore: npm advisories reviewed and accepted, by GHSA id, with the reason. scripts/npm-audit.mjs fails on any other."
   ],
-  "auditIgnore": {},
+  "auditIgnore": {
+    "GHSA-fc5q-39xc-vjpf": "picomatch, high: only in development and build tools (Vite, Vitest, ESLint, Rollup, Workbox, shadcn), never in the app's bundle; the ReDoS needs a crafted glob pattern, and ours come from config files; no patched version exists"
+  },
   "overrides": {
     "minimatch": "^11.0.8",
     "workbox-build": {
