@@ -143,7 +143,7 @@ frontend/
     │   │                     plan-file.ts (C1.15.6)
     │   │   └── editor/         the plan editor (C1.16)
     │   ├── workout/          workout mode: workout-session.ts, session-storage.ts, the screen's pieces (C1.17);
-    │   │                     useStartWorkout.ts and ResumeBanner, shared with Home (C1.18)
+    │   │                     useStartWorkout.ts, usePrepareWorkouts.ts and ResumeBanner, shared with Home (C1.18)
     │   └── *.tsx             shared across pages: PageHeader, EmptyState, ComingSoon, SettingRow, FormField, FormBanner…
     ├── pages/              one component per route; auth-schemas.ts
     ├── routes/             RequireAuth, RequireGuest, useAccountPreferences (C1.13)
@@ -235,7 +235,7 @@ The frame, the query cache and component state survive navigation between screen
 - **Mutations** invalidate broadly (`['plans']`, not one plan): the server's answer is the truth, and only the optimistic preferences patch the cache by hand ([C1.13.4](#c1134-preferences-on-the-account)).
 - **A 401 on any request** marks the user as signed out, and the guards go to `/login` ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)).
 
-**The `src/api/` pattern.** One file per resource: the response types, the cache keys, plain `fetchX` functions (usable outside React, as `fetchQuery` does in [C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)) and the hooks. `health.ts` is the smallest.
+**The `src/api/` pattern.** One file per resource: the response types, the cache keys, plain `fetchX` functions (usable outside React), `xQuery()` options where a hook and code outside it share a key (`planQuery()`, `lastSetsQuery()`, used by Start and the reading ahead of [C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)), and the hooks. `health.ts` is the smallest.
 
 **Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). A request that runs while content is already on screen shows a smaller sign: [C1.20](#c120-showing-that-something-is-loading).
 
@@ -330,7 +330,7 @@ Two layers, both Vitest on jsdom, next to the code:
 - **Bundle size.** The production build is one JavaScript chunk, above Vite's 500 kB warning. The first candidate for a `lazy` route is the plan editor (dnd-kit, Dialog).
 - **A plan draft follows the unit of the moment.** An unsaved draft kept in the browser holds weights as typed; after a unit change it is read in the new unit. Unguarded, unlike a workout in progress ([C1.13.4](#c1134-preferences-on-the-account)).
 - **A preference changed offline is not saved.** It stays on screen until reload, then the account's value returns. Preferences will join a general offline queue (FEAT-3); finished workouts already have one ([C1.17.5](#c1175-the-queue-of-workouts-to-send)).
-- **Offline, only what was opened.** With no network the screens show the answers kept on the phone ([C1.21](#c121-opening-with-no-network)): a plan never opened cannot start, a library search finds nothing, and workout mode's **Last** column is empty, since last time's sets are read at Start. Charts come in phase 2.
+- **Offline, only what was opened.** With no network the screens show the answers kept on the phone ([C1.21](#c121-opening-with-no-network)): a plan never opened cannot start, a library search finds nothing, and an exercise added during a workout has an empty **Last** column, its sets read only then. A workout still in the queue is not last time yet: the server does not have it. Charts come in phase 2.
 - **`fsevents`'s install script** is blocked by npm's install-scripts guard. It is an optional macOS watcher Vite does not need; leave it blocked.
 
 ---
@@ -887,6 +887,7 @@ WorkoutPage              /session/:id: loads the workout from the phone; none �
 | `components/workout/clock.ts`, `set-text.ts` | `clock(245)` is `"4:05"`; `loggedSetText()` writes a set as "80×8" |
 | `components/workout/layout.ts` | `WORKOUT_COLUMN`, the side margins every part shares |
 | `components/workout/useStartWorkout.ts`, `ResumeBanner.tsx` | Starting and resuming, shared with Home ([C1.18](#c118-home)) |
+| `components/workout/usePrepareWorkouts.ts` | Online, reads ahead what Start needs offline: the plan and each day's last sets |
 | `lib/pending-sessions.ts`, `lib/usePendingSessions.ts` | Sending the queue; the hook that sends it on start-up and on `online` |
 | `lib/useNow.ts`, `lib/useWakeLock.ts`, `lib/alarm.ts` | The current moment at an interval; the screen kept on; beep and vibration |
 
@@ -898,7 +899,7 @@ WorkoutPage              /session/:id: loads the workout from the phone; none �
 
 **Start** calls `startDay(plan, day)` of `useStartWorkout` ([C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)):
 
-1. **Fetches last time's sets** of the day's exercises (`GET /api/sessions/last-sets?exercises=12,40,7`). Offline, `.catch(() => [])` turns the failure into "no last time" and the workout starts anyway. Each exercise keeps the whole list (`previous`) for the summary's comparison, with no further request ([C1.19.3](#c1193-better-than-last-time-exercise-by-exercise)).
+1. **Reads last time's sets** of the day's exercises (`GET /api/sessions/last-sets?exercises=7,12,40`, `lastSetsQuery()`, the ids sorted so that a day always has the same key). Online from the server, with no retries, since a workout may have been done on another device; offline, or when the request fails, from the copy read ahead by `usePrepareWorkouts()`; with neither, none, and the workout starts with an empty Last column. Each exercise keeps the whole list (`previous`) for the summary's comparison, with no further request ([C1.19.3](#c1193-better-than-last-time-exercise-by-exercise)).
 2. **Builds the workout** with `startSession(plan, day, options)`: one exercise per item, one set per planned set. Fields are pre-filled with **last time's values for the set in the same position**, else the **plan's target** (the lower end of `8-10`), so a set done as planned or as last time is one tap on ✓. Weights are written in the user's unit and locale.
 3. **Assigns UUIDs** in the browser ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)); the backend keeps them, which makes resending harmless (C1.17.5).
 4. **Persists it** and opens `/session/<id>`.
@@ -1214,6 +1215,8 @@ const start = useStartWorkout()
 
 **Home has only the days' names.** `startPlanDay()` loads the plan with `queryClient.ensureQueryData()` under the same key and function as `usePlan()`, so the plan page later finds it cached; then `startDay()` runs as in [C1.17.2](#c1172-starting-the-plan-becomes-a-workout). A cached plan is used even when stale and read again in the background (`revalidateIfStale`): the start never waits for the network, and offline it works from the copy kept on the phone. When the plan cannot be loaded (an error, or offline with no copy, said at once instead of waiting), `failed` is set, the card says so and nothing starts.
 
+**Read ahead for offline.** `usePrepareWorkouts(planId)`, on Home for the active plan and on a plan's page for that plan, fetches the plan and prefetches each day's last sets while online, again when the network returns. Prefetches, not queries: nothing on screen shows them, so a return to the window does not read them again; a sent workout marks them stale (`sessionKeys.all`) and the next visit reads them. Kept on the phone, they let Start work offline with the Last column filled ([C1.17.2](#c1172-starting-the-plan-becomes-a-workout)).
+
 **Free workout** is `startFreeSession(now)`: no request, works offline ([C1.17.3](#c1173-the-workout-and-its-reducer)).
 
 ### C1.18.3 The card: choose, then start
@@ -1242,7 +1245,7 @@ const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
 ### C1.18.5 Testing it
 
 - **The week** (`week-summary.test.ts`, `week.test.ts`): "today" a Thursday, workouts on Thursday, twice on Tuesday and on the previous Sunday; the Sunday is excluded and Tuesday counted once.
-- **The page** (`HomePage.test.tsx`): `homeAnswer()` with the test plan active and Day B suggested; the card is found as `region` named by its heading. Covers Start (plan and last sets fetched, workout mode on the right day), chip then Start, plan fetch failure, Resume, free workout, the week's numbers.
+- **The page** (`HomePage.test.tsx`): `homeAnswer()` with the test plan active and Day B suggested; the card is found as `region` named by its heading. Covers Start (plan and last sets fetched, workout mode on the right day), the reading ahead and Start offline from it, chip then Start, plan fetch failure, Resume, free workout, the week's numbers.
 - **`WeekStats`** puts each `<dt>` before its `<dd>` in the DOM but renders it below (`flex-col-reverse`); tests find the label and read `nextSibling`.
 
 ---
@@ -1375,6 +1378,7 @@ The production build has a service worker, made by **vite-plugin-pwa** (Workbox,
 
 **The data kept on the phone** (`lib/query-persistence.ts`, `PersistQueryClientProvider` in `App.tsx`). TanStack Query's cache is kept in IndexedDB (`@tanstack/query-async-storage-persister` over `idb-keyval`, database `atleoplan`, store `query-cache`). Offline, the guards find the signed-in user there and the screens their answers, as last seen online.
 
+- **Read ahead:** the active plan and each day's last sets, which no screen shows but Start needs ([C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)).
 - **What is kept:** successful answers, for a week (`maxAge`). Not the library's searches, a new key for each word typed; not failed requests; not mutations: changes made offline have their own queue ([C1.17.5](#c1175-the-queue-of-workouts-to-send)).
 - **`CACHE_VERSION`** is the persister's `buster`: a copy saved under another version is dropped instead of restored. Raised by hand when an answer changes shape ([C1.12](#c112-typescript-conventions)), not tied to the build, which would drop the copy at every update, maybe at the first opening offline at the gym.
 - **Storage that fails** (blocked in a private window, a full disk) reads as empty and writes nothing: the app works online as without the copy.

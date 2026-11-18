@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ResumeBanner } from '@/components/workout/ResumeBanner'
 import { loadActiveSession } from '@/components/workout/session-storage'
+import { usePrepareWorkouts } from '@/components/workout/usePrepareWorkouts'
 import { useStartWorkout } from '@/components/workout/useStartWorkout'
 import { formatLongDate } from '@/lib/format'
 import type { WorkoutEndState } from '@/pages/SummaryPage'
@@ -25,6 +26,7 @@ export function HomePage() {
   const { t, i18n } = useTranslation()
   const home = useHome()
   const start = useStartWorkout()
+  usePrepareWorkouts(home.data?.active_plan?.id)
   // Dropped when the banner deletes it, so Start works again
   const [active, setActive] = useState(loadActiveSession)
   const ended = (useLocation().state as Partial<WorkoutEndState> | null)?.workout

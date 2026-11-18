@@ -1,4 +1,4 @@
-import { act, screen, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadActiveSession, storeActiveSession } from '@/components/workout/session-storage'
@@ -120,6 +120,16 @@ describe('PlanDetailPage', () => {
     renderRoutes(routes, '/plans/plan-ppl')
 
     expect(await screen.findByText(/4 × 8–10 · 176.37 lb · 90 sec/)).toBeInTheDocument()
+  })
+
+  it('reads ahead last time\'s sets of each day, for a workout started offline', async () => {
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })
+    renderRoutes(routes, '/plans/plan-ppl')
+
+    await waitFor(() => expect(fake.mock.calls.map(([path]) => path)).toEqual(expect.arrayContaining([
+      '/api/sessions/last-sets?exercises=12,30,31',
+      '/api/sessions/last-sets?exercises=40',
+    ])))
   })
 
   it('makes the plan active, then shows it so', async () => {

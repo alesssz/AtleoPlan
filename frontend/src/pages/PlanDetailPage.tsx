@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { PlanDayView } from '@/components/plans/PlanDayView'
 import { ResumeBanner } from '@/components/workout/ResumeBanner'
 import { loadActiveSession } from '@/components/workout/session-storage'
+import { usePrepareWorkouts } from '@/components/workout/usePrepareWorkouts'
 import { FALLBACK_REST_SECONDS, useStartWorkout } from '@/components/workout/useStartWorkout'
 import {
   AlertDialog,
@@ -39,6 +40,7 @@ export function PlanDetailPage() {
   // The route always has it; useParams() types it as optional
   const id = useParams().id ?? ''
   const plan = usePlan(id, i18n.language)
+  usePrepareWorkouts(id)
 
   if (plan.isPending) {
     return (

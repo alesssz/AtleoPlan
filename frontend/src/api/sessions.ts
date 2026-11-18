@@ -6,7 +6,7 @@
  * workouts waiting for the network (src/lib/pending-sessions.ts) calls it
  * again later, outside any page.
  */
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Exercise } from '@/api/exercises'
 import { homeKeys } from '@/api/home'
 import type { SetType } from '@/api/plans'
@@ -156,11 +156,15 @@ export function fetchLastSets(exerciseIds: number[], signal?: AbortSignal): Prom
     .then(answer => answer.data)
 }
 
-export function useLastSets(exerciseIds: number[]) {
-  return useQuery({
-    queryKey: sessionKeys.lastSets(exerciseIds),
-    queryFn: ({ signal }) => fetchLastSets(exerciseIds, signal),
-    enabled: exerciseIds.length > 0,
+/**
+ * Last time's sets of a plan day's exercises, read ahead online and started
+ * from offline: the ids sorted, so both find the same cached answer.
+ */
+export function lastSetsQuery(exerciseIds: number[]) {
+  const ids = [...new Set(exerciseIds)].sort((a, b) => a - b)
+  return queryOptions({
+    queryKey: sessionKeys.lastSets(ids),
+    queryFn: ({ signal }) => fetchLastSets(ids, signal),
   })
 }
 
