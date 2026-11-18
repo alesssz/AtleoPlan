@@ -26,7 +26,20 @@ const planFile = { format: 'atleoplan.plan', version: 1, plan: { name: 'Push Pul
 afterEach(() => {
   // Put back what the export test replaced
   vi.restoreAllMocks()
+  // jsdom has none: some tests give the page a service worker
+  Reflect.deleteProperty(navigator, 'serviceWorker')
 })
+
+/** A service worker in control of the page, as in a production build. */
+function withServiceWorker() {
+  const container = { controller: {}, addEventListener: () => {}, removeEventListener: () => {} }
+  Object.defineProperty(navigator, 'serviceWorker', { value: container, configurable: true })
+}
+
+/** The photos the page asked for, in the order asked. */
+function photosRequested(fake: ReturnType<typeof fakeApi>): string[] {
+  return fake.mock.calls.map(([path]) => path).filter(path => path.startsWith('/storage/'))
+}
 
 describe('PlanDetailPage', () => {
   it('exports the plan as a file, named after it', async () => {
@@ -130,6 +143,28 @@ describe('PlanDetailPage', () => {
       '/api/sessions/last-sets?exercises=12,30,31',
       '/api/sessions/last-sets?exercises=40',
     ])))
+  })
+
+  it('downloads ahead the photos of the plan\'s exercises, once each, for the service worker to keep', async () => {
+    withServiceWorker()
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })
+    renderRoutes(routes, '/plans/plan-ppl')
+
+    // The bench press and the squat share the test exercise's two photos
+    await waitFor(() => expect(photosRequested(fake).sort()).toEqual([
+      '/storage/1/conversions/0-large.webp',
+      '/storage/1/conversions/0-thumb.webp',
+      '/storage/2/conversions/1-large.webp',
+      '/storage/2/conversions/1-thumb.webp',
+    ]))
+  })
+
+  it('downloads no photo ahead with no service worker to keep it', async () => {
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': planAnswer() })
+    renderRoutes(routes, '/plans/plan-ppl')
+
+    await waitFor(() => expect(fake.mock.calls.map(([path]) => path)).toContain('/api/sessions/last-sets?exercises=40'))
+    expect(photosRequested(fake)).toEqual([])
   })
 
   it('makes the plan active, then shows it so', async () => {
