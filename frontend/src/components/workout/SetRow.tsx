@@ -61,8 +61,8 @@ interface SetRowProps {
   onStartStopwatch: () => void
   /**
    * 'this' when the running stopwatch times this set, which gets a lime
-   * outline; 'other' when it times another. Either way ▶ is disabled: a
-   * second ▶ would replace the running time and lose it.
+   * outline, and whose ✓ stops it; 'other' when it times another. Either way
+   * ▶ is disabled: a second ▶ would replace the running time and lose it.
    */
   stopwatch?: 'this' | 'other' | null
 }
@@ -115,7 +115,8 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
         variant={set.done ? 'default' : 'outline'}
         aria-pressed={set.done}
         aria-label={set.done ? t('workout.untick', { name }) : t('workout.tick', { name })}
-        disabled={!set.done && !canComplete(set, loggingType, forTime)}
+        // While its stopwatch runs, ✓ stops it, which fills the seconds
+        disabled={!set.done && !canComplete(stopwatch === 'this' ? { ...set, seconds: '1' } : set, loggingType, forTime)}
         onClick={onToggle}
       >
         <Check aria-hidden="true" />
