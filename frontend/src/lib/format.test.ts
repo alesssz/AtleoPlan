@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDayParts, formatDaysAgo, formatDuration, formatLongDate, formatNumber, formatWeight } from './format'
+import { formatClockTime, formatDayParts, formatDaysAgo, formatDuration, formatLongDate, formatNumber, formatWeight } from './format'
 
 describe('formatWeight', () => {
   // [language, what 82.5 kg must look like]
@@ -72,5 +72,13 @@ describe('formatDaysAgo', () => {
     expect(formatDaysAgo(new Date(2026, 10, 5, 18, 0), today, 'en')).toBe('3 days ago')
     expect(formatDaysAgo(new Date(2026, 10, 7, 18, 0), today, 'it')).toBe('ieri')
     expect(formatDaysAgo(new Date(2026, 10, 5, 18, 0), today, 'it')).toBe('3 giorni fa')
+  })
+})
+
+describe('formatClockTime', () => {
+  it('gives the time of day with seconds, in the language\'s way', () => {
+    const at = new Date(2026, 10, 19, 10, 42, 15)
+    expect(formatClockTime(at, 'it')).toBe('10:42:15')
+    expect(formatClockTime(at, 'en')).toBe('10:42:15 AM')
   })
 })

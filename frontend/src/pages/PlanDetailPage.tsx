@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ApiError } from '@/lib/http'
+import { shownData } from '@/lib/shown-data'
 import { ExportPlanButton } from '@/components/plans/ExportPlanButton'
 import type { PlanImportedState } from '@/components/plans/ImportPlanButton'
 import type { PlanSavedState } from '@/pages/PlanEditorPage'
@@ -40,6 +41,7 @@ export function PlanDetailPage() {
   // The route always has it; useParams() types it as optional
   const id = useParams().id ?? ''
   const plan = usePlan(id, i18n.language)
+  const shown = shownData(plan)
   usePrepareWorkouts(id)
 
   if (plan.isPending) {
@@ -52,7 +54,7 @@ export function PlanDetailPage() {
     )
   }
 
-  if (plan.isError) {
+  if (shown === undefined) {
     // 404 and 403 alike: for the user both mean "not here"
     const missing = plan.error instanceof ApiError && [403, 404].includes(plan.error.status)
     return (
@@ -65,7 +67,7 @@ export function PlanDetailPage() {
     )
   }
 
-  return <PlanDetail plan={plan.data} />
+  return <PlanDetail plan={shown} />
 }
 
 interface PlanDetailProps {

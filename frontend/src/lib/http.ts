@@ -43,14 +43,52 @@ const UNSAFE_METHODS: ReadonlySet<HttpMethod> = new Set(['POST', 'PUT', 'PATCH',
  */
 const CSRF_EXPIRED_STATUS = 419
 
+/**
+ * A proxy's answers when the backend is not there (Vite or Caddy: 502), or is
+ * down for maintenance (503), or too slow (504).
+ */
+const SERVER_DOWN_STATUSES: ReadonlySet<number> = new Set([502, 503, 504])
+
+let serverReachable = true
+const serverListeners = new Set<() => void>()
+
+function setServerReachable(reachable: boolean): void {
+  if (reachable === serverReachable) return
+  serverReachable = reachable
+  serverListeners.forEach(listener => listener())
+}
+
+/**
+ * Whether the last request had an answer from Laravel. False with the
+ * network there but no server, which the browser cannot tell from being
+ * online: SyncIndicator and ConnectionBanner treat it as offline.
+ */
+export function isServerReachable(): boolean {
+  return serverReachable
+}
+
+/** @returns the function that stops listening */
+export function subscribeToServer(listener: () => void): () => void {
+  serverListeners.add(listener)
+  return () => serverListeners.delete(listener)
+}
+
+/** Tests start from a server that answers. */
+export function resetServerReachable(): void {
+  setServerReachable(true)
+}
+
 function readCookie(name: string): string | undefined {
   const match = document.cookie.split('; ').find(cookie => cookie.startsWith(`${name}=`))
   return match ? decodeURIComponent(match.slice(name.length + 1)) : undefined
 }
 
-/** A fresh XSRF-TOKEN cookie. */
-export async function ensureCsrfCookie(): Promise<void> {
-  await fetch('/sanctum/csrf-cookie', { credentials: 'same-origin' })
+/**
+ * A fresh XSRF-TOKEN cookie.
+ * @param signal the request's own, so a time limit covers this step too
+ */
+export async function ensureCsrfCookie(signal?: AbortSignal): Promise<void> {
+  await fetch('/sanctum/csrf-cookie', { credentials: 'same-origin', signal })
 }
 
 /**
@@ -66,23 +104,27 @@ async function send(path: string, options: RequestOptions): Promise<Response> {
 
   if (UNSAFE_METHODS.has(method)) {
     // The first change of a session has no cookie yet
-    if (!readCookie('XSRF-TOKEN')) await ensureCsrfCookie()
+    if (!readCookie('XSRF-TOKEN')) await ensureCsrfCookie(options.signal)
     headers['X-XSRF-TOKEN'] = readCookie('XSRF-TOKEN') ?? ''
   }
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
 
   try {
-    return await fetch(path, {
+    const response = await fetch(path, {
       method,
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
       credentials: 'same-origin',
       signal: options.signal,
     })
+    setServerReachable(!SERVER_DOWN_STATUSES.has(response.status))
+    return response
   }
   catch (error) {
     // A cancelled request must reach TanStack Query as a cancellation
     if (error instanceof DOMException && error.name === 'AbortError') throw error
+    // No answer, or none in time (a time limit's TimeoutError)
+    setServerReachable(false)
     throw new ApiError(0, 'Network error')
   }
 }
@@ -98,7 +140,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   // Once more with a fresh token, so a page left open for hours still works;
   // a second 419 would not be cured by a third
   if (response.status === CSRF_EXPIRED_STATUS) {
-    await ensureCsrfCookie()
+    await ensureCsrfCookie(options.signal)
     response = await send(path, options)
   }
 

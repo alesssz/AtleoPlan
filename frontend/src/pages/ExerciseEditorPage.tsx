@@ -12,6 +12,7 @@ import { ExercisePhotoManager } from '@/components/exercises/ExercisePhotoManage
 import { emptyFormValues, formValuesFrom } from '@/components/exercises/exercise-form'
 import { PageHeader } from '@/components/PageHeader'
 import { Skeleton } from '@/components/ui/skeleton'
+import { shownData } from '@/lib/shown-data'
 
 export function ExerciseEditorPage() {
   const { id } = useParams()
@@ -56,6 +57,7 @@ interface EditExerciseProps {
 function EditExercise({ id }: EditExerciseProps) {
   const { t, i18n } = useTranslation()
   const exercise = useExercise(id, i18n.language)
+  const shown = shownData(exercise)
   const update = useUpdateExercise(id)
   const goToExercise = useGoToExercise()
 
@@ -70,10 +72,10 @@ function EditExercise({ id }: EditExerciseProps) {
   }
 
   // Not there, or not the user's: nothing to edit
-  if (exercise.isError || !exercise.data.is_mine) {
+  if (shown === undefined || !shown.is_mine) {
     return (
       <div role="alert" className="flex flex-col items-start gap-4">
-        <p>{exercise.isError ? t('exercises.detail.notFound') : t('exercises.editor.notMine')}</p>
+        <p>{shown === undefined ? t('exercises.detail.notFound') : t('exercises.editor.notMine')}</p>
         <Link to="/exercises" className="font-semibold text-primary">{t('exercises.detail.back')}</Link>
       </div>
     )
@@ -85,15 +87,15 @@ function EditExercise({ id }: EditExerciseProps) {
       {/* Only with the data there: useForm() reads its defaultValues once.
           Keyed, so another exercise opened here starts a fresh form */}
       <ExerciseForm
-        key={exercise.data.id}
-        defaultValues={formValuesFrom(exercise.data)}
+        key={shown.id}
+        defaultValues={formValuesFrom(shown)}
         save={update.mutateAsync}
         onSaved={goToExercise}
         submitLabel={t('exercises.editor.save')}
         cancelTo={`/exercises/${id}`}
       />
       <div className="mt-8">
-        <ExercisePhotoManager exercise={exercise.data} />
+        <ExercisePhotoManager exercise={shown} />
       </div>
     </>
   )

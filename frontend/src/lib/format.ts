@@ -35,6 +35,11 @@ export function formatLongDate(date: Date, language: string): string {
   return new Intl.DateTimeFormat(language, { weekday: 'long', day: 'numeric', month: 'long' }).format(date)
 }
 
+/** The time of day with seconds, "10:42:15", for the moment of an attempt. */
+export function formatClockTime(date: Date, language: string): string {
+  return new Intl.DateTimeFormat(language, { timeStyle: 'medium' }).format(date)
+}
+
 /** For Home's week strip: "lun" and "5". */
 export function formatDayParts(date: Date, language: string): { weekday: string, day: string } {
   return {

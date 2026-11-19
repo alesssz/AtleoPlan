@@ -46,7 +46,7 @@ Recipes for the React app: a new page, data from the API, a form, tests, transla
 1. **The backend** endpoint and its test ([H2.2](H2-backend.md#h22-an-endpoint-that-reads)).
 2. **`src/api/thing.ts`**: the types of the answer (mirroring the Resource), a `thingKeys` object, `fetchThing(…, signal)` with `request<T>()`, and `useThing()`. The language goes in the key whenever the server translates the answer.
    The answer is kept on the phone with the rest of the cache: when a later change adds a field the screens read without a default, raise `CACHE_VERSION` ([C1.12](../concepts/C1-frontend.md#c112-typescript-conventions)).
-3. **In the component:** a `Skeleton` while `isPending`, a message and **Retry** on `isError`, the data otherwise ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)).
+3. **In the component:** `const thing = shownData(query)`; a `Skeleton` while `isPending`, the data whenever `thing` is defined, and a message with **Retry** only when it is not: a refresh that failed for want of a server keeps the last answer on screen ([C1.6](../concepts/C1-frontend.md#c16-server-data)). Not `isError` / `isSuccess`, which hide the saved answer behind the error.
 4. **A list read in pages:** `useInfiniteQuery` with `placeholderData: keepPreviousData`, **Show more**, and the old rows dimmed while new ones load ([C1.20](../concepts/C1-frontend.md#c120-showing-that-something-is-loading)).
 5. **Filters or an open tab** live in the address (`useSearchParams`, `replace: true`), and a value read from it is validated before use.
 

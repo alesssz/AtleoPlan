@@ -398,7 +398,7 @@ Built on shadcn/ui over Tailwind: colours are CSS variables (tokens), so the dar
 | `PRBadge` | Workout mode, summary, progress | Trophy icon + kind of record |
 | `ProgressChart` | Progress, exercise details | Line over time, period filters |
 | `ShareSheet` | Plan details | Link, QR code, native share |
-| `SyncIndicator` | Top bar | Offline state and pending changes |
+| `SyncIndicator` | Beside the logo on phones, bottom of the sidebar | Offline state, pending changes, what the server refused |
 | `EmptyState` | Every list | Illustration, one sentence, main action; a "Coming soon" badge and a disabled action while the feature is missing |
 
 **Visual style: energetic**
@@ -464,14 +464,23 @@ Every screen handles five states: empty, loading, error, offline and syncing.
 
 **Offline and sync**
 
-`SyncIndicator` in the top bar has four states:
+`SyncIndicator` sits beside the logo on phones and at the bottom of the sidebar from 640 px (its icon alone up to 1024 px, as the navigation's): a coloured pill, each state an icon and a text, so the colour is never alone:
 
 | State | Looks like | Meaning |
 |---|---|---|
 | Synced | Nothing shown | Everything is saved on the server |
-| Offline | Amber dot + "Offline" | Changes are saved on the phone |
-| Pending | "3 changes to send" | The network is back, sending |
-| Error | Red dot, tap for details | The server refused a change |
+| Offline | Amber pill, crossed cloud + "Offline", and how many workouts wait as a small number | No network; workouts are saved on the phone |
+| Server offline | The same with a crossed server + "Server offline" | The network is there, the server does not answer: treated as offline |
+| Pending | Amber pill, cloud + "3 changes to send", a spinner in place of the cloud while sending | Online, waiting or sending |
+| Error | Red pill, alert + "Not saved"; a tap lists what the server refused, its day, date and why, with **Try again** | The server refused a change; it stays on the phone |
+
+**A tap on the pill lists what waits** in a window, "Not sent yet": each workout as history shows it, its day (or Free workout), its plan, date and length, a line on when they will go, and what can be tried now: **Check again now** for Server offline, **Send now** when online, nothing offline, where nothing can be tried until the network returns. One window for the three states: it stays open while the state moves between them (a send that finds the server gone becomes Server offline, a server that answers becomes Send now), and closes by itself when the queue empties. **A try by hand that changes nothing says so, with its time**, so a second try is seen too: "Tried at 10:42:15: the server is still not answering. The app tries again by itself every 10 seconds." Server offline opens the window even with nothing waiting ("No workouts waiting."), as the place for that line; Offline with nothing waiting is not a button.
+
+**By itself,** the app sends at opening, when the network returns, within 10 seconds of the server's return (it asks the server that often while it is away), and every 30 seconds while workouts wait with the network and the server there (after a server error). A refusal is not retried: it would fail the same way.
+
+**While offline or with the server offline,** an amber banner above every page says it at length: "You are offline: workouts stay on this phone and are sent as soon as you are back online" (or "The server is not answering: … as soon as it is back"). Workouts only: they are what waits in a queue, other changes made meanwhile are not saved yet. Not in workout mode, which works on the phone anyway; its summary says where the workout went. Screens opened before show what they last showed, server or not.
+
+**When the app sends by itself** (at opening, when the network or the server returns, or after a tap on the pill), the warning disappears with no other sign, so the same banner says "Sending 1 workout to the server…" while it runs, grey with a spinner, then "Sync done: 1 workout saved on the server." in lime with a check, for 6 seconds. Not after Finish or the summary's Save: their own page already says where the workout went, and a second message after every workout would be noise. Sync is automatic: workouts have their UUID and the request is idempotent, so sending them as soon as possible has no risk, while waiting for a tap would leave them on the phone for anyone who forgets.
 
 - **Works offline:** all of workout mode; plans and exercises already opened; cached history; the photos of the active plan's exercises (downloaded ahead).
 - **Does not work offline** (buttons disabled, with the reason): creating or editing exercises ([D3.2](D3-data-model.md#d32-rules-for-every-table)), uploading media, creating share links, searching the public library beyond the cache.

@@ -134,7 +134,7 @@ frontend/
     │   └── health.ts, muscles.ts, equipment.ts
     ├── components/
     │   ├── ui/               shadcn/ui components
-    │   ├── layout/           AppLayout, AuthLayout, SideNav, BottomTabBar, nav-items
+    │   ├── layout/           AppLayout, AuthLayout, SideNav, BottomTabBar, nav-items, SyncIndicator, ConnectionBanner
     │   ├── brand/            BrandMark, Wordmark
     │   ├── home/             Home's pieces; week-summary.ts (C1.18)
     │   ├── history/          summary and history pieces; totals.ts, compare.ts, feeling.ts (C1.19)
@@ -149,7 +149,8 @@ frontend/
     ├── routes/             RequireAuth, RequireGuest, useAccountPreferences (C1.13)
     ├── i18n/               setup, languages.ts, i18next.d.ts (typed keys), locales/{it,en,es,de}.json
     ├── lib/                framework-free helpers (http, query-client, query-persistence, form, format, week, download, alarm,
-    │                       pending-sessions) and app-wide hooks (useDebouncedValue, useNow, useWakeLock, usePendingSessions)
+    │                       pending-sessions, sync-state, shown-data) and app-wide hooks (useDebouncedValue, useNow,
+    │                       useWakeLock, usePendingSessions, useSyncState, useServerWatch)
     ├── theme/              theme logic, context, provider, hook
     └── test/               setup.ts; fake API and page rendering (auth-helpers.tsx); fixtures per area
                             (exercise-, plan-, session-helpers.ts)
@@ -237,7 +238,7 @@ The frame, the query cache and component state survive navigation between screen
 
 **The `src/api/` pattern.** One file per resource: the response types, the cache keys, plain `fetchX` functions (usable outside React), `xQuery()` options where a hook and code outside it share a key (`planQuery()`, `lastSetsQuery()`, used by Start and the reading ahead of [C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)), and the hooks. `health.ts` is the smallest.
 
-**Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). A request that runs while content is already on screen shows a smaller sign: [C1.20](#c120-showing-that-something-is-loading).
+**Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). **The data wins over the error:** a refresh that fails leaves the query in `error` with its last answer, which `shownData()` (`lib/shown-data.ts`) still gives, so a screen shows a message only with nothing to show. Not after a 4xx: a 404 or a 403 says the thing is gone or not the user's, and showing it would lead to changes that fail. A request that runs while content is already on screen shows a smaller sign: [C1.20](#c120-showing-that-something-is-loading).
 
 ---
 
@@ -990,11 +991,22 @@ The confirmation counts working sets (`countSets()`): "3 of 7 sets done, warm-up
 | 2xx | saved (201 first time, 200 after) | leaves |
 | 410 Gone | deleted elsewhere meanwhile ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)) | leaves: resending will never work |
 | none (offline), 5xx | network or server down | stays, retried later |
-| other 4xx (403, 422) | refused | stays, so nothing is lost, and is reported |
+| other 4xx (403, 422) | refused | stays, so nothing is lost, and is reported by `SyncIndicator` |
+| none within 30 s | a request hanging on a weak network | stays, retried later |
+
+**A time limit per workout** (`AbortSignal.timeout`, CSRF cookie included): a request can hang for minutes on a weak network, and the round, with the indicator's spinner and its locked button, would wait as long.
 
 **Resending is harmless.** The request is a `PUT` to the workout's own UUID: the first creates, the next replace with the same content. A request whose answer was lost is sent again, and the server never holds two copies. This is why ids are made on the device.
 
 **When it retries:** `usePendingSessions(enabled)`, in `RequireAuth`, sends the queue when the signed-in app starts and on the `online` event; a round that sent something invalidates the cached lists. This is the part of offline sync ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)) a workout needs; IndexedDB and background sync come with FEAT-3; the service worker that opens the app with no network is in [C1.21](#c121-opening-with-no-network).
+
+**What the user sees: `SyncIndicator`** ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)), in `AppLayout` and `SideNav`. `useSyncState()` follows three things with `useSyncExternalStore`: the network (`onlineManager`), the queue (`subscribeToPending()`, called after every change here and on the `storage` event from another tab; `pendingSnapshot()` keeps the same object until the list changes), and the rounds of sending (`subscribeToSendProgress()`: whether one runs, what the last refused). `syncState()` picks one: offline first, since nothing can be done until the network returns; then refusals, which need a person; then what waits. Refusals live in memory only: every round goes over the whole queue, so the first one after the app opens finds them again. **Send** and **Try again** go through `useSendPending()`, the same round as the `online` event's. **One round at a time:** a round asked for while another runs starts after it and finds only what the first left, so two triggers at once (the server's return and the sign-in) never send a workout twice.
+
+**A server that does not answer** looks like being online to the browser. `request()` (`lib/http.ts`) marks the server unreachable on no answer, a time limit, or a proxy's 502, 503 or 504, and reachable again on any other answer (`isServerReachable()`, `subscribeToServer()`). `syncState()` puts it right after offline, as `unreachable`, and `ConnectionBanner`, above every page in `AppLayout`, says what happens to the workouts meanwhile. Nothing would notice the server's return, since the browser fires no `online` event: `useServerWatch()`, in `RequireAuth`, asks `GET /api/health` every 10 seconds (`SERVER_CHECK_INTERVAL_MS`) while it is away and the network is there, and when it answers again sends the queue and marks every query stale. With the server there but the queue still waiting (a round that met a 500), `usePendingSessions` tries it again every 30 seconds (`QUEUE_RETRY_INTERVAL_MS`); not while the state is `refused`, since a 4xx would fail the same way.
+
+**The indicator's window** is one `Dialog` for `offline`, `unreachable` and `pending`, so it stays open while the state moves between them; it lists `syncState()`'s `queued`, oldest first, and offers **Check again now** (`/api/health`) or **Send now**. A try that changes nothing (the server still unreachable, the queue still full) sets `failedTry`, shown as an error line with the try's time; it is forgotten when the window closes.
+
+**Sending, then done.** Rounds started through `useSendPending()` (the opening, the `online` event, the server's return, the indicator's taps) are announced: `sendPendingSessions({ announce: true })` keeps in the progress whether one is running (`announcing`) and the last one's result, numbered (`announced`). `ConnectionBanner` shows "Sending…" while one runs with workouts waiting, then, for a round that ends while the page is open and saved something, "Sync done: N saved" for six seconds. Finish and the summary's Save call `sendPendingSessions()` plainly: their page says the outcome.
 
 **Resuming.** ✕ pauses, persists and opens the plan's page (Home for a free workout), where `ResumeBanner` shows "Workout in progress: Day A – Push" with **Resume**; Home shows it too. A reload, a closed tab or a flat battery lead to the same place; the clock resumes only when the workout is reopened.
 
@@ -1380,7 +1392,7 @@ The production build has a service worker, made by **vite-plugin-pwa** (Workbox,
 **The data kept on the phone** (`lib/query-persistence.ts`, `PersistQueryClientProvider` in `App.tsx`). TanStack Query's cache is kept in IndexedDB (`@tanstack/query-async-storage-persister` over `idb-keyval`, database `atleoplan`, store `query-cache`). Offline, the guards find the signed-in user there and the screens their answers, as last seen online.
 
 - **Read ahead:** the active plan and each day's last sets, which no screen shows but Start needs ([C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)).
-- **What is kept:** successful answers, for a week (`maxAge`). Not the library's searches, a new key for each word typed; not failed requests; not mutations: changes made offline have their own queue ([C1.17.5](#c1175-the-queue-of-workouts-to-send)).
+- **What is kept:** the answers a screen would show (`shownData()`), for a week (`maxAge`): also one whose last refresh found no server, which is when the copy is needed; keeping only successful queries would drop the user and Home from the copy at the first failed refresh, and the next opening would find nothing. Not the library's searches, a new key for each word typed; not a request that failed with nothing kept, nor one a 4xx refused; not mutations: changes made offline have their own queue ([C1.17.5](#c1175-the-queue-of-workouts-to-send)).
 - **`CACHE_VERSION`** is the persister's `buster`: a copy saved under another version is dropped instead of restored. Raised by hand when an answer changes shape ([C1.12](#c112-typescript-conventions)), not tied to the build, which would drop the copy at every update, maybe at the first opening offline at the gym.
 - **Storage that fails** (blocked in a private window, a full disk) reads as empty and writes nothing: the app works online as without the copy.
 - **Signing out, or a 401,** empties the cache and so the copy ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)).

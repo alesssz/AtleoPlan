@@ -25,11 +25,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError } from '@/lib/http'
+import { shownData } from '@/lib/shown-data'
 
 export function ExerciseDetailPage() {
   const { t, i18n } = useTranslation()
   const id = Number(useParams().id)
   const exercise = useExercise(id, i18n.language)
+  const shown = shownData(exercise)
 
   if (exercise.isPending) {
     return (
@@ -41,7 +43,7 @@ export function ExerciseDetailPage() {
     )
   }
 
-  if (exercise.isError) {
+  if (shown === undefined) {
     // 404 and 403 alike: for the user both mean "not here"
     const missing = exercise.error instanceof ApiError && [403, 404].includes(exercise.error.status)
     return (
@@ -54,7 +56,7 @@ export function ExerciseDetailPage() {
     )
   }
 
-  return <ExerciseDetail exercise={exercise.data} />
+  return <ExerciseDetail exercise={shown} />
 }
 
 interface ExerciseDetailProps {

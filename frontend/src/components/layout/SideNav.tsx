@@ -1,12 +1,14 @@
 /*
  * The sidebar from 640 px: icons only up to 1024 px, each with an accessible
- * name and a tooltip; labels and the logo's name above.
+ * name and a tooltip; labels and the logo's name above. SyncIndicator at the
+ * bottom.
  */
 import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router'
 import { BrandMark, Wordmark } from '@/components/brand/Brand'
 import { cn } from '@/lib/utils'
 import { NAV_ITEMS } from './nav-items'
+import { SyncIndicator } from './SyncIndicator'
 
 export function SideNav() {
   const { t } = useTranslation()
@@ -44,6 +46,8 @@ export function SideNav() {
           })}
         </ul>
       </nav>
+
+      <SyncIndicator place="sidebar" className="justify-center px-3 pb-6 lg:justify-start lg:px-4" />
     </aside>
   )
 }

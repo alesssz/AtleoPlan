@@ -70,8 +70,47 @@ export function loadPending(): Record<string, SessionInput> {
   return read<Record<string, SessionInput>>(PENDING_KEY) ?? {}
 }
 
+const pendingListeners = new Set<() => void>()
+
+/**
+ * Called after every change of the waiting list: here, or in another tab
+ * (`storage` event, also fired when another tab clears the storage).
+ * @returns the function that stops listening
+ */
+export function subscribeToPending(listener: () => void): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === PENDING_KEY || event.key === null) listener()
+  }
+  pendingListeners.add(listener)
+  window.addEventListener('storage', onStorage)
+  return () => {
+    pendingListeners.delete(listener)
+    window.removeEventListener('storage', onStorage)
+  }
+}
+
+let pendingCache: { text: string | null, value: Record<string, SessionInput> } = { text: null, value: {} }
+
+/** loadPending(), but the same object until the list changes, as useSyncExternalStore needs. */
+export function pendingSnapshot(): Record<string, SessionInput> {
+  let text: string | null = null
+  try {
+    text = localStorage.getItem(PENDING_KEY)
+  }
+  catch {
+    // Unreadable: as empty
+  }
+  if (text !== pendingCache.text) pendingCache = { text, value: loadPending() }
+  return pendingCache.value
+}
+
+function writePending(value: Record<string, SessionInput> | null): void {
+  write(PENDING_KEY, value)
+  pendingListeners.forEach(listener => listener())
+}
+
 export function addPending(id: string, input: SessionInput): void {
-  write(PENDING_KEY, { ...loadPending(), [id]: input })
+  writePending({ ...loadPending(), [id]: input })
 }
 
 /**
@@ -80,7 +119,7 @@ export function addPending(id: string, input: SessionInput): void {
  */
 export function removePending(id: string): void {
   const others = Object.fromEntries(Object.entries(loadPending()).filter(([key]) => key !== id))
-  write(PENDING_KEY, Object.keys(others).length === 0 ? null : others)
+  writePending(Object.keys(others).length === 0 ? null : others)
 }
 
 /** The workout just finished, waiting for its summary's Save or Delete, or null. */
