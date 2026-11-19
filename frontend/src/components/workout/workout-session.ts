@@ -432,29 +432,52 @@ export function supersetOf(session: ActiveSession, index: number): number[] {
 }
 
 /**
- * Where to go from an exercise in a superset: the next exercise of the round
- * with a set to tick; at the end of a round, the superset's first exercise
- * with a set left. Null outside a superset or when nothing else in it is
- * left. Next goes there; the reducer starts the rest when the round is over.
+ * The exercise after this one in its superset's round with a set to tick;
+ * null outside a superset, or at the end of a round, which is when the
+ * reducer starts the rest.
  *
  * Only exercises with work left count: supersets often pair different
- * numbers of sets (3 leg curls, 4 calf raises), and pointing to a finished
- * exercise would show only ticked sets.
- * @param scope 'round' looks only after this exercise, in this round; 'next'
- *   also wraps to the start for the next round
+ * numbers of sets (3 leg curls, 4 calf raises), and a finished or skipped
+ * exercise has no place in the round.
  */
-export function supersetNext(session: ActiveSession, index: number, scope: 'round' | 'next' = 'next'): number | null {
+export function supersetNext(session: ActiveSession, index: number): number | null {
   const group = supersetOf(session, index)
   if (group.length < 2) return null
-  const hasWork = (position: number) => {
+  return group.slice(group.indexOf(index) + 1).find((position) => {
     const item = session.exercises[position]
     return item !== undefined && hasWorkLeft(item)
+  }) ?? null
+}
+
+/**
+ * The workout as workout mode shows it: one screen per run, an exercise on
+ * its own or a whole superset, each listing its exercises' indexes in order.
+ */
+export function stations(session: ActiveSession): number[][] {
+  const runs: number[][] = []
+  for (let index = 0; index < session.exercises.length; index += runs[runs.length - 1]!.length) {
+    runs.push(supersetOf(session, index))
   }
-  // This round: the exercises after this one, the first with work
-  const following = group.slice(group.indexOf(index) + 1).find(hasWork)
-  if (following !== undefined || scope === 'round') return following ?? null
-  // The next round: from the superset's first, any other with work
-  return group.find(position => position !== index && hasWork(position)) ?? null
+  return runs
+}
+
+/**
+ * The set to do next on a superset's screen, by id: round by round, the
+ * first set not ticked of each exercise in turn (A 1, B 1, A 2, B 2…), so
+ * it can be marked and scrolled to. Skipped exercises have no turn. Null
+ * outside a superset and once every set is ticked.
+ */
+export function nextInRound(session: ActiveSession, group: readonly number[]): string | null {
+  if (group.length < 2) return null
+  const members = group.map(position => session.exercises[position]).filter(item => item !== undefined && !item.skipped)
+  const rounds = Math.max(0, ...members.map(item => item!.sets.length))
+  for (let round = 0; round < rounds; round++) {
+    for (const item of members) {
+      const set = item!.sets[round]
+      if (set && !set.done) return set.id
+    }
+  }
+  return null
 }
 
 /**
@@ -536,12 +559,11 @@ function stopClock(session: ActiveSession, now: string): void {
 /**
  * Works on a structuredClone() of the workout.
  *
- * Ticking a set never moves the screen: moving left the set just ticked out
- * of sight. What changes is the rest:
+ * Ticking a set never moves the screen: a superset is on one screen, its
+ * next set marked (nextInRound). What changes is the rest:
  * - on its own, the rest timer starts, with the exercise's rest;
  * - in a superset, no rest while another exercise of the round has a set
- *   left: Next points there (supersetNext); after the round's last, the rest
- *   starts.
+ *   left (supersetNext); after the round's last, the rest starts.
  * A rest of 0 seconds starts no timer.
  */
 export function workoutReducer(session: ActiveSession, action: WorkoutAction): ActiveSession {
@@ -568,7 +590,7 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       exercise.skipped = false
       // The rest starts at the end of a round only: when no exercise after
       // this one in its superset has a set left (always, on its own)
-      if (supersetNext(next, action.exercise, 'round') === null) {
+      if (supersetNext(next, action.exercise) === null) {
         next.rest = exercise.rest_seconds > 0
           ? { ends_at: new Date(Date.parse(action.now) + exercise.rest_seconds * 1000).toISOString(), total: exercise.rest_seconds }
           : null
@@ -633,8 +655,15 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
     case 'skipExercise':
       if (!exercise) break
       exercise.skipped = action.skipped
-      // Skipping is a tap, not a tick, so it may move on to the next exercise
-      if (action.skipped && action.exercise < next.exercises.length - 1) next.current = action.exercise + 1
+      // Skipping is a tap, not a tick, so it may move on: past the screen,
+      // once nothing on it is left (a superset's other exercises may still
+      // have sets)
+      if (action.skipped) {
+        const group = supersetOf(next, action.exercise)
+        const after = Math.max(...group) + 1
+        const workLeft = group.some(position => next.exercises[position] !== undefined && hasWorkLeft(next.exercises[position]))
+        if (!workLeft && after < next.exercises.length) next.current = after
+      }
       break
     case 'setNote':
       if (exercise) exercise.notes = action.notes

@@ -868,11 +868,17 @@ PlanDetailPage, HomePage  Start (useStartWorkout); "Workout in progress: <day>" 
 └── navigate('/session/:id')
 WorkoutPage              /session/:id: loads the workout from the phone; none → a message
 └── WorkoutScreen        the workout (useReducer); top: ✕, day, clock, Finish; the dots and "＋ Add exercises";
-    │                    the exercise, Add set; Previous / Next (or Finish workout); persists every change; Wake Lock
-    ├── ExerciseMenu     "⋯": swap, skip, note, video; remove if added (bottom sheet, C1.17.7)
+    │                    one screen per run (an exercise, or a superset's all); Previous / Next (or Finish
+    │                    workout); persists every change; Wake Lock
+    ├── ExerciseBlock    an exercise on its own: its header, its sets, Add set
+    │   ├── ExerciseHeader photo, name, plan's line, notes; skipped box
+    │   │   └── ExerciseMenu "⋯": swap, skip, note, video; remove if added (bottom sheet, C1.17.7)
+    │   ├── SetHeader    column titles: Set, Last, kg, Reps (or Time, m)
+    │   └── SetRow       number or type letter (SetTypeSelect), last time, fields (buttons); ▶ on timed sets; ✓
+    ├── SupersetRounds   a superset: its exercises' ExerciseHeaders (one line that opens on a phone, from three),
+    │                    the round in progress open (each exercise's name and SetRow with units, "Then rest 90 s"),
+    │                    the other rounds one line each, merged from two (superset-rounds.ts); Add round
     ├── ExerciseInfoSheet "How to do it" (bottom sheet, C1.17.10)
-    ├── SetHeader        column titles: Set, Last, kg, Reps (or Time, m)
-    ├── SetRow           number or type letter (SetTypeSelect), last time, fields (buttons); ▶ on timed sets; ✓
     ├── UpNextCard       a reminder of the next exercise, not a button (C1.17.10)
     ├── StopwatchPanel   timed sets, docked at the bottom (C1.17.8)
     ├── SetStepper       the big stepper for the tapped set (bottom sheet, C1.17.7)
@@ -923,16 +929,21 @@ dispatch({ type: 'adjustRest', seconds: 15 })
 - **The clock excludes pauses:** `elapsed = accumulated_seconds + (now − running_since)`, with `running_since` null while paused. ✕ dispatches `pause`; reopening, `resume`.
 - **Values are text, as typed.** ✓ is enabled only when the fields of the exercise's logging type parse as numbers (`canComplete()`), so the backend never receives a set it would refuse.
 - **The weight may stay empty:** on a weighted exercise, a set with the body alone; on a bodyweight one (pull-ups, `reps`), the column is **+kg**, the added weight. `toSessionInput()` sends `null` when empty ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)).
-- **Ticking a set never moves the screen.** The ticked set stays in sight and the user moves on with the bottom bar; jumping on ✓ would take the set out of view and change the bar under the thumb. What depends on the exercise is the rest and where the bar points:
+- **One screen per run.** `stations(session)` splits the workout into runs, an exercise alone or a whole superset (`supersetOf()`, neighbours with the same `superset_group`), as `groupSupersets()` does for the plan's page. `current` stays an exercise's index, so stored workouts read the same; the screen shows its run. The dots, "Exercise 2 of 4", Previous and Next count runs, and go to a run's first exercise. A superset is `SupersetRounds`, a `<section>` named "Superset: A + B" with the plan's lime bar, **read by round** as it is done (hang → pull-ups → rest, three times). A round holds the sets at the same position of each exercise; one with fewer sets drops out of the last rounds. **What is not needed now is a line that opens**, so six rounds of four exercises fit a phone:
+  - **Rounds.** `roundBlocks()` (`superset-rounds.ts`, tested on its own) decides what shows: the round of the set marked next is open, always on its own, a `<section>` named "Round 2", holding each exercise's set in a `role="group"` named by the exercise (which keeps a round's two "Tick: Set 1" apart for screen readers and tests), then "Then rest 90 s", the rest of the round's last exercise. The other rounds are buttons, "Round 1, done: 30 s · 5" (`aria-expanded="false"`), their text from `workoutSetText()` (`set-text.ts`, the in-progress sibling of `loggedSetText()`); `MERGE_ROUNDS_FROM` (2) or more closed rounds in a row of the same state merge, "Rounds 1–3". A tap adds the line's span to `opened`, local state, with its state then (`done`); a round whose state has changed since leaves it, so rounds unticked one by one fall back to lines "to do" and merge, and a round to do opened ahead closes once done: one round opens as its card, a merged span as one compact block (`kind: 'span'`) with every round's rows, each group named "Round 2: Pullups", and no rests between them. Lines and title bars are full-width buttons with a chevron (`aria-expanded`); a title bar closes what it heads (`closeRounds()`). The round in progress closes too: `currentClosed` holds its index, and `roundBlocks()` then shows it as a line of its own (`current: true`, never merged, outlined in lime). No reset is needed: when the round ends, the next set's round is not the one closed, so it opens.
+  - **Headers.** From `GROUP_HEADERS_FROM` (3) exercises, a phone shows a button, "3 exercises" with the names and overlapping photos, that toggles the headers' list (`aria-expanded`, `aria-controls`); the list is one element whose `max-sm:hidden` comes and goes, so nothing is drawn twice. From the tablet up the headers sit side by side, up to four a row.
+  - **Rows.** No `SetHeader` per exercise: `SetRow`'s `units` writes each value with its unit (`FieldSpec.suffix`: "5 reps", "+10 kg", an empty field showing "+kg"), and titles the Last column in place, shown from `sm` up.
+  - **Add round** dispatches `addSet` for each exercise. The component is keyed by the superset's first exercise, so rounds and headers opened by a tap do not carry over to the next superset.
+  Each exercise's table one under the other read as "all of A, then all of B". The stepper, How to do it and Swap stay one panel each on the screen, told which exercise opened them.
+- **Ticking a set never moves the screen.** The ticked set stays in sight; jumping on ✓ would take it out of view and change the bar under the thumb. What depends on the exercise is the rest, and, in a superset, the set marked next:
 
-| The set's exercise is | ✓ does | The bottom bar offers |
+| The set's exercise is | ✓ does | Marked next |
 |---|---|---|
-| on its own | starts its rest | Next (or Finish workout) |
-| in a superset, another exercise of the round with a set left | no rest | **Next: Lateral Raise**, by name, with a lime border |
-| in a superset, the round's last | starts the rest | **Next: Lateral Raise**, the superset's first exercise with a set left |
-| in a superset with nothing else left | starts the rest | Next, or Finish workout |
+| on its own | starts its rest | nothing |
+| in a superset, another exercise of the round with a set left | no rest | that exercise's set, scrolled into view |
+| in a superset, the round's last | starts the rest | the next round's first set |
 
-  `supersetNext(session, index)` finds the target: the next exercise of the round with an unticked set; at the end of a round, the superset's first with one; else `null`. With `'round'` it looks only within this round, which is how the reducer decides whether the round is over. Exercises with nothing left are skipped, since supersets often pair different set counts. "Superset: Leg curl + Calf raise" under the name explains why Next names another exercise. A rest of 0 starts no timer.
+  `supersetNext(session, index)` is the next exercise of the round with work left, or `null` at the round's end, which is how the reducer decides whether the round is over. `nextInRound(session, run)` is the set marked: round by round, the first unticked set of each exercise in turn (A 1, B 1, A 2…), passed to `SetRow` as `upcoming` (a faint ring, `aria-current="step"`), its round outlined, and scrolled to by an effect when it changes on the same screen. Exercises with nothing left, or skipped, have no turn, since supersets often pair different set counts. A rest of 0 starts no timer.
 - **Set numbers** come from `setNumbers()`: warm-ups are counted apart, so working sets are 1, 2, 3 after any warm-ups (`W W 1 2 3`). Screen readers hear the same names ("Set 1, kg: 80", "Tick: Set 1").
 - **Header and rows align** because both build their fields with `fieldsFor()` and share widths (`w-12`, `w-16`, `flex-1`, `w-12`).
 - **Added exercises.** **Add exercises** opens `ExercisePicker`; each pick is built by `exerciseFrom()` (one set per set of last time, or one empty set; the default rest; no plan item) outside the reducer, because it makes UUIDs, then dispatched as `{ type: 'addExercises', exercises }`.
@@ -979,7 +990,7 @@ useEffect(() => {
 | `atleoplan.pendingSessions` | finished workouts not yet on the server, id → body | at Finish; an entry leaves when the server has it |
 | `atleoplan.finishedSession` | the workout just finished, its body and the send outcome | at Finish; removed by the summary's Save or Delete |
 
-**Two Finish buttons** open the same confirmation (`FinishButton`), and only one is lime at a time: **Finish** at the top, outlined, to stop early; **Finish workout** in place of Next when it is time (on the last exercise, or once every set is ticked, unless the bar points to a superset partner with sets left). At 360 px it spans the bar and Previous shrinks to its arrow (`flex-1 sm:flex-none`, `max-sm:sr-only`).
+**Two Finish buttons** open the same confirmation (`FinishButton`), and only one is lime at a time: **Finish** at the top, outlined, to stop early; **Finish workout** in place of Next when it is time (on the last screen, or once every set is ticked). At 360 px it spans the bar and Previous shrinks to its arrow (`flex-1 sm:flex-none`, `max-sm:sr-only`).
 
 The confirmation counts working sets (`countSets()`): "3 of 7 sets done, warm-ups excluded. The 4 sets not ticked will not be saved." **Finish and save** (`WorkoutScreen.finish()`) then:
 
@@ -1048,7 +1059,7 @@ Two bottom sheets ([D1.4.9](../design/D1-ui.md#d149-workout-mode)), shadcn's `Sh
 
 - **Swap keeps the place, not the values.** `swappedExercise()` keeps the id, plan item, superset, rest and set count and types; values and "Last" come from the new exercise's own last time (none offline). With no last time the plan's reps fill the sets but **not the plan's weight**: 80 kg was meant for the barbell, not dumbbells. Built outside the reducer (it makes UUIDs). Note and skip stay with the old exercise.
 - **The swap picker** is `ExercisePicker` with `replacing`: no ticks, one tap picks; the list starts filtered by the replaced exercise's first main muscle with an **Only Chest** chip (`aria-pressed`) to toggle it; the replaced exercise is excluded. Opened from the menu, so controlled ([C1.4](#c14-component-conventions)).
-- **Skipping** sets `skipped: true`, which changes "work left" in one function, `hasWorkLeft(item)` (an unticked set on a non-skipped exercise). `supersetNext`, `allSetsDone`, the dots and `countSets` all read it. On screen: sets dimmed, a "Skipped" box with **Do it after all**, a greyer dot. Ticking one of its sets undoes the skip. Skipping opens the next exercise: the rule that the screen never moves *after a tick* still holds.
+- **Skipping** sets `skipped: true`, which changes "work left" in one function, `hasWorkLeft(item)` (an unticked set on a non-skipped exercise). `supersetNext`, `nextInRound`, `allSetsDone`, the dots and `countSets` all read it. On screen: sets dimmed, a "Skipped" box with **Do it after all**, a greyer dot once the whole screen is skipped. Ticking one of its sets undoes the skip. Skipping opens the next screen once nothing on this one is left, so a superset partner with sets keeps it: the rule that the screen never moves *after a tick* still holds.
 - **`notes` and `skipped` are optional,** for workouts stored by older builds ([C1.12](#c112-typescript-conventions)).
 
 ### C1.17.8 The stopwatch of a timed set
@@ -1125,10 +1136,10 @@ Calisthenics plans are full of "50 push-ups, 50 sit-ups" as fast as possible: re
 - **The column is "Time"** (`workout.colTime`); its spoken name keeps the unit of the raw value ("Set 1, Seconds: 870").
 - **The stepper** types seconds and shows the clock beside them: "Seconds · 14:30".
 
-**Up next.** `upNext(session, index)` is the exercise after this one: the first after it with work left; after a superset, past the whole superset (whose members the bottom bar already names); with nothing after, the first from the top with work left; `null` when nothing is left. Shown in two places:
+**Up next.** `upNext(session, index)` is the exercise after this screen: the first after it with work left, past a whole superset, which is on screen; with nothing after, the first from the top with work left; `null` when nothing is left. Shown in two places:
 
 - **`UpNextCard`** under Add set: photo, "Up next", name, the plan's line. **A reminder, not a button:** moving on is the bottom bar's job, and a second exit mid-screen invites mis-taps. A named `<aside>`.
-- **`RestBar`**: "Up next: Bent Over Barbell Row" when the rest leads there (no set left here, no superset partner waiting). The rest is when the next station is set up, and the bar is always visible. Mid-exercise it says nothing.
+- **`RestBar`**: "Up next: Bent Over Barbell Row" when the rest leads there (no set left on this screen). The rest is when the next station is set up, and the bar is always visible. Mid-exercise it says nothing.
 
 **How to do it.** A tap on the exercise's photo or name opens `ExerciseInfoSheet` (bottom sheet): equipment, photos, muscles (`MuscleChips`, shared with the exercise's page), steps, description, video.
 

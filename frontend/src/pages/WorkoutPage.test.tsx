@@ -32,13 +32,14 @@ describe('WorkoutPage', () => {
     renderRoutes(routes, `/session/${session.id}`)
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Barbell Bench Press' })).toBeInTheDocument()
-    expect(screen.getByText('Exercise 1 of 3')).toBeInTheDocument()
+    // The superset of rows and pull-ups is one screen: two in all
+    expect(screen.getByText('Exercise 1 of 2')).toBeInTheDocument()
     // A title above each column: Set, Last, kg, Reps
     for (const title of ['Set', 'Last', 'kg', 'Reps']) expect(screen.getByText(title)).toBeInTheDocument()
     // Add set closes the table; Add exercises is the ＋ after the dots,
     // in the navigation between exercises
     expect(screen.getByRole('button', { name: 'Add set' })).toBeInTheDocument()
-    expect(within(screen.getByRole('navigation', { name: 'Exercise 1 of 3' })).getByRole('button', { name: 'Add exercises' })).toBeInTheDocument()
+    expect(within(screen.getByRole('navigation', { name: 'Exercise 1 of 2' })).getByRole('button', { name: 'Add exercises' })).toBeInTheDocument()
     // Two warm-ups, then the sets that count, numbered from 1
     // Each value is a button that opens the stepper, named with its value
     expect(screen.getByRole('button', { name: 'Warm-up 2, kg: 40' })).toBeInTheDocument()
@@ -64,39 +65,120 @@ describe('WorkoutPage', () => {
     expect(screen.queryByRole('region', { name: 'Rest' })).not.toBeInTheDocument()
   })
 
-  it('goes to the next exercise, and to any one through its dot; in a superset, Next names the other exercise', async () => {
+  it('goes to the next screen, and to any one through its dot; a superset is one screen, read round by round', async () => {
     const session = startDayA()
     fakeApi({ 'GET /api/user': signedInAs() })
     renderRoutes(routes, `/session/${session.id}`)
+    /** The exercises of an open round, in order. */
+    const round = (number: number) => screen.getByRole('region', { name: `Round ${number}` })
+    const members = (number: number) => within(round(number)).getAllByRole('group').map(group => group.getAttribute('aria-label'))
+    /** An exercise's set in an open round, and its row. */
+    const inRound = (number: number, name: string) => within(round(number)).getByRole('group', { name })
+    const rowOf = (number: number, name: string) => within(inRound(number, name)).getByRole('listitem')
 
+    // Next: the rows and the pull-ups together, under the superset's name:
+    // their headers (two: shown whole), then the rounds
     await userEvent.click(await screen.findByRole('button', { name: 'Next' }))
-    expect(screen.getByRole('heading', { level: 2, name: 'Bent Over Barbell Row' })).toBeInTheDocument()
+    const superset = screen.getByRole('region', { name: 'Superset: Bent Over Barbell Row + Pullups' })
+    expect(within(superset).getByText('Superset · 2 rounds')).toBeInTheDocument()
+    expect(within(superset).getByRole('heading', { level: 2, name: 'Bent Over Barbell Row' })).toBeInTheDocument()
+    expect(within(superset).getByRole('heading', { level: 2, name: 'Pullups' })).toBeInTheDocument()
+    expect(within(superset).queryByRole('button', { name: /exercises/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Exercise 2 of 2')).toBeInTheDocument()
+    // Round 1 open: rows, then pull-ups, then the rest. Round 2, only rows
+    // (the pull-ups have one set), is a line, closed
+    expect(members(1)).toEqual(['Bent Over Barbell Row', 'Pullups'])
+    expect(within(round(1)).getByText('Then rest 90 sec')).toBeInTheDocument()
+    // Its whole title bar closes even the round in progress, into a line of
+    // its own, which opens it again
+    await userEvent.click(within(round(1)).getByRole('button', { name: 'Round 1' }))
+    expect(screen.queryByRole('region', { name: 'Round 1' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Round 1, in progress: 60×10 · –' }))
+    expect(round(1)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Round 2, to do: 70×8' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('region', { name: 'Round 2' })).not.toBeInTheDocument()
+    // No column titles: each value says its unit; an empty added weight, "+kg"
+    expect(within(inRound(1, 'Bent Over Barbell Row')).getByRole('button', { name: 'Set 1, Reps: 10' })).toHaveTextContent(/^10\s*reps$/)
+    expect(within(inRound(1, 'Pullups')).getByRole('button', { name: 'Set 1, added weight, kg: empty' })).toHaveTextContent('+kg')
+    // The last screen: Finish workout at the bottom, though sets are left
+    expect(screen.getByRole('button', { name: 'Finish workout' })).toBeInTheDocument()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Exercise 3: Pullups' }))
-    expect(screen.getByRole('heading', { level: 2, name: 'Pullups' })).toBeInTheDocument()
-    // In a superset with the rows: said under its name
-    expect(screen.getByText('Superset: Bent Over Barbell Row + Pullups')).toBeInTheDocument()
-    // A bodyweight exercise: reps, and an added weight that may stay empty
-    expect(screen.getByText('+kg')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Set 1, added weight, kg: empty' })).toBeInTheDocument()
+    // The dots: one per screen, the superset named whole
+    await userEvent.click(screen.getByRole('button', { name: 'Exercise 1: Barbell Bench Press' }))
+    expect(screen.getByRole('heading', { level: 2, name: 'Barbell Bench Press' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Exercise 2: Bent Over Barbell Row + Pullups' }))
 
-    // The last exercise, but the rows have sets left: the bottom bar names
-    // them, instead of Finish workout
-    expect(screen.queryByRole('button', { name: 'Finish workout' })).not.toBeInTheDocument()
-    const toRows = screen.getByRole('button', { name: 'Next: Bent Over Barbell Row' })
-    // A set ticked: the screen stays on the pull-ups, the set in sight, and
-    // the round's rest starts
-    // The reps typed in the stepper's box, then Done
-    await userEvent.click(screen.getByRole('button', { name: 'Set 1, Reps: empty' }))
+    // Round 1 begins with the rows, marked; once ticked, with no rest, the
+    // pull-ups' set is marked
+    expect(rowOf(1, 'Bent Over Barbell Row')).toHaveAttribute('aria-current', 'step')
+    await userEvent.click(within(inRound(1, 'Bent Over Barbell Row')).getByRole('button', { name: 'Tick: Set 1' }))
+    expect(screen.queryByRole('region', { name: 'Rest' })).not.toBeInTheDocument()
+    expect(rowOf(1, 'Pullups')).toHaveAttribute('aria-current', 'step')
+    expect(rowOf(1, 'Bent Over Barbell Row')).not.toHaveAttribute('aria-current')
+
+    // The pull-ups' reps typed in the stepper's box, then Done, then ✓: the
+    // round is over, its rest starts; round 1 closes into a line, round 2
+    // opens with its rows marked
+    await userEvent.click(within(inRound(1, 'Pullups')).getByRole('button', { name: 'Set 1, Reps: empty' }))
     await userEvent.type(within(await screen.findByRole('dialog', { name: 'Set 1' })).getByLabelText('Set 1, Reps'), '10')
     await userEvent.click(screen.getByRole('button', { name: 'Done' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Tick: Set 1' }))
-    expect(screen.getByRole('heading', { level: 2, name: 'Pullups' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(within(inRound(1, 'Pullups')).getByRole('button', { name: 'Tick: Set 1' }))
     expect(screen.getByRole('region', { name: 'Rest' })).toBeInTheDocument()
-    // The rows, with a tap
-    await userEvent.click(toRows)
-    expect(screen.getByRole('heading', { level: 2, name: 'Bent Over Barbell Row' })).toBeInTheDocument()
+    const roundOne = screen.getByRole('button', { name: 'Round 1, done: 60×10 · 10' })
+    expect(rowOf(2, 'Bent Over Barbell Row')).toHaveAttribute('aria-current', 'step')
+
+    // A closed round opens with a tap, to correct it, and closes again
+    await userEvent.click(roundOne)
+    expect(within(inRound(1, 'Bent Over Barbell Row')).getByRole('button', { name: 'Untick: Set 1' })).toBeInTheDocument()
+    await userEvent.click(within(round(1)).getByRole('button', { name: 'Round 1' }))
+    expect(screen.queryByRole('region', { name: 'Round 1' })).not.toBeInTheDocument()
+
+    // Add round: a set more of each exercise, so round 2 has both, and a
+    // round 3 of rows waits, closed
+    await userEvent.click(within(screen.getByRole('region', { name: 'Superset: Bent Over Barbell Row + Pullups' })).getByRole('button', { name: 'Add round' }))
+    expect(members(2)).toEqual(['Bent Over Barbell Row', 'Pullups'])
+    expect(screen.getByRole('button', { name: 'Round 3, to do: 70×8' })).toBeInTheDocument()
+  })
+
+  it('folds what is not needed now: three exercises into one line, closed rounds in a row into one', async () => {
+    // Three exercises in a superset, four rounds, the first three done
+    const session = startFreeSession(new Date())
+    const options = { unit: 'kg' as const, language: 'en', defaultRestSeconds: 60 }
+    const member = (id: number, name: string, loggingType: 'reps' | 'time') => {
+      const base = exerciseFrom(testExercise({ id, name, logging_type: loggingType }), [], options)
+      const sets = Array.from({ length: 4 }, (_, round) => ({ ...base.sets[0]!, id: `${id}-${round}`, reps: '5', seconds: '30', done: round < 3 }))
+      return { ...base, superset_group: 1, sets }
+    }
+    session.exercises = [member(31, 'Pullups', 'reps'), member(32, 'Dips', 'reps'), member(91, 'Plank', 'time')]
+    storeActiveSession(session)
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, `/session/${session.id}`)
+    const user = userEvent.setup()
+
+    // The headers: one line on a phone, which opens and closes
+    const headers = await screen.findByRole('button', { name: /^3 exercises/ })
+    expect(headers).toHaveTextContent('Pullups · Dips · Plank')
+    expect(headers).toHaveAttribute('aria-expanded', 'false')
+    await user.click(headers)
+    expect(headers).toHaveAttribute('aria-expanded', 'true')
+
+    // Rounds 1 to 3, done: one line; round 4 open
+    const done = screen.getByRole('button', { name: 'Rounds 1–3, done: 5 · 5 · 30 sec' })
+    expect(screen.getByRole('region', { name: 'Round 4' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Round 1' })).not.toBeInTheDocument()
+    // A tap opens one block with the three rounds' rows, each named by its
+    // round; its title closes it again
+    await user.click(done)
+    const block = screen.getByRole('region', { name: 'Rounds 1–3' })
+    expect(within(block).getAllByRole('group').map(group => group.getAttribute('aria-label'))).toEqual([
+      'Round 1: Pullups', 'Round 1: Dips', 'Round 1: Plank',
+      'Round 2: Pullups', 'Round 2: Dips', 'Round 2: Plank',
+      'Round 3: Pullups', 'Round 3: Dips', 'Round 3: Plank',
+    ])
+    expect(screen.queryByRole('region', { name: 'Round 1' })).not.toBeInTheDocument()
+    await user.click(within(block).getByRole('button', { name: 'Rounds 1–3' }))
+    expect(screen.queryByRole('region', { name: 'Rounds 1–3' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rounds 1–3, done: 5 · 5 · 30 sec' })).toBeInTheDocument()
   })
 
   it('offers to finish at the bottom once every set is ticked, on any exercise', async () => {
@@ -369,6 +451,73 @@ describe('WorkoutPage', () => {
     expect(screen.getByRole('button', { name: 'Set 1, Seconds: 1' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Rest' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Start the stopwatch: Set 1' })).not.toBeInTheDocument()
+  })
+
+  it('regroups rounds unticked one by one as rounds to do', async () => {
+    // Pull-ups and dips, three rounds, all done
+    const session = startFreeSession(new Date())
+    const options = { unit: 'kg' as const, language: 'en', defaultRestSeconds: 60 }
+    const member = (id: number, name: string) => {
+      const base = exerciseFrom(testExercise({ id, name, logging_type: 'reps' }), [], options)
+      return { ...base, superset_group: 1, sets: Array.from({ length: 3 }, (_, round) => ({ ...base.sets[0]!, id: `${id}-${round}`, reps: '5', done: true })) }
+    }
+    session.exercises = [member(31, 'Pullups'), member(32, 'Dips')]
+    storeActiveSession(session)
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, `/session/${session.id}`)
+    const user = userEvent.setup()
+    const untick = (block: string, group: string, set: number) => user.click(within(within(screen.getByRole('region', { name: block })).getByRole('group', { name: group })).getByRole('button', { name: `Untick: Set ${set}` }))
+
+    // Everything done: one line, opened to correct
+    await user.click(await screen.findByRole('button', { name: 'Rounds 1–3, done: 5 · 5' }))
+
+    // Round 3's dips unticked: round 3 is in progress, open on its own;
+    // rounds 1 and 2 stay open together
+    await untick('Rounds 1–3', 'Round 3: Dips', 3)
+    expect(screen.getByRole('region', { name: 'Round 3' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Rounds 1–2' })).toBeInTheDocument()
+
+    // Round 2's dips unticked: round 2 is in progress; round 3, to do, leaves
+    // for a line; round 1, left alone, is open as its round
+    await untick('Rounds 1–2', 'Round 2: Dips', 2)
+    expect(screen.getByRole('region', { name: 'Round 2' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Round 3, to do: 5 · 5' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Round 1' })).toBeInTheDocument()
+
+    // Round 1's dips unticked: rounds 2 and 3, to do, merge into one line
+    await untick('Round 1', 'Dips', 1)
+    expect(screen.getByRole('region', { name: 'Round 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rounds 2–3, to do: 5 · 5' })).toBeInTheDocument()
+  })
+
+  it('times a hold inside a superset, on the screen of the superset', async () => {
+    // A plank, then pull-ups, as a superset of a free workout
+    const session = startFreeSession(new Date())
+    const options = { unit: 'kg' as const, language: 'en', defaultRestSeconds: 60 }
+    session.exercises = [
+      { ...exerciseFrom(testExercise({ id: 91, name: 'Plank', logging_type: 'time' }), [], options), superset_group: 1 },
+      { ...exerciseFrom(testExercise({ id: 31, name: 'Pullups', logging_type: 'reps' }), [], options), superset_group: 1 },
+    ]
+    session.exercises[0]!.sets[0]!.seconds = '30'
+    session.exercises[1]!.sets[0]!.reps = '10'
+    storeActiveSession(session)
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, `/session/${session.id}`)
+    const user = userEvent.setup()
+
+    // Round 1: the plank, then the pull-ups; ▶ on the plank, started at once
+    const round = await screen.findByRole('region', { name: 'Round 1' })
+    const plank = within(round).getByRole('group', { name: 'Plank' })
+    await user.click(within(plank).getByRole('button', { name: 'Start the stopwatch: Set 1' }))
+    const panel = screen.getByRole('region', { name: 'Stopwatch' })
+    await user.click(within(panel).getByRole('button', { name: 'Start now' }))
+    await user.click(within(panel).getByRole('button', { name: 'Stop' }))
+
+    // The plank ticked with its time; the round goes on, without a rest, to
+    // the pull-ups' set, marked, on the same screen
+    expect(within(plank).getByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('region', { name: 'Rest' })).not.toBeInTheDocument()
+    expect(within(within(round).getByRole('group', { name: 'Pullups' })).getByRole('listitem')).toHaveAttribute('aria-current', 'step')
   })
 
   it('stops a hold by itself at its target, and starts the rest', async () => {

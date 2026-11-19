@@ -30,7 +30,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-11 Videos of an exercise](#feat-11-videos-of-an-exercise)
   - [FEAT-12 Choose the sound at the end of a rest or a timed set](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set)
   - [FEAT-13 The volume of the sound](#feat-13-the-volume-of-the-sound)
-  - [FEAT-14 A superset on one screen](#feat-14-a-superset-on-one-screen)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
@@ -68,7 +67,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [UI-10](#ui-10-when-a-past-workout-started-and-ended), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound), [FEAT-14](#feat-14-a-superset-on-one-screen). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [UI-10](#ui-10-when-a-past-workout-started-and-ended), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 ## OPS
 
@@ -292,21 +291,6 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - B) The volume kept in `localStorage`, per phone: right if the same account trains with a phone and a tablet, but the only preference that would not follow the account.
 
 **Recommended.** A, with FEAT-12. The gain is relative to the system volume: the slider can make the beep quieter or louder than today, never louder than the phone allows, and an iPhone in silent mode may mute it; the preference's hint says so.
-
-### FEAT-14 A superset on one screen
-
-**Priority:** medium · **Kind:** workout mode · **Found:** 2026-11-19
-
-**What is missing.** In workout mode a superset is shown one exercise at a time: after a set of A, **Next: B** must be tapped to see B, and **Next: A** to come back ([D1.4.9](../design/D1-ui.md#d149-workout-mode)). With a timed exercise first (a plank, then pull-ups) only the plank is on screen. A superset is one block of work, done round after round until every exercise is out of sets; it should look like one exercise made of parts.
-
-**Where.** `WorkoutScreen.tsx` (the index of the exercise shown, Previous / Next, the dots), `workout-session.ts` (`supersetNext()`, `upNext()`), `UpNextCard`, `RestBar`; `groupSupersets()` from the plan's view already splits a day into runs. D1.4.9 and [C1.17](../concepts/C1-frontend.md#c117-workout-mode) change with it: the rule "the view never moves by itself" was written for one exercise per screen.
-
-**Options.**
-- A) One screen per run: an exercise alone as today, a superset as its members stacked under one heading ("Superset: A + B"), each with its name, small photo, column titles and rows. The set to do next (round by round, A then B) is ringed, and after a tick the screen scrolls it into view. The dots and Previous / Next move by run. The reducer's rules (rest at the end of a round only, an exercise out of sets skipped) stay as they are: only what is shown changes.
-- B) Rows grouped by round: "Round 1: A 1, B 1; Round 2: …". Closer to how a superset is done, but the Last column and the stepper are per exercise, and a round's rows would mix columns of different kinds (kg × reps beside time).
-- C) Keep one exercise per screen, but move to B by itself after a tick of A.
-
-**Recommended.** A: the ticked set stays in sight (the reason C was refused) and the whole superset is readable at a glance. Done when a two- and a three-exercise superset run on one screen, a timed member's stopwatch works there, and the tests of workout mode follow the new screen.
 
 ## BE
 

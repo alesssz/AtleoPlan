@@ -4,7 +4,7 @@ import { testPlan } from '@/test/plan-helpers'
 import { clock } from './clock'
 import { testExercise } from '@/test/exercise-helpers'
 import { loggedSetText } from './set-text'
-import { allSetsDone, canComplete, canRemoveExercise, canRemoveSet, countdownLeft, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, isForTime, restLeft, setNumbers, startFreeSession, startSession, stopwatchSeconds, stopwatchTargetAt, supersetNext, swappedExercise, toSessionInput, upNext, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
+import { allSetsDone, canComplete, canRemoveExercise, canRemoveSet, countdownLeft, countSets, elapsedSeconds, nextInRound, stations, exerciseFrom, hasWorkLeft, isForTime, restLeft, setNumbers, startFreeSession, startSession, stopwatchSeconds, stopwatchTargetAt, supersetNext, swappedExercise, toSessionInput, upNext, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
 
 /** The moment the workout starts: 18:00 UTC. */
 const START = new Date('2026-11-09T18:00:00Z')
@@ -419,21 +419,42 @@ describe('workoutReducer', () => {
     expect(canComplete({ ...pullup, reps: '10', weight: '10' }, 'reps')).toBe(true)
   })
 
-  it('in a superset, rests only at the end of a round, and never moves the screen by itself', () => {
+  it('shows a superset on one screen, the others one each', () => {
+    // The bench press alone, then the rows (1) and the pull-ups (2) together
+    expect(stations(dayA())).toEqual([[0], [1, 2]])
+    expect(stations(startFreeSession(START))).toEqual([])
+  })
+
+  it('in a superset, rests only at the end of a round, and marks the next set round by round', () => {
     // The rows (1) and the pull-ups (2) are superset 1. The pull-ups' set
     // has no reps planned: one is typed in
-    const afterRows = run(dayA(), { type: 'goTo', exercise: 1 }, { type: 'toggleSet', exercise: 1, set: 0, now: at(60) })
-    // The round goes on, with the pull-ups: no rest, the screen stays on the
-    // rows, and the way on is the pull-ups
+    const start = run(dayA(), { type: 'goTo', exercise: 1 })
+    expect(nextInRound(start, [1, 2])).toBe(start.exercises[1]!.sets[0]!.id)
+    const afterRows = run(start, { type: 'toggleSet', exercise: 1, set: 0, now: at(60) })
+    // The round goes on, with the pull-ups: no rest, the screen stays, and
+    // the pull-ups' set is next
     expect(afterRows.current).toBe(1)
     expect(afterRows.rest).toBeNull()
     expect(supersetNext(afterRows, 1)).toBe(2)
+    expect(nextInRound(afterRows, [1, 2])).toBe(afterRows.exercises[2]!.sets[0]!.id)
 
-    const afterPullups = run(afterRows, { type: 'goTo', exercise: 2 }, { type: 'setField', exercise: 2, set: 0, field: 'reps', value: '10' }, { type: 'toggleSet', exercise: 2, set: 0, now: at(90) })
-    // The round is over: rest; the way on is back to the rows, for round 2
-    expect(afterPullups.current).toBe(2)
+    const afterPullups = run(afterRows, { type: 'setField', exercise: 2, set: 0, field: 'reps', value: '10' }, { type: 'toggleSet', exercise: 2, set: 0, now: at(90) })
+    // The round is over: rest, and round 2 opens with the rows' second set
+    expect(afterPullups.current).toBe(1)
     expect(afterPullups.rest?.total).toBe(90)
-    expect(supersetNext(afterPullups, 2)).toBe(1)
+    expect(supersetNext(afterPullups, 2)).toBeNull()
+    expect(nextInRound(afterPullups, [1, 2])).toBe(afterPullups.exercises[1]!.sets[1]!.id)
+
+    // Every set ticked: nothing marked; nothing outside a superset either
+    const done = run(afterPullups, { type: 'toggleSet', exercise: 1, set: 1, now: at(200) })
+    expect(nextInRound(done, [1, 2])).toBeNull()
+    expect(nextInRound(done, [0])).toBeNull()
+  })
+
+  it('in a superset, leaves a skipped exercise out of the rounds', () => {
+    const session = run(dayA(), { type: 'skipExercise', exercise: 1, skipped: true })
+
+    expect(nextInRound(session, [1, 2])).toBe(session.exercises[2]!.sets[0]!.id)
   })
 
   it('in a superset, never points to an exercise with nothing left to do', () => {
@@ -600,11 +621,15 @@ describe('the exercise\'s menu: swap, skip, note', () => {
     // The bench press's four sets that count leave the total
     expect(countSets(skipped).total).toBe(countSets(start).total - 4)
     expect(allSetsDone(skipped)).toBe(false)
-    // Every exercise skipped: nothing left, time to finish
-    const all = run(skipped, { type: 'skipExercise', exercise: 1, skipped: true }, { type: 'skipExercise', exercise: 2, skipped: true })
+    // The rows skipped: the pull-ups, on the same screen, still have a set,
+    // so the screen stays
+    const rowsSkipped = run(skipped, { type: 'skipExercise', exercise: 1, skipped: true })
+    expect(rowsSkipped.current).toBe(1)
+    // Every exercise skipped: nothing left, time to finish; the last screen
+    // has no next to open
+    const all = run(rowsSkipped, { type: 'skipExercise', exercise: 2, skipped: true })
     expect(allSetsDone(all)).toBe(true)
-    // The last one skipped: no next exercise to open
-    expect(all.current).toBe(2)
+    expect(all.current).toBe(1)
   })
 
   it('takes a skip back when asked, or when one of its sets is ticked', () => {

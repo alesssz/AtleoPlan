@@ -65,9 +65,20 @@ interface SetRowProps {
    * ▶ is disabled: a second ▶ would replace the running time and lose it.
    */
   stopwatch?: 'this' | 'other' | null
+  /**
+   * The set to do next on a superset's screen (round by round, A then B),
+   * outlined so the eye finds it among the exercises.
+   */
+  upcoming?: boolean
+  /**
+   * With no column titles above (a superset's round): each value carries its
+   * unit ("5 reps", "+10 kg", an empty "+kg"), and Last, titled in place,
+   * shows from the tablet up, where it fits.
+   */
+  units?: boolean
 }
 
-export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOpenStepper, onTypeChange, onStartStopwatch, stopwatch = null }: SetRowProps) {
+export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOpenStepper, onTypeChange, onStartStopwatch, stopwatch = null, upcoming = false, units = false }: SetRowProps) {
   const { t, i18n } = useTranslation()
   const language = i18n.language
   const name = number.warmUp ? t('workout.warmUpName', { number: number.number }) : t('workout.setName', { number: number.number })
@@ -76,8 +87,13 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
 
   return (
     // A lime ring on the set being timed, so the eye finds it between the
-    // stopwatch at the bottom and the table
-    <li aria-current={stopwatch === 'this' ? 'true' : undefined} className={cn('flex items-center gap-2 rounded-xl p-1 sm:gap-3', set.done && 'bg-primary/10', stopwatch === 'this' && 'ring-2 ring-primary')}>
+    // stopwatch at the bottom and the table; a fainter one on a superset's
+    // next set. The id lets the screen scroll to it
+    <li
+      id={`set-${set.id}`}
+      aria-current={stopwatch === 'this' ? 'true' : upcoming ? 'step' : undefined}
+      className={cn('flex scroll-my-24 items-center gap-2 rounded-xl p-1 sm:gap-3', set.done && 'bg-primary/10', stopwatch === 'this' ? 'ring-2 ring-primary' : upcoming && 'ring-1 ring-primary/60')}
+    >
       <SetTypeSelect
         value={set.set_type}
         onChange={onTypeChange}
@@ -86,10 +102,15 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
         variant="ghost"
       />
 
-      {!forTime && <span className="w-16 shrink-0 text-center text-sm text-muted-foreground tabular-nums">{lastText}</span>}
+      {!forTime && (
+        <span className={cn('w-16 shrink-0 text-center text-sm text-muted-foreground tabular-nums', units && 'leading-tight max-sm:hidden')}>
+          {units && <span aria-hidden="true" className="block text-[10px] font-bold tracking-wider uppercase">{t('workout.colLast')}</span>}
+          {lastText}
+        </span>
+      )}
 
       {/* The label carries the value too: "Set 1, kg: 80" */}
-      {fieldsFor(loggingType, unit, t, forTime).map(({ field, spoken, placeholder }) => (
+      {fieldsFor(loggingType, unit, t, forTime).map(({ field, spoken, placeholder, suffix }) => (
         <button
           key={field}
           type="button"
@@ -97,7 +118,16 @@ export function SetRow({ set, number, loggingType, unit, forTime, onToggle, onOp
           onClick={() => onOpenStepper(field)}
           className="h-12 min-w-0 flex-1 truncate rounded-xl border border-input bg-transparent px-2 text-center text-lg font-semibold tabular-nums transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50"
         >
-          {set[field] === '' ? <span className="text-muted-foreground">{placeholder ?? ''}</span> : fieldText(field, set[field], language)}
+          {set[field] === ''
+            // Empty, with no title above: the unit says what goes there
+            ? <span className="text-muted-foreground">{units && suffix ? suffix : (placeholder ?? '')}</span>
+            : (
+                <>
+                  {/* An added weight reads "+10 kg", not "10 +kg" */}
+                  {units && field === 'weight' && loggingType === 'reps' ? `+${set[field]}` : fieldText(field, set[field], language)}
+                  {units && suffix && <span className="ml-1 text-xs font-medium text-muted-foreground">{field === 'weight' ? unit : suffix}</span>}
+                </>
+              )}
         </button>
       ))}
 
