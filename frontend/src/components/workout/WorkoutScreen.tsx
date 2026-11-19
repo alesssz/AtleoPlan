@@ -3,10 +3,14 @@
  * closing the app loses nothing and ✕ only pauses; nothing reaches the server
  * before Finish. Only what was added by hand can be removed: the plan's
  * exercises and sets are skipped or left unticked instead.
+ *
+ * One screen per run: an exercise on its own, or a whole superset, its sets
+ * shown round by round and its next set marked. The dots, Previous and Next
+ * move from run to run.
  */
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Dumbbell, Info, Link2, ListPlus, Plus, X } from 'lucide-react'
-import { useEffect, useReducer, useState } from 'react'
+import { ChevronLeft, ChevronRight, ListPlus, Plus, X } from 'lucide-react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { useCurrentUser } from '@/api/auth'
@@ -26,16 +30,13 @@ import { finishWorkout } from './finish-workout'
 import { FinishButton } from './FinishButton'
 import { storeActiveSession } from './session-storage'
 import { ExerciseInfoSheet } from './ExerciseInfoSheet'
-import { ExerciseMenu } from './ExerciseMenu'
-import { SetHeader, SetRow } from './SetRow'
+import { ADD_ICON, ExerciseBlock } from './ExerciseBlock'
 import { SetStepper } from './SetStepper'
 import { StopwatchPanel } from './StopwatchPanel'
+import { SupersetRounds } from './SupersetRounds'
 import { UpNextCard } from './UpNextCard'
 import { FALLBACK_REST_SECONDS } from './useStartWorkout'
-import { allSetsDone, countSets, FALLBACK_COUNTDOWN_SECONDS, elapsedSeconds, exerciseFrom, canRemoveExercise, canRemoveSet, findSet, hasWorkLeft, isForTime, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, upNext, workoutReducer, type ActiveSession, type SetField, type WorkoutExercise } from './workout-session'
-
-// Add buttons are outlined like Previous and Next, with a lime ＋
-const ADD_ICON = '[&_svg]:text-primary'
+import { allSetsDone, canRemoveSet, countSets, elapsedSeconds, exerciseFrom, FALLBACK_COUNTDOWN_SECONDS, findSet, hasWorkLeft, isForTime, nextInRound, restLeft, setNumbers, stations, supersetOf, swappedExercise, upNext, workoutReducer, type ActiveSession, type SetField, type WorkoutExercise } from './workout-session'
 
 interface WorkoutScreenProps {
   initial: ActiveSession
@@ -54,9 +55,13 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   const [finishing, setFinishing] = useState(false)
   // Kept apart from `open`, so the panel keeps its content while it slides away
   const [stepperOpen, setStepperOpen] = useState(false)
-  const [stepping, setStepping] = useState<{ set: number, field: SetField }>({ set: 0, field: 'weight' })
+  // The stepper, How to do it and Swap each serve one exercise of the screen
+  // at a time, kept after closing so the panel keeps its content as it slides
+  const [stepping, setStepping] = useState<{ exercise: number, set: number, field: SetField }>({ exercise: 0, set: 0, field: 'weight' })
   const [swapOpen, setSwapOpen] = useState(false)
+  const [swapping, setSwapping] = useState(0)
   const [infoOpen, setInfoOpen] = useState(false)
+  const [informing, setInforming] = useState(0)
 
   useWakeLock(true)
 
@@ -85,41 +90,43 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
 
   const index = session.current
   const item = session.exercises[index]
-  const total = session.exercises.length
-  const cover = item?.exercise.photos[0]
-  const superset = supersetOf(session, index)
-  const forTime = item ? isForTime(item) : false
-  // W W 1 2 3: warm-ups numbered apart
-  const numbers = setNumbers(item?.sets ?? [])
+  // The screen's exercises: this one alone, or its whole superset
+  const group = supersetOf(session, index)
+  const isSuperset = group.length > 1
+  const runs = stations(session)
+  const station = runs.findIndex(run => run.includes(index))
+  const previousRun = runs[station - 1]
+  const nextRun = runs[station + 1]
   const count = countSets(session)
   const finishProps = { count, disabled: finishing, onFinish: () => void finish(), onDiscard: discard }
-  // In a superset, its next exercise with a set left; null outside a superset
-  // or when it is done. The screen never moves by itself after a tick
-  const supersetTarget = supersetNext(session, index)
-  const supersetName = supersetTarget === null ? '' : (session.exercises[supersetTarget]?.exercise.name ?? '')
-  // Finish workout replaces Next on the last exercise or when nothing is left
+  // Finish workout replaces Next on the last screen or when nothing is left
   // to tick; never with no exercise at all
-  const finishTime = supersetTarget === null && total > 0 && (index >= total - 1 || allSetsDone(session))
-  // Finish workout, or the superset's next exercise by name, needs the bar's room
-  const wide = finishTime || supersetTarget !== null
+  const finishTime = item !== undefined && (nextRun === undefined || allSetsDone(session))
   // A free workout before its first exercise
-  const empty = total === 0
-  const stepNumber = numbers[stepping.set]
+  const empty = session.exercises.length === 0
+  const countdown = user?.countdown_seconds ?? FALLBACK_COUNTDOWN_SECONDS
+  // A superset's next set, round by round
+  const upcomingId = nextInRound(session, group)
+  const stepItem = session.exercises[stepping.exercise]
+  const stepNumber = setNumbers(stepItem?.sets ?? [])[stepping.set]
   const stepName = stepNumber?.warmUp ? t('workout.warmUpName', { number: stepNumber.number }) : t('workout.setName', { number: stepNumber?.number ?? stepping.set + 1 })
+  const swapItem = session.exercises[swapping]
+  const infoItem = session.exercises[informing]
   // Looked up by set id: the running stopwatch may belong to another exercise
-  // than the one on screen
+  // than the ones on screen
   const stopwatch = session.stopwatch ?? null
   const timed = stopwatch ? findSet(session, stopwatch.set_id) : null
   const timedItem = timed ? session.exercises[timed.exercise] : undefined
   const timedSet = timed ? timedItem?.sets[timed.set] : undefined
   const timedNumber = timed && timedItem ? setNumbers(timedItem.sets)[timed.set] : undefined
   const timedName = timedNumber?.warmUp ? t('workout.warmUpName', { number: timedNumber.number }) : t('workout.setName', { number: timedNumber?.number ?? 1 })
-  // The next exercise with sets left after this one and its superset
+  // The next exercise with sets left after this screen
   const nextIndex = item ? upNext(session, index) : null
   const nextItem = nextIndex === null ? undefined : session.exercises[nextIndex]
-  // The rest bar names it only when the rest leads there: no set left here,
-  // and none waiting in the superset
-  const restNext = item && !hasWorkLeft(item) && supersetTarget === null ? (nextItem?.exercise.name ?? null) : null
+  // The rest bar names it only when the rest leads there: nothing left on
+  // this screen
+  const screenDone = !group.some(position => session.exercises[position] !== undefined && hasWorkLeft(session.exercises[position]))
+  const restNext = item && screenDone ? (nextItem?.exercise.name ?? null) : null
   // SetRow's view of the running stopwatch: on this set, on another, or none
   const stopwatchFor = (setId: string) => (stopwatch === null ? null : stopwatch.set_id === setId ? 'this' : 'other')
   /** "4 × 8–10 · 80 kg · 90 s"; null for an exercise added during the workout. */
@@ -128,17 +135,29 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
     : null)
   const addOptions = { unit, language: i18n.language, defaultRestSeconds: user?.default_rest_seconds ?? FALLBACK_REST_SECONDS }
 
+  // After a tick on a superset's screen, its next set comes into view: it may
+  // be in the other exercise, below. Not when the screen changes, which opens
+  // at the top
+  const shownRun = useRef(station)
+  useEffect(() => {
+    if (shownRun.current !== station) {
+      shownRun.current = station
+      return
+    }
+    if (upcomingId !== null) document.getElementById(`set-${upcomingId}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [upcomingId, station])
+
   /** Appends the exercises with their last sets (none offline) and opens the first. */
   async function addExercises(exercises: Exercise[]) {
     const lastSets = await fetchLastSets(exercises.map(exercise => exercise.id)).catch(() => [])
     dispatch({ type: 'addExercises', exercises: exercises.map(exercise => exerciseFrom(exercise, lastSets, addOptions)) })
   }
 
-  /** Replaces the exercise on screen, carrying the replacement's last sets (none offline). */
+  /** Replaces the exercise being swapped, carrying the replacement's last sets (none offline). */
   async function swap(exercise: Exercise) {
-    if (!item) return
+    if (!swapItem) return
     const lastSets = await fetchLastSets([exercise.id]).catch(() => [])
-    dispatch({ type: 'swapExercise', exercise: index, replacement: swappedExercise(item, exercise, lastSets, addOptions) })
+    dispatch({ type: 'swapExercise', exercise: swapping, replacement: swappedExercise(swapItem, exercise, lastSets, addOptions) })
   }
 
   /**
@@ -149,6 +168,21 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
   function discard() {
     storeActiveSession(null)
     void navigate(session.plan_id ? `/plans/${session.plan_id}` : '/', { replace: true })
+  }
+
+  function openStepper(exercise: number, set: number, field: SetField) {
+    setStepping({ exercise, set, field })
+    setStepperOpen(true)
+  }
+
+  function openInfo(exercise: number) {
+    setInforming(exercise)
+    setInfoOpen(true)
+  }
+
+  function openSwap(exercise: number) {
+    setSwapping(exercise)
+    setSwapOpen(true)
   }
 
   /** Pauses the workout, keeps it on the device, and leaves. */
@@ -209,25 +243,31 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
           )}
 
           {/* Adding exercises sits beside the dots: rare in a planned day, so
-              out of the way, yet always at hand */}
+              out of the way, yet always at hand. One dot per screen: a
+              superset is one */}
           {!empty && (
-            <nav aria-label={t('workout.exerciseOf', { number: index + 1, total })} className="mb-5">
+            <nav aria-label={t('workout.exerciseOf', { number: station + 1, total: runs.length })} className="mb-5">
               <div className="mb-2 flex items-center gap-3">
                 <ol className="flex flex-wrap gap-1.5">
-                  {session.exercises.map((exercise, position) => (
-                    <li key={exercise.id}>
-                      <button
-                        type="button"
-                        aria-label={exercise.skipped ? t('workout.jumpToSkipped', { number: position + 1, name: exercise.exercise.name }) : t('workout.jumpTo', { number: position + 1, name: exercise.exercise.name })}
-                        aria-current={position === index ? 'step' : undefined}
-                        onClick={() => dispatch({ type: 'goTo', exercise: position })}
-                        className={cn(
-                          'size-3 rounded-full',
-                          position === index ? 'bg-primary ring-2 ring-primary/40' : exercise.sets.some(set => set.done) ? 'bg-primary/60' : exercise.skipped ? 'bg-muted-foreground/30' : 'bg-muted',
-                        )}
-                      />
-                    </li>
-                  ))}
+                  {runs.map((run, position) => {
+                    const members = run.map(member => session.exercises[member]).filter(member => member !== undefined)
+                    const name = members.map(member => member.exercise.name).join(' + ')
+                    const skipped = members.every(member => member.skipped)
+                    return (
+                      <li key={members[0]?.id ?? position}>
+                        <button
+                          type="button"
+                          aria-label={skipped ? t('workout.jumpToSkipped', { number: position + 1, name }) : t('workout.jumpTo', { number: position + 1, name })}
+                          aria-current={position === station ? 'step' : undefined}
+                          onClick={() => dispatch({ type: 'goTo', exercise: run[0]! })}
+                          className={cn(
+                            'size-3 rounded-full',
+                            position === station ? 'bg-primary ring-2 ring-primary/40' : members.some(member => member.sets.some(set => set.done)) ? 'bg-primary/60' : skipped ? 'bg-muted-foreground/30' : 'bg-muted',
+                          )}
+                        />
+                      </li>
+                    )
+                  })}
                 </ol>
                 {/* Labelled: a ＋ alone is not understood */}
                 <ExercisePicker
@@ -240,132 +280,76 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                   onAdd={exercises => void addExercises(exercises)}
                 />
               </div>
-              <p className="text-sm text-muted-foreground">{t('workout.exerciseOf', { number: index + 1, total })}</p>
+              <p className="text-sm text-muted-foreground">{t('workout.exerciseOf', { number: station + 1, total: runs.length })}</p>
             </nav>
           )}
 
-          {item && (
-            <section aria-labelledby="exercise-name">
-              <div className="mb-6 flex gap-4">
-                {/* The ⓘ badge says the photo opens How to do it; the photo
-                    is decorative, the button carries the label */}
-                <button
-                  type="button"
-                  aria-label={t('workout.howTo.open', { name: item.exercise.name })}
-                  aria-haspopup="dialog"
-                  onClick={() => setInfoOpen(true)}
-                  className="relative size-20 shrink-0 rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  {cover
-                    ? <img src={cover.thumb_url} alt="" className="size-full rounded-2xl bg-muted object-cover" />
-                    : <span aria-hidden="true" className="grid size-full place-items-center rounded-2xl bg-muted"><Dumbbell className="size-7 text-muted-foreground" /></span>}
-                  <span aria-hidden="true" className="absolute -right-1 -bottom-1 grid size-6 place-items-center rounded-full border bg-background">
-                    <Info className="size-4 text-primary" />
-                  </span>
-                </button>
-                <div className="min-w-0 flex-1">
-                  {/* A larger target for the same panel, inside the heading
-                      so the heading keeps the exercise's name */}
-                  <h2 id="exercise-name" className="font-heading text-xl font-extrabold">
-                    <button
-                      type="button"
-                      aria-haspopup="dialog"
-                      onClick={() => setInfoOpen(true)}
-                      className="text-left underline decoration-muted-foreground/50 decoration-dotted underline-offset-4 outline-none hover:decoration-primary focus-visible:rounded-md focus-visible:ring-3 focus-visible:ring-ring/50"
-                    >
-                      {item.exercise.name}
-                    </button>
-                  </h2>
-                  {item.plan_item && <p className="text-sm text-muted-foreground tabular-nums">{planSummary(item)}</p>}
-                  {item.plan_item?.notes && <p className="mt-1 text-sm italic">{item.plan_item.notes}</p>}
-                  {/* Today's note, written from the menu */}
-                  {item.notes && (
-                    <p className="mt-1 text-sm">
-                      <span className="font-semibold">{`${t('workout.yourNote')}: `}</span>
-                      {item.notes}
-                    </p>
-                  )}
-                  {/* Explains why Next, at the bottom, names another exercise */}
-                  {superset.length > 1 && (
-                    <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-primary">
-                      <Link2 aria-hidden="true" className="size-4 shrink-0" />
-                      {t('workout.superset', { names: superset.map(position => session.exercises[position]?.exercise.name).join(' + ') })}
-                    </p>
-                  )}
-                </div>
-                <ExerciseMenu
-                  item={item}
-                  onSwap={() => setSwapOpen(true)}
-                  onSkip={skipped => dispatch({ type: 'skipExercise', exercise: index, skipped })}
-                  onSaveNote={notes => dispatch({ type: 'setNote', exercise: index, notes })}
-                  // Only exercises added by hand can be removed
-                  onRemove={canRemoveExercise(item) ? () => dispatch({ type: 'removeExercise', exercise: index }) : undefined}
-                />
-              </div>
-
-              {/* The sets stay, dimmed: ticking one undoes the skip */}
-              {item.skipped && (
-                <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl bg-muted/50 p-3">
-                  <p className="min-w-0 flex-1 basis-48 text-sm text-muted-foreground">{t('workout.skippedText')}</p>
-                  <Button variant="outline" size="xl" onClick={() => dispatch({ type: 'skipExercise', exercise: index, skipped: false })}>
-                    {t('workout.unskip')}
-                  </Button>
-                </div>
-              )}
-
-              <SetHeader loggingType={item.exercise.logging_type} unit={unit} forTime={forTime} />
-              <ol className={cn('flex flex-col gap-2 sm:gap-3', item.skipped && 'opacity-60')}>
-                {item.sets.map((set, position) => (
-                  <SetRow
-                    key={set.id}
-                    set={set}
-                    number={numbers[position] ?? { warmUp: false, number: position + 1 }}
-                    loggingType={item.exercise.logging_type}
-                    unit={unit}
-                    forTime={forTime}
-                    onToggle={() => dispatch({ type: 'toggleSet', exercise: index, set: position, now: new Date().toISOString() })}
-                    onOpenStepper={(field) => {
-                      setStepping({ set: position, field })
-                      setStepperOpen(true)
-                    }}
-                    onTypeChange={setType => dispatch({ type: 'setSetType', exercise: index, set: position, setType })}
-                    onStartStopwatch={() => dispatch({ type: 'startStopwatch', exercise: index, set: position, now: new Date().toISOString(), countdown: user?.countdown_seconds ?? FALLBACK_COUNTDOWN_SECONDS })}
-                    stopwatch={stopwatchFor(set.id)}
-                  />
-                ))}
-              </ol>
-              <SetStepper
-                open={stepperOpen}
-                onOpenChange={setStepperOpen}
-                set={item.sets[stepping.set]}
-                name={stepName}
-                exerciseName={item.exercise.name}
-                loggingType={item.exercise.logging_type}
-                forTime={forTime}
-                unit={unit}
-                weightStep={user?.weight_step}
-                focus={stepping.field}
-                onChange={(field, value) => dispatch({ type: 'setField', exercise: index, set: stepping.set, field, value })}
-                // The panel closes first: the set it shows is about to go
-                onRemove={canRemoveSet(item, stepping.set)
-                  ? () => {
-                      setStepperOpen(false)
-                      dispatch({ type: 'removeSet', exercise: index, set: stepping.set })
-                    }
-                  : undefined}
-              />
-              <ExercisePicker open={swapOpen} onOpenChange={setSwapOpen} replacing={item.exercise} onAdd={exercises => void (exercises[0] && swap(exercises[0]))} />
-              {/* Copies the last set's values */}
-              <Button variant="outline" size="xl" onClick={() => dispatch({ type: 'addSet', exercise: index })} className={cn('mt-2 w-full sm:mt-3', ADD_ICON)}>
-                <Plus aria-hidden="true" />
-                {t('plans.editor.addSet')}
-              </Button>
-              <ExerciseInfoSheet open={infoOpen} onOpenChange={setInfoOpen} exercise={item.exercise} />
-              {/* A reminder only: the bottom bar is the way there. Absent on
-                  the last exercise, where Finish workout waits */}
-              {nextItem && <UpNextCard item={nextItem} summary={planSummary(nextItem)} />}
-            </section>
+          {/* A superset: its exercises' headers, then its sets round by
+              round, as it is done */}
+          {item && isSuperset && (
+            <SupersetRounds
+              // A superset of its own: rounds and headers opened by a tap do
+              // not carry over to the next one
+              key={session.exercises[group[0]!]?.id}
+              session={session}
+              group={group}
+              unit={unit}
+              summaryOf={planSummary}
+              stopwatchFor={stopwatchFor}
+              upcomingId={upcomingId}
+              countdown={countdown}
+              dispatch={dispatch}
+              onOpenInfo={openInfo}
+              onSwap={openSwap}
+              onOpenStepper={openStepper}
+            />
           )}
+
+          {item && !isSuperset && (
+            <ExerciseBlock
+              item={item}
+              index={index}
+              unit={unit}
+              summary={planSummary(item)}
+              stopwatchFor={stopwatchFor}
+              upcomingId={null}
+              countdown={countdown}
+              dispatch={dispatch}
+              onOpenInfo={() => openInfo(index)}
+              onSwap={() => openSwap(index)}
+              onOpenStepper={(set, field) => openStepper(index, set, field)}
+            />
+          )}
+
+          {/* One of each panel, for whichever exercise opened it */}
+          {stepItem && (
+            <SetStepper
+              open={stepperOpen}
+              onOpenChange={setStepperOpen}
+              set={stepItem.sets[stepping.set]}
+              name={stepName}
+              exerciseName={stepItem.exercise.name}
+              loggingType={stepItem.exercise.logging_type}
+              forTime={isForTime(stepItem)}
+              unit={unit}
+              weightStep={user?.weight_step}
+              focus={stepping.field}
+              onChange={(field, value) => dispatch({ type: 'setField', exercise: stepping.exercise, set: stepping.set, field, value })}
+              // The panel closes first: the set it shows is about to go
+              onRemove={canRemoveSet(stepItem, stepping.set)
+                ? () => {
+                    setStepperOpen(false)
+                    dispatch({ type: 'removeSet', exercise: stepping.exercise, set: stepping.set })
+                  }
+                : undefined}
+            />
+          )}
+          {swapItem && <ExercisePicker open={swapOpen} onOpenChange={setSwapOpen} replacing={swapItem.exercise} onAdd={exercises => void (exercises[0] && swap(exercises[0]))} />}
+          {infoItem && <ExerciseInfoSheet open={infoOpen} onOpenChange={setInfoOpen} exercise={infoItem.exercise} />}
+
+          {/* A reminder only: the bottom bar is the way there. Absent on the
+              last screen, where Finish workout waits */}
+          {nextItem && <UpNextCard item={nextItem} summary={planSummary(nextItem)} />}
 
           <p aria-live="polite" className="sr-only">{announce}</p>
         </div>
@@ -402,28 +386,19 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         <footer className="border-t pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className={cn(WORKOUT_COLUMN, 'flex justify-between gap-2')}>
             {/* Outlined: lime is reserved for Finish workout. On a phone,
-                Previous shrinks to an arrow when the right button needs room */}
-            <Button variant="outline" size="xl" className={cn('px-4', wide && 'max-sm:px-3.5')} disabled={index === 0} onClick={() => dispatch({ type: 'goTo', exercise: index - 1 })}>
+                Previous shrinks to an arrow when Finish workout needs room */}
+            <Button variant="outline" size="xl" className={cn('px-4', finishTime && 'max-sm:px-3.5')} disabled={previousRun === undefined} onClick={() => previousRun && dispatch({ type: 'goTo', exercise: previousRun[0]! })}>
               <ChevronLeft aria-hidden="true" />
-              <span className={cn(wide && 'max-sm:sr-only')}>{t('workout.previous')}</span>
+              <span className={cn(finishTime && 'max-sm:sr-only')}>{t('workout.previous')}</span>
             </Button>
-            {/* In a superset the round goes on to its next exercise, by name;
-                otherwise Next, or Finish workout */}
-            {supersetTarget !== null
-              ? (
-                  <Button variant="outline" size="xl" className="min-w-0 flex-1 border-primary/70 px-4 sm:flex-none" onClick={() => dispatch({ type: 'goTo', exercise: supersetTarget })}>
-                    <span className="truncate">{t('workout.nextIn', { name: supersetName })}</span>
+            {finishTime || nextRun === undefined
+              ? <FinishButton {...finishProps} label={t('workout.finishWorkout')} className="min-w-0 flex-1 sm:flex-none" />
+              : (
+                  <Button variant="outline" size="xl" className="px-4" onClick={() => dispatch({ type: 'goTo', exercise: nextRun[0]! })}>
+                    {t('workout.next')}
                     <ChevronRight aria-hidden="true" />
                   </Button>
-                )
-              : finishTime
-                ? <FinishButton {...finishProps} label={t('workout.finishWorkout')} className="min-w-0 flex-1 sm:flex-none" />
-                : (
-                    <Button variant="outline" size="xl" className="px-4" onClick={() => dispatch({ type: 'goTo', exercise: index + 1 })}>
-                      {t('workout.next')}
-                      <ChevronRight aria-hidden="true" />
-                    </Button>
-                  )}
+                )}
           </div>
         </footer>
       )}

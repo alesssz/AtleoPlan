@@ -21,13 +21,19 @@ export interface FieldSpec {
   spoken: string
   /** What an empty field shows: a dash where it may stay empty. */
   placeholder?: string
+  /**
+   * The unit written after the value in a row with no column titles (a
+   * superset's round): "kg", "reps", "m". None for the time, which writes
+   * its own ("45 s", "14:30").
+   */
+  suffix?: string
   /** The keyboard: digits and a separator, or digits only. */
   inputMode: 'decimal' | 'numeric'
 }
 
 /** @param forTime whether the exercise is done as fast as possible (isForTime) */
 export function fieldsFor(loggingType: LoggingType, unit: WeightUnit, t: TFunction, forTime = false): FieldSpec[] {
-  const reps: FieldSpec = { field: 'reps', label: t('workout.colReps'), spoken: t('workout.colReps'), inputMode: 'numeric' }
+  const reps: FieldSpec = { field: 'reps', label: t('workout.colReps'), spoken: t('workout.colReps'), suffix: t('workout.repsShort'), inputMode: 'numeric' }
   // The time's column, of a timed exercise or a race. Titled "Time", not
   // "Sec": past a minute the row writes it as a clock, "14:30" (fieldText);
   // its spoken name says the seconds, the unit of the value read out and
@@ -35,11 +41,11 @@ export function fieldsFor(loggingType: LoggingType, unit: WeightUnit, t: TFuncti
   const seconds: FieldSpec = { field: 'seconds', label: t('workout.colTime'), spoken: t('workout.colSeconds'), inputMode: 'numeric' }
   if (forTime) return [reps, seconds]
   switch (loggingType) {
-    case 'weight_reps': return [{ field: 'weight', label: unit, spoken: unit, placeholder: '–', inputMode: 'decimal' }, reps]
+    case 'weight_reps': return [{ field: 'weight', label: unit, spoken: unit, placeholder: '–', suffix: unit, inputMode: 'decimal' }, reps]
     // The body's own weight plus, maybe, a belt with a plate: "+kg"
-    case 'reps': return [{ field: 'weight', label: `+${unit}`, spoken: t('workout.addedWeight', { unit }), placeholder: '–', inputMode: 'decimal' }, reps]
+    case 'reps': return [{ field: 'weight', label: `+${unit}`, spoken: t('workout.addedWeight', { unit }), placeholder: '–', suffix: `+${unit}`, inputMode: 'decimal' }, reps]
     case 'time': return [seconds]
-    case 'distance': return [{ field: 'meters', label: t('workout.colMeters'), spoken: t('workout.colMeters'), inputMode: 'numeric' }]
+    case 'distance': return [{ field: 'meters', label: t('workout.colMeters'), spoken: t('workout.colMeters'), suffix: t('workout.colMeters'), inputMode: 'numeric' }]
   }
 }
 
