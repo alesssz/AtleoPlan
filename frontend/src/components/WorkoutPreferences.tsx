@@ -1,13 +1,13 @@
 /*
- * Profile's workout preferences: weight unit, default rest, weight step,
- * sound and vibration, RPE in plans. Each change is saved at once,
+ * Profile's workout preferences: weight unit, default rest, countdown before
+ * a timed set, weight step, sound and vibration, RPE in plans. Each change is saved at once,
  * optimistically, like the language and the theme.
  *
  * The unit is locked while a workout is in progress: its fields hold text
  * typed in the old unit, and would be read in the new one at Finish. Weights
  * are stored in kilograms, so changing it converts nothing on the server.
  */
-import { Gauge, SlidersHorizontal, Timer, Vibrate, Volume2, Weight } from 'lucide-react'
+import { Gauge, Hourglass, SlidersHorizontal, Timer, Vibrate, Volume2, Weight } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentUser, useUpdatePreferences, type User } from '@/api/auth'
@@ -22,6 +22,9 @@ type WeightUnit = User['weight_unit']
 
 /** 0: no timer. */
 const REST_CHOICES = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300]
+
+/** 0: the stopwatch starts at once. */
+const COUNTDOWN_CHOICES = [0, 3, 5, 10, 15, 30]
 
 /**
  * The weight steps offered in each unit: the plates gyms have. In kilograms
@@ -61,6 +64,7 @@ export function WorkoutPreferences() {
   const [busy] = useState(() => loadActiveSession() !== null)
   const unitId = useId()
   const restId = useId()
+  const countdownId = useId()
   const stepId = useId()
   const soundId = useId()
   const vibrationId = useId()
@@ -104,6 +108,21 @@ export function WorkoutPreferences() {
               {withCurrent(REST_CHOICES, user.default_rest_seconds).map(seconds => (
                 <SelectItem key={seconds} value={String(seconds)}>
                   {seconds === 0 ? t('preferences.restNone') : formatSeconds(seconds, language)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingRow>
+
+        <SettingRow icon={Hourglass} label={t('preferences.countdown')} description={t('preferences.countdownHint')} controlId={countdownId}>
+          <Select value={String(user.countdown_seconds)} onValueChange={value => updatePreferences.mutate({ countdown_seconds: Number(value) })}>
+            <SelectTrigger id={countdownId} className="h-11 w-full rounded-xl sm:w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {withCurrent(COUNTDOWN_CHOICES, user.countdown_seconds).map(seconds => (
+                <SelectItem key={seconds} value={String(seconds)}>
+                  {seconds === 0 ? t('preferences.countdownNone') : formatSeconds(seconds, language)}
                 </SelectItem>
               ))}
             </SelectContent>

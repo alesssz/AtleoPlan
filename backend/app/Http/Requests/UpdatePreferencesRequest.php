@@ -17,6 +17,7 @@ class UpdatePreferencesRequest extends FormRequest
      * - weight_unit changes only how weights are shown and typed: they stay in
      *   kilograms, so nothing is converted.
      * - default_rest_seconds: 0 means no rest timer.
+     * - countdown_seconds: 0 starts a timed set's stopwatch at once.
      * - weight_step is in the user's unit, from 0.25 (micro plates); two
      *   decimals, as `numeric(5,2)` keeps them.
      *
@@ -32,6 +33,7 @@ class UpdatePreferencesRequest extends FormRequest
             'weight_step' => ['sometimes', 'numeric', 'between:0.25,50', 'decimal:0,2'],
             'timer_sound' => ['sometimes', 'boolean'],
             'timer_vibration' => ['sometimes', 'boolean'],
+            'countdown_seconds' => ['sometimes', 'integer', 'between:0,30'],
             'show_rpe' => ['sometimes', 'boolean'],
         ];
     }

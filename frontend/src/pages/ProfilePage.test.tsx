@@ -111,9 +111,12 @@ describe('ProfilePage', () => {
     expect(within(card).getByRole('combobox', { name: 'Weight unit' })).toHaveTextContent('Kilograms (kg)')
     expect(within(card).getByRole('combobox', { name: 'Default rest' })).toHaveTextContent('90 sec')
     expect(within(card).getByRole('combobox', { name: 'Weight step' })).toHaveTextContent('2.5 kg')
+    expect(within(card).getByRole('combobox', { name: 'Countdown' })).toHaveTextContent('5 sec')
 
     await user.click(within(card).getByRole('combobox', { name: 'Default rest' }))
     await user.click(await screen.findByRole('option', { name: '2 min' }))
+    await user.click(within(card).getByRole('combobox', { name: 'Countdown' }))
+    await user.click(await screen.findByRole('option', { name: '10 sec' }))
     await user.click(within(card).getByRole('combobox', { name: 'Weight step' }))
     await user.click(await screen.findByRole('option', { name: '1.25 kg' }))
     const sound = within(card).getByRole('switch', { name: 'Sound at the end of the rest' })
@@ -127,7 +130,7 @@ describe('ProfilePage', () => {
     await user.click(rpe)
     await waitFor(() => expect(rpe).toHaveAttribute('aria-checked', 'true'))
 
-    expect(preferencesSent(fake)).toEqual([{ default_rest_seconds: 120 }, { weight_step: '1.25' }, { timer_sound: false }, { show_rpe: true }])
+    expect(preferencesSent(fake)).toEqual([{ default_rest_seconds: 120 }, { countdown_seconds: 10 }, { weight_step: '1.25' }, { timer_sound: false }, { show_rpe: true }])
   })
 
   it('changes the unit with the step that suits it', async () => {

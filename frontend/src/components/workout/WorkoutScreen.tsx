@@ -32,7 +32,7 @@ import { SetStepper } from './SetStepper'
 import { StopwatchPanel } from './StopwatchPanel'
 import { UpNextCard } from './UpNextCard'
 import { FALLBACK_REST_SECONDS } from './useStartWorkout'
-import { allSetsDone, countSets, elapsedSeconds, exerciseFrom, canRemoveExercise, canRemoveSet, findSet, hasWorkLeft, isForTime, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, upNext, workoutReducer, type ActiveSession, type SetField, type WorkoutExercise } from './workout-session'
+import { allSetsDone, countSets, FALLBACK_COUNTDOWN_SECONDS, elapsedSeconds, exerciseFrom, canRemoveExercise, canRemoveSet, findSet, hasWorkLeft, isForTime, restLeft, setNumbers, supersetNext, supersetOf, swappedExercise, upNext, workoutReducer, type ActiveSession, type SetField, type WorkoutExercise } from './workout-session'
 
 // Add buttons are outlined like Previous and Next, with a lime ＋
 const ADD_ICON = '[&_svg]:text-primary'
@@ -329,7 +329,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
                       setStepperOpen(true)
                     }}
                     onTypeChange={setType => dispatch({ type: 'setSetType', exercise: index, set: position, setType })}
-                    onStartStopwatch={() => dispatch({ type: 'startStopwatch', exercise: index, set: position, now: new Date().toISOString() })}
+                    onStartStopwatch={() => dispatch({ type: 'startStopwatch', exercise: index, set: position, now: new Date().toISOString(), countdown: user?.countdown_seconds ?? FALLBACK_COUNTDOWN_SECONDS })}
                     stopwatch={stopwatchFor(set.id)}
                   />
                 ))}
@@ -382,6 +382,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
           lastText={timedSet.last?.duration_seconds ? clock(timedSet.last.duration_seconds) : null}
           alarm={{ sound: user?.timer_sound ?? true, vibration: user?.timer_vibration ?? true }}
           onStop={() => dispatch({ type: 'stopStopwatch', now: new Date().toISOString() })}
+          onStartNow={() => dispatch({ type: 'skipCountdown', now: new Date().toISOString() })}
           onPause={paused => dispatch({ type: paused ? 'pauseStopwatch' : 'resumeStopwatch', now: new Date().toISOString() })}
           onCancel={() => dispatch({ type: 'cancelStopwatch' })}
         />

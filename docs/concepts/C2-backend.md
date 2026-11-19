@@ -555,7 +555,7 @@ Browser (localhost:5673)                        Laravel, through Vite's proxy
 | `GET /api/user` (ours) | Who is signed in | 200; 401 |
 | `GET /auth/google/redirect` (ours, browser visit) | Off to Google ([C2.7.8](#c278-signing-in-with-google)) | 302 |
 | `GET /auth/google/callback` (ours, browser visit) | Back from Google: signs in, links or creates the user | 302 into the app, or `/login?error=…` |
-| `PATCH /api/user/preferences` (ours) | Language, theme, unit, default rest (0–600 s), weight step (0.25–50, ≤ 2 decimals), timer sound, vibration, `show_rpe`; only the fields sent | 204; 422 |
+| `PATCH /api/user/preferences` (ours) | Language, theme, unit, default rest (0–600 s), weight step (0.25–50, ≤ 2 decimals), timer sound, vibration, countdown (0–30 s), `show_rpe`; only the fields sent | 204; 422 |
 
 ### C2.7.2 Signing in and out
 

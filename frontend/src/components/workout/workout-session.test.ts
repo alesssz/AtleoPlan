@@ -4,7 +4,7 @@ import { testPlan } from '@/test/plan-helpers'
 import { clock } from './clock'
 import { testExercise } from '@/test/exercise-helpers'
 import { loggedSetText } from './set-text'
-import { allSetsDone, canComplete, canRemoveExercise, canRemoveSet, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, isForTime, restLeft, setNumbers, startFreeSession, startSession, stopwatchSeconds, stopwatchTargetAt, supersetNext, swappedExercise, toSessionInput, upNext, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
+import { allSetsDone, canComplete, canRemoveExercise, canRemoveSet, countdownLeft, countSets, elapsedSeconds, exerciseFrom, hasWorkLeft, isForTime, restLeft, setNumbers, startFreeSession, startSession, stopwatchSeconds, stopwatchTargetAt, supersetNext, swappedExercise, toSessionInput, upNext, workoutReducer, type ActiveSession, type WorkoutAction } from './workout-session'
 
 /** The moment the workout starts: 18:00 UTC. */
 const START = new Date('2026-11-09T18:00:00Z')
@@ -126,37 +126,70 @@ function holdWorkout(): ActiveSession {
 }
 
 describe('the stopwatch', () => {
-  it('starts on a set with its seconds as the target, and ends the rest', () => {
+  it('starts on a set with its seconds as the target, after a countdown, and ends the rest', () => {
     const resting = { ...holdWorkout(), rest: { ends_at: at(100), total: 60 } }
-    const session = run(resting, { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) })
+    const session = run(resting, { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 })
 
-    expect(session.stopwatch).toEqual({ set_id: session.exercises[0]?.sets[0]?.id, started_at: at(10), target: 30 })
+    // ▶ at 10 s: the count starts 5 s later
+    expect(session.stopwatch).toEqual({ set_id: session.exercises[0]?.sets[0]?.id, started_at: at(15), target: 30 })
     expect(session.rest).toBeNull()
-    // Counted from the start, in whole seconds
-    expect(stopwatchSeconds(session.stopwatch!, new Date(at(42.7)))).toBe(32)
+    expect(countdownLeft(session.stopwatch!, new Date(at(10)))).toBe(5)
+    expect(countdownLeft(session.stopwatch!, new Date(at(13.2)))).toBe(2)
+    expect(stopwatchSeconds(session.stopwatch!, new Date(at(13.2)))).toBe(0)
+    // Counted from the end of the countdown, in whole seconds
+    expect(countdownLeft(session.stopwatch!, new Date(at(15)))).toBe(0)
+    expect(stopwatchSeconds(session.stopwatch!, new Date(at(42.7)))).toBe(27)
+  })
+
+  it('starts at once with no countdown in Profile', () => {
+    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 0 })
+
+    expect(session.stopwatch?.started_at).toBe(at(10))
+    expect(countdownLeft(session.stopwatch!, new Date(at(10)))).toBe(0)
+  })
+
+  it('starts counting at once with Start now', () => {
+    const started = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 }, { type: 'skipCountdown', now: at(12) })
+    expect(started.stopwatch?.started_at).toBe(at(12))
+    // Once counting, Start now changes nothing
+    expect(run(started, { type: 'skipCountdown', now: at(20) }).stopwatch?.started_at).toBe(at(12))
   })
 
   it('stops: the time goes into the set, which is ticked, and the rest starts', () => {
-    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'stopStopwatch', now: at(42.7) })
+    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 }, { type: 'stopStopwatch', now: at(35.4) })
     const set = session.exercises[0]?.sets[0]
 
     expect(session.stopwatch).toBeNull()
-    expect(set).toMatchObject({ seconds: '32', done: true, completed_at: at(42.7) })
-    expect(session.rest).toEqual({ ends_at: at(102.7), total: 60 })
+    expect(set).toMatchObject({ seconds: '20', done: true, completed_at: at(35.4) })
+    expect(session.rest).toEqual({ ends_at: at(95.4), total: 60 })
+  })
+
+  it('writes the target of a hold, however late it is stopped', () => {
+    // Aiming at 30 s, stopped 2 minutes after the start (the screen was off)
+    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 }, { type: 'stopStopwatch', now: at(135) })
+
+    expect(session.exercises[0]?.sets[0]).toMatchObject({ seconds: '30', done: true })
+  })
+
+  it('stopped during the countdown, measures nothing: the set is ticked with its own time', () => {
+    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 }, { type: 'stopStopwatch', now: at(12) })
+
+    expect(session.stopwatch).toBeNull()
+    expect(session.exercises[0]?.sets[0]).toMatchObject({ seconds: '30', done: true })
   })
 
   it('stops when its set is ticked, with the time measured rather than the one pre-filled', () => {
-    // The set holds 30 seconds; the stopwatch ran 12
-    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'toggleSet', exercise: 0, set: 0, now: at(22.4) })
+    // The set holds 30 seconds; the stopwatch counted 12, from 15 s
+    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 }, { type: 'toggleSet', exercise: 0, set: 0, now: at(27.4) })
 
     expect(session.stopwatch).toBeNull()
-    expect(session.exercises[0]?.sets[0]).toMatchObject({ seconds: '12', done: true, completed_at: at(22.4) })
-    expect(session.rest).toEqual({ ends_at: at(82.4), total: 60 })
+    expect(session.exercises[0]?.sets[0]).toMatchObject({ seconds: '12', done: true, completed_at: at(27.4) })
+    expect(session.rest).toEqual({ ends_at: at(87.4), total: 60 })
   })
 
   it('has no target on an empty set, and records at least a second', () => {
-    const started = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 1, now: at(10) })
-    const stopped = run(started, { type: 'stopStopwatch', now: at(10.2) })
+    const started = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 1, now: at(10), countdown: 5 })
+    const stopped = run(started, { type: 'stopStopwatch', now: at(15.2) })
 
     expect(started.stopwatch?.target).toBeNull()
     expect(stopped.exercises[0]?.sets[1]?.seconds).toBe('1')
@@ -164,7 +197,7 @@ describe('the stopwatch', () => {
 
   it('cancels, leaving the set as it was', () => {
     const before = holdWorkout()
-    const session = run(before, { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'cancelStopwatch' })
+    const session = run(before, { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 }, { type: 'cancelStopwatch' })
 
     expect(session.stopwatch).toBeNull()
     expect(session.exercises[0]?.sets[0]).toEqual(before.exercises[0]?.sets[0])
@@ -173,33 +206,36 @@ describe('the stopwatch', () => {
   it('does not start on a set already done', () => {
     const done = run(holdWorkout(), { type: 'toggleSet', exercise: 0, set: 0, now: at(10) })
 
-    expect(run(done, { type: 'startStopwatch', exercise: 0, set: 0, now: at(20) }).stopwatch ?? null).toBeNull()
+    expect(run(done, { type: 'startStopwatch', exercise: 0, set: 0, now: at(20), countdown: 5 }).stopwatch ?? null).toBeNull()
   })
 
   it('pauses: the time stands still, and the pause is not counted', () => {
-    // Started at 10 s, paused at 25 s: 15 seconds, at 25 as at 60
-    const paused = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'pauseStopwatch', now: at(25) })
-    expect(paused.stopwatch?.paused_at).toBe(at(25))
+    // ▶ at 10 s, counting from 15 s, paused at 30 s: 15 seconds, at 30 as at 60
+    const started = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 })
+    // Not during the countdown, which counts nothing
+    expect(run(started, { type: 'pauseStopwatch', now: at(12) }).stopwatch?.paused_at ?? null).toBeNull()
+    const paused = run(started, { type: 'pauseStopwatch', now: at(30) })
+    expect(paused.stopwatch?.paused_at).toBe(at(30))
     expect(stopwatchSeconds(paused.stopwatch!, new Date(at(60)))).toBe(15)
     // While paused, the target is not reached: no signal is set
     expect(stopwatchTargetAt(paused.stopwatch!)).toBeNull()
     // A second Pause changes nothing: the seconds between the two would be lost
-    expect(run(paused, { type: 'pauseStopwatch', now: at(40) }).stopwatch?.paused_at).toBe(at(25))
+    expect(run(paused, { type: 'pauseStopwatch', now: at(40) }).stopwatch?.paused_at).toBe(at(30))
 
-    // Resumed at 40 s, after 15 s of pause: the count goes on from 15, and
-    // the target, 30 s, moves 15 s later, to 10 + 15 + 30 = 55 s
-    const resumed = run(paused, { type: 'resumeStopwatch', now: at(40) })
+    // Resumed at 45 s, after 15 s of pause: the count goes on from 15, and
+    // the target, 30 s, moves 15 s later, to 15 + 15 + 30 = 60 s
+    const resumed = run(paused, { type: 'resumeStopwatch', now: at(45) })
     expect(resumed.stopwatch).toMatchObject({ paused_at: null, paused_ms: 15_000 })
-    expect(stopwatchSeconds(resumed.stopwatch!, new Date(at(45)))).toBe(20)
-    expect(stopwatchTargetAt(resumed.stopwatch!)).toBe(Date.parse(at(55)))
+    expect(stopwatchSeconds(resumed.stopwatch!, new Date(at(50)))).toBe(20)
+    expect(stopwatchTargetAt(resumed.stopwatch!)).toBe(Date.parse(at(60)))
 
-    // Stopped at 50 s: 40 seconds since the start, minus 15 of pause
-    const stopped = run(resumed, { type: 'stopStopwatch', now: at(50) })
+    // Stopped at 55 s: 40 seconds since the count began, minus 15 of pause
+    const stopped = run(resumed, { type: 'stopStopwatch', now: at(55) })
     expect(stopped.exercises[0]?.sets[0]).toMatchObject({ seconds: '25', done: true })
   })
 
   it('stops while paused, with the time of the pause', () => {
-    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'pauseStopwatch', now: at(22) }, { type: 'stopStopwatch', now: at(90) })
+    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 }, { type: 'pauseStopwatch', now: at(27) }, { type: 'stopStopwatch', now: at(90) })
 
     expect(session.exercises[0]?.sets[0]?.seconds).toBe('12')
   })
@@ -240,7 +276,7 @@ describe('removing what was added by hand', () => {
   })
 
   it('stops the stopwatch running on a set removed', () => {
-    const timed = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 1, now: at(10) }, { type: 'removeSet', exercise: 0, set: 1 })
+    const timed = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 1, now: at(10), countdown: 5 }, { type: 'removeSet', exercise: 0, set: 1 })
 
     expect(timed.stopwatch).toBeNull()
   })
@@ -324,11 +360,13 @@ describe('as fast as possible', () => {
     expect(canComplete(noTime.exercises[0]!.sets[0]!, 'reps', true)).toBe(false)
     expect(canComplete(noTime.exercises[0]!.sets[0]!, 'reps')).toBe(true)
 
-    // The stopwatch, from 10 s to 1:15: 65 seconds, ticked, the rest started
-    const done = run(start, { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'stopStopwatch', now: at(75) })
-    expect(done.exercises[0]?.sets[0]).toMatchObject({ reps: '50', seconds: '65', done: true })
+    // The stopwatch, counting from 15 s to 1:35: 80 seconds, past the 72 to
+    // beat and kept so (only a hold stops at its target), ticked, the rest
+    // started
+    const done = run(start, { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 }, { type: 'stopStopwatch', now: at(95) })
+    expect(done.exercises[0]?.sets[0]).toMatchObject({ reps: '50', seconds: '80', done: true })
     expect(done.rest?.total).toBe(60)
-    expect(toSessionInput(done, 'kg', new Date(at(120))).exercises[0]?.sets[0]).toMatchObject({ reps: 50, duration_seconds: 65, weight_kg: null })
+    expect(toSessionInput(done, 'kg', new Date(at(120))).exercises[0]?.sets[0]).toMatchObject({ reps: 50, duration_seconds: 80, weight_kg: null })
   })
 
   it('writes such a set as "50 in 1:12"', () => {

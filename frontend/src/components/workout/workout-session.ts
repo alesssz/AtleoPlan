@@ -82,8 +82,12 @@ export interface Rest {
  */
 export interface Stopwatch {
   set_id: string
+  /** When the count starts: the user's countdown after ▶, in the future meanwhile. */
   started_at: string
-  /** The seconds to reach, from the set's field at the start; null when empty. */
+  /**
+   * The seconds to reach, from the set's field at the start; null when empty.
+   * A hold stops there; a race tries to beat it.
+   */
   target: number | null
   /** When it was paused, as ISO 8601 text; null or missing while it runs. */
   paused_at?: string | null
@@ -321,9 +325,25 @@ export function restLeft(session: ActiveSession, now: Date): number {
 }
 
 /**
+ * The seconds between ▶ and the start of the count when the account says
+ * nothing yet: the backend's own default (users.countdown_seconds). Time to
+ * put the phone down and get into position, which is not work.
+ */
+export const FALLBACK_COUNTDOWN_SECONDS = 5
+
+/**
+ * The seconds left before a stopwatch starts counting, rounded up ("5, 4, 3…");
+ * 0 once it counts. ▶ stores a start in the future, so the countdown is kept
+ * with the workout like the count itself.
+ */
+export function countdownLeft(stopwatch: Stopwatch, now: Date): number {
+  return Math.max(0, Math.ceil((Date.parse(stopwatch.started_at) - now.getTime()) / 1000))
+}
+
+/**
  * The seconds a stopwatch has run, whole, never below 0, the pauses left
  * out: from the start to now, or to the pause while it is paused, minus the
- * pauses before.
+ * pauses before. 0 during the countdown.
  */
 export function stopwatchSeconds(stopwatch: Stopwatch, now: Date): number {
   const end = stopwatch.paused_at ? Date.parse(stopwatch.paused_at) : now.getTime()
@@ -496,10 +516,11 @@ export type WorkoutAction
     | { type: 'goTo', exercise: number }
     | { type: 'adjustRest', seconds: number }
     | { type: 'endRest' }
-    | { type: 'startStopwatch', exercise: number, set: number, now: string }
+    | { type: 'startStopwatch', exercise: number, set: number, now: string, countdown: number }
     | { type: 'stopStopwatch', now: string }
     | { type: 'pauseStopwatch', now: string }
     | { type: 'resumeStopwatch', now: string }
+    | { type: 'skipCountdown', now: string }
     | { type: 'cancelStopwatch' }
     | { type: 'pause', now: string }
     | { type: 'resume', now: string }
@@ -643,23 +664,38 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       // The target is the seconds in the set's field (planned or last time's)
       // when above 0
       const target = parseWhole(set.seconds)
-      next.stopwatch = { set_id: set.id, started_at: action.now, target: target !== null && target > 0 ? target : null }
+      const startsAt = new Date(Date.parse(action.now) + action.countdown * 1000).toISOString()
+      next.stopwatch = { set_id: set.id, started_at: startsAt, target: target !== null && target > 0 ? target : null }
       // The set begins: the rest before it is over
       next.rest = null
       break
     }
+    case 'skipCountdown':
+      if (next.stopwatch && Date.parse(next.stopwatch.started_at) > Date.parse(action.now)) next.stopwatch.started_at = action.now
+      break
     case 'stopStopwatch': {
       const timed = next.stopwatch ? findSet(next, next.stopwatch.set_id) : null
       if (!next.stopwatch || !timed) {
         next.stopwatch = null
         break
       }
-      // Never 0: the backend requires at least 1 second
-      const seconds = Math.max(1, stopwatchSeconds(next.stopwatch, new Date(action.now)))
+      const stopwatch = next.stopwatch
       next.stopwatch = null
-      const timedSet = next.exercises[timed.exercise]?.sets[timed.set]
-      if (!timedSet) break
-      timedSet.seconds = String(seconds)
+      const timedItem = next.exercises[timed.exercise]
+      const timedSet = timedItem?.sets[timed.set]
+      if (!timedItem || !timedSet) break
+      // Stopped before it counted: no time was measured, so the set is
+      // ticked as ✓ alone would, with the time in its field
+      if (countdownLeft(stopwatch, new Date(action.now)) > 0) {
+        if (!timedSet.done) return workoutReducer(next, { type: 'toggleSet', exercise: timed.exercise, set: timed.set, now: action.now })
+        break
+      }
+      const measured = stopwatchSeconds(stopwatch, new Date(action.now))
+      // A hold ends at its target: a stop that comes late (the timer fired
+      // with the screen off, the app reopened) still writes the target
+      const capped = stopwatch.target !== null && !isForTime(timedItem) ? Math.min(measured, stopwatch.target) : measured
+      // Never 0: the backend requires at least 1 second
+      timedSet.seconds = String(Math.max(1, capped))
       // Ticked as ✓ would, rest and superset included; a set ticked
       // meanwhile keeps its tick, with the new time
       if (!timedSet.done) return workoutReducer(next, { type: 'toggleSet', exercise: timed.exercise, set: timed.set, now: action.now })
@@ -667,8 +703,8 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
     }
     case 'pauseStopwatch':
       // A second Pause would move the pause's moment and lose the seconds
-      // between the two
-      if (next.stopwatch && !next.stopwatch.paused_at) next.stopwatch.paused_at = action.now
+      // between the two. None during the countdown, which counts nothing
+      if (next.stopwatch && !next.stopwatch.paused_at && countdownLeft(next.stopwatch, new Date(action.now)) === 0) next.stopwatch.paused_at = action.now
       break
     case 'resumeStopwatch':
       if (next.stopwatch?.paused_at) {
