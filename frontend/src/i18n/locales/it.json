@@ -41,6 +41,14 @@
     "languageHint": "Testi, numeri e date: {{weight}}",
     "themeHint": "Lo scuro affatica meno gli occhi in palestra.",
     "workoutTitle": "Allenamento",
+    "appTitle": "App",
+    "groups": {
+      "weights": "Pesi",
+      "timers": "Timer",
+      "sound": "Suono e vibrazione",
+      "plans": "Piani",
+      "display": "Interfaccia"
+    },
     "unit": "Unità di peso",
     "unitHint": "Come vengono mostrati e scritti i pesi. Sono salvati in chilogrammi, quindi nulla viene convertito.",
     "unitBusy": "Prima concludi l'allenamento in corso: i suoi pesi sono scritti nell'unità attuale.",
@@ -54,10 +62,10 @@
     "countdownNone": "Nessuno",
     "step": "Passo del peso",
     "stepHint": "Di quanto − e + cambiano il peso in modalità allenamento.",
-    "sound": "Suono a fine recupero",
-    "soundHint": "Due brevi bip.",
-    "vibration": "Vibrazione a fine recupero",
-    "vibrationHint": "Sui telefoni che vibrano (non gli iPhone).",
+    "sound": "Suono",
+    "soundHint": "Bip a fine recupero, nel conto alla rovescia di una serie a tempo e quando finisce una tenuta.",
+    "vibration": "Vibrazione",
+    "vibrationHint": "Negli stessi momenti, sui telefoni che vibrano (non gli iPhone).",
     "rpe": "RPE nelle schede",
     "rpeHint": "Uno sforzo da 1 a 10 accanto alle ripetizioni, nell'editor della scheda."
   },
@@ -68,6 +76,7 @@
   },
   "server": {
     "title": "Server",
+    "status": "Stato",
     "checking": "Verifica della connessione…",
     "online": "Connesso",
     "offline": "Non raggiungibile: lo stack Docker è avviato?",

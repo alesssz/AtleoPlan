@@ -1,6 +1,7 @@
 /*
- * Profile's workout preferences: weight unit, default rest, countdown before
- * a timed set, weight step, sound and vibration, RPE in plans. Each change is saved at once,
+ * Profile's workout preferences, the Workout tab, in short groups: Weights
+ * (unit, step), Timers (default rest, countdown before a timed set), Sound
+ * and vibration, Plans (RPE). Each change is saved at once,
  * optimistically, like the language and the theme.
  *
  * The unit is locked while a workout is in progress: its fields hold text
@@ -12,6 +13,7 @@ import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCurrentUser, useUpdatePreferences, type User } from '@/api/auth'
 import { formatSeconds } from '@/components/plans/plan-format'
+import { SettingGroup } from '@/components/SettingGroup'
 import { SettingRow } from '@/components/SettingRow'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
@@ -84,9 +86,8 @@ export function WorkoutPreferences() {
   }
 
   return (
-    <section aria-labelledby="workout-prefs-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
-      <h2 id="workout-prefs-title" className="font-heading text-lg font-extrabold tracking-tight">{t('preferences.workoutTitle')}</h2>
-      <div className="divide-y divide-border">
+    <div className="flex flex-col gap-6">
+      <SettingGroup title={t('preferences.groups.weights')}>
         <SettingRow icon={Weight} label={t('preferences.unit')} description={busy ? t('preferences.unitBusy') : t('preferences.unitHint')} controlId={unitId}>
           <Select value={unit} disabled={busy} onValueChange={value => changeUnit(value as WeightUnit)}>
             <SelectTrigger id={unitId} className="h-11 w-full rounded-xl sm:w-56">
@@ -98,7 +99,21 @@ export function WorkoutPreferences() {
             </SelectContent>
           </Select>
         </SettingRow>
+        <SettingRow icon={SlidersHorizontal} label={t('preferences.step')} description={t('preferences.stepHint')} controlId={stepId}>
+          <Select value={stepValue(step)} onValueChange={value => updatePreferences.mutate({ weight_step: value })}>
+            <SelectTrigger id={stepId} className="h-11 w-full rounded-xl sm:w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {withCurrent(STEP_CHOICES[unit], step).map(choice => (
+                <SelectItem key={choice} value={stepValue(choice)}>{formatWeight(choice, language, unit)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingRow>
+      </SettingGroup>
 
+      <SettingGroup title={t('preferences.groups.timers')}>
         <SettingRow icon={Timer} label={t('preferences.rest')} description={t('preferences.restHint')} controlId={restId}>
           <Select value={String(user.default_rest_seconds)} onValueChange={value => updatePreferences.mutate({ default_rest_seconds: Number(value) })}>
             <SelectTrigger id={restId} className="h-11 w-full rounded-xl sm:w-56">
@@ -113,7 +128,6 @@ export function WorkoutPreferences() {
             </SelectContent>
           </Select>
         </SettingRow>
-
         <SettingRow icon={Hourglass} label={t('preferences.countdown')} description={t('preferences.countdownHint')} controlId={countdownId}>
           <Select value={String(user.countdown_seconds)} onValueChange={value => updatePreferences.mutate({ countdown_seconds: Number(value) })}>
             <SelectTrigger id={countdownId} className="h-11 w-full rounded-xl sm:w-56">
@@ -128,31 +142,22 @@ export function WorkoutPreferences() {
             </SelectContent>
           </Select>
         </SettingRow>
+      </SettingGroup>
 
-        <SettingRow icon={SlidersHorizontal} label={t('preferences.step')} description={t('preferences.stepHint')} controlId={stepId}>
-          <Select value={stepValue(step)} onValueChange={value => updatePreferences.mutate({ weight_step: value })}>
-            <SelectTrigger id={stepId} className="h-11 w-full rounded-xl sm:w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {withCurrent(STEP_CHOICES[unit], step).map(choice => (
-                <SelectItem key={choice} value={stepValue(choice)}>{formatWeight(choice, language, unit)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingRow>
-
-        <SettingRow icon={Volume2} label={t('preferences.sound')} description={t('preferences.soundHint')} controlId={soundId}>
+      <SettingGroup title={t('preferences.groups.sound')}>
+        <SettingRow icon={Volume2} label={t('preferences.sound')} description={t('preferences.soundHint')} inline controlId={soundId}>
           <Switch id={soundId} size="lg" checked={user.timer_sound} onCheckedChange={checked => updatePreferences.mutate({ timer_sound: checked })} />
         </SettingRow>
-        <SettingRow icon={Vibrate} label={t('preferences.vibration')} description={t('preferences.vibrationHint')} controlId={vibrationId}>
+        <SettingRow icon={Vibrate} label={t('preferences.vibration')} description={t('preferences.vibrationHint')} inline controlId={vibrationId}>
           <Switch id={vibrationId} size="lg" checked={user.timer_vibration} onCheckedChange={checked => updatePreferences.mutate({ timer_vibration: checked })} />
         </SettingRow>
+      </SettingGroup>
 
-        <SettingRow icon={Gauge} label={t('preferences.rpe')} description={t('preferences.rpeHint')} controlId={rpeId}>
+      <SettingGroup title={t('preferences.groups.plans')}>
+        <SettingRow icon={Gauge} label={t('preferences.rpe')} description={t('preferences.rpeHint')} inline controlId={rpeId}>
           <Switch id={rpeId} size="lg" checked={user.show_rpe} onCheckedChange={checked => updatePreferences.mutate({ show_rpe: checked })} />
         </SettingRow>
-      </div>
-    </section>
+      </SettingGroup>
+    </div>
   )
 }

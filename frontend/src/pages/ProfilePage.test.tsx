@@ -1,7 +1,7 @@
 /*
  * With the real guards, so signing out really ends on the sign-in form.
  */
-import { screen, waitFor, within } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { storeActiveSession } from '@/components/workout/session-storage'
@@ -17,7 +17,7 @@ const routes = [
   { element: <RequireAuth />, children: [{ path: 'profile', element: <ProfilePage /> }] },
 ]
 
-/** The server's health, which Profile's last card reads. */
+/** The server's health, which the About tab reads. */
 const health = { status: 200, body: { status: 'ok' } }
 
 /**
@@ -38,9 +38,50 @@ describe('ProfilePage', () => {
     expect(screen.getByText('ann@example.com')).toBeInTheDocument()
   })
 
+  it('opens on the Workout tab, and keeps the tab chosen in the address', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/health': health })
+    const { router } = renderRoutes(routes, '/profile')
+    const user = userEvent.setup()
+
+    const tabs = await screen.findByRole('tablist', { name: 'Preferences' })
+    expect(within(tabs).getAllByRole('tab').map(tab => tab.textContent)).toEqual(['Workout', 'App', 'About'])
+    expect(within(tabs).getByRole('tab', { name: 'Workout' })).toHaveAttribute('aria-selected', 'true')
+    // In short titled groups, each a region
+    const workout = screen.getByRole('tabpanel', { name: 'Workout' })
+    expect(within(workout).getAllByRole('region').map(group => group.getAttribute('aria-labelledby') && document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent)).toEqual(['Weights', 'Timers', 'Sound and vibration', 'Plans'])
+    expect(within(workout).getByRole('region', { name: 'Weights' })).toContainElement(screen.getByRole('combobox', { name: 'Weight step' }))
+    expect(within(workout).getByRole('region', { name: 'Timers' })).toContainElement(screen.getByRole('combobox', { name: 'Countdown' }))
+    expect(within(workout).getByRole('region', { name: 'Sound and vibration' })).toContainElement(screen.getByRole('switch', { name: 'Vibration' }))
+    // The other tabs are not drawn until opened
+    expect(screen.queryByRole('combobox', { name: 'Language' })).not.toBeInTheDocument()
+
+    await user.click(within(tabs).getByRole('tab', { name: 'App' }))
+    const display = within(screen.getByRole('tabpanel', { name: 'App' })).getByRole('region', { name: 'Display' })
+    expect(display).toContainElement(screen.getByRole('combobox', { name: 'Language' }))
+    expect(display).toContainElement(screen.getByRole('combobox', { name: 'Theme' }))
+    expect(router.state.location.search).toBe('?tab=app')
+
+    // Back to Workout: the address loses the tab, the default
+    await user.click(within(tabs).getByRole('tab', { name: 'Workout' }))
+    expect(router.state.location.search).toBe('')
+  })
+
+  it('opens the tab in the address, and Workout for an unknown one', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/health': health })
+    renderRoutes(routes, '/profile?tab=about')
+
+    expect(await screen.findByRole('tab', { name: 'About' })).toHaveAttribute('aria-selected', 'true')
+    expect(within(screen.getByRole('tabpanel', { name: 'About' })).getByRole('region', { name: 'Server' })).toHaveTextContent('Status')
+    cleanup()
+
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/health': health })
+    renderRoutes(routes, '/profile?tab=nonsense')
+    expect(await screen.findByRole('tab', { name: 'Workout' })).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('links an admin to the admin panel, in a new tab', async () => {
     fakeApi({ 'GET /api/user': signedInAs({ ...testUser, is_admin: true, admin_url: 'http://localhost:8500/admin' }), 'GET /api/health': health })
-    renderRoutes(routes, '/profile')
+    renderRoutes(routes, '/profile?tab=about')
 
     const card = await screen.findByRole('region', { name: 'Administration' })
     const link = within(card).getByRole('link', { name: 'Open' })
@@ -50,9 +91,9 @@ describe('ProfilePage', () => {
 
   it('shows no admin panel to anyone else', async () => {
     fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/health': health })
-    renderRoutes(routes, '/profile')
+    renderRoutes(routes, '/profile?tab=about')
 
-    expect(await screen.findByText('Ann')).toBeInTheDocument()
+    expect(await screen.findByRole('tabpanel', { name: 'About' })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Administration' })).not.toBeInTheDocument()
   })
 
@@ -107,7 +148,7 @@ describe('ProfilePage', () => {
     renderRoutes(routes, '/profile')
     const user = userEvent.setup()
 
-    const card = await screen.findByRole('region', { name: 'Workout' })
+    const card = await screen.findByRole('tabpanel', { name: 'Workout' })
     expect(within(card).getByRole('combobox', { name: 'Weight unit' })).toHaveTextContent('Kilograms (kg)')
     expect(within(card).getByRole('combobox', { name: 'Default rest' })).toHaveTextContent('90 sec')
     expect(within(card).getByRole('combobox', { name: 'Weight step' })).toHaveTextContent('2.5 kg')
@@ -119,7 +160,7 @@ describe('ProfilePage', () => {
     await user.click(await screen.findByRole('option', { name: '10 sec' }))
     await user.click(within(card).getByRole('combobox', { name: 'Weight step' }))
     await user.click(await screen.findByRole('option', { name: '1.25 kg' }))
-    const sound = within(card).getByRole('switch', { name: 'Sound at the end of the rest' })
+    const sound = within(card).getByRole('switch', { name: 'Sound' })
     expect(sound).toHaveAttribute('aria-checked', 'true')
     await user.click(sound)
     // waitFor: the cached user changes after an `await` in the hook
