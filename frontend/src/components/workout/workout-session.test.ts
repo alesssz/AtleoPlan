@@ -145,6 +145,15 @@ describe('the stopwatch', () => {
     expect(session.rest).toEqual({ ends_at: at(102.7), total: 60 })
   })
 
+  it('stops when its set is ticked, with the time measured rather than the one pre-filled', () => {
+    // The set holds 30 seconds; the stopwatch ran 12
+    const session = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10) }, { type: 'toggleSet', exercise: 0, set: 0, now: at(22.4) })
+
+    expect(session.stopwatch).toBeNull()
+    expect(session.exercises[0]?.sets[0]).toMatchObject({ seconds: '12', done: true, completed_at: at(22.4) })
+    expect(session.rest).toEqual({ ends_at: at(82.4), total: 60 })
+  })
+
   it('has no target on an empty set, and records at least a second', () => {
     const started = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 1, now: at(10) })
     const stopped = run(started, { type: 'stopStopwatch', now: at(10.2) })

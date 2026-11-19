@@ -14,6 +14,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [OPS-3 Deploy to the free server](#ops-3-deploy-to-the-free-server)
   - [OPS-5 Drop the minimatch override](#ops-5-drop-the-minimatch-override)
   - [OPS-6 Drop the glob override](#ops-6-drop-the-glob-override)
+  - [OPS-7 The frontend tests fail from a lower-case drive on Windows](#ops-7-the-frontend-tests-fail-from-a-lower-case-drive-on-windows)
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
@@ -32,7 +33,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-14 A superset on one screen](#feat-14-a-superset-on-one-screen)
   - [FEAT-15 A countdown before a timed set](#feat-15-a-countdown-before-a-timed-set)
   - [FEAT-16 A hold stops at its target](#feat-16-a-hold-stops-at-its-target)
-  - [FEAT-17 Ticking a timed set leaves its stopwatch running](#feat-17-ticking-a-timed-set-leaves-its-stopwatch-running)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
@@ -70,7 +70,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [UI-10](#ui-10-when-a-past-workout-started-and-ended), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound), [FEAT-14](#feat-14-a-superset-on-one-screen), [FEAT-15](#feat-15-a-countdown-before-a-timed-set), [FEAT-16](#feat-16-a-hold-stops-at-its-target), [FEAT-17](#feat-17-ticking-a-timed-set-leaves-its-stopwatch-running). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [UI-10](#ui-10-when-a-past-workout-started-and-ended), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound), [FEAT-14](#feat-14-a-superset-on-one-screen), [FEAT-15](#feat-15-a-countdown-before-a-timed-set), [FEAT-16](#feat-16-a-hold-stops-at-its-target). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 ## OPS
 
@@ -114,6 +114,20 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 **What is missing.** `frontend/package.json` forces `workbox-build`'s `glob` to 14: its own range, `^11.0.1`, finds no file with the forced `minimatch` 11 ([H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)), and 11 has an advisory fixed only in 14. Build time only, but a version `workbox-build` was not tested with.
 
 **Recommended.** When `workbox-build` (through `vite-plugin-pwa`) accepts `glob` 14, remove the scoped override and its line in the `"//"` note, `npm install`, `npm ls glob`, then `make fe-build` must still list the precached files; in a `chore/…` branch with `make check`.
+
+### OPS-7 The frontend tests fail from a lower-case drive on Windows
+
+**Priority:** medium · **Kind:** tooling, Windows · **Found:** 2026-11-19
+
+**What is missing.** With Git Bash opened in `d:\Progetti\AtleoPlan` (lower case, as VS Code may open it), `make check` and `make fe-test` fail every test file with **"Vitest failed to find the runner"** at `src/test/setup.ts`, before any test runs. `npm --prefix frontend` starts Vitest from the root's `d:\…`, while paths resolved inside `frontend/` come out as `D:\…`: the setup file's `vitest` and the runner are two copies of the module. The same command from `D:\…` (`cd /D/Progetti/AtleoPlan`), or `npm test` inside `frontend/`, passes. CI, on Linux, never sees it.
+
+**Where.** `Makefile` (`NPM := npm --prefix frontend`, used by every frontend target); S1.10 for the symptom.
+
+**Options.**
+- A) The frontend targets run npm from inside the folder: `NPM := cd frontend && npm`, so the working directory is always the one Node resolves.
+- B) A row in S1.10 only: open the terminal in `D:\…`.
+
+**Recommended.** A, plus the S1.10 row for anyone running Vitest by hand from the root. Done when `make check` passes from `cd /d/Progetti/AtleoPlan`.
 
 ## UI
 
@@ -319,24 +333,10 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 **Where.** `StopwatchPanel.tsx` (the timeout at `stopwatchTargetAt()`), `stopStopwatch` in `workout-session.ts`.
 
 **Options.**
-- A) With a target and not done as fast as possible, the stopwatch stops itself at the target: the panel's timeout dispatches `stopStopwatch`, which writes the target (not the seconds elapsed, so a timer firing late, with the screen off, still writes 30), ticks the set and starts the rest. The bar counts down ("0:12 left") instead of up. Races ([C1.17.9](../concepts/C1-frontend.md#c1179-exercises-done-as-fast-as-possible)) and holds with no target keep counting until Stop or ✓ ([FEAT-17](#feat-17-ticking-a-timed-set-leaves-its-stopwatch-running)).
+- A) With a target and not done as fast as possible, the stopwatch stops itself at the target: the panel's timeout dispatches `stopStopwatch`, which writes the target (not the seconds elapsed, so a timer firing late, with the screen off, still writes 30), ticks the set and starts the rest. The bar counts down ("0:12 left") instead of up. Races ([C1.17.9](../concepts/C1-frontend.md#c1179-exercises-done-as-fast-as-possible)) and holds with no target keep counting until Stop or ✓.
 - B) The same, with **Keep going** in the panel to hold past the target and beat it.
 
 **Recommended.** A; B if holding past the target is missed. Done when a 30 s hold ends at 0:30 with 30 written and the rest started, also when the page was in the background at that moment.
-
-### FEAT-17 Ticking a timed set leaves its stopwatch running
-
-**Priority:** medium · **Kind:** bug · **Found:** 2026-11-19
-
-**What is missing.** While the stopwatch times a set, that set's ✓ is enabled (its time field is pre-filled from the plan or last time), and `toggleSet` does not touch the stopwatch: ✓ ticks the set with the pre-filled time, not the one measured, and the stopwatch keeps running at the bottom. On "50 push-ups as fast as possible" ✓ is the natural tap at the end, and it saves the wrong time.
-
-**Where.** `toggleSet` and `stopStopwatch` in `workout-session.ts`, `SetRow.tsx` (its `stopwatch` prop).
-
-**Options.**
-- A) ✓ on the set being timed does what **Stop** does: `toggleSet` sees `stopwatch.set_id === set.id` and hands over to `stopStopwatch`, which writes the seconds and ticks.
-- B) ✓ disabled on that set while its stopwatch runs, so only Stop ends it.
-
-**Recommended.** A: either tap ends the set with the time measured. Done with a reducer test (✓ during a run writes the elapsed seconds and clears the stopwatch) and one on the page.
 
 ## BE
 

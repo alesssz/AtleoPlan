@@ -531,6 +531,9 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
   switch (action.type) {
     case 'toggleSet': {
       if (!exercise || !set) break
+      // ✓ on the set being timed ends it as Stop does: with the time
+      // measured, not the one pre-filled, and the stopwatch gone
+      if (!set.done && next.stopwatch?.set_id === set.id) return workoutReducer(next, { type: 'stopStopwatch', now: action.now })
       if (set.done) {
         // Unticking leaves the rest timer alone
         set.done = false

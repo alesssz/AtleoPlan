@@ -505,9 +505,11 @@ describe('WorkoutPage', () => {
     const panel = screen.getByRole('region', { name: 'Stopwatch' })
     expect(within(panel).getByText(/· 50 reps · Pushups/)).toBeInTheDocument()
     expect(within(panel).getByText('To beat 1:12')).toBeInTheDocument()
-    await user.click(within(panel).getByRole('button', { name: 'Stop' }))
+    // ✓ at the end of the reps, as Stop would: the stopwatch goes
+    await user.click(screen.getByRole('button', { name: 'Tick: Set 1' }))
+    expect(screen.queryByRole('region', { name: 'Stopwatch' })).not.toBeInTheDocument()
 
-    // Ticked with its time, the reps kept
+    // Ticked with the time measured, not last time's 1:12; the reps kept
     expect(screen.getByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Set 1, Seconds: 1' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Set 1, Reps: 50' })).toBeInTheDocument()

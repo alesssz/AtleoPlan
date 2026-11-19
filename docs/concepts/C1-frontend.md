@@ -1066,11 +1066,12 @@ stopwatchSeconds(stopwatch, now)   // (now or paused_at) − started_at − paus
 - **Starting ends the rest,** if one was running.
 - **Pausing stores `paused_at`;** Resume adds the pause to `paused_ms` and clears it. A second Pause is ignored (moving `paused_at` would lose the seconds between). Stop while paused writes the time at the pause.
 - **One stopwatch at a time:** while one runs, every other ▶ is disabled (`SetRow`'s `stopwatch`: `'this'` or `'other'`).
+- **✓ on the set being timed is Stop:** `toggleSet` hands over to `stopStopwatch`, so the time written is the one measured, not the one pre-filled from the plan or last time. That ✓ stays enabled while its seconds are empty, since the stopwatch fills them.
 
 | Action | Does |
 |---|---|
 | `startStopwatch` | `{ set_id, started_at: now, target }`, ends the rest; nothing on a completed set |
-| `stopStopwatch` | Writes the seconds (at least 1, the backend's minimum), then calls `workoutReducer` recursively with `toggleSet`, so ticking has one set of rules |
+| `stopStopwatch` | Writes the seconds (at least 1, the backend's minimum), then calls `workoutReducer` recursively with `toggleSet`, so ticking has one set of rules; `toggleSet` on the timed set comes here first |
 | `pauseStopwatch` / `resumeStopwatch` | As above |
 | `cancelStopwatch`, `finish` | Forget it; the set is unchanged |
 
