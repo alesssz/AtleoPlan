@@ -172,8 +172,9 @@ The schema builder has no check constraints, so they are added with `DB::stateme
 | `weight_unit` | enum `kg`, `lb` | `kg` | Which unit to show and read ([D3.2.3](#d323-weights-are-always-in-kilograms)) |
 | `default_rest_seconds` | integer | 90 | Used when a plan item sets no rest |
 | `weight_step` | numeric(5,2) | 2.5 | The stepper's step in workout mode, in the user's unit |
-| `timer_sound` | boolean | true | Sound when the rest ends, and when a timed set's stopwatch reaches its target |
+| `timer_sound` | boolean | true | Sound when the rest ends, during the countdown before a timed set, and when a hold reaches its target |
 | `timer_vibration` | boolean | true | Vibration at the same moments |
+| `countdown_seconds` | integer | 5 | Seconds to get ready after ▶ on a timed set, before the stopwatch counts; 0 starts it at once |
 | `show_rpe` | boolean | false | Whether the plan editor shows the RPE field beside each set's reps ([D1.4.8](D1-ui.md#d148-plan-editor)) |
 | `active_plan_id` | uuid, nullable → `plans`, set to empty | | The one active plan ([D2.8](D2-decisions.md#d28-workout-rules)) |
 

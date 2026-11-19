@@ -23,6 +23,7 @@ export const testUser: User = {
   weight_step: '2.50',
   timer_sound: true,
   timer_vibration: true,
+  countdown_seconds: 5,
   show_rpe: false,
 }
 

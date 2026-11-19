@@ -1,4 +1,4 @@
-import { cleanup, screen, within } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { SessionInput } from '@/api/sessions'
@@ -330,20 +330,29 @@ describe('WorkoutPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Start the stopwatch: Set 1' }))
 
-    // Docked under the sets, not over them: the exercise, the time from 0,
-    // the target and last time; the table still there for screen readers
-    // too (a dialog would hide it), the set timed marked, every ▶ off
+    // Docked under the sets, not over them: the exercise and last time; the
+    // table still there for screen readers too (a dialog would hide it), the
+    // set timed marked, every ▶ off
     const panel = screen.getByRole('region', { name: 'Stopwatch' })
     expect(within(panel).getByText(/Dead Hang/)).toBeInTheDocument()
-    expect(within(panel).getByRole('timer')).toHaveTextContent('0:00')
-    expect(within(panel).getByText('Target 0:45')).toBeInTheDocument()
     expect(within(panel).getByText('Last time 0:45')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tick: Set 1' }).closest('li')).toHaveAttribute('aria-current', 'true')
     expect(screen.getByRole('button', { name: 'Start the stopwatch: Set 1' })).toBeDisabled()
-    // Stop has the focus: the ▶ tapped is disabled
-    expect(within(panel).getByRole('button', { name: 'Stop' })).toHaveFocus()
+    // First 5 seconds to get ready, with no Pause, which would count nothing;
+    // Start now has the focus, as the ▶ tapped is disabled
+    expect(within(panel).getByRole('timer')).toHaveTextContent('5')
+    expect(within(panel).queryByRole('button', { name: 'Pause the stopwatch' })).not.toBeInTheDocument()
+    const main = within(panel).getByRole('button', { name: 'Start now' })
+    expect(main).toHaveFocus()
     // Kept on the phone: closing the app does not lose it
     expect(loadActiveSession()?.stopwatch?.target).toBe(45)
+
+    // Start now: the hold counts down its 45 seconds; the same button, with
+    // the focus, is now Stop
+    await user.click(main)
+    await waitFor(() => expect(within(panel).getByRole('timer')).toHaveTextContent('0:45'))
+    expect(within(panel).getByText('Target 0:45')).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Stop' })).toHaveFocus()
 
     // Pause: said under the time, kept on the phone; Resume goes on
     await user.click(within(panel).getByRole('button', { name: 'Pause the stopwatch' }))
@@ -360,6 +369,41 @@ describe('WorkoutPage', () => {
     expect(screen.getByRole('button', { name: 'Set 1, Seconds: 1' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Rest' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Start the stopwatch: Set 1' })).not.toBeInTheDocument()
+  })
+
+  it('stops a hold by itself at its target, and starts the rest', async () => {
+    // A plank aiming at 30 seconds, counting for 29.5 already
+    const session = startFreeSession(new Date())
+    session.exercises = [exerciseFrom(testExercise({ id: 91, name: 'Plank', logging_type: 'time' }), [], { unit: 'kg', language: 'en', defaultRestSeconds: 90 })]
+    const set = session.exercises[0]!.sets[0]!
+    set.seconds = '30'
+    session.stopwatch = { set_id: set.id, started_at: new Date(Date.now() - 29_500).toISOString(), target: 30 }
+    storeActiveSession(session)
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, `/session/${session.id}`)
+
+    expect(await screen.findByRole('region', { name: 'Stopwatch' })).toBeInTheDocument()
+    // Half a second later, nothing tapped
+    expect(await screen.findByRole('region', { name: 'Rest' }, { timeout: 3000 })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Stopwatch' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Set 1, Seconds: 30' })).toBeInTheDocument()
+  })
+
+  it('stops a hold whose target passed while the app was closed, with the target as its time', async () => {
+    // Started a minute ago, aiming at 30 seconds
+    const session = startFreeSession(new Date())
+    session.exercises = [exerciseFrom(testExercise({ id: 91, name: 'Plank', logging_type: 'time' }), [], { unit: 'kg', language: 'en', defaultRestSeconds: 90 })]
+    const set = session.exercises[0]!.sets[0]!
+    set.seconds = '30'
+    session.stopwatch = { set_id: set.id, started_at: new Date(Date.now() - 60_000).toISOString(), target: 30 }
+    storeActiveSession(session)
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, `/session/${session.id}`)
+
+    expect(await screen.findByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Set 1, Seconds: 30' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Stopwatch' })).not.toBeInTheDocument()
   })
 
   it('shows a time past a minute as minutes and seconds, in the row and in the stepper', async () => {
@@ -504,6 +548,9 @@ describe('WorkoutPage', () => {
     await user.click(screen.getByRole('button', { name: 'Start the stopwatch: Set 1' }))
     const panel = screen.getByRole('region', { name: 'Stopwatch' })
     expect(within(panel).getByText(/· 50 reps · Pushups/)).toBeInTheDocument()
+    await user.click(within(panel).getByRole('button', { name: 'Start now' }))
+    // Counting up from 0, unlike a hold
+    await waitFor(() => expect(within(panel).getByRole('timer')).toHaveTextContent('0:00'))
     expect(within(panel).getByText('To beat 1:12')).toBeInTheDocument()
     // ✓ at the end of the reps, as Stop would: the stopwatch goes
     await user.click(screen.getByRole('button', { name: 'Tick: Set 1' }))

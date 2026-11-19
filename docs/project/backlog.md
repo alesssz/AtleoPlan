@@ -31,8 +31,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-12 Choose the sound at the end of a rest or a timed set](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set)
   - [FEAT-13 The volume of the sound](#feat-13-the-volume-of-the-sound)
   - [FEAT-14 A superset on one screen](#feat-14-a-superset-on-one-screen)
-  - [FEAT-15 A countdown before a timed set](#feat-15-a-countdown-before-a-timed-set)
-  - [FEAT-16 A hold stops at its target](#feat-16-a-hold-stops-at-its-target)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
@@ -70,7 +68,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [UI-10](#ui-10-when-a-past-workout-started-and-ended), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound), [FEAT-14](#feat-14-a-superset-on-one-screen), [FEAT-15](#feat-15-a-countdown-before-a-timed-set), [FEAT-16](#feat-16-a-hold-stops-at-its-target). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [UI-10](#ui-10-when-a-past-workout-started-and-ended), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound), [FEAT-14](#feat-14-a-superset-on-one-screen). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 ## OPS
 
@@ -271,9 +269,9 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 
 **Priority:** low · **Kind:** missing preference · **Found:** 2026-11-19
 
-**What is missing.** The end of a rest, and a timed set reaching its target, always play the same two 880 Hz beeps (`restOver()` in `lib/alarm.ts`); Profile can only turn the sound and the vibration on or off (`timer_sound`, `timer_vibration`, [D3.3](../design/D3-data-model.md#d33-users-and-preferences)). In a loud gym, or with music in the earphones, a different tone may be the one that gets noticed.
+**What is missing.** The end of a rest, and a hold reaching its target, always play the same two 880 Hz beeps (`restOver()` in `lib/alarm.ts`), and the countdown before a timed set its fixed ticks (`countdownStep()`); Profile can only turn the sound and the vibration on or off (`timer_sound`, `timer_vibration`, [D3.3](../design/D3-data-model.md#d33-users-and-preferences)). In a loud gym, or with music in the earphones, a different tone may be the one that gets noticed.
 
-**Where.** `lib/alarm.ts` (`beep()`, the tones); `WorkoutPreferences.tsx`; the users table, `UpdatePreferencesRequest`, `UserResource`, `User` in `api/auth.ts`.
+**Where.** `lib/alarm.ts` (`restOver()`, `countdownStep()`, the tones they pass to `play()`); `WorkoutPreferences.tsx`; the users table, `UpdatePreferencesRequest`, `UserResource`, `User` in `api/auth.ts`.
 
 **Options.**
 - A) A few synthesised tones (two beeps, three rising beeps, a long tone, a bell made of two detuned oscillators), chosen in Profile with a ▶ to hear it; a new column `timer_tone` (string, default the current beeps) beside `timer_sound`, which stays the on/off switch. No sound files: nothing to precache, works offline.
@@ -285,7 +283,7 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 
 **Priority:** low · **Kind:** missing preference · **Found:** 2026-11-19
 
-**What is missing.** The beep plays at a fixed gain of 0.25 (`beep()` in `lib/alarm.ts`): too quiet over music for some, too loud for others, and the phone's own volume changes every other sound too.
+**What is missing.** Every tone plays at a fixed gain of 0.25 (`play()` in `lib/alarm.ts`): too quiet over music for some, too loud for others, and the phone's own volume changes every other sound too.
 
 **Where.** As [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set): `lib/alarm.ts`, `WorkoutPreferences.tsx`, the users table and its request, resource and type.
 
@@ -309,34 +307,6 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - C) Keep one exercise per screen, but move to B by itself after a tick of A.
 
 **Recommended.** A: the ticked set stays in sight (the reason C was refused) and the whole superset is readable at a glance. Done when a two- and a three-exercise superset run on one screen, a timed member's stopwatch works there, and the tests of workout mode follow the new screen.
-
-### FEAT-15 A countdown before a timed set
-
-**Priority:** medium · **Kind:** workout mode · **Found:** 2026-11-19
-
-**What is missing.** ▶ on a timed set starts the stopwatch at once ([C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set)): the seconds spent putting the phone down and getting into position count as work.
-
-**Where.** `startStopwatch` in `workout-session.ts`, `stopwatchSeconds()`, `StopwatchPanel.tsx`, `lib/alarm.ts`.
-
-**Options.**
-- A) `startStopwatch` sets `started_at` 5 seconds ahead. While `now < started_at` the panel shows "Get ready 5, 4, 3…" with a short tick each second and a different one at 0; `stopwatchSeconds()` already clamps to 0. Persisted for free, like the rest. **Start now** skips the wait; Cancel works as today.
-- B) The same, with the length as a preference (off, 3, 5, 10 s): a column more, for a choice few will change.
-
-**Recommended.** A with a fixed 5 s; B only if 5 turns out wrong for someone. Done when ▶ waits 5 s before counting, Start now skips it, and a reload during the countdown keeps it.
-
-### FEAT-16 A hold stops at its target
-
-**Priority:** medium · **Kind:** workout mode · **Found:** 2026-11-19
-
-**What is missing.** A hold with a target (a plank for 30 s) beeps at 0:30 but keeps counting until **Stop** ([C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set)): the user has to reach for the phone at the end of the hold, and the time written is whatever it shows by then. An exercise that lasts a set time should end there, by itself.
-
-**Where.** `StopwatchPanel.tsx` (the timeout at `stopwatchTargetAt()`), `stopStopwatch` in `workout-session.ts`.
-
-**Options.**
-- A) With a target and not done as fast as possible, the stopwatch stops itself at the target: the panel's timeout dispatches `stopStopwatch`, which writes the target (not the seconds elapsed, so a timer firing late, with the screen off, still writes 30), ticks the set and starts the rest. The bar counts down ("0:12 left") instead of up. Races ([C1.17.9](../concepts/C1-frontend.md#c1179-exercises-done-as-fast-as-possible)) and holds with no target keep counting until Stop or ✓.
-- B) The same, with **Keep going** in the panel to hold past the target and beat it.
-
-**Recommended.** A; B if holding past the target is missed. Done when a 30 s hold ends at 0:30 with 30 written and the rest started, also when the page was in the background at that moment.
 
 ## BE
 

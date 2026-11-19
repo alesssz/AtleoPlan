@@ -24,7 +24,7 @@ use Illuminate\Notifications\Notifiable;
  * is_admin, disabled_at and active_plan_id are not fillable: no request can
  * make someone an admin, re-enable an account or point to another user's plan.
  */
-#[Fillable(['name', 'email', 'password', 'locale', 'theme', 'weight_unit', 'default_rest_seconds', 'weight_step', 'timer_sound', 'timer_vibration', 'show_rpe'])]
+#[Fillable(['name', 'email', 'password', 'locale', 'theme', 'weight_unit', 'default_rest_seconds', 'weight_step', 'timer_sound', 'timer_vibration', 'countdown_seconds', 'show_rpe'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasLocalePreference
 {
@@ -50,6 +50,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
             'weight_step' => 'decimal:2',
             'timer_sound' => 'boolean',
             'timer_vibration' => 'boolean',
+            'countdown_seconds' => 'integer',
             'show_rpe' => 'boolean',
         ];
     }

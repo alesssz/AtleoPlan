@@ -32,6 +32,8 @@ export interface User {
   weight_step: string
   timer_sound: boolean
   timer_vibration: boolean
+  /** Seconds to get ready after ▶ on a timed set; 0 starts the stopwatch at once. */
+  countdown_seconds: number
   /** Whether the plan editor shows the RPE field. */
   show_rpe: boolean
 }
@@ -70,6 +72,8 @@ export interface PreferencesData {
   weight_step?: string
   timer_sound?: boolean
   timer_vibration?: boolean
+  /** 0 to 30; 0: no countdown. */
+  countdown_seconds?: number
   show_rpe?: boolean
 }
 

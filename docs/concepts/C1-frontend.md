@@ -453,8 +453,9 @@ So `useUpdatePreferences` is optimistic and never writes an answer into the cach
 |---|---|---|---|
 | Weight unit | Select: kg, lb | `weight_unit` (with `weight_step`) | every weight shown and typed ([D3.2.3](../design/D3-data-model.md#d323-weights-are-always-in-kilograms)) |
 | Default rest | Select: No timer, 30 s … 5 min | `default_rest_seconds` (0 for no timer) | workouts started afterwards, for exercises with no rest of their own |
+| Countdown | Select: None, 3, 5, 10, 15, 30 s | `countdown_seconds` (0 for none) | the stopwatch's next ▶ ([C1.17.8](#c1178-the-stopwatch-of-a-timed-set)) |
 | Weight step | Select: 0.5 … 5 kg, 1 … 10 lb | `weight_step`, text with two decimals (`"1.25"`) | the big stepper ([C1.17.7](#c1177-the-big-stepper-and-the-exercises-menu)) |
-| Sound, Vibration | Switch | `timer_sound`, `timer_vibration` | end of rest, stopwatch target (`lib/alarm.ts`) |
+| Sound, Vibration | Switch | `timer_sound`, `timer_vibration` | end of rest, the stopwatch's countdown and a hold's end (`lib/alarm.ts`) |
 | RPE in plans | Switch | `show_rpe` | the editor's RPE field ([C1.16.9](#c1169-set-types-and-the-rpe-field)) |
 
 - **Select values are text.** The rest goes in as `String(90)` and back as `Number(value)`; the step is compared as `step.toFixed(2)`, the account's own text (`"2.50"`). A value not in the list is added to it (`withCurrent()`), so the Select always shows the account's value.
@@ -1051,36 +1052,42 @@ Two bottom sheets ([D1.4.9](../design/D1-ui.md#d149-workout-mode)), shadcn's `Sh
 
 ### C1.17.8 The stopwatch of a timed set
 
-A set of an exercise logged by time has **▶** before ✓, which opens `StopwatchPanel` **docked at the bottom**, where the rest bar goes: a bar filling towards the target, the elapsed time in large type, the target and **Last time**, **Pause**, **Stop**, **Cancel**. The table stays visible above, the timed set ringed in lime. A full-screen stopwatch would hide the table, the plan's notes and what comes next for the whole set.
+A set of an exercise logged by time has **▶** before ✓, which opens `StopwatchPanel` **docked at the bottom**, where the rest bar goes: first a countdown, then the time in large type, a bar, the target and **Last time**, **Pause**, **Stop**, **Cancel**. The table stays visible above, the timed set ringed in lime. A full-screen stopwatch would hide the table, the plan's notes and what comes next for the whole set.
 
 **A moment, like the rest** (C1.17.4):
 
 ```ts
-session.stopwatch = { set_id: '0192…', started_at: '2026-11-10T18:05:12.000Z', target: 30 }
-stopwatchSeconds(stopwatch, now)   // (now or paused_at) − started_at − paused_ms, in whole seconds
+session.stopwatch = { set_id: '0192…', started_at: '2026-11-10T18:05:17.000Z', target: 30 }   // ▶ at 18:05:12, a 5 s countdown
+countdownLeft(stopwatch, now)      // started_at − now, in whole seconds rounded up; 0 once counting
+stopwatchSeconds(stopwatch, now)   // (now or paused_at) − started_at − paused_ms, in whole seconds; 0 during the countdown
 ```
 
-- **Persisted with the workout,** so screen-off, app restart or reload lose nothing.
+- **Persisted with the workout,** so screen-off, app restart or reload lose nothing, the countdown included.
+- **The countdown is a start in the future:** ▶ stores `started_at` the user's `countdown_seconds` ahead (`FALLBACK_COUNTDOWN_SECONDS`, 5, until the account is read; 0 starts at once), time to put the phone down and get into position. The screen passes it in the action, so the reducer reads no account. No extra field: the count simply has not begun. **Start now** (`skipCountdown`) moves the start to the moment of the tap.
 - **The set by id,** not by index: exercises can be added meanwhile, and `findSet(session, id)` locates it.
-- **The target** is the set's `seconds` when ▶ is tapped (the plan's target or last time's): a time to reach for a hold, a time to beat for reps done as fast as possible (C1.17.9). Empty, there is none.
+- **The target** is the set's `seconds` when ▶ is tapped (the plan's target or last time's): where a hold ends, a time to beat for reps done as fast as possible (C1.17.9). Empty, there is none, and a hold counts up until Stop.
+- **A hold stops at its target** and writes it: `stopStopwatch` caps a hold's seconds at the target (`isForTime()` false), so a stop that comes late (a timer fired with the screen off, the app reopened after it) still writes 30, not 34. A race is never capped: past the time to beat is the result.
 - **Starting ends the rest,** if one was running.
-- **Pausing stores `paused_at`;** Resume adds the pause to `paused_ms` and clears it. A second Pause is ignored (moving `paused_at` would lose the seconds between). Stop while paused writes the time at the pause.
+- **Pausing stores `paused_at`;** Resume adds the pause to `paused_ms` and clears it. A second Pause is ignored (moving `paused_at` would lose the seconds between), and so is a Pause during the countdown, which counts nothing. Stop while paused writes the time at the pause.
 - **One stopwatch at a time:** while one runs, every other ▶ is disabled (`SetRow`'s `stopwatch`: `'this'` or `'other'`).
-- **✓ on the set being timed is Stop:** `toggleSet` hands over to `stopStopwatch`, so the time written is the one measured, not the one pre-filled from the plan or last time. That ✓ stays enabled while its seconds are empty, since the stopwatch fills them.
+- **✓ on the set being timed is Stop:** `toggleSet` hands over to `stopStopwatch`, so the time written is the one measured, not the one pre-filled from the plan or last time. That ✓ stays enabled while its seconds are empty, since the stopwatch fills them. During the countdown nothing was measured: the stopwatch goes and the set is ticked with its own field, as ✓ alone would.
 
 | Action | Does |
 |---|---|
-| `startStopwatch` | `{ set_id, started_at: now, target }`, ends the rest; nothing on a completed set |
-| `stopStopwatch` | Writes the seconds (at least 1, the backend's minimum), then calls `workoutReducer` recursively with `toggleSet`, so ticking has one set of rules; `toggleSet` on the timed set comes here first |
+| `startStopwatch` | `{ set_id, started_at: now + countdown, target }`, ends the rest; nothing on a completed set |
+| `skipCountdown` | `started_at` = now, if still ahead |
+| `stopStopwatch` | Writes the seconds (at least 1, the backend's minimum; a hold's at most its target), then calls `workoutReducer` recursively with `toggleSet`, so ticking has one set of rules; `toggleSet` on the timed set comes here first. During the countdown, writes nothing and ticks |
 | `pauseStopwatch` / `resumeStopwatch` | As above |
 | `cancelStopwatch`, `finish` | Forget it; the set is unchanged |
 
 **The panel.**
 
-- **The bar** is the rest bar's, width `seconds / target`; with no target, the seconds of the current minute. Red once a race's time to beat is passed (C1.17.9).
-- **Its own clock,** `useNow(250)`, so seconds change on time rather than up to a second late.
-- **The target signal** is `restOver()` from a `setTimeout` at `stopwatchTargetAt(stopwatch)` (start + pauses + target; `null` while paused). Resume makes a new `stopwatch` object, so the effect re-arms later by the pause's length. No timer when the moment is already past (it would ring late). "Target reached" is announced (`aria-live`).
-- **A region, not a dialog:** `<section aria-label="Stopwatch">`, like the rest bar's "Rest" region, so the table above stays reachable to screen readers. An effect focuses **Stop** on mount, since the ▶ that had focus is now disabled. Pause toggles its label ("Pause/Resume the stopwatch"); paused, the time greys and pulses. **Cancel**'s accessible name is "Cancel, without saving the time", starting with the visible word so voice control finds it.
+- **The countdown:** "5, 4, 3…" in lime in place of the time, "Get ready" under it (also announced, `aria-live`), **Start now** in place of Stop, no Pause. `countdownStep()` (`lib/alarm.ts`) ticks at 3, 2 and 1 and plays a longer, higher tone at the start, from `setTimeout`s keyed on `started_at`: only those still ahead are set, so the app reopened mid-hold stays quiet, and Start now still gets the start's tone.
+- **What the big number says:** a hold with a target, the time left ("0:12"), like the rest; a hold without one and a race, the time since the start.
+- **The bar** is the rest bar's: shrinking to a hold's end; filling towards a race's time to beat, red once passed (C1.17.9); with no target, the seconds of the current minute.
+- **Its own clock,** `useNow(250, started_at)`, so seconds change on time rather than up to a second late. The key refreshes it at once when Start now moves the start: a start ahead of the last tick would show "1" for a quarter of a second.
+- **A hold's end** is a `setTimeout` at `stopwatchTargetAt(stopwatch)` (start + pauses + target; `null` while paused) that plays `restOver()` and calls `onStop`, which the panel reads through a ref (a new function each render would re-arm the timer four times a second). Resume makes a new `stopwatch` object, so the effect re-arms later by the pause's length. A moment already past (the app reopened after it) stops at once, in silence: the signal would come late, and the reducer writes the target. Races get no timer.
+- **A region, not a dialog:** `<section aria-label="Stopwatch">`, like the rest bar's "Rest" region, so the table above stays reachable to screen readers. An effect focuses the main button on mount, since the ▶ that had focus is now disabled; Start now and Stop are one element, so the focus stays when the count begins. Pause toggles its label ("Pause/Resume the stopwatch"); paused, the time greys and pulses. **Cancel**'s accessible name is "Cancel, without saving the time", starting with the visible word so voice control finds it.
 - **The first line** is "Set 2 · Plank", set first, name truncated.
 
 ### C1.17.9 Exercises done as fast as possible
