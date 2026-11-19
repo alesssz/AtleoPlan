@@ -18,6 +18,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
   - [UI-8 Photos while creating an exercise](#ui-8-photos-while-creating-an-exercise)
+  - [UI-10 When a past workout started and ended](#ui-10-when-a-past-workout-started-and-ended)
 - [FEAT](#feat)
   - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
   - [FEAT-5 New records during a workout](#feat-5-new-records-during-a-workout)
@@ -26,6 +27,12 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-8 Write a plan in a spreadsheet, and import it](#feat-8-write-a-plan-in-a-spreadsheet-and-import-it)
   - [FEAT-10 Google on Profile](#feat-10-google-on-profile)
   - [FEAT-11 Videos of an exercise](#feat-11-videos-of-an-exercise)
+  - [FEAT-12 Choose the sound at the end of a rest or a timed set](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set)
+  - [FEAT-13 The volume of the sound](#feat-13-the-volume-of-the-sound)
+  - [FEAT-14 A superset on one screen](#feat-14-a-superset-on-one-screen)
+  - [FEAT-15 A countdown before a timed set](#feat-15-a-countdown-before-a-timed-set)
+  - [FEAT-16 A hold stops at its target](#feat-16-a-hold-stops-at-its-target)
+  - [FEAT-17 Ticking a timed set leaves its stopwatch running](#feat-17-ticking-a-timed-set-leaves-its-stopwatch-running)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
@@ -63,7 +70,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [UI-10](#ui-10-when-a-past-workout-started-and-ended), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound), [FEAT-14](#feat-14-a-superset-on-one-screen), [FEAT-15](#feat-15-a-countdown-before-a-timed-set), [FEAT-16](#feat-16-a-hold-stops-at-its-target), [FEAT-17](#feat-17-ticking-a-timed-set-leaves-its-stopwatch-running). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 ## OPS
 
@@ -146,6 +153,20 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - C) As it is.
 
 **Recommended.** B first, a one-line change in `useGoToExercise()`; A if B feels like a detour.
+
+### UI-10 When a past workout started and ended
+
+**Priority:** low · **Kind:** missing information · **Found:** 2026-11-19
+
+**What is missing.** History's rows (`SessionRow`) give only the weekday and the day; a workout's page gives the start date and time in its eyebrow, but not when it ended. Two workouts on the same day cannot be told apart in the list, and "when did I train" needs a tap. The data is there: `started_at` and `finished_at` of `workout_sessions` ([D3.6.1](../design/D3-data-model.md#d361-workout_sessions)); [D1.4.11](../design/D1-ui.md#d1411-history) is the screen.
+
+**Where.** `components/history/SessionRow.tsx`, `pages/HistoryDetailPage.tsx` (the `when` eyebrow), the 3 latest on Progress (same row); a helper in `lib/format.ts` for "18:05–19:12" in the user's language.
+
+**Options.**
+- A) Start and end from `started_at` and `finished_at`: "18:05–19:12" on the row's numbers line, and the page's eyebrow "Thursday 19 November 2026 · 18:05–19:12". A workout left open and finished another day shows the end's date too ("18:05 – 20 Nov 08:10"): true, and the duration beside it (`duration_seconds`) still says how long the training was.
+- B) The end as `started_at + duration_seconds`: always a tidy range, but a time the user never saw on the clock.
+
+**Recommended.** A: it shows what happened, and the odd overnight case explains itself next to the duration. Done when the row and the page show both times, in the device's time zone, with a test for a workout ending the next day.
 
 ## FEAT
 
@@ -231,6 +252,91 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - B) Only the YouTube link, which already exists ([D1.4.5](../design/D1-ui.md#d145-exercise-editor)).
 
 **Recommended.** A in phase 2; B until then.
+
+### FEAT-12 Choose the sound at the end of a rest or a timed set
+
+**Priority:** low · **Kind:** missing preference · **Found:** 2026-11-19
+
+**What is missing.** The end of a rest, and a timed set reaching its target, always play the same two 880 Hz beeps (`restOver()` in `lib/alarm.ts`); Profile can only turn the sound and the vibration on or off (`timer_sound`, `timer_vibration`, [D3.3](../design/D3-data-model.md#d33-users-and-preferences)). In a loud gym, or with music in the earphones, a different tone may be the one that gets noticed.
+
+**Where.** `lib/alarm.ts` (`beep()`, the tones); `WorkoutPreferences.tsx`; the users table, `UpdatePreferencesRequest`, `UserResource`, `User` in `api/auth.ts`.
+
+**Options.**
+- A) A few synthesised tones (two beeps, three rising beeps, a long tone, a bell made of two detuned oscillators), chosen in Profile with a ▶ to hear it; a new column `timer_tone` (string, default the current beeps) beside `timer_sound`, which stays the on/off switch. No sound files: nothing to precache, works offline.
+- B) Audio files (mp3) in `public/`, precached by the service worker: any sound, but heavier, and `HTMLAudioElement` is less reliable than Web Audio on iPhones.
+
+**Recommended.** A, in the same branch as [FEAT-13](#feat-13-the-volume-of-the-sound): both are columns of the preferences and both change `restOver()`. The ▶ in Profile is a user gesture, so it also unlocks audio for the page. Done when the chosen tone plays at the end of a rest and at a timed set's target, with a test of the preference saved.
+
+### FEAT-13 The volume of the sound
+
+**Priority:** low · **Kind:** missing preference · **Found:** 2026-11-19
+
+**What is missing.** The beep plays at a fixed gain of 0.25 (`beep()` in `lib/alarm.ts`): too quiet over music for some, too loud for others, and the phone's own volume changes every other sound too.
+
+**Where.** As [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set): `lib/alarm.ts`, `WorkoutPreferences.tsx`, the users table and its request, resource and type.
+
+**Options.**
+- A) A `timer_volume` column (0–100, default 50), a slider in Profile under the sound switch, mapped to a gain from 0 to 0.5 (50 is today's 0.25; above about 1 the tone clips). Saved with the account, like the other preferences.
+- B) The volume kept in `localStorage`, per phone: right if the same account trains with a phone and a tablet, but the only preference that would not follow the account.
+
+**Recommended.** A, with FEAT-12. The gain is relative to the system volume: the slider can make the beep quieter or louder than today, never louder than the phone allows, and an iPhone in silent mode may mute it; the preference's hint says so.
+
+### FEAT-14 A superset on one screen
+
+**Priority:** medium · **Kind:** workout mode · **Found:** 2026-11-19
+
+**What is missing.** In workout mode a superset is shown one exercise at a time: after a set of A, **Next: B** must be tapped to see B, and **Next: A** to come back ([D1.4.9](../design/D1-ui.md#d149-workout-mode)). With a timed exercise first (a plank, then pull-ups) only the plank is on screen. A superset is one block of work, done round after round until every exercise is out of sets; it should look like one exercise made of parts.
+
+**Where.** `WorkoutScreen.tsx` (the index of the exercise shown, Previous / Next, the dots), `workout-session.ts` (`supersetNext()`, `upNext()`), `UpNextCard`, `RestBar`; `groupSupersets()` from the plan's view already splits a day into runs. D1.4.9 and [C1.17](../concepts/C1-frontend.md#c117-workout-mode) change with it: the rule "the view never moves by itself" was written for one exercise per screen.
+
+**Options.**
+- A) One screen per run: an exercise alone as today, a superset as its members stacked under one heading ("Superset: A + B"), each with its name, small photo, column titles and rows. The set to do next (round by round, A then B) is ringed, and after a tick the screen scrolls it into view. The dots and Previous / Next move by run. The reducer's rules (rest at the end of a round only, an exercise out of sets skipped) stay as they are: only what is shown changes.
+- B) Rows grouped by round: "Round 1: A 1, B 1; Round 2: …". Closer to how a superset is done, but the Last column and the stepper are per exercise, and a round's rows would mix columns of different kinds (kg × reps beside time).
+- C) Keep one exercise per screen, but move to B by itself after a tick of A.
+
+**Recommended.** A: the ticked set stays in sight (the reason C was refused) and the whole superset is readable at a glance. Done when a two- and a three-exercise superset run on one screen, a timed member's stopwatch works there, and the tests of workout mode follow the new screen.
+
+### FEAT-15 A countdown before a timed set
+
+**Priority:** medium · **Kind:** workout mode · **Found:** 2026-11-19
+
+**What is missing.** ▶ on a timed set starts the stopwatch at once ([C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set)): the seconds spent putting the phone down and getting into position count as work.
+
+**Where.** `startStopwatch` in `workout-session.ts`, `stopwatchSeconds()`, `StopwatchPanel.tsx`, `lib/alarm.ts`.
+
+**Options.**
+- A) `startStopwatch` sets `started_at` 5 seconds ahead. While `now < started_at` the panel shows "Get ready 5, 4, 3…" with a short tick each second and a different one at 0; `stopwatchSeconds()` already clamps to 0. Persisted for free, like the rest. **Start now** skips the wait; Cancel works as today.
+- B) The same, with the length as a preference (off, 3, 5, 10 s): a column more, for a choice few will change.
+
+**Recommended.** A with a fixed 5 s; B only if 5 turns out wrong for someone. Done when ▶ waits 5 s before counting, Start now skips it, and a reload during the countdown keeps it.
+
+### FEAT-16 A hold stops at its target
+
+**Priority:** medium · **Kind:** workout mode · **Found:** 2026-11-19
+
+**What is missing.** A hold with a target (a plank for 30 s) beeps at 0:30 but keeps counting until **Stop** ([C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set)): the user has to reach for the phone at the end of the hold, and the time written is whatever it shows by then. An exercise that lasts a set time should end there, by itself.
+
+**Where.** `StopwatchPanel.tsx` (the timeout at `stopwatchTargetAt()`), `stopStopwatch` in `workout-session.ts`.
+
+**Options.**
+- A) With a target and not done as fast as possible, the stopwatch stops itself at the target: the panel's timeout dispatches `stopStopwatch`, which writes the target (not the seconds elapsed, so a timer firing late, with the screen off, still writes 30), ticks the set and starts the rest. The bar counts down ("0:12 left") instead of up. Races ([C1.17.9](../concepts/C1-frontend.md#c1179-exercises-done-as-fast-as-possible)) and holds with no target keep counting until Stop or ✓ ([FEAT-17](#feat-17-ticking-a-timed-set-leaves-its-stopwatch-running)).
+- B) The same, with **Keep going** in the panel to hold past the target and beat it.
+
+**Recommended.** A; B if holding past the target is missed. Done when a 30 s hold ends at 0:30 with 30 written and the rest started, also when the page was in the background at that moment.
+
+### FEAT-17 Ticking a timed set leaves its stopwatch running
+
+**Priority:** medium · **Kind:** bug · **Found:** 2026-11-19
+
+**What is missing.** While the stopwatch times a set, that set's ✓ is enabled (its time field is pre-filled from the plan or last time), and `toggleSet` does not touch the stopwatch: ✓ ticks the set with the pre-filled time, not the one measured, and the stopwatch keeps running at the bottom. On "50 push-ups as fast as possible" ✓ is the natural tap at the end, and it saves the wrong time.
+
+**Where.** `toggleSet` and `stopStopwatch` in `workout-session.ts`, `SetRow.tsx` (its `stopwatch` prop).
+
+**Options.**
+- A) ✓ on the set being timed does what **Stop** does: `toggleSet` sees `stopwatch.set_id === set.id` and hands over to `stopStopwatch`, which writes the seconds and ticks.
+- B) ✓ disabled on that set while its stopwatch runs, so only Stop ends it.
+
+**Recommended.** A: either tap ends the set with the time measured. Done with a reducer test (✓ during a run writes the elapsed seconds and clears the stopwatch) and one on the page.
 
 ## BE
 
