@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { shownData } from '@/lib/shown-data'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 import { cn } from '@/lib/utils'
 
@@ -110,10 +111,11 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
   const [sameMuscle, setSameMuscle] = useState(muscle !== undefined)
   const debounced = useDebouncedValue(search, SEARCH_DELAY_MS)
   const list = useExercises({ search: debounced, muscle: sameMuscle ? muscle?.slug : undefined }, i18n.language)
+  const pages = shownData(list)
   // While typing, or while the new list loads behind the old
   const searching = search !== debounced || list.isPlaceholderData
   // The one being swapped left out
-  const exercises = (list.data?.pages.flatMap(page => page.data) ?? []).filter(exercise => exercise.id !== replacing?.id)
+  const exercises = (pages?.pages.flatMap(page => page.data) ?? []).filter(exercise => exercise.id !== replacing?.id)
 
   function toggle(exercise: Exercise, tick: boolean) {
     setChosen(current => (tick ? [...current, exercise] : current.filter(other => other.id !== exercise.id)))
@@ -165,8 +167,8 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
             <span className="sr-only">{t('exercises.loading')}</span>
           </div>
         )}
-        {list.isError && <p role="alert">{t('exercises.loadError')}</p>}
-        {list.isSuccess && exercises.length === 0 && <p className="text-muted-foreground">{t('exercises.noResultsText')}</p>}
+        {!list.isPending && pages === undefined && <p role="alert">{t('exercises.loadError')}</p>}
+        {pages !== undefined && exercises.length === 0 && <p className="text-muted-foreground">{t('exercises.noResultsText')}</p>}
 
         <ul className={cn('flex flex-col gap-1 transition-opacity', searching && 'opacity-60')}>
           {exercises.map((exercise) => {
@@ -207,7 +209,7 @@ function PickerBody({ replacing, creating, onCreatingChange, onAdd }: PickerBody
         {/* After a search: the exercise is not there, or not quite the one
             wanted ("ponte" finds the glute bridge, not the full one), so it
             can be created, with the search as its name */}
-        {typed !== '' && list.isSuccess && (
+        {typed !== '' && pages !== undefined && (
           <Button variant="outline" className="mt-3 w-full" onClick={() => onCreatingChange(true)}>
             <Plus aria-hidden="true" />
             {t('exercises.createNamed', { search: typed })}

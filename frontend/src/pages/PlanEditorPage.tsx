@@ -11,6 +11,7 @@ import { draftFromPlan, emptyDraft } from '@/components/plans/plan-draft'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError } from '@/lib/http'
+import { shownData } from '@/lib/shown-data'
 
 export function PlanEditorPage() {
   const { id } = useParams()
@@ -64,6 +65,7 @@ interface EditPlanProps {
 function EditPlan({ id }: EditPlanProps) {
   const { t, i18n } = useTranslation()
   const plan = usePlan(id, i18n.language)
+  const shown = shownData(plan)
   const { data: user } = useCurrentUser()
 
   if (plan.isPending || user === undefined) {
@@ -76,7 +78,7 @@ function EditPlan({ id }: EditPlanProps) {
     )
   }
 
-  if (plan.isError) {
+  if (shown === undefined) {
     const missing = plan.error instanceof ApiError && [403, 404].includes(plan.error.status)
     return (
       <div role="alert" className="flex flex-col items-start gap-4">
@@ -89,7 +91,7 @@ function EditPlan({ id }: EditPlanProps) {
   }
 
   // A different plan, or a new version of it, starts a fresh editor
-  return <EditPlanForm key={`${plan.data.id}-${plan.data.version}`} plan={plan.data} unit={user?.weight_unit ?? 'kg'} />
+  return <EditPlanForm key={`${shown.id}-${shown.version}`} plan={shown} unit={user?.weight_unit ?? 'kg'} />
 }
 
 interface EditPlanFormProps {

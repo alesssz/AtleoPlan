@@ -1,11 +1,20 @@
+import type { QueryClient } from '@tanstack/react-query'
 import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadActiveSession, storeActiveSession } from '@/components/workout/session-storage'
 import { startSession } from '@/components/workout/workout-session'
-import { fakeApi, renderRoutes, signedInAs, testUser } from '@/test/auth-helpers'
+import { fakeApi, renderRoutes, signedInAs, testUser, type FakeAnswer } from '@/test/auth-helpers'
 import { testPlan } from '@/test/plan-helpers'
 import { PlanDetailPage } from './PlanDetailPage'
+
+/** Refreshes a query as a later visit would, and lets the page draw what came: TanStack Query tells it on the next task. */
+async function refresh(queryClient: QueryClient, queryKey: readonly unknown[]) {
+  await act(async () => {
+    await queryClient.refetchQueries({ queryKey })
+    await new Promise(resolve => setTimeout(resolve, 0))
+  })
+}
 
 /** The page, and plain stand-ins for where its links go. */
 const routes = [
@@ -165,6 +174,21 @@ describe('PlanDetailPage', () => {
 
     await waitFor(() => expect(fake.mock.calls.map(([path]) => path)).toContain('/api/sessions/last-sets?exercises=40'))
     expect(photosRequested(fake)).toEqual([])
+  })
+
+  it('keeps showing the plan when a refresh finds no server, not when it is gone', async () => {
+    let answer: FakeAnswer = planAnswer()
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/plans/plan-ppl': () => answer })
+    const { queryClient } = renderRoutes(routes, '/plans/plan-ppl')
+    await screen.findByRole('heading', { name: 'Push Pull Legs' })
+
+    answer = { status: 503 }
+    await refresh(queryClient, ['plans'])
+    expect(screen.getByRole('heading', { name: 'Push Pull Legs' })).toBeInTheDocument()
+
+    answer = { status: 404, body: { message: 'Not Found' } }
+    await refresh(queryClient, ['plans'])
+    expect(await screen.findByText('This plan does not exist, or it is not yours.')).toBeInTheDocument()
   })
 
   it('makes the plan active, then shows it so', async () => {

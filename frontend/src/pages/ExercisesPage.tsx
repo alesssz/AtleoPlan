@@ -13,6 +13,7 @@ import { ExerciseListItem } from '@/components/exercises/ExerciseListItem'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { shownData } from '@/lib/shown-data'
 import { cn } from '@/lib/utils'
 import { useDebouncedValue } from '@/lib/useDebouncedValue'
 
@@ -43,6 +44,7 @@ export function ExercisesPage() {
   // Only the search waits for a pause; the other filters apply at once
   const search = useDebouncedValue(values.search, SEARCH_DELAY_MS)
   const list = useExercises({ ...values, search }, i18n.language)
+  const pages = shownData(list)
   // While typing, or while the new list loads behind the old
   const searching = values.search !== search || list.isPlaceholderData
 
@@ -62,8 +64,8 @@ export function ExercisesPage() {
   }
 
   const filtered = values.muscle !== '' || values.equipment !== '' || values.source !== 'all'
-  const exercises = list.data?.pages.flatMap(page => page.data) ?? []
-  const total = list.data?.pages[0]?.meta.total ?? 0
+  const exercises = pages?.pages.flatMap(page => page.data) ?? []
+  const total = pages?.pages[0]?.meta.total ?? 0
 
   return (
     <>
@@ -90,14 +92,14 @@ export function ExercisesPage() {
           </div>
         )}
 
-        {list.isError && (
+        {!list.isPending && pages === undefined && (
           <div role="alert" className="flex flex-col items-start gap-3">
             <p>{t('exercises.loadError')}</p>
             <Button variant="outline" onClick={() => void list.refetch()} pending={list.isFetching}>{t('server.retry')}</Button>
           </div>
         )}
 
-        {list.isSuccess && total === 0 && (
+        {pages !== undefined && total === 0 && (
           values.search.trim() !== ''
             ? (
                 // Offer to create it, the search as its name
@@ -141,7 +143,7 @@ export function ExercisesPage() {
                 )
         )}
 
-        {list.isSuccess && total > 0 && (
+        {pages !== undefined && total > 0 && (
           <div className={cn('transition-opacity', searching && 'opacity-60')}>
             {/* Announced when the filters change */}
             <p aria-live="polite" className="mb-3 text-sm text-muted-foreground">{t('exercises.count', { count: total })}</p>

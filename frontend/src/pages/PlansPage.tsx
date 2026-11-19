@@ -9,6 +9,7 @@ import { ImportPlanButton } from '@/components/plans/ImportPlanButton'
 import { PlanCard } from '@/components/plans/PlanCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { shownData } from '@/lib/shown-data'
 import { cn } from '@/lib/utils'
 
 const SKELETON_CARDS = 3
@@ -20,6 +21,7 @@ export function PlansPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const archived = searchParams.get('archived') === '1'
   const plans = usePlans(archived)
+  const list = shownData(plans)
 
   /**
    * Replaces the history entry: Back leaves the page instead of undoing the switch.
@@ -72,14 +74,14 @@ export function PlansPage() {
           </div>
         )}
 
-        {plans.isError && (
+        {!plans.isPending && list === undefined && (
           <div role="alert" className="flex flex-col items-start gap-3">
             <p>{t('plans.loadError')}</p>
             <Button variant="outline" onClick={() => void plans.refetch()} pending={plans.isFetching}>{t('server.retry')}</Button>
           </div>
         )}
 
-        {plans.isSuccess && plans.data.length === 0 && (
+        {list?.length === 0 && (
           archived
             ? <EmptyState icon={Archive} title={t('plans.noArchivedTitle')} description={t('plans.noArchivedText')} />
             : (
@@ -99,10 +101,10 @@ export function PlansPage() {
               )
         )}
 
-        {plans.isSuccess && plans.data.length > 0 && (
+        {list !== undefined && list.length > 0 && (
           // The API puts the active one first
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {plans.data.map(plan => (
+            {list.map(plan => (
               <li key={plan.id}>
                 <PlanCard plan={plan} />
               </li>

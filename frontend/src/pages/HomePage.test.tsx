@@ -1,5 +1,5 @@
-import { onlineManager } from '@tanstack/react-query'
-import { screen, waitFor, within } from '@testing-library/react'
+import { onlineManager, type QueryClient } from '@tanstack/react-query'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { HomeData } from '@/api/home'
@@ -7,9 +7,17 @@ import { planKeys } from '@/api/plans'
 import type { WorkoutSession } from '@/api/sessions'
 import { loadActiveSession, loadFinished, storeActiveSession } from '@/components/workout/session-storage'
 import { startSession } from '@/components/workout/workout-session'
-import { fakeApi, renderRoutes, signedInAs } from '@/test/auth-helpers'
+import { fakeApi, renderRoutes, signedInAs, type FakeAnswer } from '@/test/auth-helpers'
 import { testPlan, testPlanSummary } from '@/test/plan-helpers'
 import { HomePage } from './HomePage'
+
+/** Refreshes a query as a later visit would, and lets the page draw what came: TanStack Query tells it on the next task. */
+async function refresh(queryClient: QueryClient, queryKey: readonly unknown[]) {
+  await act(async () => {
+    await queryClient.refetchQueries({ queryKey })
+    await new Promise(resolve => setTimeout(resolve, 0))
+  })
+}
 
 const routes = [
   { path: '/', element: <HomePage /> },
@@ -155,6 +163,19 @@ describe('HomePage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The plan could not be loaded.')
     expect(loadActiveSession()).toBeNull()
+  })
+
+  it('keeps showing the plan when a refresh finds no server', async () => {
+    let answer: FakeAnswer = homeAnswer()
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': () => answer, ...startAnswers })
+    const { queryClient } = renderRoutes(routes, '/')
+    await screen.findByRole('region', { name: 'Push Pull Legs' })
+
+    answer = { status: 502 }
+    await refresh(queryClient, ['home'])
+
+    expect(screen.getByRole('region', { name: 'Push Pull Legs' })).toBeInTheDocument()
+    expect(screen.queryByText('Home could not be loaded.')).not.toBeInTheDocument()
   })
 
   it('offers to resume a workout in progress, and starts no other', async () => {

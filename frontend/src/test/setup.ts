@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, vi } from 'vitest'
 import i18n from '@/i18n'
+import { resetServerReachable } from '@/lib/http'
 
 // jsdom has no ResizeObserver, which Radix's Checkbox uses: without it every
 // test drawing the exercise editor fails
@@ -26,6 +27,7 @@ beforeEach(async () => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  resetServerReachable()
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT'
   localStorage.clear()
 })

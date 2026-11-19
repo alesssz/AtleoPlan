@@ -12,6 +12,7 @@ import { SessionRow } from '@/components/history/SessionRow'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { shownData } from '@/lib/shown-data'
 
 const LATEST = 3
 
@@ -19,7 +20,8 @@ export function ProgressPage() {
   const { t } = useTranslation()
   // History's first page: the same key, so "All workouts" opens from the cache
   const list = useSessions()
-  const latest = list.data?.pages[0]?.data.slice(0, LATEST) ?? []
+  const pages = shownData(list)
+  const latest = pages?.pages[0]?.data.slice(0, LATEST) ?? []
 
   return (
     <>
@@ -34,14 +36,14 @@ export function ProgressPage() {
           </div>
         )}
 
-        {list.isError && (
+        {!list.isPending && pages === undefined && (
           <div role="alert" className="flex flex-col items-start gap-4">
             <p>{t('history.loadError')}</p>
             <Button variant="outline" size="xl" onClick={() => void list.refetch()}>{t('server.retry')}</Button>
           </div>
         )}
 
-        {list.isSuccess && latest.length === 0 && (
+        {pages !== undefined && latest.length === 0 && (
           <EmptyState
             icon={TrendingUp}
             title={t('progress.emptyTitle')}

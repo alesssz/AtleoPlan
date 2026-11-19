@@ -1,9 +1,18 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import type { QueryClient } from '@tanstack/react-query'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { fakeApi, renderRoutes } from '@/test/auth-helpers'
+import { fakeApi, renderRoutes, type FakeAnswer } from '@/test/auth-helpers'
 import { exercisePage, fixedLists, testExercise } from '@/test/exercise-helpers'
 import { ExercisesPage } from './ExercisesPage'
+
+/** Refreshes a query as a later visit would, and lets the page draw what came: TanStack Query tells it on the next task. */
+async function refresh(queryClient: QueryClient, queryKey: readonly unknown[]) {
+  await act(async () => {
+    await queryClient.refetchQueries({ queryKey })
+    await new Promise(resolve => setTimeout(resolve, 0))
+  })
+}
 
 const routes = [
   { path: 'exercises', element: <ExercisesPage /> },
@@ -40,6 +49,19 @@ describe('ExercisesPage', () => {
     const mineRow = screen.getByRole('link', { name: /Panca mia/ })
     expect(within(mineRow).getByText('Mine')).toBeInTheDocument()
     expect(screen.getByText('2 exercises')).toBeInTheDocument()
+  })
+
+  it('keeps showing the list when a refresh finds no server', async () => {
+    let answer: FakeAnswer = exercisePage([testExercise()])
+    fakeApi({ ...fixedLists, 'GET /api/exercises': () => answer })
+    const { queryClient } = renderRoutes(routes, '/exercises')
+    await screen.findByRole('link', { name: /Barbell Bench Press/ })
+
+    answer = { status: 502 }
+    await refresh(queryClient, ['exercises'])
+
+    expect(screen.getByRole('link', { name: /Barbell Bench Press/ })).toBeInTheDocument()
+    expect(screen.queryByText('The exercises could not be loaded.')).not.toBeInTheDocument()
   })
 
   it('searches once typing pauses, and keeps the search in the address', async () => {

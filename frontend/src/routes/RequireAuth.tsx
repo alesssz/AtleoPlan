@@ -9,6 +9,7 @@ import { isAwaitingUser, useCurrentUser } from '@/api/auth'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePendingSessions } from '@/lib/usePendingSessions'
+import { useServerWatch } from '@/lib/useServerWatch'
 import { useAccountPreferences } from './useAccountPreferences'
 
 export function RequireAuth() {
@@ -17,6 +18,7 @@ export function RequireAuth() {
   const location = useLocation()
   useAccountPreferences(currentUser.data)
   usePendingSessions(Boolean(currentUser.data))
+  useServerWatch()
 
   // Skeletons, never a spinner: the app or /login here would flash the wrong
   // screen

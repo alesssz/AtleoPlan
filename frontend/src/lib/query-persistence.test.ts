@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 import { persistQueryClientRestore, persistQueryClientSave } from '@tanstack/react-query-persist-client'
 import { describe, expect, it, vi } from 'vitest'
+import { ApiError } from '@/lib/http'
 import { testUser } from '@/test/auth-helpers'
 import { indexedDbStorage, persistOptions, type CacheStorage } from './query-persistence'
 
@@ -56,6 +57,21 @@ describe('the cache kept on the phone', () => {
     expect(after.getQueryData(['exercises', 'list', 'en', { source: 'all' }])).toEqual({ pages: [] })
     expect(after.getQueryState(['exercises', 'list', 'en', { search: 'panca' }])).toBeUndefined()
     expect(after.getQueryState(['home'])).toBeUndefined()
+  })
+
+  it('keeps an answer whose refresh found no server, not one the server said is gone', async () => {
+    const before = new QueryClient()
+    before.setQueryData(['user'], testUser)
+    before.setQueryData(['plans', 'detail', 'gone', 'en'], { id: 'gone' })
+    await before.fetchQuery({ queryKey: ['user'], queryFn: () => Promise.reject(new ApiError(502, 'Bad Gateway')), retry: false, staleTime: 0 }).catch(() => {})
+    await before.fetchQuery({ queryKey: ['plans', 'detail', 'gone', 'en'], queryFn: () => Promise.reject(new ApiError(404, 'Not Found')), retry: false, staleTime: 0 }).catch(() => {})
+    const storage = memoryStorage()
+
+    await save(before, storage)
+    const after = await restore(storage)
+
+    expect(after.getQueryData(['user'])).toEqual(testUser)
+    expect(after.getQueryState(['plans', 'detail', 'gone', 'en'])).toBeUndefined()
   })
 
   it('drops a copy saved by a build that read the answers differently', async () => {

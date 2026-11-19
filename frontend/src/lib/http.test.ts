@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import i18n from '@/i18n'
 import { fakeApi } from '@/test/auth-helpers'
-import { ApiError, request } from './http'
+import { ApiError, isServerReachable, request } from './http'
 
 /** @param index which call, from 0 */
 function headersOf(fake: ReturnType<typeof fakeApi>, index: number) {
@@ -82,5 +82,21 @@ describe('request', () => {
     await expect(request('/api/thing', { method: 'POST' })).rejects.toMatchObject({ status: 419 })
 
     expect(fake.mock.calls.filter(([path]) => path === '/api/thing')).toHaveLength(2)
+  })
+
+  it('marks the server unreachable with no answer or a gateway error, reachable again with any other', async () => {
+    fakeApi({
+      'GET /api/down': 'network',
+      'GET /api/gateway': { status: 502 },
+      // A 404 is an answer: the server is there
+      'GET /api/missing': { status: 404, body: { message: 'Not Found' } },
+    })
+
+    await request('/api/down').catch(() => {})
+    expect(isServerReachable()).toBe(false)
+    await request('/api/missing').catch(() => {})
+    expect(isServerReachable()).toBe(true)
+    await request('/api/gateway').catch(() => {})
+    expect(isServerReachable()).toBe(false)
   })
 })

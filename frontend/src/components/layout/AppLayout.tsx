@@ -1,12 +1,16 @@
 /*
  * The frame of every signed-in screen: SideNav from 640 px, BottomTabBar below,
- * and the logo on top on phones. Workout mode lives outside it, full screen.
+ * and the logo on top on phones, with SyncIndicator; ConnectionBanner above the
+ * page while there is no network or no server. Workout mode lives outside it,
+ * full screen.
  */
 import { useTranslation } from 'react-i18next'
 import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { BrandMark, Wordmark } from '@/components/brand/Brand'
 import { BottomTabBar } from './BottomTabBar'
+import { ConnectionBanner } from './ConnectionBanner'
 import { SideNav } from './SideNav'
+import { SyncIndicator } from './SyncIndicator'
 
 export function AppLayout() {
   const { t } = useTranslation()
@@ -34,7 +38,10 @@ export function AppLayout() {
           <div className="mb-6 flex items-center gap-2.5 sm:hidden">
             <BrandMark className="size-7" />
             <Wordmark className="text-base" />
+            <SyncIndicator className="ml-auto" />
           </div>
+
+          <ConnectionBanner className="mb-6" />
 
           {/* Keyed by the path, so the entrance animation replays on every
               page change (skipped for reduced motion) */}

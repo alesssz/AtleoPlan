@@ -20,18 +20,20 @@ import { loadActiveSession } from '@/components/workout/session-storage'
 import { usePrepareWorkouts } from '@/components/workout/usePrepareWorkouts'
 import { useStartWorkout } from '@/components/workout/useStartWorkout'
 import { formatLongDate } from '@/lib/format'
+import { shownData } from '@/lib/shown-data'
 import type { WorkoutEndState } from '@/pages/SummaryPage'
 
 export function HomePage() {
   const { t, i18n } = useTranslation()
   const home = useHome()
+  const data = shownData(home)
   const start = useStartWorkout()
-  usePrepareWorkouts(home.data?.active_plan?.id)
+  usePrepareWorkouts(data?.active_plan?.id)
   // Dropped when the banner deletes it, so Start works again
   const [active, setActive] = useState(loadActiveSession)
   const ended = (useLocation().state as Partial<WorkoutEndState> | null)?.workout
   // By the device's clock
-  const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
+  const week = weekSummary(data?.recent_sessions ?? [], new Date())
 
   return (
     <>
@@ -65,23 +67,23 @@ export function HomePage() {
                 <span className="sr-only">{t('home.loading')}</span>
               </div>
             )}
-            {home.isError && (
+            {!home.isPending && data === undefined && (
               <div role="alert" className="flex flex-col items-start gap-4 rounded-3xl border p-6">
                 <p>{t('home.loadError')}</p>
                 <Button variant="outline" size="xl" onClick={() => void home.refetch()}>{t('server.retry')}</Button>
               </div>
             )}
-            {home.isSuccess && home.data.active_plan && (
+            {data?.active_plan && (
               <ActivePlanCard
-                plan={home.data.active_plan}
-                home={home.data}
+                plan={data.active_plan}
+                home={data}
                 busy={active !== null}
                 starting={start.starting}
                 failed={start.failed}
-                onStart={dayId => void start.startPlanDay(home.data.active_plan?.id ?? '', dayId)}
+                onStart={dayId => void start.startPlanDay(data.active_plan?.id ?? '', dayId)}
               />
             )}
-            {home.isSuccess && !home.data.active_plan && (
+            {data && !data.active_plan && (
               <EmptyState
                 icon={ClipboardList}
                 title={t('home.noPlanTitle')}

@@ -172,8 +172,8 @@ export function lastSetsQuery(exerciseIds: number[]) {
  * Created the first time and replaced afterwards, so sending again is safe.
  * @throws ApiError: status 0 offline, 410 when it was deleted elsewhere
  */
-export function sendSession(id: string, input: SessionInput): Promise<WorkoutSession> {
-  return request<{ data: WorkoutSession }>(`/api/sessions/${id}`, { method: 'PUT', body: input }).then(answer => answer.data)
+export function sendSession(id: string, input: SessionInput, signal?: AbortSignal): Promise<WorkoutSession> {
+  return request<{ data: WorkoutSession }>(`/api/sessions/${id}`, { method: 'PUT', body: input, signal }).then(answer => answer.data)
 }
 
 /** History: finished workouts, newest first. No language in the key: no exercise names. */

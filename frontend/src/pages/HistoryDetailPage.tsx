@@ -30,11 +30,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError } from '@/lib/http'
+import { shownData } from '@/lib/shown-data'
 
 export function HistoryDetailPage() {
   const { t, i18n } = useTranslation()
   const id = useParams().id ?? ''
   const workout = useSession(id, i18n.language)
+  const shown = shownData(workout)
 
   if (workout.isPending) {
     return (
@@ -47,7 +49,7 @@ export function HistoryDetailPage() {
     )
   }
 
-  if (workout.isError) {
+  if (shown === undefined) {
     // Deleted, never sent, or someone else's (403): all "not here" to the user
     const missing = workout.error instanceof ApiError && [403, 404].includes(workout.error.status)
     return (
@@ -60,7 +62,7 @@ export function HistoryDetailPage() {
     )
   }
 
-  return <WorkoutDetail data={workout.data} />
+  return <WorkoutDetail data={shown} />
 }
 
 interface WorkoutDetailProps {

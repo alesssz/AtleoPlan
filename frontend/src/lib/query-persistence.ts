@@ -7,6 +7,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import type { Query } from '@tanstack/react-query'
 import type { PersistQueryClientOptions } from '@tanstack/react-query-persist-client'
 import { createStore, del, get, set } from 'idb-keyval'
+import { shownData } from './shown-data'
 
 /**
  * Raised by hand when a cached answer changes shape so that the screens can
@@ -69,12 +70,13 @@ export function indexedDbStorage(): CacheStorage {
 }
 
 /**
- * Which answers are worth keeping: successful ones, and not the library's
- * searches, a new key for each word typed, that would fill the cache with
- * lists nobody opens again.
+ * Which answers are worth keeping: those a screen would show (shownData), so
+ * also one whose last refresh found no server, which is when the copy is
+ * needed; and not the library's searches, a new key for each word typed, that
+ * would fill the cache with lists nobody opens again.
  */
 export function shouldPersistQuery(query: Query): boolean {
-  if (query.state.status !== 'success') return false
+  if (shownData(query.state) === undefined) return false
   const [resource, kind, , filters] = query.queryKey
   const isSearch = resource === 'exercises' && kind === 'list'
     && typeof filters === 'object' && filters !== null

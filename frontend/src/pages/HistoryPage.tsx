@@ -11,6 +11,7 @@ import { SessionRow } from '@/components/history/SessionRow'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { shownData } from '@/lib/shown-data'
 
 interface MonthGroup {
   title: string
@@ -37,7 +38,8 @@ function byMonth(sessions: WorkoutSession[], language: string): MonthGroup[] {
 export function HistoryPage() {
   const { t, i18n } = useTranslation()
   const list = useSessions()
-  const sessions = list.data?.pages.flatMap(page => page.data) ?? []
+  const pages = shownData(list)
+  const sessions = pages?.pages.flatMap(page => page.data) ?? []
 
   return (
     <>
@@ -55,14 +57,14 @@ export function HistoryPage() {
         </div>
       )}
 
-      {list.isError && (
+      {!list.isPending && pages === undefined && (
         <div role="alert" className="flex flex-col items-start gap-4">
           <p>{t('history.loadError')}</p>
           <Button variant="outline" size="xl" onClick={() => void list.refetch()}>{t('server.retry')}</Button>
         </div>
       )}
 
-      {list.isSuccess && sessions.length === 0 && (
+      {pages !== undefined && sessions.length === 0 && (
         <EmptyState
           icon={History}
           title={t('history.emptyTitle')}
