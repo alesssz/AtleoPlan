@@ -303,8 +303,9 @@ The frame, the query cache and component state survive navigation between screen
 | `Button size="xl"` | The 48 px main action, glowing when enabled | every call to action |
 | `PageHeader` | Title, main actions on the right (`actions`), description; `eyebrow` only where it adds information ([D1.5](../design/D1-ui.md#d15-design-system) "Page header") | every page but Home |
 | `EmptyState` | Illustration, title, sentence, actions; `comingSoon` adds the badge | Plans, Exercises, Progress, Home |
-| `SettingRow` | Icon tile, label, hint, control | Profile |
-| `WorkoutPreferences` | Profile's Workout card ([C1.13.4](#c1134-preferences-on-the-account)) | Profile |
+| `SettingRow` | Icon tile, label, hint, control, under the text on phones; `inline` keeps a small one (a switch) beside it | Profile |
+| `SettingGroup` | A short title over a card of `SettingRow`s; a `<section>` named by its title | Profile, every tab |
+| `WorkoutPreferences` | Profile's Workout tab ([C1.13.4](#c1134-preferences-on-the-account)) | Profile |
 | `BrandMark`, `Wordmark` | The logo | sidebar, phone header |
 
 The utilities are declared with `@utility` in `index.css`, so variants apply to them (`lg:border-glow`, `group-aria-[current=page]:glow-primary`).
@@ -425,7 +426,7 @@ signIn.mutate(values, {
 
 ### C1.13.4 Preferences on the account
 
-A choice made on the phone follows the user to the computer ([D1.4.14](../design/D1-ui.md#d1414-profile-and-settings)). Profile has two cards: **Preferences** (language, theme) and **Workout** (`WorkoutPreferences`). All are saved by one hook, `useUpdatePreferences`, to `PATCH /api/user/preferences`, one field per request ([C2.7](C2-backend.md#c27-signing-in-sanctum)). Data flows one way:
+A choice made on the phone follows the user to the computer ([D1.4.14](../design/D1-ui.md#d1414-profile-and-settings)). Profile keeps the account on top and the settings in three tabs (shadcn's `Tabs`, controlled by `?tab=` in the address as a plan's days are, `replace` so Back leaves the page; no parameter or an unknown one is Workout): **Workout** (`WorkoutPreferences`), **App** (language, theme) and **About** (the server's status, and the admin panel for admins). Radix draws only the open panel, so About's health check runs when it is opened. Each panel is named by its tab (`role="tabpanel"`); in it, the rows sit in `SettingGroup`s, a small title over a card: Weights, Timers, Sound and vibration, Plans in Workout (one card of seven rows was hard to scan), Display in App, Server and Administration in About. Even a tab with two rows has its group, so the three look alike and the next setting has somewhere to go. All are saved by one hook, `useUpdatePreferences`, to `PATCH /api/user/preferences`, one field per request ([C2.7](C2-backend.md#c27-signing-in-sanctum)). Data flows one way:
 
 ```
 LanguageSelect, ThemeSelect ──▶ useUpdatePreferences ──▶ the cache (at once) and the server
@@ -493,7 +494,7 @@ The server does the OAuth exchange ([C2.7.8](C2-backend.md#c278-signing-in-with-
 
 ### C1.13.8 The link to the admin panel
 
-An admin sees an **Administration** card on Profile with **Open**: the Filament panel served by Laravel ([C2.8.4](C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). Its address is `admin_url` of `GET /api/user`, `null` for anyone else; the card renders only when it is set.
+An admin sees an **Administration** group in Profile's About tab with **Open**: the Filament panel served by Laravel ([C2.8.4](C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). Its address is `admin_url` of `GET /api/user`, `null` for anyone else; the card renders only when it is set.
 
 - **A plain `<a target="_blank" rel="noopener">`:** the panel is another application.
 - **Hiding is not protecting:** `canAccessPanel()` refuses non-admins whatever the app shows.

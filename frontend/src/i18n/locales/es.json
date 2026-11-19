@@ -41,6 +41,14 @@
     "languageHint": "Textos, números y fechas: {{weight}}",
     "themeHint": "El oscuro cansa menos la vista en el gimnasio.",
     "workoutTitle": "Entrenamiento",
+    "appTitle": "App",
+    "groups": {
+      "weights": "Pesos",
+      "timers": "Temporizadores",
+      "sound": "Sonido y vibración",
+      "plans": "Planes",
+      "display": "Interfaz"
+    },
     "unit": "Unidad de peso",
     "unitHint": "Cómo se muestran y escriben los pesos. Se guardan en kilogramos, así que no se convierte nada.",
     "unitBusy": "Primero termina el entrenamiento en curso: sus pesos están escritos en la unidad actual.",
@@ -54,10 +62,10 @@
     "countdownNone": "Ninguna",
     "step": "Paso del peso",
     "stepHint": "Cuánto cambian el peso − y + en el modo entrenamiento.",
-    "sound": "Sonido al terminar el descanso",
-    "soundHint": "Dos pitidos cortos.",
-    "vibration": "Vibración al terminar el descanso",
-    "vibrationHint": "En los teléfonos que vibran (no en iPhone).",
+    "sound": "Sonido",
+    "soundHint": "Pitidos al terminar el descanso, en la cuenta atrás de una serie por tiempo y al acabar un isométrico.",
+    "vibration": "Vibración",
+    "vibrationHint": "En los mismos momentos, en los teléfonos que vibran (no en iPhone).",
     "rpe": "RPE en las rutinas",
     "rpeHint": "Un esfuerzo del 1 al 10 junto a las repeticiones, en el editor de la rutina."
   },
@@ -68,6 +76,7 @@
   },
   "server": {
     "title": "Servidor",
+    "status": "Estado",
     "checking": "Comprobando la conexión…",
     "online": "Conectado",
     "offline": "No disponible: ¿está en marcha Docker?",

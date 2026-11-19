@@ -41,6 +41,14 @@
     "languageHint": "Texte, Zahlen und Daten: {{weight}}",
     "themeHint": "Dunkel schont im Studio die Augen.",
     "workoutTitle": "Training",
+    "appTitle": "App",
+    "groups": {
+      "weights": "Gewichte",
+      "timers": "Timer",
+      "sound": "Ton und Vibration",
+      "plans": "Pläne",
+      "display": "Darstellung"
+    },
     "unit": "Gewichtseinheit",
     "unitHint": "Wie Gewichte angezeigt und eingegeben werden. Sie werden in Kilogramm gespeichert, nichts wird umgerechnet.",
     "unitBusy": "Beende zuerst das laufende Training: Seine Gewichte sind in der aktuellen Einheit eingegeben.",
@@ -54,10 +62,10 @@
     "countdownNone": "Keiner",
     "step": "Gewichtsschritt",
     "stepHint": "Um wie viel − und + das Gewicht im Trainingsmodus ändern.",
-    "sound": "Ton am Ende der Pause",
-    "soundHint": "Zwei kurze Pieptöne.",
-    "vibration": "Vibration am Ende der Pause",
-    "vibrationHint": "Auf Handys, die vibrieren können (nicht iPhones).",
+    "sound": "Ton",
+    "soundHint": "Pieptöne am Ende der Pause, beim Countdown vor einem Zeitsatz und wenn eine Halteübung endet.",
+    "vibration": "Vibration",
+    "vibrationHint": "In denselben Momenten, auf Handys, die vibrieren können (nicht iPhones).",
     "rpe": "RPE in Plänen",
     "rpeHint": "Eine Anstrengung von 1 bis 10 neben den Wiederholungen, im Plan-Editor."
   },
@@ -68,6 +76,7 @@
   },
   "server": {
     "title": "Server",
+    "status": "Status",
     "checking": "Verbindung wird geprüft…",
     "online": "Verbunden",
     "offline": "Nicht erreichbar: Läuft Docker?",

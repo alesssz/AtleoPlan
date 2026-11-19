@@ -123,7 +123,7 @@ It is idempotent: the seeders write with `updateOrCreate()`, and what is already
 
 **How to check:** `make psql`, then `select count(*) from muscles;` gives 17, and `select count(*) from equipment;` gives 12.
 
-**The first account.** The database starts empty: register at http://localhost:5673/register, after `make dev`. For an admin, which also opens the panel at http://localhost:8500/admin (or Profile → Administration in the app), `make artisan c="db:seed"` creates `test@example.com`, password `password`; or make an existing account an admin, a Google one included ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament), [C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
+**The first account.** The database starts empty: register at http://localhost:5673/register, after `make dev`. For an admin, which also opens the panel at http://localhost:8500/admin (or Profile → About → Administration in the app), `make artisan c="db:seed"` creates `test@example.com`, password `password`; or make an existing account an admin, a Google one included ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament), [C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
 
 ---
 
@@ -298,7 +298,7 @@ Arguments go in variables (`c=`, `s=`, `f=`, `o=`): Make reads any other word af
 | A change to `dev.ini` or the `Dockerfile` has no effect | The image must be rebuilt: `docker compose build && docker compose up -d`. |
 | The React app gets **401 / CSRF token mismatch** | The browser is not on `localhost:5673`, or Sanctum's SPA settings are missing: [S1.6](#s16-the-backends-configuration). |
 | **`/admin` answers 403** | The account is not an admin: [C2.8](../concepts/C2-backend.md#c28-admin-panel-filament). |
-| **http://localhost:5673/admin** shows nothing, or the app's "page not found" | The panel is not in the React app and Vite does not forward `/admin`: it is at http://localhost:8500/admin, or Profile → Administration ([C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). |
+| **http://localhost:5673/admin** shows nothing, or the app's "page not found" | The panel is not in the React app and Vite does not forward `/admin`: it is at http://localhost:8500/admin, or Profile → About → Administration ([C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). |
 | The panel asks for a password, and the account was made with Google | **Continue with Google** under the panel's form. Or sign in to the app first, then open `localhost:8500/admin` with `localhost`, not `127.0.0.1`: the session cookie follows the host name ([C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). |
 | The app shows **"Can't reach the server"** | The Docker stack is not running, or the server has an error: `make up`, then `make logs`. |
 | **"Too many attempts"** when signing in | Five tries a minute for one email: wait a minute ([C2.7.4](../concepts/C2-backend.md#c274-slowing-down-password-guessing)). |

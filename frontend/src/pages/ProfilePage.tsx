@@ -1,18 +1,35 @@
+/*
+ * Profile: the account, always in view, then the settings in three tabs:
+ * Workout (the most used, open by default), App (language, theme), About
+ * (the server, and the admin panel for admins). The open tab is in the
+ * address (?tab=app), so a reload or Back keeps it.
+ */
 import { ExternalLink, Languages, LogOut, Palette, Server, ShieldCheck, UserRound } from 'lucide-react'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router'
 import { useCurrentUser, useSignOut } from '@/api/auth'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { ServerStatus } from '@/components/ServerStatus'
+import { SettingGroup } from '@/components/SettingGroup'
 import { SettingRow } from '@/components/SettingRow'
 import { ThemeSelect } from '@/components/ThemeSelect'
 import { WorkoutPreferences } from '@/components/WorkoutPreferences'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatWeight } from '@/lib/format'
 
 /** The weight shown as an example of the language's number format. */
 const EXAMPLE_WEIGHT = 82.5
+
+const TABS = ['workout', 'app', 'about'] as const
+type ProfileTab = typeof TABS[number]
+
+/** The tab in the address; Workout when there is none, or an unknown one. */
+function tabFrom(value: string | null): ProfileTab {
+  return TABS.find(tab => tab === value) ?? 'workout'
+}
 
 export function ProfilePage() {
   const { t, i18n } = useTranslation()
@@ -22,6 +39,19 @@ export function ProfilePage() {
   const { data: user } = useCurrentUser()
   // RequireAuth then goes to /login by itself
   const signOut = useSignOut()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = tabFrom(searchParams.get('tab'))
+  const labels: Record<ProfileTab, string> = {
+    workout: t('preferences.workoutTitle'),
+    app: t('preferences.appTitle'),
+    about: t('profile.about'),
+  }
+
+  /** Replaces the address rather than adding to history: Back leaves Profile. */
+  function openTab(value: string) {
+    const next = tabFrom(value)
+    setSearchParams(next === 'workout' ? {} : { tab: next }, { replace: true })
+  }
 
   return (
     <>
@@ -48,48 +78,60 @@ export function ProfilePage() {
           </Button>
         </section>
 
-        <section aria-labelledby="prefs-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
-          <h2 id="prefs-title" className="font-heading text-lg font-extrabold tracking-tight">{t('preferences.title')}</h2>
-          <div className="divide-y divide-border">
-            {/* The description shows the language's number format, "82,5 kg" */}
-            <SettingRow
-              icon={Languages}
-              label={t('preferences.language')}
-              description={t('preferences.languageHint', { weight: formatWeight(EXAMPLE_WEIGHT, i18n.language) })}
-              controlId={languageId}
-            >
-              <LanguageSelect id={languageId} />
-            </SettingRow>
-            <SettingRow icon={Palette} label={t('preferences.theme')} description={t('preferences.themeHint')} controlId={themeId}>
-              <ThemeSelect id={themeId} />
-            </SettingRow>
-          </div>
-        </section>
+        {/* Controlled by the address. Each panel is named by its tab; in
+            it, the rows sit in short titled groups, the same in every tab */}
+        <Tabs value={tab} onValueChange={openTab} className="gap-4">
+          <TabsList aria-label={t('preferences.title')} className="h-auto! w-full rounded-xl p-1">
+            {TABS.map(value => (
+              <TabsTrigger key={value} value={value} className="min-h-12 flex-1 rounded-lg px-3 text-sm">
+                {labels[value]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        <WorkoutPreferences />
+          <TabsContent value="workout" className="text-base">
+            <WorkoutPreferences />
+          </TabsContent>
 
-        {/* Admins only. The panel is Laravel's, not a route of the app: a
-            plain <a>, in a new tab, so the app stays where it was */}
-        {user?.admin_url && (
-          <section aria-labelledby="admin-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
-            <h2 id="admin-title" className="font-heading text-lg font-extrabold tracking-tight">{t('profile.adminTitle')}</h2>
-            <SettingRow icon={ShieldCheck} label={t('profile.adminPanel')} description={t('profile.adminHint')}>
-              <Button asChild variant="outline">
-                <a href={user.admin_url} target="_blank" rel="noopener">
-                  {t('profile.adminOpen')}
-                  <ExternalLink aria-hidden="true" />
-                </a>
-              </Button>
-            </SettingRow>
-          </section>
-        )}
+          <TabsContent value="app" className="text-base">
+            <SettingGroup title={t('preferences.groups.display')}>
+              {/* The description shows the language's number format, "82,5 kg" */}
+              <SettingRow
+                icon={Languages}
+                label={t('preferences.language')}
+                description={t('preferences.languageHint', { weight: formatWeight(EXAMPLE_WEIGHT, i18n.language) })}
+                controlId={languageId}
+              >
+                <LanguageSelect id={languageId} />
+              </SettingRow>
+              <SettingRow icon={Palette} label={t('preferences.theme')} description={t('preferences.themeHint')} controlId={themeId}>
+                <ThemeSelect id={themeId} />
+              </SettingRow>
+            </SettingGroup>
+          </TabsContent>
 
-        <section aria-labelledby="about-title" className="rounded-3xl border bg-card/60 px-6 pt-6 backdrop-blur sm:px-8">
-          <h2 id="about-title" className="font-heading text-lg font-extrabold tracking-tight">{t('profile.about')}</h2>
-          <SettingRow icon={Server} label={t('server.title')} description={t('server.hint')}>
-            <ServerStatus />
-          </SettingRow>
-        </section>
+          <TabsContent value="about" className="flex flex-col gap-6 text-base">
+            <SettingGroup title={t('server.title')}>
+              <SettingRow icon={Server} label={t('server.status')} description={t('server.hint')}>
+                <ServerStatus />
+              </SettingRow>
+            </SettingGroup>
+            {/* Admins only. The panel is Laravel's, not a route of the app:
+                a plain <a>, in a new tab, so the app stays where it was */}
+            {user?.admin_url && (
+              <SettingGroup title={t('profile.adminTitle')}>
+                <SettingRow icon={ShieldCheck} label={t('profile.adminPanel')} description={t('profile.adminHint')}>
+                  <Button asChild variant="outline">
+                    <a href={user.admin_url} target="_blank" rel="noopener">
+                      {t('profile.adminOpen')}
+                      <ExternalLink aria-hidden="true" />
+                    </a>
+                  </Button>
+                </SettingRow>
+              </SettingGroup>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   )
