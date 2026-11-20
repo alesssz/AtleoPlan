@@ -16,7 +16,10 @@ ARTISAN := $(DC) exec backend php artisan
 # Photo conversions run at once rather than queued, for commands that add many
 # photos: `queue:listen` boots Laravel for every job
 ARTISAN_NOW := $(DC) exec -e QUEUE_CONVERSIONS_BY_DEFAULT=false backend php artisan
-NPM     := npm --prefix frontend
+# npm runs from inside frontend/, not with --prefix: on Windows a terminal
+# opened on a lower-case drive (d:\) would start Vitest from d:\ while paths
+# inside frontend/ resolve to D:\, and two copies of Vitest fail every test
+NPM     := cd frontend && npm
 BRANCH  := $(shell git branch --show-current)
 
 help: ## Show this list
@@ -231,7 +234,7 @@ lint-fix: node-version ## ESLint with automatic fixes
 typecheck: node-version ## TypeScript check of the frontend
 	$(NPM) run typecheck
 
-fe-test: node-version ## Frontend tests (Vitest); npm --prefix frontend run test:watch reruns them on save
+fe-test: node-version ## Frontend tests (Vitest); npm run test:watch, in frontend/, reruns them on save
 	$(NPM) test
 
 fix: pint lint-fix ## Fix what can be fixed automatically: PHP format and ESLint

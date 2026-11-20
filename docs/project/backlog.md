@@ -14,7 +14,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [OPS-3 Deploy to the free server](#ops-3-deploy-to-the-free-server)
   - [OPS-5 Drop the minimatch override](#ops-5-drop-the-minimatch-override)
   - [OPS-6 Drop the glob override](#ops-6-drop-the-glob-override)
-  - [OPS-7 The frontend tests fail from a lower-case drive on Windows](#ops-7-the-frontend-tests-fail-from-a-lower-case-drive-on-windows)
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
@@ -111,20 +110,6 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 **What is missing.** `frontend/package.json` forces `workbox-build`'s `glob` to 14: its own range, `^11.0.1`, finds no file with the forced `minimatch` 11 ([H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)), and 11 has an advisory fixed only in 14. Build time only, but a version `workbox-build` was not tested with.
 
 **Recommended.** When `workbox-build` (through `vite-plugin-pwa`) accepts `glob` 14, remove the scoped override and its line in the `"//"` note, `npm install`, `npm ls glob`, then `make fe-build` must still list the precached files; in a `chore/…` branch with `make check`.
-
-### OPS-7 The frontend tests fail from a lower-case drive on Windows
-
-**Priority:** medium · **Kind:** tooling, Windows · **Found:** 2026-11-19
-
-**What is missing.** With Git Bash opened in `d:\Progetti\AtleoPlan` (lower case, as VS Code may open it), `make check` and `make fe-test` fail every test file with **"Vitest failed to find the runner"** at `src/test/setup.ts`, before any test runs. `npm --prefix frontend` starts Vitest from the root's `d:\…`, while paths resolved inside `frontend/` come out as `D:\…`: the setup file's `vitest` and the runner are two copies of the module. The same command from `D:\…` (`cd /D/Progetti/AtleoPlan`), or `npm test` inside `frontend/`, passes. CI, on Linux, never sees it.
-
-**Where.** `Makefile` (`NPM := npm --prefix frontend`, used by every frontend target); S1.10 for the symptom.
-
-**Options.**
-- A) The frontend targets run npm from inside the folder: `NPM := cd frontend && npm`, so the working directory is always the one Node resolves.
-- B) A row in S1.10 only: open the terminal in `D:\…`.
-
-**Recommended.** A, plus the S1.10 row for anyone running Vitest by hand from the root. Done when `make check` passes from `cd /d/Progetti/AtleoPlan`.
 
 ## UI
 
