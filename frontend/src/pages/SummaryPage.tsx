@@ -184,8 +184,11 @@ function Summary({ finished }: SummaryProps) {
 
         <section aria-labelledby="summary-numbers" className="flex flex-col gap-4">
           <h2 id="summary-numbers" className="sr-only">{t('summary.numbersTitle')}</h2>
-          <WorkoutStats totals={totals} />
-          <ComparisonSummary count={countVerdicts(comparisons)} />
+          {/* How it went: the page's one glowing card */}
+          <div className="border-glow flex flex-col gap-4 rounded-3xl p-4 sm:p-6">
+            <WorkoutStats totals={totals} />
+            <ComparisonSummary count={countVerdicts(comparisons)} />
+          </div>
           {/* Closed at first: the line above says how it went, and the
               detail must not push the questions and Save down the page */}
           <Collapsible className="group rounded-2xl border bg-card/60">

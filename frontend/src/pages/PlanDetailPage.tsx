@@ -107,23 +107,11 @@ function PlanDetail({ plan }: PlanDetailProps) {
         {t('plans.detail.back')}
       </Link>
 
-      {/* No eyebrow: the navigation already names the section */}
-      <PageHeader title={plan.name} description={plan.goal ?? undefined} />
-
-      <div className="flex flex-col gap-6">
-        {/* Saved over a version changed elsewhere: the last change won */}
-        {state?.changedElsewhere && <FormBanner variant="error">{t('plans.detail.changedElsewhere')}</FormBanner>}
-
-        {/* With the exercises the import created */}
-        {state?.createdExercises && (
-          <FormBanner variant="success">
-            {state.createdExercises.length > 0
-              ? `${t('plans.import.done')} ${t('plans.import.created', { count: state.createdExercises.length, names: state.createdExercises.join(', ') })}`
-              : t('plans.import.done')}
-          </FormBanner>
-        )}
-
-        {active && <ResumeBanner session={active} onDiscarded={() => setActive(null)} />}
+      {/* The plan itself, the page's one glowing card: name, goal, state and
+          what can be done with it */}
+      <section aria-label={plan.name} className="border-glow mb-6 flex flex-col gap-5 rounded-3xl p-6 sm:p-8">
+        {/* No eyebrow: the navigation already names the section */}
+        <PageHeader title={plan.name} description={plan.goal ?? undefined} className="mb-0" />
 
         {(plan.is_active || archived) && (
           <div className="flex flex-wrap items-center gap-2">
@@ -155,6 +143,23 @@ function PlanDetail({ plan }: PlanDetailProps) {
           <ExportPlanButton plan={plan} />
           <DeletePlanButton plan={plan} />
         </div>
+      </section>
+
+      <div className="flex flex-col gap-6">
+        {/* Saved over a version changed elsewhere: the last change won */}
+        {state?.changedElsewhere && <FormBanner variant="error">{t('plans.detail.changedElsewhere')}</FormBanner>}
+
+        {/* With the exercises the import created */}
+        {state?.createdExercises && (
+          <FormBanner variant="success">
+            {state.createdExercises.length > 0
+              ? `${t('plans.import.done')} ${t('plans.import.created', { count: state.createdExercises.length, names: state.createdExercises.join(', ') })}`
+              : t('plans.import.done')}
+          </FormBanner>
+        )}
+
+        {active && <ResumeBanner session={active} onDiscarded={() => setActive(null)} />}
+
         {action.isError && <FormBanner variant="error">{t('plans.detail.actionError')}</FormBanner>}
 
         {plan.notes && (

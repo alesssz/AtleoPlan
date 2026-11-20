@@ -60,7 +60,8 @@ export function ProgressPage() {
         )}
 
         {latest.length > 0 && (
-          <section aria-labelledby="latest-title" className="flex flex-col gap-3">
+          // The page's one glowing card until the charts come
+          <section aria-labelledby="latest-title" className="border-glow flex flex-col gap-3 rounded-3xl p-5 sm:p-6">
             <h2 id="latest-title" className="font-heading text-lg font-extrabold tracking-tight">{t('progress.latestTitle')}</h2>
             <ul className="flex flex-col gap-3">
               {latest.map(session => (

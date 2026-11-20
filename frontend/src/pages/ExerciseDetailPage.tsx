@@ -97,7 +97,8 @@ function ExerciseDetail({ exercise }: ExerciseDetailProps) {
 
         <ExercisePhotos photos={exercise.photos} name={exercise.name} />
 
-        <dl className="grid gap-x-8 gap-y-4 rounded-3xl border bg-card/60 p-6 sm:grid-cols-2">
+        {/* What the exercise is: the page's one glowing card */}
+        <dl className="border-glow grid gap-x-8 gap-y-4 rounded-3xl p-6 sm:grid-cols-2">
           <div>
             <dt className="text-sm text-muted-foreground">{t('exercises.detail.equipment')}</dt>
             <dd className="font-semibold">{exercise.equipment?.name ?? t('exercises.detail.noEquipment')}</dd>
