@@ -7,6 +7,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import type { Query } from '@tanstack/react-query'
 import type { PersistQueryClientOptions } from '@tanstack/react-query-persist-client'
 import { createStore, del, get, set } from 'idb-keyval'
+import { authKeys } from '@/api/auth'
 import { shownData } from './shown-data'
 
 /**
@@ -74,10 +75,15 @@ export function indexedDbStorage(): CacheStorage {
  * also one whose last refresh found no server, which is when the copy is
  * needed; and not the library's searches, a new key for each word typed, that
  * would fill the cache with lists nobody opens again.
+ *
+ * Nor "nobody is signed in": signing in with Google comes back to a fresh load
+ * of the app seconds later, where that answer, restored and still fresh, would
+ * send the user just signed in to /login without asking the server.
  */
 export function shouldPersistQuery(query: Query): boolean {
   if (shownData(query.state) === undefined) return false
   const [resource, kind, , filters] = query.queryKey
+  if (resource === authKeys.user[0] && query.state.data === null) return false
   const isSearch = resource === 'exercises' && kind === 'list'
     && typeof filters === 'object' && filters !== null
     && 'search' in filters && Boolean(filters.search)
