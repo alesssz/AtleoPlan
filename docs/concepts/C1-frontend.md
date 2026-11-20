@@ -1290,7 +1290,8 @@ const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
 
 ```
 WorkoutScreen.finish()   queue, send, storeFinished({ id, session, input, outcome }), then /session/:id/summary
-SummaryPage              /session/:id/summary: the finished workout from the phone; absent → its history page
+SummaryPage              /session/:id/summary: the finished workout from the phone; absent → its history page;
+                         under the title, the plan and formatWorkoutWhen()
 ├── WorkoutStats         time, exercises, sets, reps, from inputTotals(input)
 ├── ComparisonSummary    "Against last time: 2 better · 1 same", from compareWorkout()
 ├── Collapsible          "Exercises 3", closed: SessionExercises
@@ -1300,8 +1301,9 @@ SummaryPage              /session/:id/summary: the finished workout from the pho
 
 ProgressPage             /progress: the 3 latest workouts, All workouts; charts and records "coming soon"
 HistoryPage              /progress/history: by month, 20 at a time, Show more
-└── SessionRow           date, day, plan, time · sets · reps; links to its page
-HistoryDetailPage        /progress/history/:id: numbers, verdict counts, feeling, notes, Delete
+└── SessionRow           the day in a box, day's name, plan, start–end · sets; links to its page
+HistoryDetailPage        /progress/history/:id: date and start–end above the title, numbers, verdict counts,
+                         feeling, notes, Delete
 └── SessionExercises     each exercise against last time ("80×8 · last time 80×6"), its sets ("W1 40×10", "1 80×8";
                          "Skipped"), its own volume for weighted exercises
 ```
@@ -1362,6 +1364,7 @@ compareExercise(sets, previous, loggingType)
 ### C1.19.4 History: pages from the server
 
 - **The list** is `useSessions()`, an infinite query over `GET /api/sessions?status=finished&page=…&per_page=20` ([C1.14.2](#c1142-a-list-one-page-at-a-time)'s pattern).
+- **When:** `formatTimeRange(start, end, language)` (`lib/format.ts`), on the row before the sets, writes `started_at` and `finished_at` in the device's time zone, "18:05–19:12" with `Intl.DateTimeFormat.formatRange`; an end on another day adds its date, "23:30 – 20 nov, 8:10", rather than `started_at + duration_seconds`, a time nobody saw on the clock. `formatWorkoutWhen()` puts the long date before it, for a workout's page and the summary, so both write it the same way.
 - **By month:** `byMonth()` groups newest first; the heading is capitalised with `first-letter:uppercase`, since some locales write months in lower case ("novembre 2026").
 - **A workout's page** is `useSession(id, language)` (names come translated). `meta.last_sets` carries last time for each exercise, counting only workouts **before** it ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)), fed to the same `compareWorkout()` as the summary. Sets are numbered with `setNumbers()` and written with `loggedSetText()`: one way of writing a set across the app.
 - **Delete** (`useDeleteSession`) removes the workout's cached copies, marks the lists and Home stale, and opens history.

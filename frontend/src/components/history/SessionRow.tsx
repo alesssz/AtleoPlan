@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { WorkoutSession } from '@/api/sessions'
-import { formatDayParts, formatDuration } from '@/lib/format'
+import { formatDayParts, formatTimeRange } from '@/lib/format'
 import { sessionTotals } from './totals'
 
 interface SessionRowProps {
@@ -14,13 +14,15 @@ interface SessionRowProps {
 export function SessionRow({ session }: SessionRowProps) {
   const { t, i18n } = useTranslation()
   const language = i18n.language
-  const { weekday, day } = formatDayParts(new Date(session.started_at), language)
+  const started = new Date(session.started_at)
+  const { weekday, day } = formatDayParts(started, language)
   const totals = sessionTotals(session)
+  // When, then the sets: two workouts on the same day are told apart at a
+  // glance. The duration reads from the times; the rest is on the workout's page
   const numbers = [
-    totals.durationSeconds === null ? null : formatDuration(totals.durationSeconds, language),
+    formatTimeRange(started, session.finished_at ? new Date(session.finished_at) : null, language),
     t('history.sets', { count: totals.sets }),
-    t('history.reps', { count: totals.reps }),
-  ].filter(part => part !== null).join(' · ')
+  ].join(' · ')
 
   return (
     <Link to={`/progress/history/${session.id}`} className="group flex items-center gap-4 rounded-2xl border bg-card/60 p-4 transition-colors hover:bg-muted/60">

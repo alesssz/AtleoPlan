@@ -74,3 +74,28 @@ export function formatDaysAgo(date: Date, today: Date, language: string): string
   const days = Math.round((now.getTime() - day.getTime()) / 86_400_000)
   return new Intl.RelativeTimeFormat(language, { numeric: 'auto' }).format(-days, 'day')
 }
+
+/**
+ * When a workout ran, in the device's time zone: "18:05–19:12" (it),
+ * "6:05 – 7:12 PM" (en). Ended on another day (left open overnight), the
+ * end's date too, "18:05 – 20 nov, 08:10": true, and the time trained,
+ * shown beside it, still says how long the training was. Not ended, the
+ * start alone.
+ */
+export function formatTimeRange(start: Date, end: Date | null, language: string): string {
+  const time = new Intl.DateTimeFormat(language, { hour: 'numeric', minute: '2-digit' })
+  if (end === null) return time.format(start)
+  const sameDay = start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth() && start.getDate() === end.getDate()
+  if (sameDay) return time.formatRange(start, end)
+  const dayAndTime = new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+  return `${time.format(start)} – ${dayAndTime.format(end)}`
+}
+
+/**
+ * A workout's date and times, as its page in history and the summary after
+ * Finish write them: "giovedì 19 novembre 2026 · 11:01–12:07" (it).
+ */
+export function formatWorkoutWhen(start: Date, end: Date | null, language: string): string {
+  const date = new Intl.DateTimeFormat(language, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(start)
+  return `${date} · ${formatTimeRange(start, end, language)}`
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatClockTime, formatDayParts, formatDaysAgo, formatDuration, formatLongDate, formatNumber, formatWeight } from './format'
+import { formatClockTime, formatDayParts, formatDaysAgo, formatDuration, formatLongDate, formatNumber, formatTimeRange, formatWeight, formatWorkoutWhen } from './format'
 
 describe('formatWeight', () => {
   // [language, what 82.5 kg must look like]
@@ -80,5 +80,33 @@ describe('formatClockTime', () => {
     const at = new Date(2026, 10, 19, 10, 42, 15)
     expect(formatClockTime(at, 'it')).toBe('10:42:15')
     expect(formatClockTime(at, 'en')).toBe('10:42:15 AM')
+  })
+})
+
+describe('formatTimeRange', () => {
+  // Built from local hours, so the text is the same in every time zone.
+  // Intl writes thin and narrow spaces in English; compared as plain ones
+  const plain = (text: string) => text.replace(/\s/g, ' ')
+  const start = new Date(2026, 10, 19, 18, 5)
+
+  it('writes a workout of one evening as a range of times', () => {
+    expect(formatTimeRange(start, new Date(2026, 10, 19, 19, 12), 'it')).toBe('18:05–19:12')
+    expect(plain(formatTimeRange(start, new Date(2026, 10, 19, 19, 12), 'en'))).toBe('6:05 – 7:12 PM')
+  })
+
+  it('adds the date of an end on another day', () => {
+    const late = new Date(2026, 10, 19, 23, 30)
+    expect(formatTimeRange(late, new Date(2026, 10, 20, 8, 10), 'it')).toBe('23:30 – 20 nov, 8:10')
+    expect(plain(formatTimeRange(late, new Date(2026, 10, 20, 8, 10), 'en'))).toBe('11:30 PM – Nov 20, 8:10 AM')
+  })
+
+  it('writes the start alone when there is no end', () => {
+    expect(formatTimeRange(start, null, 'it')).toBe('18:05')
+  })
+})
+
+describe('formatWorkoutWhen', () => {
+  it('writes the date, then the times', () => {
+    expect(formatWorkoutWhen(new Date(2026, 10, 19, 11, 1), new Date(2026, 10, 19, 12, 7), 'it')).toBe('giovedì 19 novembre 2026 · 11:01–12:07')
   })
 })

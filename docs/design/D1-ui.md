@@ -296,6 +296,7 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 
 ### D1.4.10 Workout summary
 
+- Under the title, the plan and when, as history writes them: "Push Pull Legs · Thursday 19 November 2026 · 11:01–12:07".
 - Duration, exercises completed, total sets and reps, warm-up sets excluded. No total volume: it adds up unlike exercises and counts nothing done with the body alone ([D2.8](D2-decisions.md#d28-workout-rules)).
 - Records broken, highlighted.
 - **Each exercise against the last time it was done:** better, the same, lower, or first time, with its best set beside last time's ("82,5×8 · last time 80×8"), and the count in one line ("2 better · 1 same"). The rule per way of logging is in [D2.8](D2-decisions.md#d28-workout-rules). An exercise with weights also shows its own volume. In the summary the list of exercises is folded under the count, closed at first, above the questions and Save: one tap slides it open.
@@ -306,7 +307,7 @@ Full screen, no tab bar, and the screen stays on (Wake Lock API).
 
 ### D1.4.11 History
 
-- Sessions by date (or a monthly calendar): day, plan, duration, sets, reps.
+- Sessions by date (or a monthly calendar). A row is short: the day in a box at its start, the day's name and the plan, then when it started and ended and its sets, "18:05–19:12 · 12 sets"; the duration reads from the times, and the rest is on the workout's page. That page gives the date and the same times above its title. One left open and finished on another day shows the end's date too ("23:30 – 20 Nov, 8:10"): true, and the duration beside it still says how long the training was. Times are the device's, in the user's language ("6:05 – 7:12 PM" in English).
 - **Session details**, editable: fix a wrong weight, add a forgotten set.
 - Implemented: the list by month, 20 at a time; a workout's page with its numbers, the feeling and the notes, each exercise against the last time before it and its sets, Delete; Progress shows the three latest ([C1.19](../concepts/C1-frontend.md#c119-the-summary-and-history)). Waiting: editing a past workout ([FEAT-6](../project/backlog.md#feat-6-edit-a-past-workout)); the monthly calendar is not planned.
 
