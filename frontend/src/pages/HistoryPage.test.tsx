@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { WorkoutSession } from '@/api/sessions'
@@ -131,6 +131,64 @@ describe('HistoryDetailPage', () => {
     renderRoutes(routes, '/progress/history/gone')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('This workout is not here')
+  })
+
+  it('lists one day\'s workouts from Home\'s calendar, from the device\'s midnight to the next', async () => {
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/sessions': sessionPage([three[1]!]) })
+    renderRoutes(routes, '/progress/history?from=2026-11-09&to=2026-11-09')
+
+    expect(await screen.findByRole('link', { name: /Day A – Push/ })).toHaveAttribute('href', '/progress/history/s-2')
+    expect(screen.getByLabelText('From')).toHaveValue('2026-11-09')
+    expect(screen.getByLabelText('To')).toHaveValue('2026-11-09')
+    expect(screen.getByText('1 workout in these days')).toBeInTheDocument()
+    const from = encodeURIComponent(new Date(2026, 10, 9).toISOString())
+    const to = encodeURIComponent(new Date(2026, 10, 10).toISOString())
+    expect(fake.mock.calls.map(([path]) => path)).toContain(`/api/sessions?status=finished&page=1&per_page=20&from=${from}&to=${to}`)
+  })
+
+  it('filters between two days chosen with the phone\'s pickers, either end open, and clears them', async () => {
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/sessions': sessionPage(three) })
+    const { router } = renderRoutes(routes, '/progress/history')
+    await screen.findByRole('region', { name: 'November 2026' })
+    const paths = () => fake.mock.calls.map(([path]) => path)
+
+    // The phone's own picker sets the field's value
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-11-01' } })
+    expect(router.state.location.search).toBe('?from=2026-11-01')
+    await waitFor(() => expect(paths().at(-1)).toBe(`/api/sessions?status=finished&page=1&per_page=20&from=${encodeURIComponent(new Date(2026, 10, 1).toISOString())}`))
+
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-11-15' } })
+    expect(router.state.location.search).toBe('?from=2026-11-01&to=2026-11-15')
+
+    // A start moved past the end takes the end with it
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-11-20' } })
+    expect(router.state.location.search).toBe('?from=2026-11-20&to=2026-11-20')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear the dates' }))
+    expect(router.state.location.search).toBe('')
+    expect(screen.getByLabelText('From')).toHaveValue('')
+    expect(screen.queryByRole('button', { name: 'Clear the dates' })).not.toBeInTheDocument()
+  })
+
+  it('says how many for days with none, and ignores a date that is not one', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/sessions': sessionPage([]) })
+    renderRoutes(routes, '/progress/history?from=2026-11-08&to=2026-11-08')
+
+    expect(await screen.findByText('0 workouts in these days')).toBeInTheDocument()
+
+    cleanup()
+    const fake = fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/sessions': sessionPage(three) })
+    renderRoutes(routes, '/progress/history?from=2026-02-30')
+    expect(await screen.findByRole('region', { name: 'November 2026' })).toBeInTheDocument()
+    expect(fake.mock.calls.map(([path]) => path)).toContain('/api/sessions?status=finished&page=1&per_page=20')
+  })
+
+  it('offers no date filter while history is empty', async () => {
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/sessions': sessionPage([]) })
+    renderRoutes(routes, '/progress/history')
+
+    expect(await screen.findByText('No workouts yet')).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Filter by date' })).not.toBeInTheDocument()
   })
 })
 

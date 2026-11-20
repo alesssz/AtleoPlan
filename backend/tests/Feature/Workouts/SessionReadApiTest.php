@@ -1,9 +1,10 @@
 <?php
 
 /**
- * GET /api/sessions, GET and DELETE /api/sessions/{id}, and GET
- * /api/sessions/last-sets: listing, reading and deleting workouts, and the sets
- * of last time for workout mode.
+ * GET /api/sessions, GET and DELETE /api/sessions/{id}, GET
+ * /api/sessions/last-sets and GET /api/sessions/calendar: listing, reading and
+ * deleting workouts, the sets of last time for workout mode, and the days
+ * trained for Home's calendar.
  */
 
 use App\Models\Exercise;
@@ -62,6 +63,87 @@ it('lists the workouts in progress, or the finished ones', function () {
     $this->actingAs($user)->getJson('/api/sessions?status=open')->assertJsonPath('data.*.id', [$open->id]);
     $this->actingAs($user)->getJson('/api/sessions?status=finished')->assertJsonCount(1, 'data');
     $this->actingAs($user)->getJson('/api/sessions?status=paused')->assertUnprocessable()->assertJsonValidationErrors('status');
+});
+
+// --- A span of time ----------------------------------------------------------------
+
+/**
+ * A finished workout of `$user` that started at this moment, with one set.
+ *
+ * @param  string  $startedAt  ISO 8601, in UTC
+ */
+function startedAt(User $user, string $startedAt): WorkoutSession
+{
+    return workoutOf($user, Exercise::factory()->create(), 0, [8], ['started_at' => $startedAt, 'finished_at' => $startedAt]);
+}
+
+/** Thursday 19 November 2026 in Rome (UTC+1), as the device asks for it. */
+const ROME_DAY = 'from=2026-11-19T00:00:00%2B01:00&to=2026-11-20T00:00:00%2B01:00';
+
+it('lists the workouts of one day in the device\'s time zone, the edges included', function () {
+    $user = User::factory()->create();
+    // 00:30 and 23:30 in Rome: the day's first and last half hour
+    $first = startedAt($user, '2026-11-18T23:30:00Z');
+    $last = startedAt($user, '2026-11-19T22:30:00Z');
+    // 23:30 the day before and 00:00 the day after, in Rome
+    startedAt($user, '2026-11-18T22:30:00Z');
+    startedAt($user, '2026-11-19T23:00:00Z');
+    startedAt(User::factory()->create(), '2026-11-19T10:00:00Z');
+
+    $this->actingAs($user)->getJson('/api/sessions?status=finished&'.ROME_DAY)
+        ->assertOk()
+        ->assertJsonPath('data.*.id', [$last->id, $first->id])
+        ->assertJsonPath('meta.total', 2);
+});
+
+it('lists from a moment on, or up to one, when only one end is given', function () {
+    $user = User::factory()->create();
+    $before = startedAt($user, '2026-11-10T10:00:00Z');
+    $after = startedAt($user, '2026-11-20T10:00:00Z');
+
+    $this->actingAs($user)->getJson('/api/sessions?from=2026-11-15T00:00:00%2B01:00')->assertJsonPath('data.*.id', [$after->id]);
+    $this->actingAs($user)->getJson('/api/sessions?to=2026-11-15T00:00:00%2B01:00')->assertJsonPath('data.*.id', [$before->id]);
+});
+
+it('refuses a span ending before it starts, or a moment that is not one', function (string $query, string $field) {
+    $this->actingAs(User::factory()->create())->getJson("/api/sessions?{$query}")
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors($field);
+})->with([
+    'backwards' => ['from=2026-11-20T00:00:00Z&to=2026-11-19T00:00:00Z', 'to'],
+    'not a date' => ['from=yesterday-ish', 'from'],
+]);
+
+it('gives the calendar the finished workouts of a span, oldest first, with only what it shows', function () {
+    $user = User::factory()->create();
+    $first = startedAt($user, '2026-11-18T23:30:00Z');
+    $second = startedAt($user, '2026-11-19T17:00:00Z');
+    $second->update(['duration_seconds' => 3540]);
+    startedAt($user, '2026-11-19T23:00:00Z');
+    WorkoutSession::factory()->for($user)->open()->create(['started_at' => '2026-11-19T12:00:00Z']);
+    startedAt(User::factory()->create(), '2026-11-19T10:00:00Z');
+
+    $this->actingAs($user)->getJson('/api/sessions/calendar?'.ROME_DAY)
+        ->assertOk()
+        ->assertJsonPath('data.*.id', [$first->id, $second->id])
+        ->assertJsonPath('data.1', ['id' => $second->id, 'started_at' => $second->started_at->toJSON(), 'duration_seconds' => 3540]);
+});
+
+it('gives the calendar at most a year and a day', function () {
+    $user = User::factory()->create();
+
+    // A whole year in Rome, a leap year's extra day included
+    $this->actingAs($user)->getJson('/api/sessions/calendar?from=2028-01-01T00:00:00%2B01:00&to=2029-01-01T00:00:00%2B01:00')->assertOk();
+    $this->actingAs($user)->getJson('/api/sessions/calendar?from=2026-01-01T00:00:00Z&to=2027-01-05T00:00:00Z')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('to');
+    $this->actingAs($user)->getJson('/api/sessions/calendar?from=2026-01-01T00:00:00Z')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('to');
+});
+
+it('answers the calendar only to someone signed in', function () {
+    $this->getJson('/api/sessions/calendar?'.ROME_DAY)->assertUnauthorized();
 });
 
 // --- One workout ---------------------------------------------------------------------

@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // session's id
     Route::get('/sessions', [WorkoutSessionController::class, 'index']);
     Route::get('/sessions/last-sets', [WorkoutSessionController::class, 'lastSets']);
+    Route::get('/sessions/calendar', [WorkoutSessionController::class, 'calendar']);
     Route::get('/sessions/{session}', [WorkoutSessionController::class, 'show'])->whereUuid('session');
     Route::put('/sessions/{session}', [WorkoutSessionController::class, 'save'])->whereUuid('session');
     Route::delete('/sessions/{session}', [WorkoutSessionController::class, 'destroy'])->whereUuid('session');

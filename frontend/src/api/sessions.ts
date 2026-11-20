@@ -1,6 +1,6 @@
 /*
  * The workouts' API: sending a whole workout, last time's sets for workout
- * mode, and history.
+ * mode, history, and Home's calendar.
  *
  * Sending is a plain function rather than a mutation hook: the queue of
  * workouts waiting for the network (src/lib/pending-sessions.ts) calls it
@@ -10,6 +10,7 @@ import { queryOptions, useInfiniteQuery, useMutation, useQuery, useQueryClient }
 import type { Exercise } from '@/api/exercises'
 import { homeKeys } from '@/api/home'
 import type { SetType } from '@/api/plans'
+import type { DateFilter, Span } from '@/lib/calendar'
 import { request } from '@/lib/http'
 
 /** As sent by LoggedSetResource. */
@@ -128,6 +129,13 @@ export interface SessionPage {
   meta: { current_page: number, last_page: number, total: number }
 }
 
+/** One workout of GET /api/sessions/calendar: only what the calendar shows. */
+export interface CalendarSession {
+  id: string
+  started_at: string
+  duration_seconds: number | null
+}
+
 /** The backend's default. */
 export const SESSIONS_PER_PAGE = 20
 
@@ -142,7 +150,9 @@ export interface LastSets {
 export const sessionKeys = {
   all: ['sessions'] as const,
   lastSets: (exerciseIds: number[]) => ['sessions', 'last-sets', exerciseIds] as const,
-  list: ['sessions', 'list'] as const,
+  /** History between two moments, either end open. */
+  listOf: (filter: DateFilter) => ['sessions', 'list', { from: filter.from?.toISOString() ?? null, to: filter.to?.toISOString() ?? null }] as const,
+  calendar: (span: Span) => ['sessions', 'calendar', span.from.toISOString(), span.to.toISOString()] as const,
   /** With the exercises' names in this language. */
   detail: (id: string, language: string) => ['sessions', 'detail', id, language] as const,
 }
@@ -177,13 +187,35 @@ export function sendSession(id: string, input: SessionInput, signal?: AbortSigna
 }
 
 /** History: finished workouts, newest first. No language in the key: no exercise names. */
-export function useSessions() {
+/**
+ * `&from=…&to=…`, the ends given. They are the device's midnights, sent in
+ * UTC: the server has no idea where the user's day begins.
+ */
+function spanQuery(span: DateFilter): string {
+  const ends = (['from', 'to'] as const).flatMap(end => (span[end] ? [`${end}=${encodeURIComponent(span[end].toISOString())}`] : []))
+  return ends.map(end => `&${end}`).join('')
+}
+
+/** @param filter only the workouts started in it; both ends null for every one */
+export function useSessions(filter: DateFilter = { from: null, to: null }) {
   return useInfiniteQuery({
-    queryKey: sessionKeys.list,
+    queryKey: sessionKeys.listOf(filter),
     queryFn: ({ pageParam, signal }) =>
-      request<SessionPage>(`/api/sessions?status=finished&page=${pageParam}&per_page=${SESSIONS_PER_PAGE}`, { signal }),
+      request<SessionPage>(`/api/sessions?status=finished&page=${pageParam}&per_page=${SESSIONS_PER_PAGE}${spanQuery(filter)}`, { signal }),
     initialPageParam: 1,
     getNextPageParam: last => (last.meta.current_page < last.meta.last_page ? last.meta.current_page + 1 : undefined),
+  })
+}
+
+/**
+ * The finished workouts of a span, at most a year, oldest first.
+ * @param enabled false when the span's workouts are already known (this week, from Home)
+ */
+export function useCalendar(span: Span, enabled = true) {
+  return useQuery({
+    queryKey: sessionKeys.calendar(span),
+    queryFn: ({ signal }) => request<{ data: CalendarSession[] }>(`/api/sessions/calendar?${spanQuery(span).slice(1)}`, { signal }).then(answer => answer.data),
+    enabled,
   })
 }
 

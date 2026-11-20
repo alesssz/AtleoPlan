@@ -29,7 +29,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-11 Videos of an exercise](#feat-11-videos-of-an-exercise)
   - [FEAT-12 Choose the sound at the end of a rest or a timed set](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set)
   - [FEAT-13 The volume of the sound](#feat-13-the-volume-of-the-sound)
-  - [FEAT-18 A calendar on Home, its days opening history](#feat-18-a-calendar-on-home-its-days-opening-history)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
@@ -68,7 +67,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile), [FEAT-18](#feat-18-a-calendar-on-home-its-days-opening-history). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 ## OPS
 
@@ -279,21 +278,6 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - B) The volume kept in `localStorage`, per phone: right if the same account trains with a phone and a tablet, but the only preference that would not follow the account.
 
 **Recommended.** A, with FEAT-12. The gain is relative to the system volume: the slider can make the beep quieter or louder than today, never louder than the phone allows, and an iPhone in silent mode may mute it; the preference's hint says so.
-
-### FEAT-18 A calendar on Home, its days opening history
-
-**Priority:** medium · **Kind:** feature · **Found:** 2026-11-20
-
-**What is missing.** Home's **This week** ([D1.4.2](../design/D1-ui.md#d142-home)) is a strip of the current week's 7 days (`WeekStrip`), the days trained highlighted, none of them a link. A calendar would answer "when did I train" over a longer span: a choice of **day, week, month or year**, each day tappable, a tap opening **that day's workouts in history**. History today lists workouts by month, 20 at a time ([C1.19.4](../concepts/C1-frontend.md#c1194-history-pages-from-the-server)), with no way to ask for one day; [D1.4.11](../design/D1-ui.md#d1411-history) mentions a monthly calendar as not planned.
-
-**Where.** `components/home/WeekStrip.tsx` and Home's week card; `api/home.ts` (`GET /api/home` sends the workouts finished in the last 8 days only, enough for one week); `GET /api/sessions`, whose `ListSessionsRequest` takes `status`, `page` and `per_page`, no dates; `pages/HistoryPage.tsx` and its route; `lib/week.ts`. Days are the device's ("Monday" depends on where the user is, [D3.6](../design/D3-data-model.md#d36-workouts)), so the server can only be asked for moments, the device turning them into days.
-
-**Options.**
-- A) The card becomes a calendar with **Week · Month · Year** (a segmented control) and arrows to move back and forth: week as today's strip, month as a grid, year as twelve small months with the days trained marked. **Day** is not a fourth view but the tap: a day opens `/progress/history?day=2026-11-19`, history showing that day's workouts under "Thursday 19 November" with a way back to all. Needs: `from` and `to` on `GET /api/sessions` (moments, the start and end of the local day, month or year), so history can ask for one day and the calendar for the days trained in its span (the `started_at` of each, grouped by day on the device).
-- B) Today's week strip on Home, its days made tappable (the same history link), and the month and year calendar on Progress, above the latest workouts. Home stays short; the calendar lives with history.
-- C) Only the tappable days of A or B, no new views.
-
-**Recommended.** A, as asked, unless Home grows too long on a phone; then B, which is the same work in another place. Either way the API change and the history filter come first, in one branch, with their Pest tests (another user's workouts never counted, a day at the edges of a time zone); the views after. Done when a tap on a day with workouts lists exactly those in history, in the device's time zone, and the month and year views show the days trained from the server, offline from the cache like Home.
 
 ## BE
 

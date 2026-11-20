@@ -69,7 +69,7 @@ The stack's rationale is in [D2.2](../design/D2-decisions.md#d22-stack), the scr
   - [C1.18.1 The pieces](#c1181-the-pieces)
   - [C1.18.2 Starting from Home: one hook for two pages](#c1182-starting-from-home-one-hook-for-two-pages)
   - [C1.18.3 The card: choose, then start](#c1183-the-card-choose-then-start)
-  - [C1.18.4 This week, by the device's clock](#c1184-this-week-by-the-devices-clock)
+  - [C1.18.4 The calendar, by the device's clock](#c1184-the-calendar-by-the-devices-clock)
   - [C1.18.5 Testing it](#c1185-testing-it)
 - [C1.19 The summary and history](#c119-the-summary-and-history)
   - [C1.19.1 The pieces](#c1191-the-pieces)
@@ -1241,19 +1241,21 @@ HomePage                 route `/`, inside AppLayout
 ├── ActivePlanCard       the plan, the chosen day (the suggested one initially), Start, a chip per day
 │   or EmptyState        no active plan: Create a plan, Browse exercises
 ├── Free workout         startFree()
-└── This week            WeekStrip (days trained), WeekStats (workouts, sets, minutes), from weekSummary()
+└── TrainingCalendar     Week · Month · Year: WeekStrip, a month's table or twelve months; a line, "3 workouts · 2 h 15 min"
 ```
 
 | File | Holds |
 |---|---|
 | `api/home.ts` | `HomeData`, `HomeDay`, `homeKeys`, `useHome()` |
 | `components/home/ActivePlanCard.tsx` | The card: chosen day, its numbers, Start, chips |
-| `components/home/week-summary.ts` | `weekSummary()`: this week's workouts by the device's clock; no React |
-| `components/home/WeekStrip.tsx`, `WeekStats.tsx` | Seven days, three numbers |
+| `components/home/TrainingCalendar.tsx` | The calendar card: views, arrows, the month's table and the year's months |
+| `components/home/period-summary.ts` | `periodSummary()`: the span's workouts, time trained and workouts per day; no React |
+| `components/home/WeekStrip.tsx`, `CalendarDay.tsx` | Seven days; one day, a link when trained |
+| `lib/calendar.ts` | Spans of a week, month or year, a month's grid, a day in an address (`2026-11-19`) |
 
-**One request.** Home is opened on every visit, often on mobile data, where one answer arrives sooner than five. `GET /api/home` (`HomeSummary`, [C2.5.7](C2-backend.md#c257-the-workouts-endpoints)) carries the active plan, its days with a duration estimate, the suggested day, the last day done and the week's workouts. Days come **without exercises**: the card needs only a name, a count and minutes.
+**One request.** Home is opened on every visit, often on mobile data, where one answer arrives sooner than five. `GET /api/home` (`HomeSummary`, [C2.5.7](C2-backend.md#c257-the-workouts-endpoints)) carries the active plan, its days with a duration estimate, the suggested day, the last day done and the week's workouts: the calendar opens on this week without a request of its own. Days come **without exercises**: the card needs only a name, a count and minutes.
 
-**States:** skeleton, error with **Try again**, the card, or the empty state ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). Free workout and the week render in every state; Free workout needs no request.
+**States:** skeleton, error with **Try again**, the card, or the empty state ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). Free workout and the calendar render in every state; Free workout needs no request.
 
 **Invalidation.** `['home']` is marked stale after a workout is sent (`WorkoutScreen.finish()`, `usePendingSessions`) and after any plan change (`refreshPlans()` in `api/plans.ts`), since both change the card or the suggested day.
 
@@ -1283,16 +1285,26 @@ const start = useStartWorkout()
 - **Start is disabled** while a workout is in progress (the reason is written below it), while starting, and on a day with no exercises. A plan with no days shows **Edit the plan** instead.
 - **One lime button:** Start. When Resume (also lime) is shown, Start is disabled.
 
-### C1.18.4 This week, by the device's clock
+### C1.18.4 The calendar, by the device's clock
 
-A week starts Monday at midnight **in the user's time zone**, which only the device knows; the backend stores UTC ([D3.2.5](../design/D3-data-model.md#d325-times)). So the backend sends the finished workouts of the **last 8 days**, which cover the current week in any zone, and the app filters:
+A day starts at midnight **in the user's time zone**, which only the device knows; the backend stores UTC ([D3.2.5](../design/D3-data-model.md#d325-times)). So the device builds the span shown, a week from Monday, a month, a year, from local midnight to the next span's (`spanOf()` in `lib/calendar.ts`, with the local `Date` constructor, never by adding 24 hours), and asks for the moments in between:
+
+| Span shown | Its workouts come from |
+|---|---|
+| This week | `GET /api/home`'s `recent_sessions`, the **last 8 days**, which cover the current week in any zone: no request of its own, and offline as Home is |
+| Any other | `useCalendar(span)`: `GET /api/sessions/calendar?from=…&to=…`, only `id`, `started_at` and `duration_seconds`, a year at most and no pages ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)); kept on the phone like every answer |
 
 ```ts
-const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
-// { workouts: 2, sets: 29, minutes: 97, trainedDays: [Thu 5, Sat 7] }
+const summary = periodSummary([...recent, ...fetched], span)
+// { workouts: 3, seconds: 6930, days: Map { '2026-11-05' => 1, '2026-11-03' => 2 } }
 ```
 
-`isInWeek(moment, today)` (`lib/week.ts`) compares with this Monday and the next, both built with the local `Date` constructor. A day with two workouts counts once. Sets are the backend's `sets_done` (no warm-ups); minutes sum `duration_seconds`, rounded once. No volume: it adds unlike exercises and counts nothing bodyweight ([D2.8](../design/D2-decisions.md#d28-workout-rules)). Minutes rather than "2 h 35 min", so the number fits a third of a phone's width. A trained day gets a lime ring, a dot and the hidden words "workout done": colour alone never carries meaning ([D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility)).
+- **`periodSummary()`** keeps the workouts in the span, each once (the two answers overlap), counts them by `dayKey()`, the local day, and sums `duration_seconds`. Under the calendar one line says how many and how long, "3 workouts · 2 h 15 min" (`formatDuration()`), the time left out when no workout has one. No total of sets, nor volume: both add up unlike exercises, and volume counts nothing bodyweight ([D2.8](../design/D2-decisions.md#d28-workout-rules)). A line rather than tiles, so a month's six rows keep the card close to the plan's beside it.
+- **The month's days are smaller** than the week's (36 px against 44), and the year has four months a row: on a laptop the card sits beside the plan's, and a taller one leaves a gap under that.
+- **The views** are `Tabs`. The week is `WeekStrip`; the month a `<table>` with a column per weekday (`<th abbr>` with the long name), rows from `monthGrid()`; the year twelve `<button>`s, each a small month of dots named "March 2026: 2 workouts", which open the month: at that size a day is too small to tap. Months ahead of today are disabled, as is the forward arrow. Changing view keeps today in sight when the span shown holds it, otherwise the span's start.
+- **A day trained** is `CalendarDay`: a link to `/progress/history?from=2026-11-19&to=2026-11-19`, history filtered on that day, named "Thursday, November 19: 2 workouts", tinted with a lime ring; today is filled in lime and marked `aria-current="date"`. Colour alone never carries meaning ([D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility)).
+- **The title** is the region's name: "This week", or the span ("Nov 9 – 15, 2026" with `formatRange`, "November 2026", "2026"). **Today** appears when another span is shown.
+- **Loading and failing** concern only other spans: a skeleton in place of the numbers while fetching; offline with nothing kept, or an error, "The calendar could not be loaded." with **Try again**.
 
 **`ResumeBanner`'s Finish** asks the same question as workout mode (`FinishButton`), runs `finishWorkout()` and opens the summary: for a workout done but never finished.
 
@@ -1300,9 +1312,10 @@ const week = weekSummary(home.data?.recent_sessions ?? [], new Date())
 
 ### C1.18.5 Testing it
 
-- **The week** (`week-summary.test.ts`, `week.test.ts`): "today" a Thursday, workouts on Thursday, twice on Tuesday and on the previous Sunday; the Sunday is excluded and Tuesday counted once.
-- **The page** (`HomePage.test.tsx`): `homeAnswer()` with the test plan active and Day B suggested; the card is found as `region` named by its heading. Covers Start (plan and last sets fetched, workout mode on the right day), the reading ahead and Start offline from it, chip then Start, plan fetch failure, Resume, free workout, the week's numbers.
-- **`WeekStats`** puts each `<dt>` before its `<dd>` in the DOM but renders it below (`flex-col-reverse`); tests find the label and read `nextSibling`.
+- **The spans** (`lib/calendar.test.ts`, `week.test.ts`): weeks from Monday, a Sunday in the week before, months and years to the next one's midnight, 31 January plus a month is February, a month's grid with empty cells, day keys that do not exist refused.
+- **The summary** (`period-summary.test.ts`): "today" a Thursday, workouts on Thursday, twice on Tuesday, on the previous Sunday and one in both answers; the Sunday is left out, the duplicate counted once.
+- **The calendar** (`TrainingCalendar.test.tsx`): this week with no request and its days as links; the previous week asked for its span, then Today; the month's table and numbers; the year's months opening a month, those ahead disabled; the line of workouts and time; an error with Try again.
+- **The page** (`HomePage.test.tsx`): `homeAnswer()` with the test plan active and Day B suggested; the card is found as `region` named by its heading. Covers Start (plan and last sets fetched, workout mode on the right day), the reading ahead and Start offline from it, chip then Start, plan fetch failure, Resume, free workout, this week's days and time.
 
 ---
 
@@ -1390,6 +1403,8 @@ compareExercise(sets, previous, loggingType)
 - **The list** is `useSessions()`, an infinite query over `GET /api/sessions?status=finished&page=…&per_page=20` ([C1.14.2](#c1142-a-list-one-page-at-a-time)'s pattern).
 - **When:** `formatTimeRange(start, end, language)` (`lib/format.ts`), on the row before the sets, writes `started_at` and `finished_at` in the device's time zone, "18:05–19:12" with `Intl.DateTimeFormat.formatRange`; an end on another day adds its date, "23:30 – 20 nov, 8:10", rather than `started_at + duration_seconds`, a time nobody saw on the clock. `formatWorkoutWhen()` puts the long date before it, for a workout's page and the summary, so both write it the same way.
 - **By month:** `byMonth()` groups newest first; the heading is capitalised with `first-letter:uppercase`, since some locales write months in lower case ("novembre 2026").
+- **The filter by date** is the address: `?from=2026-11-01&to=2026-11-19`, either end left out for an open one. `parseDayKey()` reads each, refusing a day that does not exist; ends typed backwards are swapped. `useSessions({ from, to })` sends the first day's local midnight and the midnight **after** the last day, so the last day is included (`from`, `to`, in UTC; `sessionKeys.listOf()` keys the list by both). Grouping stays by month, so a long span reads as the whole list does.
+- **`DateRangeFilter`** (`components/history/`) writes the address: two `<input type="date">`, the phone's own pickers, inside one bordered bar, each label small inside its field so the pair fits a phone; `max` today, and **To**'s `min` the start. Moving one end past the other moves the other with it, rather than asking the server for a span it refuses. ✕ ("Clear the dates") shows only while filtering. `setSearchParams(…, { replace: true })`: Back leaves history instead of stepping through the dates tried. Under the bar, "3 workouts in these days" from `meta.total`, read out (`aria-live`). While history is still empty there is no filter: nothing to filter.
 - **A workout's page** is `useSession(id, language)` (names come translated). `meta.last_sets` carries last time for each exercise, counting only workouts **before** it ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)), fed to the same `compareWorkout()` as the summary. Sets are numbered with `setNumbers()` and written with `loggedSetText()`: one way of writing a set across the app.
 - **Delete** (`useDeleteSession`) removes the workout's cached copies, marks the lists and Home stale, and opens history.
 - **Progress** shows the first three rows of the same `useSessions()` query, so **All workouts** opens from the cache.

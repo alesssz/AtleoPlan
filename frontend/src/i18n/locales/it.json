@@ -105,8 +105,6 @@
     "weekTitle": "Questa settimana",
     "weekEmpty": "Ancora nessun allenamento questa settimana. Il primo è quello che conta.",
     "today": "oggi",
-    "statWorkouts": "Allenamenti",
-    "statSets": "Serie",
     "activePlan": "Piano attivo",
     "suggested": "Consigliato",
     "exercises_one": "{{count}} esercizio",
@@ -126,7 +124,32 @@
     "freeStart": "Inizia un allenamento libero",
     "trained": "allenamento fatto",
     "history": "Vedi tutti gli allenamenti",
-    "statMinutes": "Minuti"
+    "calendar": {
+      "views": "Vista del calendario",
+      "week": "Settimana",
+      "month": "Mese",
+      "year": "Anno",
+      "previous": {
+        "week": "Settimana precedente",
+        "month": "Mese precedente",
+        "year": "Anno precedente"
+      },
+      "next": {
+        "week": "Settimana successiva",
+        "month": "Mese successivo",
+        "year": "Anno successivo"
+      },
+      "backToToday": "Oggi",
+      "dayWorkouts_one": "{{date}}: {{count}} allenamento",
+      "dayWorkouts_other": "{{date}}: {{count}} allenamenti",
+      "monthWorkouts_one": "{{month}}: {{count}} allenamento",
+      "monthWorkouts_other": "{{month}}: {{count}} allenamenti",
+      "workouts_one": "{{count}} allenamento",
+      "workouts_other": "{{count}} allenamenti",
+      "empty": "Nessun allenamento in questo periodo.",
+      "loading": "Caricamento del calendario…",
+      "loadError": "Non è stato possibile caricare il calendario."
+    }
   },
   "plans": {
     "new": "Nuova scheda",
@@ -668,7 +691,15 @@
     "statReps": "Ripetizioni",
     "reps_one": "{{count}} ripetizione",
     "reps_other": "{{count}} ripetizioni",
-    "exerciseVolume": "Volume di questo esercizio: {{amount}}"
+    "exerciseVolume": "Volume di questo esercizio: {{amount}}",
+    "filter": {
+      "label": "Filtra per data",
+      "from": "Dal",
+      "to": "Al",
+      "clear": "Azzera le date",
+      "results_one": "{{count}} allenamento in questi giorni",
+      "results_other": "{{count}} allenamenti in questi giorni"
+    }
   },
   "compare": {
     "title": "Rispetto all'ultima volta:",
