@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\RedirectResponse as AnyRedirect;
 
@@ -28,6 +29,10 @@ use Symfony\Component\HttpFoundation\RedirectResponse as AnyRedirect;
  *
  * Browser visits, not API calls: they live in web.php for the session the
  * state needs, and answer only with redirects.
+ *
+ * Every visit leaves a line in the log, a failure a warning with its reason:
+ * the person sees only a vague code, and a failure on Google's side or on the
+ * way back leaves no other trace.
  */
 class GoogleSignInController extends Controller
 {
@@ -59,6 +64,7 @@ class GoogleSignInController extends Controller
             'locale' => Locale::tryFrom((string) $request->query('locale'))?->value,
             'admin' => $request->query('to') === 'admin',
         ]);
+        Log::info('Google sign-in: off to Google.', $this->trace($request));
 
         return Socialite::driver(SocialProvider::Google->value)->redirect();
     }
@@ -72,6 +78,12 @@ class GoogleSignInController extends Controller
         // access_denied: the person pressed Cancel. Any other error is not
         // theirs to fix
         if ($request->filled('error')) {
+            $this->logFailure('Google sent back an error', $request, $intent, [
+                // Anyone can type the callback's address: kept short
+                'error' => Str::limit((string) $request->query('error'), 100),
+                'error_description' => Str::limit((string) $request->query('error_description'), 300),
+            ]);
+
             return $this->backToSignIn(
                 $request->query('error') === 'access_denied' ? SocialSignInError::Cancelled : SocialSignInError::Failed,
                 $toAdmin,
@@ -84,7 +96,7 @@ class GoogleSignInController extends Controller
             $outside = Socialite::driver(SocialProvider::Google->value)->user();
         } catch (Exception $e) {
             // The details belong in the log, not on the screen
-            report($e);
+            $this->logFailure('Socialite refused the answer', $request, $intent, ['exception' => $e]);
 
             return $this->backToSignIn(SocialSignInError::Failed, $toAdmin);
         }
@@ -96,6 +108,8 @@ class GoogleSignInController extends Controller
                 ?? Locale::En;
             $user = $signIn->handle(SocialProvider::Google, $outside, $locale);
         } catch (SocialSignInRefused $e) {
+            $this->logFailure('the account was refused', $request, $intent, ['reason' => $e->reason->value]);
+
             return $this->backToSignIn($e->reason, $toAdmin);
         }
 
@@ -104,6 +118,7 @@ class GoogleSignInController extends Controller
         Auth::login($user, remember: true);
         // Against session fixation
         $request->session()->regenerate();
+        Log::info('Google sign-in: signed in.', [...$this->trace($request, $intent), 'user_id' => $user->id]);
 
         // A non-admin who started on the panel is signed in all the same, and
         // lands in the app rather than on the panel's 403
@@ -112,6 +127,37 @@ class GoogleSignInController extends Controller
         }
 
         return redirect()->to(config('app.frontend_url').($intent['from'] ?? '/'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $intent  what the first stop kept
+     * @param  array<string, mixed>  $details  the reason's own
+     */
+    private function logFailure(string $reason, Request $request, array $intent, array $details): void
+    {
+        Log::warning("Google sign-in failed: {$reason}.", [...$this->trace($request, $intent), ...$details]);
+    }
+
+    /**
+     * What tells the causes of a failed return apart. No session cookie: the
+     * visit came back to another host than the one it left from (`localhost`
+     * against `127.0.0.1` or a network address), or the browser dropped the
+     * cookie. A cookie but no visit started: the session expired, or the
+     * callback was opened twice or after Back. The user agent tells a phone
+     * from a computer. No email: the log is no place for one.
+     *
+     * @param  array<string, mixed>|null  $intent  what the first stop kept; null on the first stop
+     * @return array<string, mixed>
+     */
+    private function trace(Request $request, ?array $intent = null): array
+    {
+        return [
+            'host' => $request->getHttpHost(),
+            'session_cookie' => $request->cookies->has(config('session.cookie')),
+            ...($intent === null ? [] : ['visit_started' => $intent !== []]),
+            'admin' => $intent === null ? $request->query('to') === 'admin' : (bool) ($intent['admin'] ?? false),
+            'user_agent' => Str::limit((string) $request->userAgent(), 200),
+        ];
     }
 
     /**

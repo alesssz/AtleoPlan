@@ -74,6 +74,20 @@ describe('the cache kept on the phone', () => {
     expect(after.getQueryState(['plans', 'detail', 'gone', 'en'])).toBeUndefined()
   })
 
+  it('does not keep "nobody is signed in", so the next start asks the server', async () => {
+    const before = new QueryClient()
+    // A visitor on /login, leaving for Google
+    before.setQueryData(['user'], null)
+    before.setQueryData(['plans', 'list', false], [])
+    const storage = memoryStorage()
+
+    await save(before, storage)
+    const after = await restore(storage)
+
+    expect(after.getQueryState(['user'])).toBeUndefined()
+    expect(after.getQueryData(['plans', 'list', false])).toEqual([])
+  })
+
   it('drops a copy saved by a build that read the answers differently', async () => {
     const before = new QueryClient()
     before.setQueryData(['user'], testUser)

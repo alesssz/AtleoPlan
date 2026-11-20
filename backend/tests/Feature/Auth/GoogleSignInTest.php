@@ -16,6 +16,7 @@ use App\Models\Plan;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -217,6 +218,87 @@ describe('back from Google', function () {
             ->assertRedirect(frontend('/login?error=failed'));
 
         $this->assertGuest();
+    });
+});
+
+// Each visit leaves a line, a failure a warning with what tells the causes apart
+describe('the log', function () {
+    beforeEach(fn () => Log::spy());
+
+    /**
+     * Whether a warning was written with this message and these context values.
+     *
+     * @param  array<string, mixed>  $context  the values to find, among others
+     */
+    function loggedWarning(string $message, array $context): void
+    {
+        Log::shouldHaveReceived('warning')->withArgs(
+            fn (string $logged, array $logContext) => $logged === $message
+                && array_intersect_key($logContext, $context) == $context,
+        )->once();
+    }
+
+    it('notes each visit to Google, with the host it left from', function () {
+        Socialite::fake('google');
+
+        // Through Vite, as in development
+        $this->get('http://localhost:5673/auth/google/redirect', ['User-Agent' => 'Phone'])->assertRedirect();
+
+        Log::shouldHaveReceived('info')->with('Google sign-in: off to Google.', [
+            'host' => 'localhost:5673',
+            'session_cookie' => false,
+            'admin' => false,
+            'user_agent' => 'Phone',
+        ])->once();
+    });
+
+    it('notes who signed in, by id only', function () {
+        Socialite::fake('google', googlePerson());
+
+        $this->withSession(['google_sign_in' => ['from' => '/plans']])->get('/auth/google/callback');
+
+        Log::shouldHaveReceived('info')->withArgs(
+            fn (string $message, array $context) => $message === 'Google sign-in: signed in.'
+                && $context['user_id'] === User::sole()->id
+                && $context['visit_started'] === true
+                && ! in_array('ann@example.com', $context, true),
+        )->once();
+    });
+
+    it('writes down the error Google sent back', function () {
+        Socialite::fake('google', googlePerson());
+
+        $this->get('/auth/google/callback?error=access_denied&error_description=No');
+
+        loggedWarning('Google sign-in failed: Google sent back an error.', [
+            'error' => 'access_denied',
+            'error_description' => 'No',
+        ]);
+    });
+
+    it('tells a return with no visit started from one whose cookie never came back', function (bool $cookie) {
+        Socialite::fake('google', fn () => throw new InvalidStateException);
+
+        if ($cookie) {
+            $this->withCookie(config('session.cookie'), 'stale');
+        }
+        $this->get('/auth/google/callback?code=x&state=y');
+
+        loggedWarning('Google sign-in failed: Socialite refused the answer.', [
+            'session_cookie' => $cookie,
+            'visit_started' => false,
+        ]);
+        Log::shouldHaveReceived('warning')->withArgs(
+            fn (string $message, array $context) => $context['exception'] instanceof InvalidStateException,
+        );
+    })->with(['the session expired' => true, 'another host' => false]);
+
+    it('writes down why an account was refused', function () {
+        Socialite::fake('google', googlePerson(['email_verified' => false]));
+
+        $this->get('/auth/google/callback');
+
+        loggedWarning('Google sign-in failed: the account was refused.', ['reason' => 'unverified']);
     });
 });
 

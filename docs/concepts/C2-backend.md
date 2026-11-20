@@ -670,7 +670,9 @@ Cases 2 and 3 require `email_verified`. A disabled account is refused in all thr
 
 **From the admin panel** (`?to=admin`) the journey ends on the panel, or its login page with the error ([C2.8.4](#c284-the-way-in-a-link-and-google-on-the-panels-login)).
 
-**Errors return as a code,** `/login?error=cancelled|failed|unverified|disabled` (`SocialSignInError`), since a redirect carries no JSON body. The action throws `SocialSignInRefused` with the reason, so a check can stop it at any depth; the controller catches it. Anything unexpected (Google unreachable, a wrong secret, a stale `state`) is `failed`, reported to the log.
+**Errors return as a code,** `/login?error=cancelled|failed|unverified|disabled` (`SocialSignInError`), since a redirect carries no JSON body. The action throws `SocialSignInRefused` with the reason, so a check can stop it at any depth; the controller catches it. Anything unexpected (Google unreachable, a wrong secret, a stale `state`) is `failed`.
+
+**Every visit leaves a line in the log**, since the codes are vague on purpose and a failed return leaves no other trace: `info` when leaving for Google and when signed in (the user's id, never the email), `warning` for each failure with its reason (Google's `error`, Socialite's exception, the refusal's code). Each line carries what tells the causes apart: the request's `host`, whether the session cookie came back (`session_cookie`), whether the session still held the visit (`visit_started`), and the user agent. Reading them: [S1.11.7](../start/S1-setup.md#s1117-when-it-does-not-work).
 
 **Accounts without a password:** `users.password` is nullable. `Hash::check()` never matches an empty hash, so the password form refuses them like a wrong password; Forgot password sets one, after which both ways work.
 

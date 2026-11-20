@@ -376,7 +376,19 @@ With [OPS-3](../project/backlog.md#ops-3-deploy-to-the-free-server):
 | `Error 401: invalid_client` | A wrong or old id or secret in `backend/.env`, or the backend not restarted after writing them |
 | `Error 401: deleted_client` | The client was deleted in the console: a new one (S1.11.4), new lines in every `backend/.env` |
 
-**When the app says it** ("Signing in with Google didn't work", `/login?error=failed`), Laravel stopped before going to Google or after coming back. `make logs` says why: the two lines missing from `backend/.env`, a wrong secret (`invalid_client`), a return opened twice (`InvalidStateException`). More in [H2.11](../how-to/H2-backend.md#h211-finding-out-what-is-going-on).
+**When the app says it** ("Signing in with Google didn't work", `/login?error=failed`), Laravel stopped before going to Google or after coming back. `make logs` says why: each attempt writes `Google sign-in: off to Google.`, then `signed in.` or `failed: <reason>.` ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)).
+
+| The log says | Why |
+|---|---|
+| Nothing at all | The click never reached Laravel: the app was opened where Vite does not forward `/auth/` |
+| `off to Google`, then nothing | The browser did not come back to Laravel: Google stopped it on its own page (the table above), or sent it to `localhost`, which on a phone is the phone itself |
+| `failed: Google sent back an error`, `error: access_denied` | The person pressed Cancel; any other `error` is Google's, `error_description` says which |
+| `failed: Socialite refused the answer`, `session_cookie: false` | The return came to another host than the one the visit left from (`127.0.0.1` against `localhost`), so the browser did not send the session's cookie: open the app at `localhost` |
+| The same, `session_cookie: true`, `visit_started: false` | The session no longer held the visit: the return was opened twice, after Back, or after the session's 120 minutes |
+| The same with `invalid_client` in the exception | A wrong secret in `backend/.env` |
+| `failed: the account was refused`, `reason: …` | `unverified` or `disabled`, as the app says |
+
+More in [H2.11](../how-to/H2-backend.md#h211-finding-out-what-is-going-on).
 
 ---
 
