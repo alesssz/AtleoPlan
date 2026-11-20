@@ -6,7 +6,7 @@ import type { HomeData } from '@/api/home'
 import { planKeys } from '@/api/plans'
 import type { WorkoutSession } from '@/api/sessions'
 import { loadActiveSession, loadFinished, storeActiveSession } from '@/components/workout/session-storage'
-import { startSession } from '@/components/workout/workout-session'
+import { startSession, workoutReducer } from '@/components/workout/workout-session'
 import { fakeApi, renderRoutes, signedInAs, type FakeAnswer } from '@/test/auth-helpers'
 import { testPlan, testPlanSummary } from '@/test/plan-helpers'
 import { HomePage } from './HomePage'
@@ -189,6 +189,19 @@ describe('HomePage', () => {
     expect(screen.getByRole('link', { name: 'Resume' })).toHaveAttribute('href', `/session/${session.id}`)
     expect(await screen.findByRole('button', { name: 'Start' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Start a free workout' })).toBeDisabled()
+  })
+
+  it('resumes a workout paused on screen when Resume is tapped on its banner', async () => {
+    const plan = testPlan()
+    const started = startSession(plan, plan.days[0]!, { unit: 'kg', defaultRestSeconds: 90, lastSets: [], language: 'en', now: new Date() })
+    storeActiveSession(workoutReducer(started, { type: 'pauseWorkout', now: new Date().toISOString() }))
+    fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer() })
+    renderRoutes(routes, '/')
+
+    await userEvent.click(await screen.findByRole('link', { name: 'Resume' }))
+
+    expect(await screen.findByText('workout mode')).toBeInTheDocument()
+    expect(loadActiveSession()).toMatchObject({ paused_at: null, running_since: expect.any(String) })
   })
 
   it('finishes a workout left open from its banner, after the same question, then opens its summary', async () => {

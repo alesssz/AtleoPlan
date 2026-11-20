@@ -64,6 +64,7 @@ The stack's rationale is in [D2.2](../design/D2-decisions.md#d22-stack), the scr
   - [C1.17.10 Times, up next, how to do it](#c11710-times-up-next-how-to-do-it)
   - [C1.17.11 Removing what was added by hand](#c11711-removing-what-was-added-by-hand)
   - [C1.17.12 Deleting a workout in progress](#c11712-deleting-a-workout-in-progress)
+  - [C1.17.13 Pausing without leaving](#c11713-pausing-without-leaving)
 - [C1.18 Home](#c118-home)
   - [C1.18.1 The pieces](#c1181-the-pieces)
   - [C1.18.2 Starting from Home: one hook for two pages](#c1182-starting-from-home-one-hook-for-two-pages)
@@ -926,7 +927,7 @@ dispatch({ type: 'adjustRest', seconds: 15 })
 
 - **Moments are ISO 8601 strings,** since the workout round-trips through JSON.
 - **"Now" is a parameter** of actions and readers (`elapsedSeconds(session, now)`), so tests choose the moment.
-- **The clock excludes pauses:** `elapsed = accumulated_seconds + (now − running_since)`, with `running_since` null while paused. ✕ dispatches `pause`; reopening, `resume`.
+- **The clock excludes pauses:** `elapsed = accumulated_seconds + (now − running_since)`, with `running_since` null while paused. ✕ dispatches `pause`; reopening, `resume`, which leaves alone a workout paused on screen with ⏸ (C1.17.13).
 - **Values are text, as typed.** ✓ is enabled only when the fields of the exercise's logging type parse as numbers (`canComplete()`), so the backend never receives a set it would refuse.
 - **The weight may stay empty:** on a weighted exercise, a set with the body alone; on a bodyweight one (pull-ups, `reps`), the column is **+kg**, the added weight. `toSessionInput()` sends `null` when empty ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)).
 - **One screen per run.** `stations(session)` splits the workout into runs, an exercise alone or a whole superset (`supersetOf()`, neighbours with the same `superset_group`), as `groupSupersets()` does for the plan's page. `current` stays an exercise's index, so stored workouts read the same; the screen shows its run. The dots, "Exercise 2 of 4", Previous and Next count runs, and go to a run's first exercise. A superset is `SupersetRounds`, a `<section>` named "Superset: A + B" with the plan's lime bar, **read by round** as it is done (hang → pull-ups → rest, three times). A round holds the sets at the same position of each exercise; one with fewer sets drops out of the last rounds. **What is not needed now is a line that opens**, so six rounds of four exercises fit a phone:
@@ -961,6 +962,7 @@ const left = restLeft(session, now)       // ends_at − now, whole seconds, nev
 
 - **A phone that slept** shows the right time as soon as it wakes.
 - **±15 s** moves `ends_at` and the bar's total; **Skip** dispatches `endRest`.
+- **Paused with the workout** (C1.17.13), `restLeft()` reads the pause's moment instead of `now`, the effect sets no timer, and Resume moves `ends_at` by the pause's length.
 - **The end** is a `setTimeout` for that moment, in an effect keyed on `session.rest`:
 
 ```tsx
@@ -1081,6 +1083,7 @@ stopwatchSeconds(stopwatch, now)   // (now or paused_at) − started_at − paus
 - **A hold stops at its target** and writes it: `stopStopwatch` caps a hold's seconds at the target (`isForTime()` false), so a stop that comes late (a timer fired with the screen off, the app reopened after it) still writes 30, not 34. A race is never capped: past the time to beat is the result.
 - **Starting ends the rest,** if one was running.
 - **Pausing stores `paused_at`;** Resume adds the pause to `paused_ms` and clears it. A second Pause is ignored (moving `paused_at` would lose the seconds between), and so is a Pause during the countdown, which counts nothing. Stop while paused writes the time at the pause.
+- **Paused with the workout** (C1.17.13), countdown included: `held` marks a pause the workout made, so the workout's Resume starts it again and leaves one paused by its own button alone. `countdownLeft()` reads `paused_at` too, so a held countdown stands still; Resume then moves `started_at` by the pause instead of adding it to `paused_ms`. The panel says "Paused" and sets no countdown ticks meanwhile; its Resume, and Start now, end the workout's pause too.
 - **One stopwatch at a time:** while one runs, every other ▶ is disabled (`SetRow`'s `stopwatch`: `'this'` or `'other'`).
 - **✓ on the set being timed is Stop:** `toggleSet` hands over to `stopStopwatch`, so the time written is the one measured, not the one pre-filled from the plan or last time. That ✓ stays enabled while its seconds are empty, since the stopwatch fills them. During the countdown nothing was measured: the stopwatch goes and the set is ticked with its own field, as ✓ alone would.
 
@@ -1200,6 +1203,27 @@ A workout started by mistake or abandoned is discarded from Finish's dialog, wit
 - **From `ResumeBanner`** (Home, plan page): the page read the workout once into its state (`useState(loadActiveSession)`), so the banner calls `onDiscarded()` and the page does `setActive(null)`; **Start** and **Free workout**, disabled by `busy={active !== null}`, work again.
 
 **Tests** check that nothing is left on the phone (`loadActiveSession()`, `loadPending()`, `loadFinished()`) and nothing is sent to `/api/sessions`, from workout mode and from the banner.
+
+### C1.17.13 Pausing without leaving
+
+**⏸** beside the clock pauses the whole workout and stays on the screen: a phone call, a machine taken, a long break. ✕ also stops the clock, but on the way out; this one is for staying.
+
+**One moment, `paused_at`,** on `ActiveSession`, null or missing otherwise (workouts already stored read as not paused):
+
+| Action | Does |
+|---|---|
+| `pauseWorkout` | Stops the clock (`stopClock`), stores `paused_at`; a running stopwatch gets the same `paused_at` and `held: true`. Nothing when already paused or finished: a second ⏸ would move the moment |
+| `resumeWorkout` | `endPause()`: the rest's `ends_at` and a held stopwatch move by the pause's length, the clock runs from now |
+| `resume` (the screen's mount) | Ignored while `paused_at` is set, so a reload or reopening the app stays paused |
+| `pause` (✕) | Unchanged: leaves `paused_at` as it is |
+| `toggleSet` (a tick that passes `canComplete()`), `startStopwatch`, `resumeStopwatch`, `skipCountdown` | Call `endPause()` first: that is training. Unticking is a correction and does not |
+| `finish` | Clears it; the time trained is the one before the pause |
+
+**Nothing counts while paused.** The clock is `accumulated_seconds` alone. The rest stands still because `restLeft()` reads `paused_at` rather than `now`, and the screen's end-of-rest effect sets no timer; a rest ending during a call would beep for nothing. A running stopwatch is paused with the workout, countdown included (C1.17.8); one already paused by its own button keeps its own moment, and the workout's Resume leaves it paused. Nothing changes on the server: `duration_seconds` already leaves pauses out ([D3.6.1](../design/D3-data-model.md#d361-workout_sessions)).
+
+**On screen.** ⏸ is a ghost icon button after the clock, named "Pause workout", then "Resume workout" with ▶. Paused, the clock pulses, the rest bar's time greys and pulses (`RestBar`'s `paused`), and a lime-tinted bar, a region named "Workout paused" with a `role="status"` line read out when it appears, sits above the stopwatch and the rest with **Resume**.
+
+**From Home.** `ResumeBanner`'s **Resume** says what it does: before following the link it stores the workout with `resumeWorkout` applied, since the screen would otherwise open paused.
 
 ---
 

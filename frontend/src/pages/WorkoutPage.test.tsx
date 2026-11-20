@@ -211,6 +211,38 @@ describe('WorkoutPage', () => {
     expect(loadActiveSession()?.running_since).toBeNull()
   })
 
+  it('pauses on screen: the rest stands still, a reload stays paused, Resume and a tick go on', async () => {
+    const session = startDayA()
+    fakeApi({ 'GET /api/user': signedInAs() })
+    renderRoutes(routes, `/session/${session.id}`)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Tick: Set 1' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Pause workout' }))
+
+    // Said in a bar of its own, with Resume; the rest kept where it was
+    const bar = screen.getByRole('region', { name: 'Workout paused' })
+    expect(within(bar).getByRole('status')).toHaveTextContent('Workout paused')
+    expect(within(screen.getByRole('region', { name: 'Rest' })).getByRole('timer')).toHaveTextContent(/1:(29|30)/)
+    expect(loadActiveSession()).toMatchObject({ paused_at: expect.any(String), running_since: null })
+
+    // Opened again, as after a reload: still paused
+    cleanup()
+    renderRoutes(routes, `/session/${session.id}`)
+    expect(await screen.findByRole('region', { name: 'Workout paused' })).toBeInTheDocument()
+    expect(loadActiveSession()?.running_since).toBeNull()
+
+    // Resume, from the bar: the clock runs again
+    await userEvent.click(within(screen.getByRole('region', { name: 'Workout paused' })).getByRole('button', { name: 'Resume' }))
+    expect(screen.queryByRole('region', { name: 'Workout paused' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pause workout' })).toBeInTheDocument()
+    expect(loadActiveSession()).toMatchObject({ paused_at: null, running_since: expect.any(String) })
+
+    // Paused again, then a tick: ticking is training, so the pause ends
+    await userEvent.click(screen.getByRole('button', { name: 'Pause workout' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Tick: Set 2' }))
+    expect(screen.queryByRole('region', { name: 'Workout paused' })).not.toBeInTheDocument()
+  })
+
   it('finishes early: says what will not be saved, sends the workout, opens its summary', async () => {
     const session = startDayA()
     const fake = fakeApi({ 'GET /api/user': signedInAs(), [`PUT /api/sessions/${session.id}`]: { status: 201, body: { data: { id: session.id } } } })

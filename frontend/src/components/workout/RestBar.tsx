@@ -5,6 +5,7 @@
  */
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { clock } from './clock'
 import { WORKOUT_COLUMN } from './layout'
 
@@ -17,9 +18,11 @@ interface RestBarProps {
   onSkip: () => void
   /** The exercise the rest leads to, by name; null or missing when the sets on screen go on. */
   next?: string | null
+  /** The workout is paused: the time stands still, greyed and pulsing. */
+  paused?: boolean
 }
 
-export function RestBar({ left, total, onAdjust, onSkip, next = null }: RestBarProps) {
+export function RestBar({ left, total, onAdjust, onSkip, next = null, paused = false }: RestBarProps) {
   const { t } = useTranslation()
   const share = total > 0 ? Math.min(1, left / total) : 0
 
@@ -33,7 +36,7 @@ export function RestBar({ left, total, onAdjust, onSkip, next = null }: RestBarP
           <p className="flex-1">
             <span className="mr-2 text-sm text-muted-foreground">{t('workout.restTitle')}</span>
             {/* role="timer": screen readers do not read it every second */}
-            <span role="timer" className="font-heading text-2xl font-extrabold tabular-nums">{clock(left)}</span>
+            <span role="timer" className={cn('font-heading text-2xl font-extrabold tabular-nums', paused && 'animate-pulse text-muted-foreground')}>{clock(left)}</span>
           </p>
           <Button variant="outline" size="xl" className="px-3" aria-label={t('workout.restMinus')} onClick={() => onAdjust(-15)}>−15</Button>
           <Button variant="outline" size="xl" className="px-3" aria-label={t('workout.restPlus')} onClick={() => onAdjust(15)}>+15</Button>

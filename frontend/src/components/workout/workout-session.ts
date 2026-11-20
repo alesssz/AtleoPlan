@@ -93,6 +93,11 @@ export interface Stopwatch {
   paused_at?: string | null
   /** The milliseconds spent paused before the current pause, if any; missing reads as 0. */
   paused_ms?: number
+  /**
+   * Paused by the workout's pause rather than its own button, so the
+   * workout's Resume starts it again. Missing reads as false.
+   */
+  held?: boolean
 }
 
 /** The whole workout in progress. */
@@ -110,6 +115,12 @@ export interface ActiveSession {
   accumulated_seconds: number
   /** Since when it has been running; null while paused. */
   running_since: string | null
+  /**
+   * When the workout was paused on screen (⏸); null or missing otherwise.
+   * Unlike ✕, which stops the clock on the way out, it survives reopening the
+   * workout: opening the screen resumes only a workout left with ✕.
+   */
+  paused_at?: string | null
   /** When the workout was finished; null until then. */
   finished_at: string | null
   /** The index of the exercise on screen. */
@@ -319,8 +330,10 @@ export function elapsedSeconds(session: ActiveSession, now: Date): number {
  */
 export function restLeft(session: ActiveSession, now: Date): number {
   if (session.rest === null) return 0
+  // Paused, the rest stands still at the moment of the pause
+  const moment = session.paused_at ? Date.parse(session.paused_at) : now.getTime()
   // Rounded up: 0.2 s left still shows 0:01
-  const left = Math.ceil((Date.parse(session.rest.ends_at) - now.getTime()) / 1000)
+  const left = Math.ceil((Date.parse(session.rest.ends_at) - moment) / 1000)
   return Math.min(session.rest.total, Math.max(0, left))
 }
 
@@ -334,10 +347,12 @@ export const FALLBACK_COUNTDOWN_SECONDS = 5
 /**
  * The seconds left before a stopwatch starts counting, rounded up ("5, 4, 3…");
  * 0 once it counts. ▶ stores a start in the future, so the countdown is kept
- * with the workout like the count itself.
+ * with the workout like the count itself. A countdown paused with the workout
+ * stands still.
  */
 export function countdownLeft(stopwatch: Stopwatch, now: Date): number {
-  return Math.max(0, Math.ceil((Date.parse(stopwatch.started_at) - now.getTime()) / 1000))
+  const moment = stopwatch.paused_at ? Date.parse(stopwatch.paused_at) : now.getTime()
+  return Math.max(0, Math.ceil((Date.parse(stopwatch.started_at) - moment) / 1000))
 }
 
 /**
@@ -547,6 +562,8 @@ export type WorkoutAction
     | { type: 'cancelStopwatch' }
     | { type: 'pause', now: string }
     | { type: 'resume', now: string }
+    | { type: 'pauseWorkout', now: string }
+    | { type: 'resumeWorkout', now: string }
     | { type: 'finish', now: string }
 
 /** Adds the time since the clock last started to the time trained. Mutates `session`. */
@@ -554,6 +571,39 @@ function stopClock(session: ActiveSession, now: string): void {
   if (session.running_since === null) return
   session.accumulated_seconds = elapsedSeconds(session, new Date(now))
   session.running_since = null
+}
+
+/** A moment moved later by `ms`, as ISO 8601. */
+function later(moment: string, ms: number): string {
+  return new Date(Date.parse(moment) + ms).toISOString()
+}
+
+/**
+ * Starts a paused stopwatch again. Paused during its countdown, the start
+ * moves by the pause, so the countdown goes on where it was; once counting,
+ * the pause is added to `paused_ms`. Mutates `stopwatch`.
+ */
+function resumeStopwatch(stopwatch: Stopwatch, now: string): void {
+  if (!stopwatch.paused_at) return
+  const pausedFor = Math.max(0, Date.parse(now) - Date.parse(stopwatch.paused_at))
+  if (Date.parse(stopwatch.paused_at) < Date.parse(stopwatch.started_at)) stopwatch.started_at = later(stopwatch.started_at, pausedFor)
+  else stopwatch.paused_ms = (stopwatch.paused_ms ?? 0) + pausedFor
+  stopwatch.paused_at = null
+  stopwatch.held = false
+}
+
+/**
+ * Ends a pause made on screen: the clock runs again, the rest ends later by
+ * the pause's length, and a stopwatch the pause stopped goes on. Nothing when
+ * not paused. Mutates `session`.
+ */
+function endPause(session: ActiveSession, now: string): void {
+  if (!session.paused_at) return
+  const pausedFor = Math.max(0, Date.parse(now) - Date.parse(session.paused_at))
+  if (session.rest) session.rest.ends_at = later(session.rest.ends_at, pausedFor)
+  if (session.stopwatch?.held) resumeStopwatch(session.stopwatch, now)
+  session.paused_at = null
+  if (session.running_since === null && session.finished_at === null) session.running_since = now
 }
 
 /**
@@ -584,6 +634,8 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
         break
       }
       if (!canComplete(set, exercise.exercise.logging_type, isForTime(exercise))) break
+      // Ticking is training: a pause ends. Unticking, a correction, does not
+      endPause(next, action.now)
       set.done = true
       set.completed_at = action.now
       // Ticking a set of a skipped exercise means it is done after all
@@ -682,14 +734,34 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
     case 'endRest':
       next.rest = null
       break
+    // ✕, on the way out: a pause made on screen stays one
     case 'pause':
       stopClock(next, action.now)
       break
+    // Opening the screen: only a workout left with ✕ starts again, so a
+    // reload does not undo ⏸
     case 'resume':
-      if (next.running_since === null && next.finished_at === null) next.running_since = action.now
+      if (next.running_since === null && next.finished_at === null && !next.paused_at) next.running_since = action.now
+      break
+    // ⏸: nothing counts. The clock stops, the rest stands still (restLeft
+    // reads the pause's moment), and so does a running stopwatch, countdown
+    // included; one already paused by its own button stays as it is
+    case 'pauseWorkout':
+      if (next.paused_at || next.finished_at !== null) break
+      stopClock(next, action.now)
+      next.paused_at = action.now
+      if (next.stopwatch && !next.stopwatch.paused_at) {
+        next.stopwatch.paused_at = action.now
+        next.stopwatch.held = true
+      }
+      break
+    case 'resumeWorkout':
+      endPause(next, action.now)
       break
     case 'startStopwatch': {
       if (!set || set.done) break
+      // Starting a set is training: a pause ends
+      endPause(next, action.now)
       // The target is the seconds in the set's field (planned or last time's)
       // when above 0
       const target = parseWhole(set.seconds)
@@ -700,6 +772,8 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       break
     }
     case 'skipCountdown':
+      // Start now is training: a pause ends first, which moves the start
+      endPause(next, action.now)
       if (next.stopwatch && Date.parse(next.stopwatch.started_at) > Date.parse(action.now)) next.stopwatch.started_at = action.now
       break
     case 'stopStopwatch': {
@@ -736,10 +810,9 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
       if (next.stopwatch && !next.stopwatch.paused_at && countdownLeft(next.stopwatch, new Date(action.now)) === 0) next.stopwatch.paused_at = action.now
       break
     case 'resumeStopwatch':
-      if (next.stopwatch?.paused_at) {
-        next.stopwatch.paused_ms = (next.stopwatch.paused_ms ?? 0) + Date.parse(action.now) - Date.parse(next.stopwatch.paused_at)
-        next.stopwatch.paused_at = null
-      }
+      // Going on with the set is training: a pause of the workout ends too
+      endPause(next, action.now)
+      if (next.stopwatch) resumeStopwatch(next.stopwatch, action.now)
       break
     case 'cancelStopwatch':
       next.stopwatch = null
@@ -747,6 +820,7 @@ export function workoutReducer(session: ActiveSession, action: WorkoutAction): A
     case 'finish':
       stopClock(next, action.now)
       next.finished_at = action.now
+      next.paused_at = null
       next.rest = null
       next.stopwatch = null
       break
