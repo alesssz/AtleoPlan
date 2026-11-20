@@ -43,7 +43,9 @@ export function ExerciseHeader({ item, index, headingId, summary, compact = fals
 
   return (
     <>
-      <div className={cn('flex gap-4', compact ? 'mb-4' : 'mb-6')}>
+      {/* An exercise alone glows, the screen's subject; a superset's headers
+          do not, or its screen would have two or more */}
+      <div className={cn('flex gap-4', compact ? 'mb-4' : 'border-glow mb-6 rounded-3xl p-4 sm:p-5')}>
         {/* The ⓘ badge says the photo opens How to do it; the photo is
             decorative, the button carries the label */}
         <button

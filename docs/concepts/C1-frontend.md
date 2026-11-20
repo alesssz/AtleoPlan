@@ -300,7 +300,7 @@ The frame, the query cache and component state survive navigation between screen
 |---|---|---|
 | `text-gradient-primary` (utility) | Text painted with the lime gradient | the highlighted word on Home |
 | `glow-primary` (utility) | A soft lime halo | the logo, the current tab |
-| `border-glow` (utility) | Card background with a 1 px lime-to-transparent border | `EmptyState`, Home's week card, Profile's header |
+| `border-glow` (utility) | Card background with a 1 px lime-to-transparent border: the page's one main card ([D1.5](../design/D1-ui.md#d15-design-system)'s rule) | `EmptyState`, Home's plan and calendar, the active plan in Plans, a plan's and an exercise's main card, a workout's numbers, Progress's latest workouts, workout mode's exercise header (alone, not in a superset), sign-in, Profile's header |
 | `Button size="xl"` | The 48 px main action, glowing when enabled | every call to action |
 | `PageHeader` | Title, main actions on the right (`actions`), description; `eyebrow` only where it adds information ([D1.5](../design/D1-ui.md#d15-design-system) "Page header") | every page but Home |
 | `EmptyState` | Illustration, title, sentence, actions; `comingSoon` adds the badge | Plans, Exercises, Progress, Home |

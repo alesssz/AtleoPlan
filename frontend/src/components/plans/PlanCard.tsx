@@ -15,13 +15,15 @@ export function PlanCard({ plan }: PlanCardProps) {
   const { t, i18n } = useTranslation()
 
   return (
-    // The active plan's lime border stands out before its badge is read; the
-    // badge says it in words too
+    // The active plan glows, the list's one card that does: it stands out
+    // before its badge is read, and the badge says it in words too. Its
+    // background is the border's gradient, so hovering changes the colour it
+    // is drawn with rather than the background
     <Link
       to={`/plans/${plan.id}`}
       className={cn(
-        'flex items-center gap-4 rounded-3xl border bg-card/60 p-5 transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
-        plan.is_active && 'border-primary/60',
+        'flex items-center gap-4 rounded-3xl p-5 transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+        plan.is_active ? 'border-glow hover:[--card:var(--muted)]' : 'border bg-card/60 hover:bg-muted',
       )}
     >
       <div className="min-w-0 flex-1">

@@ -92,7 +92,8 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
       <PageHeader eyebrow={when} title={session.day_name ?? t('workout.free')} description={session.plan_name ?? undefined} />
 
       <div className="flex flex-col gap-8">
-        <section aria-labelledby="workout-numbers" className="flex flex-col gap-4">
+        {/* How it went: the page's one glowing card, as in the summary */}
+        <section aria-labelledby="workout-numbers" className="border-glow flex flex-col gap-4 rounded-3xl p-4 sm:p-6">
           <h2 id="workout-numbers" className="sr-only">{t('summary.numbersTitle')}</h2>
           <WorkoutStats totals={totals} />
           <ComparisonSummary count={countVerdicts(comparisons)} />
