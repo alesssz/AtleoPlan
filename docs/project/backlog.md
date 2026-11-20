@@ -28,8 +28,11 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-11 Videos of an exercise](#feat-11-videos-of-an-exercise)
   - [FEAT-12 Choose the sound at the end of a rest or a timed set](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set)
   - [FEAT-13 The volume of the sound](#feat-13-the-volume-of-the-sound)
+  - [FEAT-18 A calendar on Home, its days opening history](#feat-18-a-calendar-on-home-its-days-opening-history)
+  - [FEAT-19 Pause a workout without leaving it](#feat-19-pause-a-workout-without-leaving-it)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
+  - [BE-4 Signing in with Google fails often](#be-4-signing-in-with-google-fails-often)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
 
@@ -65,7 +68,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile), [FEAT-18](#feat-18-a-calendar-on-home-its-days-opening-history). A bug in the way: [BE-4](#be-4-signing-in-with-google-fails-often). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound), [FEAT-19](#feat-19-pause-a-workout-without-leaving-it). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 ## OPS
 
@@ -262,6 +265,35 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 
 **Recommended.** A, with FEAT-12. The gain is relative to the system volume: the slider can make the beep quieter or louder than today, never louder than the phone allows, and an iPhone in silent mode may mute it; the preference's hint says so.
 
+### FEAT-18 A calendar on Home, its days opening history
+
+**Priority:** medium · **Kind:** feature · **Found:** 2026-11-20
+
+**What is missing.** Home's **This week** ([D1.4.2](../design/D1-ui.md#d142-home)) is a strip of the current week's 7 days (`WeekStrip`), the days trained highlighted, none of them a link. A calendar would answer "when did I train" over a longer span: a choice of **day, week, month or year**, each day tappable, a tap opening **that day's workouts in history**. History today lists workouts by month, 20 at a time ([C1.19.4](../concepts/C1-frontend.md#c1194-history-pages-from-the-server)), with no way to ask for one day; [D1.4.11](../design/D1-ui.md#d1411-history) mentions a monthly calendar as not planned.
+
+**Where.** `components/home/WeekStrip.tsx` and Home's week card; `api/home.ts` (`GET /api/home` sends the workouts finished in the last 8 days only, enough for one week); `GET /api/sessions`, whose `ListSessionsRequest` takes `status`, `page` and `per_page`, no dates; `pages/HistoryPage.tsx` and its route; `lib/week.ts`. Days are the device's ("Monday" depends on where the user is, [D3.6](../design/D3-data-model.md#d36-workouts)), so the server can only be asked for moments, the device turning them into days.
+
+**Options.**
+- A) The card becomes a calendar with **Week · Month · Year** (a segmented control) and arrows to move back and forth: week as today's strip, month as a grid, year as twelve small months with the days trained marked. **Day** is not a fourth view but the tap: a day opens `/progress/history?day=2026-11-19`, history showing that day's workouts under "Thursday 19 November" with a way back to all. Needs: `from` and `to` on `GET /api/sessions` (moments, the start and end of the local day, month or year), so history can ask for one day and the calendar for the days trained in its span (the `started_at` of each, grouped by day on the device).
+- B) Today's week strip on Home, its days made tappable (the same history link), and the month and year calendar on Progress, above the latest workouts. Home stays short; the calendar lives with history.
+- C) Only the tappable days of A or B, no new views.
+
+**Recommended.** A, as asked, unless Home grows too long on a phone; then B, which is the same work in another place. Either way the API change and the history filter come first, in one branch, with their Pest tests (another user's workouts never counted, a day at the edges of a time zone); the views after. Done when a tap on a day with workouts lists exactly those in history, in the device's time zone, and the month and year views show the days trained from the server, offline from the cache like Home.
+
+### FEAT-19 Pause a workout without leaving it
+
+**Priority:** medium · **Kind:** workout mode · **Found:** 2026-11-20
+
+**What is missing.** The workout's clock (top bar, then the time trained of the summary and history, `duration_seconds`) stops only with ✕, which pauses and leaves the screen; opening the workout again starts it at once ([C1.17.3](../concepts/C1-frontend.md#c1173-the-workout-and-its-reducer)). There is no way to stop the time while staying on the screen: a phone call, a machine taken, a long break between exercises all count as training. The rest timer cannot be paused either (−15 s, +15 s, Skip), while a timed set's stopwatch can ([C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set)).
+
+**Where.** `components/workout/workout-session.ts`: the `pause` and `resume` actions already exist (`running_since` null while paused, `accumulated_seconds` the time before), used by ✕ and by the screen's mount; `WorkoutScreen.tsx` (the top bar's clock, the effect that resumes on mount), `RestBar.tsx` (`rest.ends_at`), `StopwatchPanel.tsx`, `ResumeBanner.tsx` on Home.
+
+**Options.**
+- A) **A pause for the whole workout:** a ⏸ button beside the clock. Paused, the clock stands still, greyed and pulsing as the stopwatch's does; a bar says "Workout paused" with **Resume**. A rest in progress stands still too (its time left kept, `ends_at` set again at Resume), and so does a running stopwatch. Ticking a set resumes the workout, since ticking is training. A pause made on screen is stored (a flag beside `running_since`), so opening the app again does not undo it as the mount's `resume` would.
+- B) **Only the clock:** ⏸ stops the time trained; the rest and the stopwatch go on as now.
+
+**Recommended.** A: a pause is a moment when nothing counts, and a rest ending during a phone call would beep for nothing. Nothing changes on the server: `duration_seconds` already leaves pauses out ([D3.6.1](../design/D3-data-model.md#d361-workout_sessions)). Done when ⏸ stops the clock, the rest and the stopwatch, Resume takes them up where they were, a reload while paused stays paused, and the summary's time leaves the pause out, with reducer tests for each.
+
 ## BE
 
 ### BE-3 Harden the public sign-in routes
@@ -275,6 +307,23 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - B) Leave as it is until the app is public.
 
 **Recommended.** A before opening to other users (phase 2); until then the app is not deployed, so nothing is exposed. Signing up will still reveal that an email is taken, unless it moves to verifying the address by email first.
+
+### BE-4 Signing in with Google fails often
+
+**Priority:** medium · **Kind:** bug, sign-in · **Found:** 2026-11-20
+
+**What is missing.** "Continue with Google" fails often, and nothing says why. `backend/storage/logs/laravel.log` holds no real failure since the project began, only the tests': a refused visit would have been logged by `report($e)` in `GoogleSignInController::callback()`. So the failures stop before that line, in places that leave no trace:
+- **The address Google sends the browser back to** is fixed at `FRONTEND_URL` + `/auth/google/callback` (`config/services.php`), `http://localhost:5673`. An app opened at another address (a phone reaching the computer by its network address, or `127.0.0.1`) leaves for Google from there and comes back to `localhost`: on a phone that is the phone itself, so the page does not load; on the computer it is another site to the browser, without the session holding Socialite's `state`. Google also refuses any return address not registered with the client, and plain `http` except for `localhost`.
+- **The consent screen in testing mode** lets in only the test users listed in Google's console ([S1.11.3](../start/S1-setup.md#s1113-the-test-users)); anyone else stops on Google's own "access blocked" page.
+- **Returns with an error** other than an exception (`?error=` from Google, a refusal of `SignInWithSocialAccount`, a callback opened twice, after the session's 120 minutes, or after Back) go to `/login?error=…` and are not logged.
+
+**Where.** `app/Http/Controllers/GoogleSignInController.php`, `config/services.php` (`google.redirect`), `app/Actions/Auth/SignInWithSocialAccount.php`, `components/GoogleSignIn.tsx` and the sign-in page's error messages; [C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google), [S1.11](../start/S1-setup.md#s111-sign-in-with-google-the-credentials).
+
+**Options.**
+- A) **Measure first.** Log every failed sign-in at warning level with its reason: Google's `error` code, a state mismatch, a refusal and its reason, a callback with no visit started (`google_sign_in` missing from the session), the request's host; then reproduce on the phone and on the computer, noting where each attempt stops (Google's page, `/login?error=…`, a page that does not load). Fix what the log shows.
+- B) **Fix the likely causes at once:** the return address built from the host the visit started on, among a list of allowed ones each registered with Google; the sign-in page saying what to do for each reason ("open the app at localhost", "ask to be added as a tester").
+
+**Recommended.** A, then the fix it points to, in one branch: guessing risks changing the wrong thing, and the log stays useful once the app is online. Done when ten sign-ins in a row succeed on the phone and on the computer, and any failure leaves a line in the log and a message saying what to do.
 
 ## DATA
 
