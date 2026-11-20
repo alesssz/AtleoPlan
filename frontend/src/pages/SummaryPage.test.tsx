@@ -33,14 +33,16 @@ const lastBench: LastSets = {
  */
 function finishDayA(outcome: WorkoutOutcome): { id: string, input: SessionInput } {
   const plan = testPlan()
-  const now = new Date('2026-11-16T18:00:00Z')
-  const started = startSession(plan, plan.days[0]!, { unit: 'kg', defaultRestSeconds: 90, lastSets: [lastBench], language: 'en', now })
+  // Monday 16 November, 18:00 to 18:40 on the device's own clock, so the
+  // times read the same in every time zone
+  const at = (minutes: number) => new Date(2026, 10, 16, 18, minutes)
+  const started = startSession(plan, plan.days[0]!, { unit: 'kg', defaultRestSeconds: 90, lastSets: [lastBench], language: 'en', now: at(0) })
   const finished = [
-    { type: 'toggleSet', exercise: 0, set: 0, now: '2026-11-16T18:05:00Z' },
-    { type: 'toggleSet', exercise: 0, set: 2, now: '2026-11-16T18:08:00Z' },
-    { type: 'finish', now: '2026-11-16T18:40:00Z' },
+    { type: 'toggleSet', exercise: 0, set: 0, now: at(5).toISOString() },
+    { type: 'toggleSet', exercise: 0, set: 2, now: at(8).toISOString() },
+    { type: 'finish', now: at(40).toISOString() },
   ].reduce((session, action) => workoutReducer(session, action as Parameters<typeof workoutReducer>[1]), started)
-  const input = toSessionInput(finished, 'kg', new Date('2026-11-16T18:40:00Z'))
+  const input = toSessionInput(finished, 'kg', at(40))
   storeFinished({ id: finished.id, session: finished, input, outcome })
   return { id: finished.id, input }
 }
@@ -52,6 +54,8 @@ describe('SummaryPage', () => {
     renderRoutes(routes, `/session/${id}/summary`)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Day A – Push' })).toBeInTheDocument()
+    // Under the title, the plan and when, as history writes them
+    expect(screen.getByText('Push Pull Legs · Monday, November 16, 2026 · 6:00 – 6:40 PM')).toBeInTheDocument()
     // 40 minutes; one exercise; one set and 8 reps (the warm-up left out).
     // Each label (dt) comes before its number (dd) in the page
     expect(screen.getByText('Time').nextSibling).toHaveTextContent('40 min')

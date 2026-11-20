@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatWorkoutWhen } from '@/lib/format'
 import { ApiError } from '@/lib/http'
 import { shownData } from '@/lib/shown-data'
 
@@ -79,7 +80,7 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
   const totals = sessionTotals(session)
   const comparisons = compareWorkout(session.exercises, lastSets)
   const started = new Date(session.started_at)
-  const when = new Intl.DateTimeFormat(i18n.language, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(started)
+  const when = formatWorkoutWhen(started, session.finished_at ? new Date(session.finished_at) : null, i18n.language)
 
   return (
     <>
@@ -87,7 +88,7 @@ function WorkoutDetail({ data }: WorkoutDetailProps) {
         <ArrowLeft aria-hidden="true" className="size-4" />
         {t('history.back')}
       </Link>
-      {/* The date: what the title, the day's name, does not say */}
+      {/* The date and the times: what the title, the day's name, does not say */}
       <PageHeader eyebrow={when} title={session.day_name ?? t('workout.free')} description={session.plan_name ?? undefined} />
 
       <div className="flex flex-col gap-8">

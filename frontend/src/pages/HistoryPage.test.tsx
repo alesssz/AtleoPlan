@@ -20,11 +20,20 @@ function sessionPage(sessions: WorkoutSession[], page = 1, lastPage = 1) {
   return { status: 200, body: { data: sessions, meta: { current_page: page, last_page: lastPage, total: sessions.length } } }
 }
 
-/** Three workouts: two in November, one in October, newest first. */
+/**
+ * A moment from the device's own clock, as the API would send it: the page
+ * shows it back in the device's time zone, so the text is the same in every
+ * zone. Months from 1.
+ */
+function local(month: number, day: number, hours: number, minutes = 0): string {
+  return new Date(2026, month - 1, day, hours, minutes).toISOString()
+}
+
+/** Three workouts, 18:00 to 18:45: two in November, one in October, newest first. */
 const three = [
-  testWorkoutSession({ id: 's-3', day_name: 'Day B – Legs', started_at: '2026-11-11T18:00:00Z' }),
-  testWorkoutSession({ id: 's-2', started_at: '2026-11-09T18:00:00Z' }),
-  testWorkoutSession({ id: 's-1', plan_id: null, plan_day_id: null, plan_name: null, day_name: null, started_at: '2026-10-30T18:00:00Z' }),
+  testWorkoutSession({ id: 's-3', day_name: 'Day B – Legs', started_at: local(11, 11, 18), finished_at: local(11, 11, 18, 45) }),
+  testWorkoutSession({ id: 's-2', started_at: local(11, 9, 18), finished_at: local(11, 9, 18, 45) }),
+  testWorkoutSession({ id: 's-1', plan_id: null, plan_day_id: null, plan_name: null, day_name: null, started_at: local(10, 30, 18), finished_at: local(10, 30, 18, 45) }),
 ]
 
 describe('HistoryPage', () => {
@@ -38,8 +47,8 @@ describe('HistoryPage', () => {
 
     const november = await screen.findByRole('region', { name: 'November 2026' })
     expect(within(november).getAllByRole('link').map(link => link.getAttribute('href'))).toEqual(['/progress/history/s-3', '/progress/history/s-2'])
-    // "45 min · 7 sets · 56 reps"
-    expect(within(november).getAllByText('45 min · 7 sets · 56 reps')).toHaveLength(2)
+    // When, then the sets; the rest is on the workout's page
+    expect(within(november).getAllByText('6:00 – 6:45 PM · 7 sets')).toHaveLength(2)
     // A free workout says so
     const october = screen.getByRole('region', { name: 'October 2026' })
     expect(within(october).getByText('Free workout')).toBeInTheDocument()
@@ -65,11 +74,13 @@ describe('HistoryDetailPage', () => {
     const lastBench = { exercise_id: 12, session_id: 'before', started_at: '2026-11-02T18:00:00Z', sets: [{ id: 'old', set_type: 'normal', weight_kg: '80.000', reps: 8, duration_seconds: null, distance_meters: null, completed_at: '2026-11-02T18:05:00Z' }] }
     fakeApi({
       'GET /api/user': signedInAs(),
-      'GET /api/sessions/session-1': { status: 200, body: { data: testSessionDetail({ feeling: 4, notes: 'Good pump.' }), meta: { last_sets: [lastBench] } } },
+      'GET /api/sessions/session-1': { status: 200, body: { data: testSessionDetail({ feeling: 4, notes: 'Good pump.', started_at: local(11, 9, 18), finished_at: local(11, 9, 18, 45) }), meta: { last_sets: [lastBench] } } },
     })
     renderRoutes(routes, '/progress/history/session-1')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Day A – Push' })).toBeInTheDocument()
+    // Above the title, the date and when it started and ended
+    expect(screen.getByText('Monday, November 9, 2026 · 6:00 – 6:45 PM')).toBeInTheDocument()
     expect(screen.getByText('Reps').nextSibling).toHaveTextContent('56')
     // The bench press: 80 × 8 twice against once, better; the pull-ups
     // skipped, not counted
@@ -84,6 +95,18 @@ describe('HistoryDetailPage', () => {
     expect(within(exercises).getByText('80×8 · last time 80×8')).toBeInTheDocument()
     // The exercise's own volume, 80 × 8 twice, the warm-up left out
     expect(within(exercises).getByText('Volume of this exercise: 1,280 kg')).toBeInTheDocument()
+  })
+
+  it('shows the date of the end too for a workout left open overnight', async () => {
+    // Started at 23:30, finished at 8:10 the next morning, 50 minutes trained
+    fakeApi({
+      'GET /api/user': signedInAs(),
+      'GET /api/sessions/session-1': { status: 200, body: { data: testSessionDetail({ started_at: local(11, 19, 23, 30), finished_at: local(11, 20, 8, 10), duration_seconds: 3000 }), meta: { last_sets: [] } } },
+    })
+    renderRoutes(routes, '/progress/history/session-1')
+
+    expect(await screen.findByText('Thursday, November 19, 2026 · 11:30 PM – Nov 20, 8:10 AM')).toBeInTheDocument()
+    expect(screen.getByText('50 min')).toBeInTheDocument()
   })
 
   it('deletes a workout, after a question, and goes back to history', async () => {

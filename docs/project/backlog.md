@@ -18,7 +18,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
   - [UI-8 Photos while creating an exercise](#ui-8-photos-while-creating-an-exercise)
-  - [UI-10 When a past workout started and ended](#ui-10-when-a-past-workout-started-and-ended)
 - [FEAT](#feat)
   - [FEAT-3 Workout mode and Home](#feat-3-workout-mode-and-home)
   - [FEAT-5 New records during a workout](#feat-5-new-records-during-a-workout)
@@ -66,7 +65,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [UI-10](#ui-10-when-a-past-workout-started-and-ended), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 ## OPS
 
@@ -149,20 +148,6 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - C) As it is.
 
 **Recommended.** B first, a one-line change in `useGoToExercise()`; A if B feels like a detour.
-
-### UI-10 When a past workout started and ended
-
-**Priority:** low · **Kind:** missing information · **Found:** 2026-11-19
-
-**What is missing.** History's rows (`SessionRow`) give only the weekday and the day; a workout's page gives the start date and time in its eyebrow, but not when it ended. Two workouts on the same day cannot be told apart in the list, and "when did I train" needs a tap. The data is there: `started_at` and `finished_at` of `workout_sessions` ([D3.6.1](../design/D3-data-model.md#d361-workout_sessions)); [D1.4.11](../design/D1-ui.md#d1411-history) is the screen.
-
-**Where.** `components/history/SessionRow.tsx`, `pages/HistoryDetailPage.tsx` (the `when` eyebrow), the 3 latest on Progress (same row); a helper in `lib/format.ts` for "18:05–19:12" in the user's language.
-
-**Options.**
-- A) Start and end from `started_at` and `finished_at`: "18:05–19:12" on the row's numbers line, and the page's eyebrow "Thursday 19 November 2026 · 18:05–19:12". A workout left open and finished another day shows the end's date too ("18:05 – 20 Nov 08:10"): true, and the duration beside it (`duration_seconds`) still says how long the training was.
-- B) The end as `started_at + duration_seconds`: always a tidy range, but a time the user never saw on the clock.
-
-**Recommended.** A: it shows what happened, and the odd overnight case explains itself next to the duration. Done when the row and the page show both times, in the device's time zone, with a test for a workout ending the next day.
 
 ## FEAT
 

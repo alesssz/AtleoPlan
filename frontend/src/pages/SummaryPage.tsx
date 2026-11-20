@@ -36,6 +36,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { addPending, loadFinished, loadPending, removePending, storeFinished, type FinishedWorkout, type WorkoutOutcome } from '@/components/workout/session-storage'
+import { formatWorkoutWhen } from '@/lib/format'
 import { ApiError } from '@/lib/http'
 import { sendPendingSessions } from '@/lib/pending-sessions'
 
@@ -96,7 +97,7 @@ interface SummaryProps {
 }
 
 function Summary({ finished }: SummaryProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: user } = useCurrentUser()
@@ -169,8 +170,13 @@ function Summary({ finished }: SummaryProps) {
 
   return (
     <>
-      {/* The tab bar alone would not say what this page is */}
-      <PageHeader eyebrow={t('summary.eyebrow')} title={input.day_name ?? t('workout.free')} description={input.plan_name ?? undefined} />
+      {/* The tab bar alone would not say what this page is. Under the
+          title, the plan and when, as history writes them */}
+      <PageHeader
+        eyebrow={t('summary.eyebrow')}
+        title={input.day_name ?? t('workout.free')}
+        description={[input.plan_name, formatWorkoutWhen(new Date(input.started_at), input.finished_at ? new Date(input.finished_at) : null, i18n.language)].filter(Boolean).join(' · ')}
+      />
 
       <div className="flex flex-col gap-8">
         {outcome === 'queued' && <FormBanner variant="success">{t('workout.queued')}</FormBanner>}
