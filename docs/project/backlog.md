@@ -35,6 +35,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
+  - [DATA-5 Correct an exercise's logging type even once it is used](#data-5-correct-an-exercises-logging-type-even-once-it-is-used)
 
 ## How this page works
 
@@ -337,3 +338,18 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - C) Nothing: no current plan uses a weighted hold or carry.
 
 **Recommended.** C until a plan needs one; then A, which keeps four types and reuses the optional weight that `reps` already has.
+
+### DATA-5 Correct an exercise's logging type even once it is used
+
+**Priority:** medium · **Kind:** data, import · **Found:** 2026-11-20
+
+**What is missing.** `exercises:correct-logging-types` ([C2.14.6](../concepts/C2-backend.md#c2146-the-logging-types-corrected-after-the-import)) leaves alone an exercise already in a plan or a workout (`CorrectionOutcome::SkippedInUse`), only naming it in its summary: the sets were written for the old type. So a library imported, used, then corrected keeps the wrong type, with nothing in the app to say so. It happened with Plank on one computer: guessed as reps by the import, used in a plan before the correction ran, it stayed reps; the plan read "3 × 30 reps" for 30 seconds held, two workouts logged 30 reps a set, and workout mode offered "as fast as possible" instead of a hold's countdown. The same plan imported on a computer whose library was already corrected was right. It was fixed by hand, in one transaction: the exercise to `time`, each plan set's `target_reps_max` (or `_min`) moved to `target_duration_seconds`, each logged set's `reps` moved to `duration_seconds`. Changing the type in the admin panel instead would leave the old sets of the old kind, refused when a workout is sent again ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)).
+
+**Where.** `app/Actions/Exercises/CorrectLoggingType.php`, `app/Console/Commands/CorrectLoggingTypes.php`, `database/data/logging-type-corrections.json`; `plan_sets` and `logged_sets` ([D3.5](../design/D3-data-model.md#d35-plans), [D3.6.3](../design/D3-data-model.md#d363-logged_sets)); the exercise's logging type in the admin panel.
+
+**Options.**
+- A) **The command converts the sets too**, for corrections where the number keeps its meaning: from reps to time, as every entry of the list is, the number written was the seconds meant (the plank's 30). In one transaction per exercise: the type, then the plan sets' targets and the logged sets' values moved to seconds; sets that already have seconds left alone, so a second run changes nothing; the summary saying how many plans and workouts changed. Other pairs (weight and reps to time would lose the weight) stay skipped and named.
+- B) **An action in the admin panel**, "Change logging type", converting the sets the same way for any exercise, with a preview of the plans and workouts it touches.
+- C) **As it is:** the summary names the exercise, and it is fixed by hand.
+
+**Recommended.** A: the list holds only reps-to-time corrections, the conversion is the one already done by hand, and the command is where a library gets corrected; B later if an admin needs it for another exercise. Done when the command, on a library where Plank is in a plan and a workout, corrects it and its sets (the plan reads 3 × 30 s, history 30 s), a second run changes nothing, and Pest tests cover a plan, a workout, a set already in seconds and a pair that stays skipped.
