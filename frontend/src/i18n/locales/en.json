@@ -105,8 +105,6 @@
     "weekTitle": "This week",
     "weekEmpty": "No workouts yet this week. The first one is the one that counts.",
     "today": "today",
-    "statWorkouts": "Workouts",
-    "statSets": "Sets",
     "activePlan": "Active plan",
     "suggested": "Suggested",
     "exercises_one": "{{count}} exercise",
@@ -126,7 +124,32 @@
     "freeStart": "Start a free workout",
     "trained": "workout done",
     "history": "See every workout",
-    "statMinutes": "Minutes"
+    "calendar": {
+      "views": "Calendar view",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year",
+      "previous": {
+        "week": "Previous week",
+        "month": "Previous month",
+        "year": "Previous year"
+      },
+      "next": {
+        "week": "Next week",
+        "month": "Next month",
+        "year": "Next year"
+      },
+      "backToToday": "Today",
+      "dayWorkouts_one": "{{date}}: {{count}} workout",
+      "dayWorkouts_other": "{{date}}: {{count}} workouts",
+      "monthWorkouts_one": "{{month}}: {{count}} workout",
+      "monthWorkouts_other": "{{month}}: {{count}} workouts",
+      "workouts_one": "{{count}} workout",
+      "workouts_other": "{{count}} workouts",
+      "empty": "No workouts in this period.",
+      "loading": "Loading the calendar…",
+      "loadError": "The calendar could not be loaded."
+    }
   },
   "plans": {
     "new": "New plan",
@@ -668,7 +691,15 @@
     "statReps": "Reps",
     "reps_one": "{{count}} rep",
     "reps_other": "{{count}} reps",
-    "exerciseVolume": "Volume of this exercise: {{amount}}"
+    "exerciseVolume": "Volume of this exercise: {{amount}}",
+    "filter": {
+      "label": "Filter by date",
+      "from": "From",
+      "to": "To",
+      "clear": "Clear the dates",
+      "results_one": "{{count}} workout in these days",
+      "results_other": "{{count}} workouts in these days"
+    }
   },
   "compare": {
     "title": "Against last time:",

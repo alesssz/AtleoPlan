@@ -30,7 +30,7 @@ AtleoPlan builds training plans from a library of almost 900 exercises, follows 
 - **Exercise library** of 876 exercises from free-exercise-db plus calisthenics of our own, in four languages; search across every language and alias, filters by muscle and equipment; personal exercises with photos.
 - **Plans** with days, sets and their types (warm-up, drop, to failure), supersets and drag and drop; the draft survives a closed tab; a plan exported as a file and imported on another server.
 - **Workout mode**: one tap per set, pre-filled with last time's values; a rest timer with sound and vibration; a stopwatch for timed sets; swap, skip or annotate an exercise; the screen kept on.
-- **Progress**: Home suggests the next day and sums up the week; after a workout, each exercise is compared with last time; history by month.
+- **Progress**: Home suggests the next day and shows a calendar of the days trained, by week, month or year, each day opening its workouts; after a workout, each exercise is compared with last time; history by month.
 - **Accounts** with email and password or Google; language, theme, unit (kg or lb) and workout preferences follow the user across devices.
 - **Admin panel** for the public library, its translations still to review, and the users.
 

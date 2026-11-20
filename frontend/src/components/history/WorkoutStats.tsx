@@ -1,6 +1,6 @@
 /*
  * The four numbers of a finished workout, for the summary and a workout's page
- * in history; the same tiles as Home's WeekStats.
+ * in history.
  */
 import { useTranslation } from 'react-i18next'
 import { formatDuration, formatNumber } from '@/lib/format'

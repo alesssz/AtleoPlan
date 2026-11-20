@@ -1,6 +1,6 @@
 /*
- * The current week, for Home's "This week". Weeks start on Monday in every
- * language (ISO): a training week is Monday to Sunday.
+ * Weeks, for Home's calendar. Weeks start on Monday in every language (ISO): a
+ * training week is Monday to Sunday.
  */
 
 /**
@@ -29,13 +29,4 @@ export function isBeforeDay(day: Date, today: Date): boolean {
 
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
-}
-
-/**
- * In the device's time zone: Home's "This week" counts the workouts with it.
- */
-export function isInWeek(moment: Date, today: Date): boolean {
-  const monday = getWeekDays(today)[0] ?? startOfDay(today)
-  const next = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7)
-  return moment.getTime() >= monday.getTime() && moment.getTime() < next.getTime()
 }

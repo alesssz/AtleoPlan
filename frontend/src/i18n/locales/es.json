@@ -105,8 +105,6 @@
     "weekTitle": "Esta semana",
     "weekEmpty": "Aún no hay entrenamientos esta semana. El primero es el que cuenta.",
     "today": "hoy",
-    "statWorkouts": "Entrenos",
-    "statSets": "Series",
     "activePlan": "Plan activo",
     "suggested": "Sugerido",
     "exercises_one": "{{count}} ejercicio",
@@ -126,7 +124,32 @@
     "freeStart": "Empezar un entrenamiento libre",
     "trained": "entrenamiento hecho",
     "history": "Ver todos los entrenamientos",
-    "statMinutes": "Minutos"
+    "calendar": {
+      "views": "Vista del calendario",
+      "week": "Semana",
+      "month": "Mes",
+      "year": "Año",
+      "previous": {
+        "week": "Semana anterior",
+        "month": "Mes anterior",
+        "year": "Año anterior"
+      },
+      "next": {
+        "week": "Semana siguiente",
+        "month": "Mes siguiente",
+        "year": "Año siguiente"
+      },
+      "backToToday": "Hoy",
+      "dayWorkouts_one": "{{date}}: {{count}} entrenamiento",
+      "dayWorkouts_other": "{{date}}: {{count}} entrenamientos",
+      "monthWorkouts_one": "{{month}}: {{count}} entrenamiento",
+      "monthWorkouts_other": "{{month}}: {{count}} entrenamientos",
+      "workouts_one": "{{count}} entrenamiento",
+      "workouts_other": "{{count}} entrenamientos",
+      "empty": "Ningún entrenamiento en este periodo.",
+      "loading": "Cargando el calendario…",
+      "loadError": "No se pudo cargar el calendario."
+    }
   },
   "plans": {
     "new": "Nueva rutina",
@@ -668,7 +691,15 @@
     "statReps": "Repeticiones",
     "reps_one": "{{count}} repetición",
     "reps_other": "{{count}} repeticiones",
-    "exerciseVolume": "Volumen de este ejercicio: {{amount}}"
+    "exerciseVolume": "Volumen de este ejercicio: {{amount}}",
+    "filter": {
+      "label": "Filtrar por fecha",
+      "from": "Desde",
+      "to": "Hasta",
+      "clear": "Borrar las fechas",
+      "results_one": "{{count}} entrenamiento en estos días",
+      "results_other": "{{count}} entrenamientos en estos días"
+    }
   },
   "compare": {
     "title": "Frente a la última vez:",

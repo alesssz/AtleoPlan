@@ -105,8 +105,6 @@
     "weekTitle": "Diese Woche",
     "weekEmpty": "Diese Woche noch kein Training. Das erste zählt am meisten.",
     "today": "heute",
-    "statWorkouts": "Trainings",
-    "statSets": "Sätze",
     "activePlan": "Aktiver Plan",
     "suggested": "Vorgeschlagen",
     "exercises_one": "{{count}} Übung",
@@ -126,7 +124,32 @@
     "freeStart": "Freies Training starten",
     "trained": "Training erledigt",
     "history": "Alle Trainings ansehen",
-    "statMinutes": "Minuten"
+    "calendar": {
+      "views": "Kalenderansicht",
+      "week": "Woche",
+      "month": "Monat",
+      "year": "Jahr",
+      "previous": {
+        "week": "Vorherige Woche",
+        "month": "Vorheriger Monat",
+        "year": "Vorheriges Jahr"
+      },
+      "next": {
+        "week": "Nächste Woche",
+        "month": "Nächster Monat",
+        "year": "Nächstes Jahr"
+      },
+      "backToToday": "Heute",
+      "dayWorkouts_one": "{{date}}: {{count}} Training",
+      "dayWorkouts_other": "{{date}}: {{count}} Trainings",
+      "monthWorkouts_one": "{{month}}: {{count}} Training",
+      "monthWorkouts_other": "{{month}}: {{count}} Trainings",
+      "workouts_one": "{{count}} Training",
+      "workouts_other": "{{count}} Trainings",
+      "empty": "Keine Trainings in diesem Zeitraum.",
+      "loading": "Kalender wird geladen…",
+      "loadError": "Der Kalender konnte nicht geladen werden."
+    }
   },
   "plans": {
     "new": "Neuer Plan",
@@ -668,7 +691,15 @@
     "statReps": "Wiederholungen",
     "reps_one": "{{count}} Wiederholung",
     "reps_other": "{{count}} Wiederholungen",
-    "exerciseVolume": "Volumen dieser Übung: {{amount}}"
+    "exerciseVolume": "Volumen dieser Übung: {{amount}}",
+    "filter": {
+      "label": "Nach Datum filtern",
+      "from": "Von",
+      "to": "Bis",
+      "clear": "Daten zurücksetzen",
+      "results_one": "{{count}} Training an diesen Tagen",
+      "results_other": "{{count}} Trainings an diesen Tagen"
+    }
   },
   "compare": {
     "title": "Im Vergleich zum letzten Mal:",

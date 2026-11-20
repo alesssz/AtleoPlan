@@ -380,7 +380,8 @@ The server side of workout mode, history and Home ([D1.4.2](../design/D1-ui.md#d
 | Method and path | What it does | Answers |
 |---|---|---|
 | `PUT /api/sessions/{uuid}` | Saves a whole workout, new or not | 201 new; 200 again; 410 deleted; 403; 422 |
-| `GET /api/sessions` | Mine, newest first, 20 per page, with totals. `?status=open` or `finished` | 200; 422 |
+| `GET /api/sessions` | Mine, newest first, 20 per page, with totals. `?status=open` or `finished`; `from` and `to`, either or both, for those started in a span (history's filter by date) | 200; 422 |
+| `GET /api/sessions/calendar?from=…&to=…` | Mine, finished and started in the span, oldest first: only `id`, `started_at`, `duration_seconds`. No pages: the span is at most 367 days (a year in any zone, a leap one included), so a year view comes in one answer | 200; 422 |
 | `GET /api/sessions/{uuid}` | One whole workout with totals; `meta.last_sets`: last time for each exercise, before this workout | 200; 403; 404, also when deleted |
 | `DELETE /api/sessions/{uuid}` | Soft-deletes it | 204; 403 |
 | `GET /api/sessions/last-sets?exercises=12,40` | Per exercise, the sets of the last finished workout that had it | 200; 422 |
@@ -411,6 +412,7 @@ PUT /api/sessions/0192…f30  { started_at, finished_at, exercises: [ { sets: [ 
 - **Exercises and sets are complete lists,** as for a plan: a set unticked on the phone is not sent and its row is deleted. Unlike plan sets, logged sets have device UUIDs and are updated in place.
 - **Values fit the logging type** ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)): `REQUIRED_BY_LOGGING` and `OPTIONAL_BY_LOGGING` in `SaveSessionRequest` (reps for `weight_reps` and `reps`, each with an optional weight and optional seconds for reps done as fast as possible; a time; a distance); any other value field must be empty. The rule spans two tables, beyond a check constraint, so it runs in `after()`.
 - **Moments are converted to UTC before saving.** Laravel writes `Y-m-d H:i:s` without the offset, so `2026-11-09T18:00:00+01:00` would otherwise be stored an hour late.
+- **A span is the device's.** `from` and `to` of the list and of the calendar are the device's midnights, since only it knows where the user's day begins; `span()` in `ListSessionsRequest` and `SessionCalendarRequest` converts them to UTC before the query, for the same reason.
 
 **Totals are computed by the database** ([D3.8](../design/D3-data-model.md#d38-computed-never-stored)): `exercises_done`, `sets_done`, `reps_done`, `volume_kg`, warm-ups excluded. `WorkoutSession::withTotals()` adds them as `SELECT` subqueries, so a page of 20 is still one query; the resource sends them with `whenHas()`. The screens show reps rather than `volume_kg` (it adds unlike exercises and counts nothing bodyweight, [D2.8](../design/D2-decisions.md#d28-workout-rules)); it stays in the answer, exact, for per-exercise uses.
 

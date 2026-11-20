@@ -259,13 +259,12 @@ describe('HomePage', () => {
     renderRoutes(routes, '/')
 
     const week = await screen.findByRole('region', { name: 'This week' })
-    // Today: trained, said in words too
-    expect(await within(week).findByText('workout done')).toBeInTheDocument()
-    // Two workouts, 12 sets, 70 minutes. Each dt comes before its dd in the
-    // DOM, though drawn under it
-    expect(within(week).getByText('Workouts').nextSibling).toHaveTextContent('2')
-    expect(within(week).getByText('Sets').nextSibling).toHaveTextContent('12')
-    expect(within(week).getByText('Minutes').nextSibling).toHaveTextContent('70')
+    // Today: trained, a link to its workouts in history, said in words too
+    const day = await within(week).findByRole('link', { name: /: 2 workouts$/ })
+    expect(day).toHaveAttribute('href', expect.stringMatching(/^\/progress\/history\?from=(\d{4}-\d{2}-\d{2})&to=\1$/))
+    expect(day).toHaveAttribute('aria-current', 'date')
+    // Two workouts, 45 + 25 minutes
+    expect(within(week).getByText('2 workouts')).toHaveTextContent('2 workouts · 1 hr 10 min')
     expect(within(week).queryByText(/No workouts yet this week/)).not.toBeInTheDocument()
   })
 

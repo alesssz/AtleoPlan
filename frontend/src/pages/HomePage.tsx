@@ -10,9 +10,7 @@ import { useHome } from '@/api/home'
 import { EmptyState } from '@/components/EmptyState'
 import { FormBanner } from '@/components/FormBanner'
 import { ActivePlanCard } from '@/components/home/ActivePlanCard'
-import { weekSummary } from '@/components/home/week-summary'
-import { WeekStats } from '@/components/home/WeekStats'
-import { WeekStrip } from '@/components/home/WeekStrip'
+import { TrainingCalendar } from '@/components/home/TrainingCalendar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ResumeBanner } from '@/components/workout/ResumeBanner'
@@ -32,8 +30,8 @@ export function HomePage() {
   // Dropped when the banner deletes it, so Start works again
   const [active, setActive] = useState(loadActiveSession)
   const ended = (useLocation().state as Partial<WorkoutEndState> | null)?.workout
-  // By the device's clock
-  const week = weekSummary(data?.recent_sessions ?? [], new Date())
+  // This week's workouts, for the calendar
+  const recent = (data?.recent_sessions ?? []).map(session => ({ ...session, duration_seconds: session.duration_seconds ?? null }))
 
   return (
     <>
@@ -121,21 +119,7 @@ export function HomePage() {
             </section>
           </div>
 
-          <section aria-labelledby="week-title" className="border-glow flex flex-col rounded-3xl p-6 lg:col-span-2">
-            <h2 id="week-title" className="mb-6 font-heading text-lg font-extrabold tracking-tight">{t('home.weekTitle')}</h2>
-            <WeekStrip trainedDays={week.trainedDays} />
-            {/* At the bottom when the card is taller than its content, next
-                to the plan's */}
-            <div className="mt-8 lg:mt-auto lg:pt-8">
-              <WeekStats workouts={week.workouts} sets={week.sets} minutes={week.minutes} />
-              {week.workouts === 0 && <p className="mt-4 text-sm text-muted-foreground">{t('home.weekEmpty')}</p>}
-              {week.workouts > 0 && (
-                <Link to="/progress/history" className="mt-4 inline-flex min-h-12 items-center text-sm font-semibold text-primary hover:underline">
-                  {t('home.history')}
-                </Link>
-              )}
-            </div>
-          </section>
+          <TrainingCalendar recent={recent} />
         </div>
       </div>
     </>

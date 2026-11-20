@@ -7,8 +7,10 @@ use App\Actions\Workouts\SaveWorkoutSession;
 use App\Http\Requests\LastSetsRequest;
 use App\Http\Requests\ListSessionsRequest;
 use App\Http\Requests\SaveSessionRequest;
+use App\Http\Requests\SessionCalendarRequest;
 use App\Http\Resources\WorkoutSessionResource;
 use App\Models\WorkoutSession;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -37,13 +39,16 @@ class WorkoutSessionController extends Controller
 
     /**
      * GET /api/sessions: newest first, with totals; `?status=open` or
-     * `finished`.
+     * `finished`; `from` and `to`, either or both, for those started in a span.
      */
     public function index(ListSessionsRequest $request): AnonymousResourceCollection
     {
+        [$from, $to] = $request->span();
         $sessions = $request->user()->workoutSessions()
             ->withTotals()
             ->when($request->query('status'), fn ($query, string $status) => $query->finished($status === 'finished'))
+            ->when($from, fn ($query, CarbonImmutable $from) => $query->where('started_at', '>=', $from))
+            ->when($to, fn ($query, CarbonImmutable $to) => $query->where('started_at', '<', $to))
             ->latest('started_at')
             ->paginate($request->perPage())
             ->withQueryString();
@@ -98,6 +103,31 @@ class WorkoutSessionController extends Controller
         $session->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * GET /api/sessions/calendar?from=…&to=…: the finished workouts started in
+     * the span, oldest first, with only what Home's calendar shows. No pages: the
+     * span is at most a year, so the days trained of a year view come in one
+     * answer rather than four pages of whole workouts.
+     *
+     *     { "data": [ { "id": "0192…", "started_at": "…", "duration_seconds": 3540 } ] }
+     */
+    public function calendar(SessionCalendarRequest $request): JsonResponse
+    {
+        [$from, $to] = $request->span();
+        $sessions = $request->user()->workoutSessions()
+            ->finished()
+            ->where('started_at', '>=', $from)
+            ->where('started_at', '<', $to)
+            ->oldest('started_at')
+            ->get(['id', 'started_at', 'duration_seconds']);
+
+        return response()->json(['data' => $sessions->map(fn (WorkoutSession $session) => [
+            'id' => $session->id,
+            'started_at' => $session->started_at,
+            'duration_seconds' => $session->duration_seconds,
+        ])]);
     }
 
     /**
