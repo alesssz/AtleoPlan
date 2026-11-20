@@ -248,6 +248,123 @@ describe('the stopwatch', () => {
   })
 })
 
+describe('pausing the workout on screen', () => {
+  it('stops the clock until Resume, and leaves the pause out of the time trained', () => {
+    const paused = run(dayA(), { type: 'pauseWorkout', now: at(600) })
+
+    expect(paused).toMatchObject({ paused_at: at(600), running_since: null })
+    expect(elapsedSeconds(paused, new Date(at(900)))).toBe(600)
+    // A second ⏸ keeps the first moment
+    expect(run(paused, { type: 'pauseWorkout', now: at(700) }).paused_at).toBe(at(600))
+
+    const resumed = run(paused, { type: 'resumeWorkout', now: at(900) })
+    expect(resumed).toMatchObject({ paused_at: null, running_since: at(900) })
+    expect(elapsedSeconds(resumed, new Date(at(960)))).toBe(660)
+  })
+
+  it('stays paused when the screen opens again, unlike a workout left with ✕', () => {
+    const paused = run(dayA(), { type: 'pauseWorkout', now: at(600) }, { type: 'pause', now: at(610) })
+
+    // ✕ while paused, then the screen opened again: still paused
+    expect(run(paused, { type: 'resume', now: at(1200) })).toMatchObject({ paused_at: at(600), running_since: null })
+    // Left with ✕ alone, the clock starts again
+    expect(run(dayA(), { type: 'pause', now: at(600) }, { type: 'resume', now: at(1200) }).running_since).toBe(at(1200))
+  })
+
+  it('holds the rest, and moves its end by the pause at Resume', () => {
+    // A 90 s rest from 100 s, paused at 130 s with 60 s left
+    const resting = { ...dayA(), rest: { ends_at: at(190), total: 90 } }
+    const paused = run(resting, { type: 'pauseWorkout', now: at(130) })
+
+    expect(restLeft(paused, new Date(at(500)))).toBe(60)
+
+    // Resumed at 530 s: the same 60 s left
+    const resumed = run(paused, { type: 'resumeWorkout', now: at(530) })
+    expect(resumed.rest?.ends_at).toBe(at(590))
+    expect(restLeft(resumed, new Date(at(530)))).toBe(60)
+  })
+
+  it('holds a running stopwatch, and Resume takes it up where it was', () => {
+    // Counting from 15 s, paused at 25 s with 10 s done
+    const started = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 })
+    const paused = run(started, { type: 'pauseWorkout', now: at(25) })
+
+    expect(paused.stopwatch).toMatchObject({ paused_at: at(25), held: true })
+    expect(stopwatchSeconds(paused.stopwatch!, new Date(at(300)))).toBe(10)
+    expect(stopwatchTargetAt(paused.stopwatch!)).toBeNull()
+
+    const resumed = run(paused, { type: 'resumeWorkout', now: at(85) })
+    expect(resumed.stopwatch).toMatchObject({ paused_at: null, paused_ms: 60_000, held: false })
+    expect(stopwatchSeconds(resumed.stopwatch!, new Date(at(90)))).toBe(15)
+  })
+
+  it('holds a countdown, which goes on where it was', () => {
+    // ▶ at 10 s, the count to start at 15 s; paused at 12 s with 3 s to go
+    const started = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 5 })
+    const paused = run(started, { type: 'pauseWorkout', now: at(12) })
+
+    expect(countdownLeft(paused.stopwatch!, new Date(at(100)))).toBe(3)
+    expect(stopwatchSeconds(paused.stopwatch!, new Date(at(100)))).toBe(0)
+
+    // Resumed at 100 s: the count starts 3 s later, nothing counted meanwhile
+    const resumed = run(paused, { type: 'resumeWorkout', now: at(100) })
+    expect(resumed.stopwatch).toMatchObject({ started_at: at(103), paused_at: null })
+    expect(resumed.stopwatch?.paused_ms ?? 0).toBe(0)
+  })
+
+  it('leaves a stopwatch paused by its own button paused at Resume', () => {
+    const session = run(
+      holdWorkout(),
+      { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 0 },
+      { type: 'pauseStopwatch', now: at(20) },
+      { type: 'pauseWorkout', now: at(30) },
+      { type: 'resumeWorkout', now: at(40) },
+    )
+
+    expect(session.stopwatch).toMatchObject({ paused_at: at(20) })
+    expect(session.running_since).toBe(at(40))
+  })
+
+  it('ends with a tick, ▶ or the stopwatch\'s own Resume, since that is training', () => {
+    const paused = run(holdWorkout(), { type: 'pauseWorkout', now: at(100) })
+
+    expect(run(paused, { type: 'toggleSet', exercise: 0, set: 0, now: at(160) })).toMatchObject({ paused_at: null, running_since: at(160) })
+    expect(run(paused, { type: 'startStopwatch', exercise: 0, set: 0, now: at(160), countdown: 5 })).toMatchObject({ paused_at: null, running_since: at(160) })
+
+    const timing = run(holdWorkout(), { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 0 }, { type: 'pauseWorkout', now: at(20) })
+    const resumed = run(timing, { type: 'resumeStopwatch', now: at(50) })
+    expect(resumed).toMatchObject({ paused_at: null, running_since: at(50) })
+    expect(resumed.stopwatch).toMatchObject({ paused_at: null, paused_ms: 30_000 })
+  })
+
+  it('does not end with an untick, or a tick refused', () => {
+    const ticked = run(holdWorkout(), { type: 'toggleSet', exercise: 0, set: 0, now: at(50) }, { type: 'pauseWorkout', now: at(100) })
+
+    // Set 2 has no seconds yet, so it cannot be ticked
+    expect(run(ticked, { type: 'toggleSet', exercise: 0, set: 1, now: at(160) }).paused_at).toBe(at(100))
+    expect(run(ticked, { type: 'toggleSet', exercise: 0, set: 0, now: at(160) }).paused_at).toBe(at(100))
+  })
+
+  it('writes the time at the pause when the timed set is stopped while paused', () => {
+    const session = run(
+      holdWorkout(),
+      { type: 'startStopwatch', exercise: 0, set: 0, now: at(10), countdown: 0 },
+      { type: 'pauseWorkout', now: at(22) },
+      { type: 'stopStopwatch', now: at(200) },
+    )
+
+    expect(session.exercises[0]?.sets[0]).toMatchObject({ seconds: '12', done: true })
+    // Stop ticks the set, which ends the pause
+    expect(session.paused_at).toBeNull()
+  })
+
+  it('finishes from a pause with the time trained before it', () => {
+    const session = run(dayA(), { type: 'pauseWorkout', now: at(600) }, { type: 'finish', now: at(900) })
+
+    expect(session).toMatchObject({ paused_at: null, finished_at: at(900), accumulated_seconds: 600 })
+  })
+})
+
 describe('removing what was added by hand', () => {
   it('removes a set added to a planned exercise, never one of the plan\'s', () => {
     // The bench press: six sets from the plan, and one added at the end

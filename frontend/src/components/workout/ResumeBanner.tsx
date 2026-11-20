@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
 import { finishWorkout } from './finish-workout'
 import { FinishButton } from './FinishButton'
 import { storeActiveSession } from './session-storage'
-import { countSets, type ActiveSession } from './workout-session'
+import { countSets, workoutReducer, type ActiveSession } from './workout-session'
 
 interface ResumeBannerProps {
   session: ActiveSession
@@ -38,6 +38,15 @@ export function ResumeBanner({ session, className, onDiscarded }: ResumeBannerPr
     void navigate(`/session/${id}/summary`)
   }
 
+  /**
+   * Resume says what it does: a workout paused on screen (⏸) goes on, where
+   * opening it otherwise would leave it paused. Stored before the screen
+   * reads it.
+   */
+  function resume() {
+    if (session.paused_at) storeActiveSession(workoutReducer(session, { type: 'resumeWorkout', now: new Date().toISOString() }))
+  }
+
   /** Nothing to undo on the server: a workout is sent only at Finish. */
   function discard() {
     storeActiveSession(null)
@@ -52,7 +61,7 @@ export function ResumeBanner({ session, className, onDiscarded }: ResumeBannerPr
         {/* Outlined: Resume is the main action; Finish asks first */}
         <FinishButton count={countSets(session)} label={t('workout.done')} variant="outline" disabled={finishing} onFinish={() => void finish()} onDiscard={discard} />
         <Button asChild size="xl">
-          <Link to={`/session/${session.id}`}>
+          <Link to={`/session/${session.id}`} onClick={resume}>
             <Play aria-hidden="true" />
             {t('workout.resume')}
           </Link>

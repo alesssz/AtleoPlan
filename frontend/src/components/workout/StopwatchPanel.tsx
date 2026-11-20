@@ -60,15 +60,16 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
   const big = !counting
     ? String(countdown)
     : endsAtTarget ? clock(Math.max(0, target - seconds)) : clock(seconds)
-  const targetText = !counting
-    ? t('workout.stopwatch.getReady')
-    : paused
-      ? t('workout.stopwatch.paused')
-      : target === null
-        ? null
-        : race
-          ? (raceOver ? t('workout.stopwatch.over', { time: clock(seconds - target) }) : t('workout.stopwatch.toBeat', { time: clock(target) }))
-          : t('workout.stopwatch.target', { time: clock(target) })
+  // Paused first: the workout's pause holds a countdown too
+  const targetText = paused
+    ? t('workout.stopwatch.paused')
+    : !counting
+        ? t('workout.stopwatch.getReady')
+        : target === null
+          ? null
+          : race
+            ? (raceOver ? t('workout.stopwatch.over', { time: clock(seconds - target) }) : t('workout.stopwatch.toBeat', { time: clock(target) }))
+            : t('workout.stopwatch.target', { time: clock(target) })
   // A hold's bar shrinks to its end; otherwise it fills towards the time to
   // beat, or with the current minute when there is none
   const share = target === null
@@ -92,17 +93,19 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
 
   // The countdown's ticks and the start's tone. Only those still ahead: the
   // app reopened mid-hold stays quiet. The start may be a moment past when
-  // Start now set it to now
+  // Start now set it to now. None while paused: Resume moves the start, so new
+  // timers
   const { sound, vibration } = alarm
   const startsAt = Date.parse(stopwatch.started_at)
   useEffect(() => {
+    if (paused) return
     const timers = TICKS.flatMap((tick) => {
       const delay = startsAt - tick * 1000 - Date.now()
       if (delay < (tick === 0 ? -1000 : 0)) return []
       return [setTimeout(() => countdownStep({ sound, vibration }, tick === 0), Math.max(0, delay))]
     })
     return () => timers.forEach(clearTimeout)
-  }, [startsAt, sound, vibration])
+  }, [startsAt, paused, sound, vibration])
 
   // A hold stops itself at its target, with the end-of-rest signal. None
   // while paused: Resume makes a new stopwatch object, so a new timer. Past
@@ -179,7 +182,7 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
         </div>
       </div>
       {/* Read out once, when the countdown begins */}
-      <p aria-live="polite" className="sr-only">{counting ? '' : t('workout.stopwatch.getReady')}</p>
+      <p aria-live="polite" className="sr-only">{counting || paused ? '' : t('workout.stopwatch.getReady')}</p>
     </section>
   )
 }

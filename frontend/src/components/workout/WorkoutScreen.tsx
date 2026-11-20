@@ -9,7 +9,7 @@
  * move from run to run.
  */
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, ListPlus, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ListPlus, Pause, Play, Plus, X } from 'lucide-react'
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -65,7 +65,8 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
 
   useWakeLock(true)
 
-  // Opening a paused workout starts its clock again
+  // Opening a workout left with ✕ starts its clock again; one paused on
+  // screen stays paused
   useEffect(() => {
     dispatch({ type: 'resume', now: new Date().toISOString() })
   }, [])
@@ -74,9 +75,12 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
     storeActiveSession(session)
   }, [session])
 
-  // Fires when the rest ends; a new rest or an adjustment replaces it
+  const paused = Boolean(session.paused_at)
+
+  // Fires when the rest ends; a new rest, an adjustment or a resume replaces
+  // it. None while paused: the rest stands still
   useEffect(() => {
-    if (session.rest === null) return
+    if (session.rest === null || paused) return
     const delay = Math.max(0, Date.parse(session.rest.ends_at) - Date.now())
     const timer = setTimeout(() => {
       restOver({ sound: user?.timer_sound ?? true, vibration: user?.timer_vibration ?? true })
@@ -84,7 +88,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
       dispatch({ type: 'endRest' })
     }, delay)
     return () => clearTimeout(timer)
-  }, [session.rest, t, user])
+  }, [session.rest, paused, t, user])
 
   const left = restLeft(session, now)
 
@@ -185,6 +189,11 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
     setSwapOpen(true)
   }
 
+  /** ⏸ and Resume: the workout stays on screen. */
+  function togglePause() {
+    dispatch({ type: paused ? 'resumeWorkout' : 'pauseWorkout', now: new Date().toISOString() })
+  }
+
   /** Pauses the workout, keeps it on the device, and leaves. */
   function pauseAndLeave() {
     // Stored directly: after navigate() this screen is gone, so a dispatch would never be saved
@@ -208,10 +217,16 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
             <X aria-hidden="true" />
           </Button>
           <h1 className="min-w-0 flex-1 truncate font-heading text-lg font-extrabold">{session.day_name ?? t('workout.free')}</h1>
-          <p className="font-semibold text-muted-foreground tabular-nums">
+          {/* Paused, it pulses as the stopwatch does */}
+          <p className={cn('font-semibold text-muted-foreground tabular-nums', paused && 'animate-pulse')}>
             <span className="sr-only">{`${t('workout.clock')}: `}</span>
             {clock(elapsedSeconds(session, now))}
           </p>
+          {!empty && (
+            <Button variant="ghost" size="icon-xl" aria-label={paused ? t('workout.resumeWorkout') : t('workout.pauseWorkout')} onClick={togglePause}>
+              {paused ? <Play aria-hidden="true" className="fill-current" /> : <Pause aria-hidden="true" className="fill-current" />}
+            </Button>
+          )}
           {/* Outlined: stopping early is not the next step */}
           {!empty && <FinishButton {...finishProps} label={t('workout.done')} variant="outline" className="px-4" />}
         </div>
@@ -355,6 +370,20 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         </div>
       </main>
 
+      {/* Above the other docked bars: while it shows, nothing below counts.
+          role="status" reads it out when it appears */}
+      {paused && (
+        <section aria-label={t('workout.paused')} className="border-t border-primary/50 bg-primary/10 py-3">
+          <div className={cn(WORKOUT_COLUMN, 'flex items-center gap-3')}>
+            <p role="status" className="flex-1 font-semibold">{t('workout.paused')}</p>
+            <Button size="xl" onClick={togglePause}>
+              <Play aria-hidden="true" className="fill-current" />
+              {t('workout.resume')}
+            </Button>
+          </div>
+        </section>
+      )}
+
       {/* Docked where the rest bar goes. In a race (as fast as possible) the
           target is a time to beat, and the reps are named after the set */}
       {stopwatch && timedItem && timedSet && (
@@ -376,6 +405,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
         <RestBar
           left={left}
           total={session.rest.total}
+          paused={paused}
           next={restNext}
           onAdjust={seconds => dispatch({ type: 'adjustRest', seconds })}
           onSkip={() => dispatch({ type: 'endRest' })}

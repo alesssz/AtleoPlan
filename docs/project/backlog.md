@@ -30,7 +30,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-12 Choose the sound at the end of a rest or a timed set](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set)
   - [FEAT-13 The volume of the sound](#feat-13-the-volume-of-the-sound)
   - [FEAT-18 A calendar on Home, its days opening history](#feat-18-a-calendar-on-home-its-days-opening-history)
-  - [FEAT-19 Pause a workout without leaving it](#feat-19-pause-a-workout-without-leaving-it)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
 - [DATA](#data)
@@ -69,7 +68,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile), [FEAT-18](#feat-18-a-calendar-on-home-its-days-opening-history). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound), [FEAT-19](#feat-19-pause-a-workout-without-leaving-it). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [UI-3](#ui-3-add-to-plan-from-an-exercises-page), [UI-8](#ui-8-photos-while-creating-an-exercise), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile), [FEAT-18](#feat-18-a-calendar-on-home-its-days-opening-history). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 ## OPS
 
@@ -295,20 +294,6 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - C) Only the tappable days of A or B, no new views.
 
 **Recommended.** A, as asked, unless Home grows too long on a phone; then B, which is the same work in another place. Either way the API change and the history filter come first, in one branch, with their Pest tests (another user's workouts never counted, a day at the edges of a time zone); the views after. Done when a tap on a day with workouts lists exactly those in history, in the device's time zone, and the month and year views show the days trained from the server, offline from the cache like Home.
-
-### FEAT-19 Pause a workout without leaving it
-
-**Priority:** medium · **Kind:** workout mode · **Found:** 2026-11-20
-
-**What is missing.** The workout's clock (top bar, then the time trained of the summary and history, `duration_seconds`) stops only with ✕, which pauses and leaves the screen; opening the workout again starts it at once ([C1.17.3](../concepts/C1-frontend.md#c1173-the-workout-and-its-reducer)). There is no way to stop the time while staying on the screen: a phone call, a machine taken, a long break between exercises all count as training. The rest timer cannot be paused either (−15 s, +15 s, Skip), while a timed set's stopwatch can ([C1.17.8](../concepts/C1-frontend.md#c1178-the-stopwatch-of-a-timed-set)).
-
-**Where.** `components/workout/workout-session.ts`: the `pause` and `resume` actions already exist (`running_since` null while paused, `accumulated_seconds` the time before), used by ✕ and by the screen's mount; `WorkoutScreen.tsx` (the top bar's clock, the effect that resumes on mount), `RestBar.tsx` (`rest.ends_at`), `StopwatchPanel.tsx`, `ResumeBanner.tsx` on Home.
-
-**Options.**
-- A) **A pause for the whole workout:** a ⏸ button beside the clock. Paused, the clock stands still, greyed and pulsing as the stopwatch's does; a bar says "Workout paused" with **Resume**. A rest in progress stands still too (its time left kept, `ends_at` set again at Resume), and so does a running stopwatch. Ticking a set resumes the workout, since ticking is training. A pause made on screen is stored (a flag beside `running_since`), so opening the app again does not undo it as the mount's `resume` would.
-- B) **Only the clock:** ⏸ stops the time trained; the rest and the stopwatch go on as now.
-
-**Recommended.** A: a pause is a moment when nothing counts, and a rest ending during a phone call would beep for nothing. Nothing changes on the server: `duration_seconds` already leaves pauses out ([D3.6.1](../design/D3-data-model.md#d361-workout_sessions)). Done when ⏸ stops the clock, the rest and the stopwatch, Resume takes them up where they were, a reload while paused stays paused, and the summary's time leaves the pause out, with reducer tests for each.
 
 ## BE
 
