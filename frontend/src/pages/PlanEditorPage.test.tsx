@@ -392,4 +392,87 @@ describe('PlanEditorPage', () => {
     renderRoutes(routes, '/plans/plan-ppl/edit?day=9')
     expect(await screen.findByLabelText('Name')).toHaveValue('Push Pull Legs')
   })
+  describe('with an exercise to add, from its page', () => {
+    it('adds it at the end of the day asked, and leaves the address', async () => {
+      const fake = fakeApi({
+        'GET /api/user': signedInAs(),
+        'GET /api/plans/plan-ppl': savedPlan,
+        'GET /api/exercises/12': { status: 200, body: { data: testExercise() } },
+        'PUT /api/plans/plan-ppl': savedAgain,
+      })
+      // The exercise's page first, as a person gets there
+      const { router } = renderRoutes(routes, '/plans')
+      await act(() => router.navigate('/plans/plan-ppl/edit?add=12&day=2'))
+
+      expect(await screen.findByRole('tab', { name: 'Day B – Legs' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByText('«Barbell Bench Press» added at the end of Day B – Legs. Save to keep it.')).toBeInTheDocument()
+      const panel = screen.getByRole('tabpanel')
+      expect(within(panel).getAllByRole('button', { name: /^Barbell (Squat|Bench Press)/ }).map(row => row.textContent)).toEqual([
+        expect.stringMatching(/^Barbell Squat/),
+        expect.stringMatching(/^Barbell Bench Press/),
+      ])
+      // Kept as a draft, so a reload does not add it twice
+      expect(router.state.location.search).toBe('?day=2')
+      expect(localStorage.getItem('atleoplan.planDraft.plan-ppl')).not.toBeNull()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+      expect(await screen.findByText('the plan page')).toBeInTheDocument()
+      const body = sentBody(fake, '/api/plans/plan-ppl') as PlanInput
+      expect(body.days[1]?.items.map(item => [item.exercise_id, item.sets.length])).toEqual([[40, 1], [12, 3]])
+      // The editor's entry was replaced: Back returns to where the person came from
+      await act(() => router.navigate(-1))
+      expect(router.state.location.pathname).toBe('/plans')
+    })
+
+    it('forgets it, and says nothing more, on Discard changes', async () => {
+      fakeApi({
+        'GET /api/user': signedInAs(),
+        'GET /api/plans/plan-ppl': savedPlan,
+        'GET /api/exercises/12': { status: 200, body: { data: testExercise() } },
+      })
+      renderRoutes(routes, '/plans/plan-ppl/edit?add=12&day=2')
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Discard changes' }))
+
+      expect(within(screen.getByRole('tabpanel')).queryByRole('button', { name: /^Barbell Bench Press/ })).not.toBeInTheDocument()
+      expect(screen.queryByText(/added at the end of/)).not.toBeInTheDocument()
+      expect(localStorage.getItem('atleoplan.planDraft.plan-ppl')).toBeNull()
+    })
+
+    it('starts a new plan with it', async () => {
+      fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/exercises/12': { status: 200, body: { data: testExercise() } } })
+      renderRoutes(routes, '/plans/new?add=12&day=1')
+
+      expect(await screen.findByRole('tab', { name: 'Day A' })).toHaveAttribute('aria-selected', 'true')
+      expect(screen.getByRole('button', { name: /^Barbell Bench Press/ })).toBeInTheDocument()
+    })
+
+    it('says so when the exercise cannot be read, and opens the plan as it is', async () => {
+      fakeApi({
+        'GET /api/user': signedInAs(),
+        'GET /api/plans/plan-ppl': savedPlan,
+        'GET /api/exercises/99': { status: 404, body: { message: 'Not found.' } },
+      })
+      const { router } = renderRoutes(routes, '/plans/plan-ppl/edit?add=99&day=2')
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('The exercise could not be added. Try again from its page.')
+      expect(within(screen.getByRole('tabpanel')).getAllByRole('button', { name: /^Barbell/ })).toHaveLength(1)
+      expect(router.state.location.search).toBe('?day=2')
+      expect(localStorage.getItem('atleoplan.planDraft.plan-ppl')).toBeNull()
+    })
+
+    it('adds nothing to a day already full', async () => {
+      const plan = testPlan()
+      plan.days[1]!.items = Array.from({ length: 30 }, (_, index) => testPlanItem({ id: `item-${index}`, exercise_id: 40, exercise: testExercise({ id: 40, name: 'Barbell Squat' }) }))
+      fakeApi({
+        'GET /api/user': signedInAs(),
+        'GET /api/plans/plan-ppl': { status: 200, body: { data: plan } },
+        'GET /api/exercises/12': { status: 200, body: { data: testExercise() } },
+      })
+      renderRoutes(routes, '/plans/plan-ppl/edit?add=12&day=2')
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('«Barbell Bench Press» was not added: Day B – Legs already has as many exercises as a day can hold.')
+      expect(within(screen.getByRole('tabpanel')).queryByRole('button', { name: /^Barbell Bench Press/ })).not.toBeInTheDocument()
+    })
+  })
 })

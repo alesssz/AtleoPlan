@@ -1,11 +1,12 @@
 /*
- * One exercise (`/exercises/:id`): Edit and Delete on the user's own, Duplicate
- * as mine on a public one.
+ * One exercise (`/exercises/:id`): Add to plan on every one, Edit and Delete
+ * on the user's own, Duplicate as mine on a public one.
  */
 import { ArrowLeft, Copy, ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
 import { useDeleteExercise, useDuplicateExercise, useExercise, type Exercise } from '@/api/exercises'
+import { AddToPlanButton } from '@/components/exercises/AddToPlanButton'
 import { ExercisePhotos } from '@/components/exercises/ExercisePhotos'
 import { MuscleChips } from '@/components/exercises/MuscleChips'
 import { FormBanner } from '@/components/FormBanner'
@@ -83,6 +84,7 @@ function ExerciseDetail({ exercise }: ExerciseDetailProps) {
         {exercise.is_mine && (
           <div className="flex flex-wrap items-center gap-3">
             <Badge>{t('exercises.mine')}</Badge>
+            <AddToPlanButton exercise={exercise} />
             <Button asChild variant="outline" size="xl">
               <Link to={`/exercises/${exercise.id}/edit`}>
                 <Pencil aria-hidden="true" />
@@ -93,7 +95,13 @@ function ExerciseDetail({ exercise }: ExerciseDetailProps) {
           </div>
         )}
 
-        {!exercise.is_mine && <DuplicateExerciseButton exercise={exercise} />}
+        {!exercise.is_mine && (
+          // Top: Duplicate's error opens under it
+          <div className="flex flex-wrap items-start gap-3">
+            <AddToPlanButton exercise={exercise} />
+            <DuplicateExerciseButton exercise={exercise} />
+          </div>
+        )}
 
         <ExercisePhotos photos={exercise.photos} name={exercise.name} />
 

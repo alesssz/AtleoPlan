@@ -198,6 +198,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - Step-by-step instructions, muscles worked (main and secondary), equipment. Tips and common mistakes come later, when there is content for them ([D3.4](D3-data-model.md#d34-exercise-library)).
 - **My history** tab: last sessions, best set, estimated one-rep max.
 - Actions: **Add to plan**, **Edit** (only for my own exercises), **Duplicate as mine** (for public ones, to customise them: a copy with the photos, in my language, opened in the editor).
+- **Add to plan** (the page's lime button, on every exercise): a window lists the plans not archived, then the chosen plan's days, each with how many exercises it has, "Already in it" when the exercise is there, and disabled when full (30). A day opens the plan's editor on that day, with the exercise at its end with three sets, not saved yet, and a line saying so. **New plan with this exercise** starts a plan with it in Day A ([C1.16.10](../concepts/C1-frontend.md#c11610-adding-from-an-exercises-page)).
 
 ### D1.4.5 Exercise editor
 
@@ -240,6 +241,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - **As fast as possible:** an exercise counted in reps (push-ups, sit-ups, squat jumps) has a switch, **As fast as possible**: its reps become a fixed amount, "50", and the time taken is the result, timed in workout mode. On the plan's item, not on the exercise: the same push-ups are done for reps on one day and for time on another, and stay one exercise with one history. The exercise's line says "1 × 50 · as fast as possible · 90 s", the switch's own words.
 - **On desktop:** two columns, the library on the left and the plan on the right, dragging from the library into a day.
 - The draft is saved automatically; **Discard changes** goes back to the last saved version.
+- Opened from an exercise's **Add to plan** ([D1.4.4](#d144-exercise-details)), the editor starts on the chosen day with the exercise already added at the end.
 - Implemented ([C1.16](../concepts/C1-frontend.md#c116-the-plan-editor)): the two steps, days as tabs, exercises from the library's select mode in a window, dragged by a handle (dnd-kit, mouse, finger and keyboard), the list of set types and the RPE switch ([C1.16.9](../concepts/C1-frontend.md#c1169-set-types-and-the-rpe-field)), supersets, the draft kept in the browser. Waiting: the desktop's two columns, in the second step ([UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)).
 
 ### D1.4.9 Workout mode

@@ -285,7 +285,12 @@
         "cancelled": "Moving {{name}} was cancelled."
       },
       "forTime": "As fast as possible",
-      "forTimeHint": "The reps are fixed: in the workout, a stopwatch times how long they take."
+      "forTimeHint": "The reps are fixed: in the workout, a stopwatch times how long they take.",
+      "adding": {
+        "added": "«{{exercise}}» added at the end of {{day}}. Save to keep it.",
+        "full": "«{{exercise}}» was not added: {{day}} already has as many exercises as a day can hold.",
+        "failed": "The exercise could not be added. Try again from its page."
+      }
     },
     "lastUsed": "Used {{when}}",
     "neverUsed": "Never used yet",
@@ -390,6 +395,20 @@
       "notFound": "This exercise does not exist, or it is not yours.",
       "duplicate": "Duplicate as mine",
       "duplicateError": "The copy could not be made. Try again."
+    },
+    "addToPlan": {
+      "button": "Add to plan",
+      "title": "Add to a plan",
+      "chooseDay": "Which day of «{{plan}}»?",
+      "description": "«{{name}}» goes at the end of the day you choose, with three sets. You see the plan before saving it.",
+      "newPlan": "New plan with this exercise",
+      "noPlans": "You have no plans yet.",
+      "otherPlans": "Other plans",
+      "exercises_one": "{{count}} exercise",
+      "exercises_other": "{{count}} exercises",
+      "full": "Full: {{count}} exercises",
+      "already": "Already in it",
+      "cancel": "Cancel"
     },
     "editor": {
       "newTitle": "New exercise",

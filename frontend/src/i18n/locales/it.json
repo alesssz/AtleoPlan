@@ -285,7 +285,12 @@
         "cancelled": "Spostamento di {{name}} annullato."
       },
       "forTime": "Nel minor tempo possibile",
-      "forTimeHint": "Le ripetizioni sono fisse: in allenamento un cronometro misura quanto ci metti."
+      "forTimeHint": "Le ripetizioni sono fisse: in allenamento un cronometro misura quanto ci metti.",
+      "adding": {
+        "added": "«{{exercise}}» aggiunto in fondo a {{day}}. Salva per tenerlo.",
+        "full": "«{{exercise}}» non è stato aggiunto: {{day}} ha già tutti gli esercizi che un giorno può contenere.",
+        "failed": "Non è stato possibile aggiungere l'esercizio. Riprova dalla sua pagina."
+      }
     },
     "lastUsed": "Usato {{when}}",
     "neverUsed": "Mai usato",
@@ -390,6 +395,20 @@
       "notFound": "Questo esercizio non esiste, oppure non è tuo.",
       "duplicate": "Duplica come mio",
       "duplicateError": "Non è stato possibile fare la copia. Riprova."
+    },
+    "addToPlan": {
+      "button": "Aggiungi al piano",
+      "title": "Aggiungi a un piano",
+      "chooseDay": "Quale giorno di «{{plan}}»?",
+      "description": "«{{name}}» va in fondo al giorno che scegli, con tre serie. Vedi il piano prima di salvarlo.",
+      "newPlan": "Nuovo piano con questo esercizio",
+      "noPlans": "Non hai ancora nessun piano.",
+      "otherPlans": "Altri piani",
+      "exercises_one": "{{count}} esercizio",
+      "exercises_other": "{{count}} esercizi",
+      "full": "Pieno: {{count}} esercizi",
+      "already": "C'è già",
+      "cancel": "Annulla"
     },
     "editor": {
       "newTitle": "Nuovo esercizio",
