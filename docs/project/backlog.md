@@ -15,6 +15,8 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [OPS-5 Drop the minimatch override](#ops-5-drop-the-minimatch-override)
   - [OPS-6 Drop the glob override](#ops-6-drop-the-glob-override)
   - [OPS-8 Vite's proxy hides the browser's host from Laravel](#ops-8-vites-proxy-hides-the-browsers-host-from-laravel)
+  - [OPS-9 Reset the database and the photos, locally and in production](#ops-9-reset-the-database-and-the-photos-locally-and-in-production)
+  - [OPS-10 The same make commands in AtleoPlan, Chronovault and Flowboard](#ops-10-the-same-make-commands-in-atleoplan-chronovault-and-flowboard)
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-3 Add to plan from an exercise's page](#ui-3-add-to-plan-from-an-exercises-page)
@@ -126,6 +128,53 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - C) Only correct the comment, and leave `host` out of the log.
 
 **Recommended.** A: development then matches production, and the comment becomes true. Done when the log's `host` shows `localhost:5673`, and signing in with a password and with Google, the photos under `/storage` and a password reset link all work as before, through `make dev` and through the preview.
+
+### OPS-9 Reset the database and the photos, locally and in production
+
+**Priority:** medium · **Kind:** tooling · **Found:** 2026-11-22
+
+**What is missing.** `make fresh` is `migrate:fresh --seed`: it empties the database and puts back the muscles, the equipment and `test@example.com`, but:
+- **the photos stay.** medialibrary keeps them on the `public` disk, `backend/storage/app/public/<media id>/` (188 MB today), and their rows go with the database: the files are left orphaned, and new photos get the same ids, so the same folders, as the old ones;
+- **the exercise library does not come back** (`make exercises-import`, `exercises-extra`, `exercises-correct`, `exercises-thumbnails`), nor the example plans;
+- **it does not ask first,** while Chronovault's `db-reset` and Flowboard's say they delete data, and Flowboard's asks.
+
+AtleoPlan keeps its media on disk, not in an object store such as Chronovault's R2 ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)); in production, on the server's disk beside the database ([D2.6](../design/D2-decisions.md#d26-hosting)). Its equivalent of emptying R2 is emptying that disk. Production does not exist yet ([OPS-3](#ops-3-deploy-to-the-free-server)), so it has no reset of any kind.
+
+**Where.** `Makefile` (`fresh`, `db-dump`, `db-restore`, the `exercises-*` targets), `database/seeders/DatabaseSeeder.php`, the `public` disk (`config/filesystems.php`); [S1.8](../start/S1-setup.md#s18-everyday-commands), [H4](../how-to/H4-database-tools.md).
+
+**Options.**
+- A) **One command per depth, asking first:** `make db-reset` (database emptied, migrated, seeded, photos' folder emptied with it, since one without the other is broken) and `make reset` (the same, then the library imported again with its photos, as a new clone). Each says what it deletes and asks, `yes=1` skipping the question, and offers `make db-dump` before. In production, once [OPS-3](#ops-3-deploy-to-the-free-server) is done: the same steps behind a stronger guard (the project's name typed, `APP_ENV=production` checked, a dump of the database and an archive of the media disk taken first), run on the server.
+- B) **Only the photos' half:** `make fresh` also empties the folder; the rest as now.
+
+**Recommended.** A, the local commands now and the production one in the deployment's branch, under the names chosen in [OPS-10](#ops-10-the-same-make-commands-in-atleoplan-chronovault-and-flowboard). Done when `make db-reset` leaves no file in `storage/app/public` without its row, `make reset` gives a working app with the library and its photos, both ask before deleting, and the production steps are written in the deployment's section of the docs.
+
+### OPS-10 The same make commands in AtleoPlan, Chronovault and Flowboard
+
+**Priority:** low · **Kind:** tooling, consistency · **Found:** 2026-11-22
+
+**What is missing.** The three projects each have a `Makefile` with `make help`, and many targets do the same job under different names, or share a name with different jobs. Moving from one project to another means remembering which is which. Each project keeps its own commands (AtleoPlan's `artisan`, `exercises-*`, `phone`; Chronovault's Supabase targets; Flowboard's `dev-web` and `dev-api`), but the common ones should read the same:
+
+| Job | AtleoPlan | Chronovault | Flowboard |
+|---|---|---|---|
+| Start everything for development | `start` | `local` | `dev` (web and API) |
+| Stop | `down` | `stop` | `db-down` |
+| The local addresses | `urls` | `db-status` (with keys) | `urls` |
+| Check the computer | `doctor` | `doctor` | none |
+| Install the packages | `fe-install` (npm), `setup` | `install` | `install` |
+| Production build | `fe-build` (`build` rebuilds the Docker image) | `build` | `build` |
+| Empty and rebuild the database | `fresh` | `db-reset` | `db-reset` |
+| Apply new migrations | `migrate` | `db-migrate` | `db-migrate` |
+| A console on the data | `psql`, `tinker` | `db-studio` | `db-studio` |
+| Git: new branch, update main, push | `branch`, `sync`, `push` | none (only `merge`) | `branch`, `sync`, `push` |
+| Remove builds, then packages too | none | `clean`, `clean-all` | `clean`, `clean-all` |
+
+**Where.** `Makefile` and its sections; [S1.8](../start/S1-setup.md#s18-everyday-commands), [H5](../how-to/H5-ci.md) and every doc that quotes a target; `scripts/merge-main.mjs`. The other two repositories need the same change, each in its own branch.
+
+**Options.**
+- A) **A shared vocabulary,** written once and kept the same in the three repositories: `start`, `stop`, `urls`, `doctor`, `setup`, `install`, `dev`, `build`, `db-reset`, `db-migrate`, `db-console`, `check`, `test`, `lint`, `typecheck`, `audit`, `github-check`, `branch`, `sync`, `push`, `merge`, `clean`; the sections of `make help` in the same order. Each project maps them to its own tools; an old name stays for a while as an alias that prints the new one, then goes.
+- B) **A shared `common.mk`** included by each `Makefile`: one source for the git and quality targets, but copied by hand between repositories (or a submodule), for commands that differ in every project anyway.
+
+**Recommended.** A, starting from the names two projects already share (`db-reset`, `db-migrate`, `install`, `urls`, `clean`), so most renames happen in one project only. In AtleoPlan: `fresh` becomes `db-reset` (with [OPS-9](#ops-9-reset-the-database-and-the-photos-locally-and-in-production)), `migrate` `db-migrate`, `down` `stop`, `build` (the Docker image) `image` so `build` is the production build, `psql` `db-console`, and `clean` added. Done when `make help` in the three projects lists the shared targets under the same names and sections, and the docs quote the new names.
 
 ## UI
 
