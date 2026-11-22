@@ -285,7 +285,12 @@
         "cancelled": "Verschieben von {{name}} abgebrochen."
       },
       "forTime": "So schnell wie möglich",
-      "forTimeHint": "Die Wiederholungen stehen fest: Im Training misst eine Stoppuhr, wie lange sie dauern."
+      "forTimeHint": "Die Wiederholungen stehen fest: Im Training misst eine Stoppuhr, wie lange sie dauern.",
+      "adding": {
+        "added": "„{{exercise}}“ am Ende von {{day}} hinzugefügt. Speichere, um sie zu behalten.",
+        "full": "„{{exercise}}“ wurde nicht hinzugefügt: {{day}} hat schon so viele Übungen, wie ein Tag fassen kann.",
+        "failed": "Die Übung konnte nicht hinzugefügt werden. Versuch es noch einmal auf ihrer Seite."
+      }
     },
     "lastUsed": "Zuletzt {{when}} genutzt",
     "neverUsed": "Noch nie genutzt",
@@ -390,6 +395,20 @@
       "notFound": "Diese Übung gibt es nicht, oder sie gehört nicht dir.",
       "duplicate": "Als eigene kopieren",
       "duplicateError": "Die Kopie konnte nicht erstellt werden. Versuche es erneut."
+    },
+    "addToPlan": {
+      "button": "Zum Plan hinzufügen",
+      "title": "Zu einem Plan hinzufügen",
+      "chooseDay": "Welcher Tag von „{{plan}}“?",
+      "description": "„{{name}}“ kommt mit drei Sätzen ans Ende des Tages, den du wählst. Du siehst den Plan, bevor du ihn speicherst.",
+      "newPlan": "Neuer Plan mit dieser Übung",
+      "noPlans": "Du hast noch keinen Plan.",
+      "otherPlans": "Andere Pläne",
+      "exercises_one": "{{count}} Übung",
+      "exercises_other": "{{count}} Übungen",
+      "full": "Voll: {{count}} Übungen",
+      "already": "Schon enthalten",
+      "cancel": "Abbrechen"
     },
     "editor": {
       "newTitle": "Neue Übung",

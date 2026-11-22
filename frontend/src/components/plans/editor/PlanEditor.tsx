@@ -3,18 +3,23 @@
  * then the days' exercises. The step is in the address (`?day=2`), so the
  * phone's Back goes from the exercises to the details and a reload stays put.
  * The draft is stored locally at every change and saved as a whole plan.
+ *
+ * `?add=` (from an exercise's page) adds its exercise once, when the editor
+ * opens, to the day of `?day=`, and leaves the address, so a reload does not
+ * add it twice: the kept draft already has it.
  */
 import { Save, Undo2 } from 'lucide-react'
 import { useEffect, useReducer, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useCurrentUser } from '@/api/auth'
+import type { Exercise } from '@/api/exercises'
 import type { PlanInput, PlanSaved } from '@/api/plans'
 import { FormBanner } from '@/components/FormBanner'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/http'
 import { clearDraft, loadDraft, storeDraft } from '../draft-storage'
-import { draftField, draftReducer, toPlanInput, validateDraft, type DraftErrors, type PlanDraft } from '../plan-draft'
+import { dayLetter, draftField, draftReducer, toPlanInput, validateDraft, type DraftErrors, type PlanDraft } from '../plan-draft'
 import { EditorDays } from './EditorDays'
 import { EditorOverview } from './EditorOverview'
 
@@ -38,11 +43,36 @@ interface EditorHistoryState {
   fromPlan: boolean
 }
 
+/** What the editor says about `?add=`: added, or why not. */
+type AddNotice
+  = | { kind: 'added' | 'full', exercise: string, day: string }
+    | { kind: 'failed' }
+
+/** The draft the editor opens with, and the day `?add=` went to. */
+interface Start {
+  draft: PlanDraft
+  /** The day's index, from 0. */
+  day: number
+  notice: AddNotice | null
+}
+
+/**
+ * The index of the day `?day=` names (1 for the first), or null when it
+ * names none of the draft's days: a hand-typed ?day=9, or a day just
+ * discarded.
+ */
+function dayFromAddress(value: string | null, draft: PlanDraft): number | null {
+  const requested = Number(value)
+  return value !== null && Number.isInteger(requested) && requested >= 1 && requested <= draft.days.length ? requested - 1 : null
+}
+
 interface PlanEditorProps {
   /** The plan as it is opened: saved, or new and empty. */
   initial: PlanDraft
   /** The key of the draft kept in the browser (draft-storage.ts). */
   storageKey: string
+  /** `?add=`'s exercise: undefined for none, null when it could not be read. */
+  adding?: Exercise | null
   /** Sends the plan: POST for a new one, PUT for a saved one. */
   save: (input: PlanInput) => Promise<PlanSaved>
   /** Called after a save, with what the server answered. */
@@ -53,7 +83,7 @@ interface PlanEditorProps {
   cancelTo: string
 }
 
-export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, cancelTo }: PlanEditorProps) {
+export function PlanEditor({ initial, storageKey, adding, save, onSaved, submitLabel, cancelTo }: PlanEditorProps) {
   const { t, i18n } = useTranslation()
   const { data: user } = useCurrentUser()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -66,7 +96,33 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
 
   // Read once, when the editor opens
   const [kept] = useState(() => loadDraft(storageKey))
-  const [draft, dispatch] = useReducer(draftReducer, kept?.draft ?? initial)
+  const [start] = useState((): Start => {
+    const base = kept?.draft ?? initial
+    // A day that is not there: the first
+    const day = dayFromAddress(searchParams.get('day'), base) ?? 0
+    if (adding === undefined) return { draft: base, day, notice: null }
+    if (adding === null) return { draft: base, day, notice: { kind: 'failed' } }
+    const draft = draftReducer(base, { type: 'addExercises', day, exercises: [adding] })
+    const before = base.days[day]!
+    return {
+      draft,
+      day,
+      notice: {
+        // The reducer adds nothing to a full day
+        kind: draft.days[day]!.items.length > before.items.length ? 'added' : 'full',
+        exercise: adding.name,
+        day: before.name.trim() || t('plans.editor.defaultDayName', { letter: dayLetter(day) }),
+      },
+    }
+  })
+  const [draft, dispatch] = useReducer(draftReducer, start.draft)
+  const [notice, setNotice] = useState(start.notice)
+
+  // Replaced, so Back from the editor returns to the exercise's page
+  const addInAddress = searchParams.has('add')
+  useEffect(() => {
+    if (addInAddress) setSearchParams({ day: String(start.day + 1) }, { replace: true })
+  }, [addInAddress, setSearchParams, start.day])
 
   const [errors, setErrors] = useState<DraftErrors>({})
   const [saving, setSaving] = useState(false)
@@ -81,11 +137,8 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
     else clearDraft(storageKey)
   }, [draft, dirty, storageKey])
 
-  // The open day's index, from `?day=` (1 for the first), or null for the
-  // first step. Anything that is not one of the draft's days, a hand-typed
-  // ?day=9 or a day just discarded, shows the first step
-  const requested = Number(searchParams.get('day'))
-  const openDay = searchParams.has('day') && Number.isInteger(requested) && requested >= 1 && requested <= draft.days.length ? requested - 1 : null
+  // The open day's index, or null for the first step
+  const openDay = dayFromAddress(searchParams.get('day'), draft)
   const fromPlan = (location.state as EditorHistoryState | null)?.fromPlan === true
 
   /**
@@ -185,6 +238,8 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
   /** Back to the plan as it was opened, and forgets the kept draft. */
   function discard() {
     dispatch({ type: 'replace', draft: initial })
+    // The exercise added went with the rest
+    setNotice(null)
     setErrors({})
     setFailure(null)
     clearDraft(storageKey)
@@ -216,6 +271,11 @@ export function PlanEditor({ initial, storageKey, save, onSaved, submitLabel, ca
     <div className="flex flex-col gap-6">
       {/* A draft from an earlier visit was brought back */}
       {kept && dirty && <FormBanner variant="success">{t('plans.editor.restored')}</FormBanner>}
+      {notice && (
+        <FormBanner variant={notice.kind === 'added' ? 'success' : 'error'}>
+          {notice.kind === 'failed' ? t('plans.editor.adding.failed') : t(`plans.editor.adding.${notice.kind}`, { exercise: notice.exercise, day: notice.day })}
+        </FormBanner>
+      )}
 
       {actions}
       {failure && <FormBanner variant="error">{failure}</FormBanner>}

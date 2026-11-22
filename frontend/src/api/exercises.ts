@@ -5,7 +5,7 @@
  * Texts come in the request's language, so the language is in every key:
  * switching it reads the library again instead of showing stale names.
  */
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Equipment } from '@/api/equipment'
 import type { Muscle } from '@/api/muscles'
 import { request, upload } from '@/lib/http'
@@ -134,11 +134,16 @@ export function useExercises(filters: ExerciseFilters, language: string) {
   })
 }
 
-export function useExercise(id: number, language: string) {
-  return useQuery({
+/** Shared by the exercise's page and the plan editor's `?add=`. */
+export function exerciseQuery(id: number, language: string) {
+  return queryOptions({
     queryKey: exerciseKeys.detail(id, language),
     queryFn: ({ signal }) => request<{ data: Exercise }>(`/api/exercises/${id}`, { signal }).then(answer => answer.data),
   })
+}
+
+export function useExercise(id: number, language: string) {
+  return useQuery(exerciseQuery(id, language))
 }
 
 /** In the request's language. */

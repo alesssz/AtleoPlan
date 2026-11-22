@@ -51,6 +51,7 @@ The stack's rationale is in [D2.2](../design/D2-decisions.md#d22-stack), the scr
   - [C1.16.7 Two steps, one draft](#c1167-two-steps-one-draft)
   - [C1.16.8 Creating an exercise from the picker](#c1168-creating-an-exercise-from-the-picker)
   - [C1.16.9 Set types and the RPE field](#c1169-set-types-and-the-rpe-field)
+  - [C1.16.10 Adding from an exercise's page](#c11610-adding-from-an-exercises-page)
 - [C1.17 Workout mode](#c117-workout-mode)
   - [C1.17.1 The pieces](#c1171-the-pieces)
   - [C1.17.2 Starting: the plan becomes a workout](#c1172-starting-the-plan-becomes-a-workout)
@@ -511,10 +512,10 @@ An admin sees an **Administration** group in Profile's About tab with **Open**: 
 | Route | Page | Made of |
 |---|---|---|
 | `/exercises` | `ExercisesPage` | `ExerciseFilters` (with `ExerciseSearchBox`, shared with the plan editor's picker), `ExerciseListItem`, `EmptyState`; `useExercises()` |
-| `/exercises/:id` | `ExerciseDetailPage` | `ExercisePhotos`, `MuscleChips`, a description list, `AlertDialog` for delete; `useExercise()`, `useDeleteExercise()` |
+| `/exercises/:id` | `ExerciseDetailPage` | `AddToPlanButton` ([C1.16.10](#c11610-adding-from-an-exercises-page)), `ExercisePhotos`, `MuscleChips`, a description list, `AlertDialog` for delete; `useExercise()`, `useDeleteExercise()` |
 | `/exercises/new`, `/exercises/:id/edit` | `ExerciseEditorPage` | `ExerciseForm` with `exercise-form.ts`; `ExercisePhotoManager` on edit; `useCreateExercise()`, `useUpdateExercise()` |
 
-**Not built yet:** "Add to plan" ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)), the "My history" tab ([FEAT-7](../project/backlog.md#feat-7-an-exercises-own-history)), videos ([FEAT-11](../project/backlog.md#feat-11-videos-of-an-exercise)), offline-disabled buttons ([FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home)).
+**Not built yet:** the "My history" tab ([FEAT-7](../project/backlog.md#feat-7-an-exercises-own-history)), videos ([FEAT-11](../project/backlog.md#feat-11-videos-of-an-exercise)), offline-disabled buttons ([FEAT-3](../project/backlog.md#feat-3-workout-mode-and-home)).
 
 ### C1.14.2 A list one page at a time
 
@@ -708,7 +709,7 @@ PlanEditorPage            /plans/new: an empty draft; /plans/:id/edit: loads the
 | `components/plans/SetTypeSelect.tsx` | Set number and type list, shared with workout mode |
 | `api/plans.ts` | `useCreatePlan()`, `useUpdatePlan(id)`, the body type `PlanInput` |
 
-**Not built yet:** the desktop layout with the library beside the plan ([UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)); "Add to plan" from an exercise's page ([UI-3](../project/backlog.md#ui-3-add-to-plan-from-an-exercises-page)). On every width, exercises come from the picker.
+**Not built yet:** the desktop layout with the library beside the plan ([UI-2](../project/backlog.md#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)). On every width, exercises come from the picker, or from an exercise's page (C1.16.10).
 
 ### C1.16.2 The draft and its reducer
 
@@ -855,6 +856,31 @@ const withRpe = showRpe || hadRpe
 - **An existing RPE is always shown,** or the plan would be saved with a value nobody sees.
 - **Read once on mount:** recomputed on every render, the field would vanish under the finger as its last value is erased.
 - **The plan's page** always writes "RPE 8" when a target has one; only the editor's field depends on the preference.
+
+### C1.16.10 Adding from an exercise's page
+
+**Add to plan** on an exercise's page ([D1.4.4](../design/D1-ui.md#d144-exercise-details)) does not save anything. It opens the editor with the exercise already in the day chosen, so the editor's rules, its draft and Save apply as for any other change, and the user sees the result first.
+
+**The window** (`components/exercises/AddToPlanButton.tsx`) lists the plans not archived (`usePlans(false)`), then the chosen plan's days (`usePlan()`). Each day is a link:
+
+| Link | Opens |
+|---|---|
+| `/plans/plan-ppl/edit?add=12&day=2` | the plan's editor, exercise 12 at the end of the second day |
+| `/plans/new?add=12&day=1` | **New plan with this exercise**: a new plan with it in Day A |
+
+A day already holding 30 exercises (`LIMITS.items`) is shown but is not a link; a day that already has the exercise says "Already in it", and can still have it twice.
+
+**The editor.** `PlanEditorPage` reads `?add=` with `exerciseQuery()`, the exercise page's own query, so it is usually in the cache already. It shows the skeleton until the exercise is read, then passes it to `PlanEditor` as `adding`: `undefined` when there is nothing to add, `null` when it could not be read (a hand-typed id, a deleted exercise, no connection).
+
+`PlanEditor` adds it **once, in the `useState` initializer** that picks the draft it opens with (the kept one, or the plan), through the reducer's own `addExercises`:
+
+```tsx
+const draft = draftReducer(base, { type: 'addExercises', day, exercises: [adding] })
+```
+
+- **Then `add` leaves the address:** `setSearchParams({ day }, { replace: true })`. The draft is now dirty and kept (C1.16.4), so a reload restores it with the exercise rather than adding it again, and Back still returns to the exercise's page.
+- **A banner says what happened:** "«Bench press» added at the end of Day B. Save to keep it.", or, as an error, that the day was full or the exercise could not be read. The plan then opens as it was. Discard changes takes the exercise away and the banner with it.
+- **A `?day=` that names no day** puts the exercise in the first.
 
 ---
 
