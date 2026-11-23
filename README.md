@@ -65,8 +65,7 @@ Requires Docker and Node 24; on Windows, run the commands from Git Bash. `make d
 
 ```sh
 make setup             # images, packages, database
-make fresh             # reference data and the development account
-make exercises-import  # the exercise library (downloads free-exercise-db once)
+make reset yes=1       # the development account and the exercise library (downloads free-exercise-db once)
 make start             # backend and React app with hot reload
 ```
 

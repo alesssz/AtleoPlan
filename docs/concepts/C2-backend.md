@@ -458,6 +458,8 @@ Export and import ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)): `Ex
 
 **Storage:** medialibrary collection `photos` (the first is the cover) on the `public` disk (`storage/app/public/<media id>/`), served at `/storage/…`. Conversions are queued, so an upload answers at once and the `queue` container makes the copies.
 
+**Emptying the database leaves the files:** `migrate:fresh` drops the rows with no model event, and the next photos would get the same ids, so the same folders. `make fresh` and `make reset` then run `media-library:clean --skip-conversions`, which deletes every folder of the disk that no `media` row owns: after `migrate:fresh`, all of them. The `public` disk holds nothing else, or that would go too.
+
 | Conversion (`Exercise::registerMediaConversions()`) | Size | For |
 |---|---|---|
 | `thumb` | ≤ 400 × 400 px, WebP | lists' 40–56 px squares and workout mode's 80 px one, sharp on dense screens |

@@ -222,7 +222,7 @@ The public library is built by four commands ([C2.14](../concepts/C2-backend.md#
 | Migration, seeder, factory, enum, test | `make artisan c="make:migration add_x_to_y_table"`, `make:seeder`, `make:factory`, `make:enum X --string`, `make:test X --pest` |
 | SQL of the pending migrations | `make artisan c="migrate --pretend"` |
 | Run, status, undo the last batch | `make migrate`, `make artisan c="migrate:status"`, `make artisan c="migrate:rollback"` |
-| Rebuild with the seeders (**deletes all data**) | `make fresh` (`make db-dump` first) |
+| Rebuild with the seeders (**deletes all data and photos**, asks first) / then the library again | `make fresh` / `make reset` (`make db-dump` first) |
 | Reference data only, harmless to repeat | `make reference-data` |
 | Consoles | `make tinker`, `make psql` |
 | Structure | `make artisan c="db:table muscles"`, `c="model:show Muscle"`, `c="db:show"` |

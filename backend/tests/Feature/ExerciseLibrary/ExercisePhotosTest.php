@@ -3,7 +3,7 @@
 /**
  * The photos of a personal exercise: adding one, its conversions, the limits,
  * removing one, the order, and who may do it; then Duplicate as mine, which
- * copies the photos too.
+ * copies the photos too; and the folders left by an emptied database.
  *
  * The queue is synchronous in the tests (phpunit.xml), so the conversions
  * exist as soon as the request ends.
@@ -15,6 +15,7 @@ use App\Models\User;
 use Database\Seeders\MuscleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 
@@ -199,5 +200,22 @@ describe('Duplicate as mine', function () {
 
     it('refuses my own exercise', function () {
         $this->postJson("/api/exercises/{$this->mine->id}/duplicate")->assertForbidden();
+    });
+});
+
+describe('emptying the database', function () {
+    it('leaves folders that make fresh removes, and only those', function () {
+        uploadPhoto($this->mine)->assertCreated();
+        uploadPhoto($this->mine)->assertCreated();
+        [$gone, $kept] = $this->mine->fresh()->getMedia('photos')->all();
+
+        // As migrate:fresh does: the row goes, with no model event to delete the files
+        DB::table('media')->where('id', $gone->id)->delete();
+        expect(Storage::disk('public')->directories())->toEqualCanonicalizing([(string) $gone->id, (string) $kept->id]);
+
+        $this->artisan('media-library:clean', ['--skip-conversions' => true])->assertSuccessful();
+
+        expect(Storage::disk('public')->directories())->toBe([(string) $kept->id])
+            ->and(Storage::disk('public')->exists("{$kept->id}/conversions"))->toBeTrue();
     });
 });
