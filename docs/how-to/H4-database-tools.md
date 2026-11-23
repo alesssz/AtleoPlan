@@ -27,7 +27,7 @@ Postgres runs in Docker ([S1.5](../start/S1-setup.md#s15-first-start-the-docker-
 postgresql://atleoplan:atleoplan@127.0.0.1:5932/atleoplan
 ```
 
-The same server holds **`atleoplan_test`**, which every test run empties and rebuilds: worth opening only while debugging a test. `make fresh` and `make down-v` empty the development database.
+The same server holds **`atleoplan_test`**, which every test run empties and rebuilds: worth opening only while debugging a test. `make fresh`, `make reset` and `make down-v` empty the development database.
 
 ---
 

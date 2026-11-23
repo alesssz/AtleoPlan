@@ -112,6 +112,7 @@ It is idempotent: the seeders write with `updateOrCreate()`, and what is already
 | The Composer packages, as the app reads them | The `vendor` volume (`atleoplan_vendor`), at `/app/vendor` | Named volume | Read a thousand at a time on every request: ten times faster than through the shared folder ([D2.10](../design/D2-decisions.md#d210-local-development)) |
 | The same packages, a copy for the editor | `backend/vendor/` on the host, at `/vendor-host` | Bind mount | So the editor resolves Laravel's classes; Composer refreshes it after every change, `make vendor` by hand |
 | The database | The `postgres-data` volume | Named volume | Survives `make down`; `make down-v` deletes it |
+| The photos uploaded | `backend/storage/app/public/`, one folder per photo | Bind mount, ignored by Git | Survive `make down-v`; `make fresh` deletes them with the database's rows |
 | Composer's downloads | The `composer-cache` volume | Named volume | A package is downloaded once, even when the `vendor` volume is rebuilt |
 | The frontend, `frontend/` with its `node_modules/` | The host only | — | Vite runs on the host, not in Docker |
 
@@ -180,7 +181,7 @@ Run from the repository root. Backend commands use `docker compose exec backend 
 |---|---|
 | Any artisan command | `docker compose exec backend php artisan <command>` |
 | Run the migrations | `docker compose exec backend php artisan migrate` |
-| Empty the database and rebuild it, with test data | `docker compose exec backend php artisan migrate:fresh --seed` |
+| Empty the database and rebuild it, with test data (the photos stay: `make fresh` removes them too) | `docker compose exec backend php artisan migrate:fresh --seed` |
 | Fill the public exercise library (after a fresh database too) | `make exercises-import`: the first time it also clones free-exercise-db into `backend/storage/app/` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Add the extra exercises (calisthenics) to a library imported before them | `make exercises-extra` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Correct the logging types the import guessed wrong (Plank as time) in a library imported before the list | `make exercises-correct` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
@@ -219,7 +220,8 @@ Run from the repository root. Backend commands use `docker compose exec backend 
 | Start everything (stack, then React) / only the stack / stop | `make start` / `make up` / `make down` |
 | The local addresses | `make urls` |
 | Any artisan or Composer command | `make artisan c="route:list"`, `make composer c="require vendor/package"` |
-| Migrations / empty and rebuild the database | `make migrate` / `make fresh` |
+| Migrations | `make migrate` |
+| Empty the database and its photos, then seed it (test account, muscles, equipment) / the same, then the exercise library again, as a new clone. Both say what they delete and ask; `yes=1` answers for you | `make fresh` / `make reset` |
 | Save / restore the development database | `make db-dump` (to `backups/`, not committed) / `make db-restore f=backups/<file>.sql` |
 | Create the tests' database on an old volume | `make test-db` |
 | A change seems ignored (config, routes cached) | `make clear` |

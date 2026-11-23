@@ -15,7 +15,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [OPS-5 Drop the minimatch override](#ops-5-drop-the-minimatch-override)
   - [OPS-6 Drop the glob override](#ops-6-drop-the-glob-override)
   - [OPS-8 Vite's proxy hides the browser's host from Laravel](#ops-8-vites-proxy-hides-the-browsers-host-from-laravel)
-  - [OPS-9 Reset the database and the photos, locally and in production](#ops-9-reset-the-database-and-the-photos-locally-and-in-production)
 - [UI](#ui)
   - [UI-2 Plan editor on a wide screen: the library beside the plan](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan)
   - [UI-8 Photos while creating an exercise](#ui-8-photos-while-creating-an-exercise)
@@ -91,6 +90,7 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - Open ports 80 and 443, both in the Oracle console and in the VM's `iptables`.
 - Install Docker, point `atleoplan.duckdns.org` at the VM, start the production Compose.
 - Set up backups of the database and of the media on the server's disk ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)).
+- A reset for production, as `make fresh` is locally (the database emptied, the media disk with it, since one without the other is broken), behind a stronger guard: the project's name typed, `APP_ENV=production` checked, a dump of the database and an archive of the media disk taken first; run on the server.
 - Caddy forwards `/api`, `/sanctum`, `/storage` and `/auth/` to Laravel, as Vite does in development; Google's client gets the production return address, and the app is published ([S1.11.6](../start/S1-setup.md#s1116-later-when-deploying)).
 - Write the deployment section of the docs ([P1.3](P1-conventions.md#p13-documentation)).
 
@@ -126,25 +126,6 @@ Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-
 - C) Only correct the comment, and leave `host` out of the log.
 
 **Recommended.** A: development then matches production, and the comment becomes true. Done when the log's `host` shows `localhost:5673`, and signing in with a password and with Google, the photos under `/storage` and a password reset link all work as before, through `make dev` and through the preview.
-
-### OPS-9 Reset the database and the photos, locally and in production
-
-**Priority:** medium · **Kind:** tooling · **Found:** 2026-11-22
-
-**What is missing.** `make fresh` is `migrate:fresh --seed`: it empties the database and puts back the muscles, the equipment and `test@example.com`, but:
-- **the photos stay.** medialibrary keeps them on the `public` disk, `backend/storage/app/public/<media id>/` (188 MB today), and their rows go with the database: the files are left orphaned, and new photos get the same ids, so the same folders, as the old ones;
-- **the exercise library does not come back** (`make exercises-import`, `exercises-extra`, `exercises-correct`, `exercises-thumbnails`), nor the example plans;
-- **it does not ask first,** although it deletes everything.
-
-The media are kept on disk, not in an object store ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)); in production, on the server's disk beside the database ([D2.6](../design/D2-decisions.md#d26-hosting)). Resetting the media means emptying that disk. Production does not exist yet ([OPS-3](#ops-3-deploy-to-the-free-server)), so it has no reset of any kind.
-
-**Where.** `Makefile` (`fresh`, `db-dump`, `db-restore`, the `exercises-*` targets), `database/seeders/DatabaseSeeder.php`, the `public` disk (`config/filesystems.php`); [S1.8](../start/S1-setup.md#s18-everyday-commands), [H4](../how-to/H4-database-tools.md).
-
-**Options.**
-- A) **One command per depth, asking first:** `make db-reset` in place of `fresh` (database emptied, migrated, seeded, photos' folder emptied with it, since one without the other is broken) and `make reset` (the same, then the library imported again with its photos, as a new clone). Each says what it deletes and asks, `yes=1` skipping the question, and offers `make db-dump` before. In production, once [OPS-3](#ops-3-deploy-to-the-free-server) is done: the same steps behind a stronger guard (the project's name typed, `APP_ENV=production` checked, a dump of the database and an archive of the media disk taken first), run on the server.
-- B) **Only the photos' half:** `make fresh` also empties the folder; the rest as now.
-
-**Recommended.** A, the local commands now and the production one in the deployment's branch. Done when `make db-reset` leaves no file in `storage/app/public` without its row, `make reset` gives a working app with the library and its photos, both ask before deleting, and the production steps are written in the deployment's section of the docs.
 
 ## UI
 

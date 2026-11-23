@@ -6,7 +6,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer vendor migrate fresh tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
+        artisan composer vendor migrate fresh reset tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
         node-version dev phone fe-install fe-build fe-preview \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit github-check toc toc-check \
         branch sync push merge
@@ -21,6 +21,19 @@ ARTISAN_NOW := $(DC) exec -e QUEUE_CONVERSIONS_BY_DEFAULT=false backend php arti
 # inside frontend/ resolve to D:\, and two copies of Vitest fail every test
 NPM     := cd frontend && npm
 BRANCH  := $(shell git branch --show-current)
+
+# Asks before deleting data, and stops on anything but yes; yes=1 answers for
+# the user. With no terminal to answer, read finds nothing: no.
+define confirm
+	@if [ -z "$(yes)" ]; then \
+		echo "$(1)"; \
+		read -r -p "Continue? [y/N] " answer; \
+		case "$$answer" in [yY]*) ;; *) echo "Nothing deleted."; exit 1 ;; esac; \
+	fi
+endef
+
+FRESH_WARNING := This deletes every row of the development database and every photo uploaded (backend/storage/app/public), then seeds the database again. make db-dump first keeps a copy of the database; the photos have none.
+RESET_WARNING := $(FRESH_WARNING) Then the exercise library is imported again with its photos, which takes a few minutes.
 
 help: ## Show this list
 	@echo "AtleoPlan - available commands:"
@@ -115,8 +128,21 @@ vendor: ## Copy the Composer packages to backend/vendor/ for the editor (Compose
 migrate: ## Run the new migrations
 	$(ARTISAN) migrate
 
-fresh: ## Empty the development database and rebuild it with test data
+# The photos go with their rows: left behind, the next photos would reuse
+# their ids, and so their folders. media-library:clean deletes every folder
+# of the public disk that no media row owns, which after migrate:fresh is all
+# of them; the public disk holds nothing else.
+fresh: ## Empty the development database and its photos, then seed it: test account, muscles, equipment (asks first; yes=1 skips the question)
+	$(call confirm,$(FRESH_WARNING))
 	$(ARTISAN) migrate:fresh --seed
+	$(ARTISAN) media-library:clean --skip-conversions --quiet
+	@echo "✔ Database seeded, photos removed. The library: make exercises-import"
+
+reset: ## As a new clone: fresh, then the exercise library imported again with its photos (asks first; yes=1 skips the question)
+	$(call confirm,$(RESET_WARNING))
+	$(MAKE) --no-print-directory fresh yes=1
+	$(MAKE) --no-print-directory exercises-import
+	@echo "✔ Reset. Example plans for the test account: make plans-demo"
 
 tinker: ## Interactive PHP console of the app
 	$(ARTISAN) tinker
