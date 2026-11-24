@@ -435,7 +435,9 @@
         "tooLong": "Höchstens {{max}} Zeichen.",
         "youtube": "Füge einen YouTube-Link ein (youtube.com oder youtu.be)."
       },
-      "photosLater": "Fotos kannst du hinzufügen, sobald die Übung erstellt ist, über Bearbeiten."
+      "photosLater": "Die Fotos kommen gleich danach: Erstellen öffnet sie.",
+      "created": "Übung erstellt. Wenn du willst, füge hier ihre Fotos hinzu.",
+      "done": "Zur Übung"
     },
     "photos": {
       "title": "Fotos",
