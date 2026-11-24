@@ -969,8 +969,12 @@ The import's guess (C2.14.3) is wrong for a few exercises: a plank is bodyweight
 | Absent or soft-deleted | Nothing | An import with `--limit`, or an admin's choice |
 | Already on `to` | Nothing | Idempotent |
 | On a third type | Kept | An admin chose it in the panel |
-| Used in any plan or workout | Kept, and named in the summary | Its sets were written for the old type: a workout with reps on a `time` exercise would be refused on resend ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)) |
+| Used in a plan or a workout, corrected from a type counted in reps to `time`, with a weight in a set | Kept, and named in the summary | A time records no weight ([D3.6.3](../design/D3-data-model.md#d363-logged_sets)): the kilograms would be lost |
+| The same, with no weight | Changed, with its sets | Whoever used it wrote as reps the seconds they meant |
+| Used in a plan or a workout, any other pair | Kept, and named in the summary | No conversion keeps the sets' meaning, and a workout with the old values would be refused on resend |
 | Otherwise | Changed to `to` | |
+
+**The sets of a used exercise,** in one transaction with its type. A plank in a plan as "3 × 30" was meant as 30 seconds, so every plan set's reps target moves to `target_duration_seconds` (the top of a range: "20–30" becomes 30 s) and loses its effort target, which a time has not; its plan items lose `for_time`; every logged set's `reps` moves to `duration_seconds`, except in a set done as fast as possible, which keeps the seconds it has. A weight of 0 counts as none. The sets of soft-deleted workouts are converted too, as they can be brought back. The plans touched get `version` + 1, so a draft started before is saved with the warning that the plan changed elsewhere ([D3.5.7](../design/D3-data-model.md#d357-when-a-plan-is-changed-in-two-places)); a workout still waiting on a phone with the old reps is refused when sent. The summary counts the plans and workouts changed.
 
 **The list:** nine, all to `time`: Plank, Side Bridge, the two isometric neck exercises, Isometric Chest Squeezes, Mountain Climbers, Balance Board, Downward Facing Balance, Battling Ropes; selected by searching the instructions for "hold", "seconds" and "as long as", then checked one by one. Excluded on purpose:
 - **Push Up to Side Plank** stays reps: its instructions say "for 10 or more reps".

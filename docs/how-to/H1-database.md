@@ -185,7 +185,7 @@ The public library is built by four commands ([C2.14](../concepts/C2-backend.md#
 
 **Add an extra exercise:** an entry in `backend/database/data/extra-exercises.json` (id starting with `AtleoPlan_`, the dataset's shape, `loggingType` stated), its translation in `exercise-translations/{it,es,de}.json`, then `make exercises-extra`. `ImportExtraExercisesTest` reads the real files, so an unknown muscle, a misspelt logging type or a missing translation fails `make test`.
 
-**Correct a logging type:** an entry in `backend/database/data/logging-type-corrections.json` with `id`, `from`, `to` and `why`, then `make exercises-correct`. An exercise already used in a plan or a workout is left alone and named in the summary.
+**Correct a logging type:** an entry in `backend/database/data/logging-type-corrections.json` with `id`, `from`, `to` and `why`, then `make exercises-correct`. An exercise already used in a plan or a workout gets its sets converted too, from reps to seconds; one whose sets have a weight, or a correction other than to `time`, is left alone and named in the summary ([C2.14.6](../concepts/C2-backend.md#c2146-the-logging-types-corrected-after-the-import)).
 
 **Fix a translation:** edit the entry in `exercise-translations/<lang>.json` (one step for each English step), then `make exercises-translate o="--locale=it --force"`.
 
