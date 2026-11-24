@@ -3,9 +3,10 @@
  * trained opens that day's workouts in history; in the year a month opens
  * the month, since a day there is too small for a finger.
  *
- * This week needs no request: GET /api/home already holds the last 8 days, so
- * Home still opens with one request, offline too. Any other span asks
- * GET /api/sessions/calendar, kept on the phone like every answer.
+ * It opens on this month. This month and this week need no request:
+ * GET /api/home already holds the last 32 days, so Home still opens with one
+ * request, offline too. Any other span asks GET /api/sessions/calendar, kept
+ * on the phone like every answer.
  */
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
@@ -27,7 +28,7 @@ import { WeekStrip } from './WeekStrip'
 const VIEWS: CalendarView[] = ['week', 'month', 'year']
 
 interface TrainingCalendarProps {
-  /** GET /api/home's finished workouts of the last 8 days. */
+  /** GET /api/home's finished workouts of the last 32 days. */
   recent: readonly CalendarSession[]
   /** Injectable so tests can fix a date. */
   today?: Date
@@ -35,19 +36,23 @@ interface TrainingCalendarProps {
 
 export function TrainingCalendar({ recent, today = new Date() }: TrainingCalendarProps) {
   const { t, i18n } = useTranslation()
-  const [view, setView] = useState<CalendarView>('week')
+  const [view, setView] = useState<CalendarView>('month')
   // Any day of the span shown
   const [anchor, setAnchor] = useState(today)
   const span = spanOf(view, anchor)
   const current = inSpan(today, span)
   const thisWeek = view === 'week' && current
-  const calendar = useCalendar(span, !thisWeek)
+  const fromHome = current && view !== 'year'
+  const calendar = useCalendar(span, !fromHome)
   const fetched = shownData(calendar)
   const summary = periodSummary([...recent, ...(fetched ?? [])], span)
   // Offline with nothing kept, the request waits for the network: that is
   // a failure to say, not a load to wait for
-  const loading = !thisWeek && calendar.isPending && calendar.fetchStatus === 'fetching'
-  const failed = !thisWeek && !loading && fetched === undefined
+  const loading = !fromHome && calendar.isPending && calendar.fetchStatus === 'fetching'
+  const failed = !fromHome && !loading && fetched === undefined
+
+  // The current week and month encourage; a span gone by only says so
+  const empty = thisWeek ? t('home.weekEmpty') : current && view === 'month' ? t('home.monthEmpty') : t('home.calendar.empty')
 
   /** Another view keeps today in sight when the span shown holds it. */
   function changeView(next: string) {
@@ -120,7 +125,7 @@ export function TrainingCalendar({ recent, today = new Date() }: TrainingCalenda
         {/* How many and how long: what a calendar of training says. No
             total of sets, which adds up unlike exercises */}
         {!loading && !failed && summary.workouts === 0 && (
-          <p className="text-sm text-muted-foreground">{thisWeek ? t('home.weekEmpty') : t('home.calendar.empty')}</p>
+          <p className="text-sm text-muted-foreground">{empty}</p>
         )}
         {!loading && !failed && summary.workouts > 0 && (
           <div className="flex flex-col items-start">

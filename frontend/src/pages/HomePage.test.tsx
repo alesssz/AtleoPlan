@@ -254,18 +254,19 @@ describe('HomePage', () => {
     expect(loadActiveSession()).toMatchObject({ plan_id: null, day_name: null, exercises: [] })
   })
 
-  it('marks the days trained this week, with the week\'s numbers', async () => {
+  it('marks the days trained this month, with the month\'s numbers', async () => {
     fakeApi({ 'GET /api/user': signedInAs(), 'GET /api/home': homeAnswer({ recent_sessions: [today(), today({ id: 'w-2', sets_done: 4, duration_seconds: 1500 })] }) })
     renderRoutes(routes, '/')
 
-    const week = await screen.findByRole('region', { name: 'This week' })
+    const thisMonth = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date())
+    const month = await screen.findByRole('region', { name: thisMonth })
     // Today: trained, a link to its workouts in history, said in words too
-    const day = await within(week).findByRole('link', { name: /: 2 workouts$/ })
+    const day = await within(month).findByRole('link', { name: /: 2 workouts$/ })
     expect(day).toHaveAttribute('href', expect.stringMatching(/^\/progress\/history\?from=(\d{4}-\d{2}-\d{2})&to=\1$/))
     expect(day).toHaveAttribute('aria-current', 'date')
     // Two workouts, 45 + 25 minutes
-    expect(within(week).getByText('2 workouts')).toHaveTextContent('2 workouts · 1 hr 10 min')
-    expect(within(week).queryByText(/No workouts yet this week/)).not.toBeInTheDocument()
+    expect(within(month).getByText('2 workouts')).toHaveTextContent('2 workouts · 1 hr 10 min')
+    expect(within(month).queryByText(/No workouts yet this month/)).not.toBeInTheDocument()
   })
 
   it('says what happened to a workout after its summary', async () => {

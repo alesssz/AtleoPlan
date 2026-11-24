@@ -1279,7 +1279,7 @@ HomePage                 route `/`, inside AppLayout
 | `components/home/WeekStrip.tsx`, `CalendarDay.tsx` | Seven days; one day, a link when trained |
 | `lib/calendar.ts` | Spans of a week, month or year, a month's grid, a day in an address (`2026-11-19`) |
 
-**One request.** Home is opened on every visit, often on mobile data, where one answer arrives sooner than five. `GET /api/home` (`HomeSummary`, [C2.5.7](C2-backend.md#c257-the-workouts-endpoints)) carries the active plan, its days with a duration estimate, the suggested day, the last day done and the week's workouts: the calendar opens on this week without a request of its own. Days come **without exercises**: the card needs only a name, a count and minutes.
+**One request.** Home is opened on every visit, often on mobile data, where one answer arrives sooner than five. `GET /api/home` (`HomeSummary`, [C2.5.7](C2-backend.md#c257-the-workouts-endpoints)) carries the active plan, its days with a duration estimate, the suggested day, the last day done and the month's workouts: the calendar opens on this month without a request of its own. Days come **without exercises**: the card needs only a name, a count and minutes.
 
 **States:** skeleton, error with **Try again**, the card, or the empty state ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). Free workout and the calendar render in every state; Free workout needs no request.
 
@@ -1317,7 +1317,7 @@ A day starts at midnight **in the user's time zone**, which only the device know
 
 | Span shown | Its workouts come from |
 |---|---|
-| This week | `GET /api/home`'s `recent_sessions`, the **last 8 days**, which cover the current week in any zone: no request of its own, and offline as Home is |
+| This month, this week | `GET /api/home`'s `recent_sessions`, the **last 32 days**, which cover the current month, and so its week, in any zone: no request of its own, and offline as Home is |
 | Any other | `useCalendar(span)`: `GET /api/sessions/calendar?from=…&to=…`, only `id`, `started_at` and `duration_seconds`, a year at most and no pages ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)); kept on the phone like every answer |
 
 ```ts
@@ -1329,7 +1329,8 @@ const summary = periodSummary([...recent, ...fetched], span)
 - **The month's days are smaller** than the week's (36 px against 44), and the year has four months a row: on a laptop the card sits beside the plan's, and a taller one leaves a gap under that.
 - **The views** are `Tabs`. The week is `WeekStrip`; the month a `<table>` with a column per weekday (`<th abbr>` with the long name), rows from `monthGrid()`; the year twelve `<button>`s, each a small month of dots named "March 2026: 2 workouts", which open the month: at that size a day is too small to tap. Months ahead of today are disabled, as is the forward arrow. Changing view keeps today in sight when the span shown holds it, otherwise the span's start.
 - **A day trained** is `CalendarDay`: a link to `/progress/history?from=2026-11-19&to=2026-11-19`, history filtered on that day, named "Thursday, November 19: 2 workouts", tinted with a lime ring; today is filled in lime and marked `aria-current="date"`. Colour alone never carries meaning ([D1.7](../design/D1-ui.md#d17-responsive-layout-and-accessibility)).
-- **The title** is the region's name: "This week", or the span ("Nov 9 – 15, 2026" with `formatRange`, "November 2026", "2026"). **Today** appears when another span is shown.
+- **The view it opens on** is the month, which comes with Home's answer as the week does: opening on it costs no request.
+- **The title** is the region's name: "This week", or the span ("Nov 9 – 15, 2026" with `formatRange`, "November 2026", "2026"). **Today** appears when another span is shown. An empty current week or month says "No workouts yet this week" (or month) and that the first one counts; a span gone by, "No workouts in this period".
 - **Loading and failing** concern only other spans: a skeleton in place of the numbers while fetching; offline with nothing kept, or an error, "The calendar could not be loaded." with **Try again**.
 
 **`ResumeBanner`'s Finish** asks the same question as workout mode (`FinishButton`), runs `finishWorkout()` and opens the summary: for a workout done but never finished.
@@ -1340,8 +1341,8 @@ const summary = periodSummary([...recent, ...fetched], span)
 
 - **The spans** (`lib/calendar.test.ts`, `week.test.ts`): weeks from Monday, a Sunday in the week before, months and years to the next one's midnight, 31 January plus a month is February, a month's grid with empty cells, day keys that do not exist refused.
 - **The summary** (`period-summary.test.ts`): "today" a Thursday, workouts on Thursday, twice on Tuesday, on the previous Sunday and one in both answers; the Sunday is left out, the duplicate counted once.
-- **The calendar** (`TrainingCalendar.test.tsx`): this week with no request and its days as links; the previous week asked for its span, then Today; the month's table and numbers; the year's months opening a month, those ahead disabled; the line of workouts and time; an error with Try again.
-- **The page** (`HomePage.test.tsx`): `homeAnswer()` with the test plan active and Day B suggested; the card is found as `region` named by its heading. Covers Start (plan and last sets fetched, workout mode on the right day), the reading ahead and Start offline from it, chip then Start, plan fetch failure, Resume, free workout, this week's days and time.
+- **The calendar** (`TrainingCalendar.test.tsx`): this month first, as a table, with no request and its days as links; this week with no request either; an empty month; the previous week and the previous month asked for their spans, a workout in both answers counted once, then Today; the year's months opening a month, those ahead disabled; the line of workouts and time; an error with Try again.
+- **The page** (`HomePage.test.tsx`): `homeAnswer()` with the test plan active and Day B suggested; the card is found as `region` named by its heading. Covers Start (plan and last sets fetched, workout mode on the right day), the reading ahead and Start offline from it, chip then Start, plan fetch failure, Resume, free workout, this month's days and time.
 
 ---
 

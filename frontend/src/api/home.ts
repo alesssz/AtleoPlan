@@ -32,7 +32,7 @@ export interface HomeData {
   last_day: HomeLastDay | null
   /** A workout the server has but that was never finished. */
   open_session: WorkoutSession | null
-  /** Finished in the last 8 days, newest first, with totals: enough for this week in any time zone. */
+  /** Finished in the last 32 days, newest first, with totals: enough for this month in any time zone. */
   recent_sessions: WorkoutSession[]
 }
 

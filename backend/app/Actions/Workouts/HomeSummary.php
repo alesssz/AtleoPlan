@@ -28,16 +28,17 @@ use App\Models\WorkoutSession;
  *   when the exercise has none). An estimate, which is all Home needs.
  * - **The session left open** is the most recent one not finished: Home offers
  *   to resume it. Two phones offline may each have opened one.
- * - **The recent sessions** are the finished ones of the last 8 days, with
- *   their totals: the app picks this week's in the device's own time zone, for
- *   the week strip and its numbers. Eight days cover a whole week in any zone.
+ * - **The recent sessions** are the finished ones of the last 32 days, with
+ *   their totals: the app picks this month's and this week's in the device's
+ *   own time zone, for the calendar it opens on. 32 days cover a whole month
+ *   in any zone, with a day to spare for a phone's clock.
  */
 class HomeSummary
 {
     /** A set's work in the estimate, rest excluded. */
     public const SET_SECONDS = 40;
 
-    private const RECENT_DAYS = 8;
+    private const RECENT_DAYS = 32;
 
     /**
      * @return array<string, mixed> what GET /api/home sends in `data`

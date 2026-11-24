@@ -64,11 +64,11 @@ it('offers the most recent workout left open', function () {
     $this->actingAs($user)->getJson('/api/home')->assertJsonPath('data.open_session.id', $latest->id);
 });
 
-it('sends the finished workouts of the last eight days, with their totals', function () {
+it('sends the finished workouts of the last 32 days, with their totals', function () {
     $user = User::factory()->create();
-    $recent = WorkoutSession::factory()->for($user)->create(['started_at' => now()->subDays(2)]);
+    $recent = WorkoutSession::factory()->for($user)->create(['started_at' => now()->subDays(31)]);
     LoggedSet::factory()->for(SessionExercise::factory()->for($recent, 'session'))->create(['reps' => 10, 'weight_kg' => 50]);
-    WorkoutSession::factory()->for($user)->create(['started_at' => now()->subDays(9)]);
+    WorkoutSession::factory()->for($user)->create(['started_at' => now()->subDays(33)]);
     WorkoutSession::factory()->create(['started_at' => now()->subDay()]);
 
     $this->actingAs($user)->getJson('/api/home')
