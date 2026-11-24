@@ -198,8 +198,8 @@ exercises-extra: ## Add the extra exercises (calisthenics) to the library, then 
 	$(ARTISAN) exercises:import-extra
 	$(ARTISAN) exercises:translate
 
-# Included in exercises-import. Only exercises still on the guess and not yet
-# in a plan or a workout change.
+# Included in exercises-import. Only exercises still on the guess change; the
+# reps of their sets in plans and workouts become seconds.
 exercises-correct: ## Correct the logging types the import guessed wrong (Plank as time); safe to run again
 	$(ARTISAN) exercises:correct-logging-types
 
