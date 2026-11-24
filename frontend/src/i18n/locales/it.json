@@ -435,7 +435,9 @@
         "tooLong": "Al massimo {{max}} caratteri.",
         "youtube": "Incolla un link di YouTube (youtube.com o youtu.be)."
       },
-      "photosLater": "Potrai aggiungere le foto dopo aver creato l'esercizio, da Modifica."
+      "photosLater": "Le foto vengono subito dopo: Crea le apre.",
+      "created": "Esercizio creato. Se vuoi, aggiungi qui le sue foto.",
+      "done": "Vai all'esercizio"
     },
     "photos": {
       "title": "Foto",

@@ -204,7 +204,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 
 - Fields: name, description, instructions, main muscle, secondary muscles, equipment, logging type (weight × reps, reps only, time, distance).
 - A personal exercise is written in the user's language only; public exercises get every language in the admin panel ([D1.4.15](#d1415-admin-panel-filament)).
-- **Photos:** drag and drop or pick files, a progress bar for each, move earlier or later (the first is the cover), remove after a question; a failed upload stays with its reason, **Retry** and **Dismiss**. The limits are stated next to the field ([D2.5](D2-decisions.md#d25-photos-and-videos)): JPEG, PNG or WebP, up to 10 MB, at most 5. On the edit page, each change saved at once; a new exercise gets its photos after Create.
+- **Photos:** drag and drop or pick files, a progress bar for each, move earlier or later (the first is the cover), remove after a question; a failed upload stays with its reason, **Retry** and **Dismiss**. The limits are stated next to the field ([D2.5](D2-decisions.md#d25-photos-and-videos)): JPEG, PNG or WebP, up to 10 MB, at most 5. On the edit page, each change saved at once. A new exercise gets its photos after Create, which opens its edit page at the photos, with "Exercise created" and **Go to the exercise** under them.
 - **Videos** (phase 2): up to 30 s and 100 MB, at most 2; after upload a video shows "Processing…" until the server has converted it, and the exercise can be saved and used meanwhile.
 - Alternative **YouTube link** field, with a preview.
 

@@ -566,7 +566,7 @@ Beyond [C1.13.6](#c1136-testing-a-screen-with-the-api): `fakeApi` keys with a qu
 
 ### C1.14.7 Uploading photos, and Duplicate as mine
 
-**The photos of a personal exercise** (`ExercisePhotoManager`), under the edit form ([D1.4.5](../design/D1-ui.md#d145-exercise-editor)). A photo is a file on the server, not a field: each change is its own request, apart from the form's Save, followed by `invalidateQueries`, so the list shows what the server has. A new exercise has no id until created, so photos are added from Edit ([UI-8](../project/backlog.md#ui-8-photos-while-creating-an-exercise)).
+**The photos of a personal exercise** (`ExercisePhotoManager`), under the edit form ([D1.4.5](../design/D1-ui.md#d145-exercise-editor)). A photo is a file on the server, not a field: each change is its own request, apart from the form's Save, followed by `invalidateQueries`, so the list shows what the server has. A new exercise has no id until created, so Create opens its edit page instead of its page, with `{ created: true }` in the history entry: the photos scrolled into view, a confirmation above them, **Go to the exercise** below, since the form's Cancel is out of sight. The edit page replaces the form in the history, and the exercise's page replaces it in turn, so Back returns to the list. Creating from the plan editor's picker ([C1.16.8](#c1168-creating-an-exercise-from-the-picker)) stays in the window: photos from Edit later.
 
 | Row | What it holds |
 |---|---|
