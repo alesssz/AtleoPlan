@@ -30,7 +30,7 @@ export function HomePage() {
   // Dropped when the banner deletes it, so Start works again
   const [active, setActive] = useState(loadActiveSession)
   const ended = (useLocation().state as Partial<WorkoutEndState> | null)?.workout
-  // This week's workouts, for the calendar
+  // This month's workouts, for the calendar
   const recent = (data?.recent_sessions ?? []).map(session => ({ ...session, duration_seconds: session.duration_seconds ?? null }))
 
   return (

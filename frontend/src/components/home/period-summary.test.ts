@@ -15,7 +15,7 @@ describe('periodSummary', () => {
       workout('a', new Date(2026, 10, 5, 7, 0), 2700),
       workout('b', new Date(2026, 10, 3, 19, 0), 3330),
       workout('c', new Date(2026, 10, 3, 8, 0), 900),
-      // Last Sunday: in Home's 8 days, not in this week
+      // Last Sunday: in Home's 32 days, not in this week
       workout('d', new Date(2026, 10, 1, 10, 0), 3600),
       // In both answers
       workout('a', new Date(2026, 10, 5, 7, 0), 2700),

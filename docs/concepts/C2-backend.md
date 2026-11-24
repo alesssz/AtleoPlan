@@ -385,7 +385,7 @@ The server side of workout mode, history and Home ([D1.4.2](../design/D1-ui.md#d
 | `GET /api/sessions/{uuid}` | One whole workout with totals; `meta.last_sets`: last time for each exercise, before this workout | 200; 403; 404, also when deleted |
 | `DELETE /api/sessions/{uuid}` | Soft-deletes it | 204; 403 |
 | `GET /api/sessions/last-sets?exercises=12,40` | Per exercise, the sets of the last finished workout that had it | 200; 422 |
-| `GET /api/home` | Active plan's days with estimated duration, suggested day, last day done, open workout, finished workouts of the last 8 days | 200 |
+| `GET /api/home` | Active plan's days with estimated duration, suggested day, last day done, open workout, finished workouts of the last 32 days | 200 |
 
 **`PUT` to the workout's own address, no `POST`.** The phone mints the UUID at Start, possibly offline ([D3.2.1](../design/D3-data-model.md#d321-which-kind-of-id)). `PUT` creates (201) then replaces (200): idempotent, so the phone's queue can resend after a lost answer without duplicating. `{session}` is not route-model-bound, since the row may not exist; `whereUuid('session')` makes anything else a 404.
 
@@ -438,7 +438,7 @@ PUT /api/sessions/0192…f30  { started_at, finished_at, exercises: [ { sets: [ 
 
 - **The suggested day** is `Plan::suggestedDay()`: the day after the last one done in a finished, non-deleted workout of the plan, wrapping to the first; the first when nothing was done or the last day done was deleted ([D2.8](../design/D2-decisions.md#d28-workout-rules)).
 - **The estimate** counts 40 seconds of work per planned set (`SET_SECONDS`) plus its rest (the user's default when none). Never stored.
-- **The week** is the client's: 8 days cover the current week in any time zone, and the phone groups by its own Monday ([D3.2.5](../design/D3-data-model.md#d325-times)).
+- **The month and the week** are the client's: 32 days cover the current month, and so its week, in any time zone, and the phone groups by its own first of the month and Monday ([D3.2.5](../design/D3-data-model.md#d325-times)).
 
 ### C2.5.8 A plan as a file
 

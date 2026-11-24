@@ -1,7 +1,8 @@
 /*
  * The workouts and the days trained of the span Home's calendar shows. The
  * workouts come from two answers that overlap: GET /api/home's recent ones,
- * which cover this week, and GET /api/sessions/calendar for any other span.
+ * which cover this month and this week, and GET /api/sessions/calendar for
+ * any other span.
  */
 import type { CalendarSession } from '@/api/sessions'
 import { dayKey, inSpan, type Span } from '@/lib/calendar'
