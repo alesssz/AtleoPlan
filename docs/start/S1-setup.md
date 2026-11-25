@@ -112,7 +112,8 @@ It is idempotent: the seeders write with `updateOrCreate()`, and what is already
 | The Composer packages, as the app reads them | The `vendor` volume (`atleoplan_vendor`), at `/app/vendor` | Named volume | Read a thousand at a time on every request: ten times faster than through the shared folder ([D2.10](../design/D2-decisions.md#d210-local-development)) |
 | The same packages, a copy for the editor | `backend/vendor/` on the host, at `/vendor-host` | Bind mount | So the editor resolves Laravel's classes; Composer refreshes it after every change, `make vendor` by hand |
 | The database | The `postgres-data` volume | Named volume | Survives `make down`; `make down-v` deletes it |
-| The photos uploaded | `backend/storage/app/public/`, one folder per photo | Bind mount, ignored by Git | Survive `make down-v`; `make fresh` deletes them with the database's rows |
+| The photos of the library | `backend/storage/app/public/`, one folder per photo | Bind mount, ignored by Git | Survive `make down-v`; `make fresh` deletes them with the database's rows |
+| The photos of users' own exercises | `backend/storage/app/private/media/`, one folder per photo | Bind mount, ignored by Git | As the library's; served by the API to their owner only |
 | Composer's downloads | The `composer-cache` volume | Named volume | A package is downloaded once, even when the `vendor` volume is rebuilt |
 | The frontend, `frontend/` with its `node_modules/` | The host only | — | Vite runs on the host, not in Docker |
 
@@ -186,6 +187,7 @@ Run from the repository root. Backend commands use `docker compose exec backend 
 | Add the extra exercises (calisthenics) to a library imported before them | `make exercises-extra` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Correct the logging types the import guessed wrong (Plank as time) in a library imported before the list | `make exercises-correct` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Make the small and large copies of photos added before they existed | `make exercises-thumbnails` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
+| Make private the photos of users' own exercises uploaded while they were public | `make photos-private` ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)) |
 | Example plans to look at (after the import) | `make plans-demo`: two plans for every user who has none ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Add a package (then copied to `backend/vendor/` for the editor) | `docker compose exec backend composer require <package>` |
 | Copy the packages to `backend/vendor/` by hand | `make vendor` ([H2.10](../how-to/H2-backend.md#h210-adding-a-package)) |

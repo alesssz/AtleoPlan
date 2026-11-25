@@ -45,6 +45,7 @@ return [
     'superset_size' => 'Ein Supersatz muss mindestens zwei Übungen haben.',
     'photo_order' => 'Die Reihenfolge muss jedes Foto der Übung genau einmal enthalten.',
     'too_many_photos' => 'Eine Übung kann höchstens :max Fotos haben.',
+    'photo_too_large' => 'Das Foto ist zu groß: höchstens :max Megapixel.',
     'unique' => 'Dieser Wert von :attribute wird bereits verwendet.',
     'uploaded' => ':attribute konnte nicht hochgeladen werden.',
     'url' => 'Das Feld :attribute muss eine gültige Webadresse sein.',

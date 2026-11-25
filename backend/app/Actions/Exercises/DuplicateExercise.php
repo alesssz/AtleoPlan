@@ -54,9 +54,10 @@ class DuplicateExercise
             return $copy;
         });
 
-        // New files, in order, with their own queued conversions
+        // New files, in order, with their own queued conversions; private,
+        // as every personal exercise's
         foreach ($exercise->getMedia('photos') as $photo) {
-            $photo->copy($copy, 'photos');
+            $photo->copy($copy, 'photos', ExercisePhotos::diskFor($copy));
         }
 
         return $copy;

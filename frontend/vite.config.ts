@@ -31,10 +31,14 @@ export default defineConfig({
         // there must reach the server, not get the React app
         navigateFallbackDenylist: [/^\/api\//, /^\/sanctum\//, /^\/storage\//, /^\/auth\//, /^\/admin(\/|$)/],
         // Exercise photos, once seen or read ahead (usePrepareWorkouts), for
-        // workout mode offline. Cache first: a new photo has a new address.
-        // Images only: videos are read in ranges, which this would break
+        // workout mode offline: the library's under /storage, the user's own
+        // from the API, which serves them to their owner only. Cache first: a
+        // new photo has a new address. Images only: videos are read in
+        // ranges, which this would break
         runtimeCaching: [{
-          urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/storage\/.+\.(?:webp|jpe?g|png|gif)$/i.test(url.pathname),
+          urlPattern: ({ url, sameOrigin }) => sameOrigin && (
+            /^\/storage\/.+\.(?:webp|jpe?g|png|gif)$/i.test(url.pathname)
+            || /^\/api\/exercises\/\d+\/photos\/\d+\/(?:thumb|large|original)$/.test(url.pathname)),
           handler: 'CacheFirst',
           options: {
             cacheName: 'photos',

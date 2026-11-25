@@ -32,9 +32,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
 - [SEC](#sec)
-  - [SEC-1 Anyone can download the photos of personal exercises](#sec-1-anyone-can-download-the-photos-of-personal-exercises)
-  - [SEC-2 Photos keep their metadata, location included](#sec-2-photos-keep-their-metadata-location-included)
-  - [SEC-3 No limit on a photo's pixels](#sec-3-no-limit-on-a-photos-pixels)
   - [SEC-4 A shared phone keeps, and sends, the previous user's workouts](#sec-4-a-shared-phone-keeps-and-sends-the-previous-users-workouts)
   - [SEC-5 No rate limit once signed in](#sec-5-no-rate-limit-once-signed-in)
   - [SEC-6 Sign-in limited per email and address only](#sec-6-sign-in-limited-per-email-and-address-only)
@@ -80,7 +77,7 @@ Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is bu
 
 Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes), [SEC-11](#sec-11-verify-the-address-at-sign-up).
 
-Before deploying: [SEC-1](#sec-1-anyone-can-download-the-photos-of-personal-exercises), [SEC-2](#sec-2-photos-keep-their-metadata-location-included), [SEC-4](#sec-4-a-shared-phone-keeps-and-sends-the-previous-users-workouts), [SEC-5](#sec-5-no-rate-limit-once-signed-in), and the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps; the other `SEC` points are hardening.
+Before deploying: [SEC-4](#sec-4-a-shared-phone-keeps-and-sends-the-previous-users-workouts), [SEC-5](#sec-5-no-rate-limit-once-signed-in), and the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps; the other `SEC` points are hardening.
 
 ## OPS
 
@@ -103,12 +100,12 @@ Before deploying: [SEC-1](#sec-1-anyone-can-download-the-photos-of-personal-exer
 - Create the Oracle Always Free account (home region Milan or Frankfurt) and an ARM VM with Ubuntu 24.04.
 - Open ports 80 and 443, both in the Oracle console and in the VM's `iptables`.
 - Install Docker, point `atleoplan.duckdns.org` at the VM, start the production Compose.
-- Set up backups of the database and of the media on the server's disk ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)).
+- Set up backups of the database and of the media on the server's disk, both disks: the library's and the users' own ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)).
 - A reset for production, as `make fresh` is locally (the database emptied, the media disk with it, since one without the other is broken), behind a stronger guard: the project's name typed, `APP_ENV=production` checked, a dump of the database and an archive of the media disk taken first; run on the server.
 - Security settings, none of which development needs:
   - Laravel trusts Caddy as its proxy (`trustProxies()` in `bootstrap/app.php`, with the forwarded address, scheme and host) and only the production host (`trustHosts()`): otherwise every request comes from Caddy's address, so five wrong passwords lock anyone out of signing in, and one person locks every admin out of the panel's login.
   - `SESSION_SECURE_COOKIE=true`, `APP_DEBUG=false`, `LOG_LEVEL` above `debug`.
-  - Headers from Caddy: HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and a CSP with `frame-ancestors 'none'` (the inline theme script of `index.html` allowed by its hash); `/storage` with `Content-Security-Policy: default-src 'none'; sandbox`.
+  - Headers from Caddy: HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` (not `no-referrer`: Sanctum knows a private photo's `<img>` by its `Referer`, [C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)), and a CSP with `frame-ancestors 'none'` (the inline theme script of `index.html` allowed by its hash); `/storage` with `Content-Security-Policy: default-src 'none'; sandbox`.
   - A cap on request bodies ([SEC-5](#sec-5-no-rate-limit-once-signed-in)).
   - A production stage of the Docker image running as a user other than root, without git and Composer.
 - Caddy forwards `/api`, `/sanctum`, `/storage` and `/auth/` to Laravel, as Vite does in development; Google's client gets the production return address, and the app is published ([S1.11.6](../start/S1-setup.md#s1116-later-when-deploying)).
@@ -307,40 +304,6 @@ Before deploying: [SEC-1](#sec-1-anyone-can-download-the-photos-of-personal-exer
 ## SEC
 
 The points of a security review of 2026-11-25. None is exploitable while the app runs only locally (every port of `compose.yaml` listens on 127.0.0.1); they matter from the deployment ([OPS-3](#ops-3-deploy-to-the-free-server)), whose own settings are among its steps.
-
-### SEC-1 Anyone can download the photos of personal exercises
-
-**Priority:** high, before deploying · **Kind:** privacy · **Found:** 2026-11-25
-
-**What is missing.** Photos are files of the `public` disk, served under `/storage/<media id>/` with no sign-in ([C1.14.7](../concepts/C1-frontend.md#c1147-uploading-photos-and-duplicate-as-mine)). Media ids count up and the names are fixed (`photo.jpg`, `.png` or `.webp`; `0.jpg` for a copy from the library; `conversions/<name>-thumb.webp` and `-large.webp`), so a loop over the ids downloads every user's photos of their own exercises, which may show their body or their home. A soft-deleted exercise's photos stay there too. The library's photos are meant to be public.
-
-**Where.** `app/Actions/Exercises/ExercisePhotos.php`, `DuplicateExercise`, medialibrary's default disk and path generator (its config is not published), `ExercisePhotoResource`; the service worker's `/storage` rule in `frontend/vite.config.ts`; Caddy's `/storage` ([OPS-3](#ops-3-deploy-to-the-free-server)).
-
-**Options.**
-- A) The photos of personal exercises on a private disk, served by a route behind `ExercisePolicy::view` (`response()->file()`, or an `X-Accel-Redirect` for Caddy to send). Same origin, so the session cookie goes with every `<img>`. The library's photos stay on `public`; duplicating copies to the private disk; a command moves the photos of existing personal exercises. The service worker caches the new route as it caches `/storage`.
-- B) A path generator with an unguessable segment per media: no route and no check, but an address once seen (a screenshot, a log) opens the photo forever.
-
-**Recommended.** A. Done when a personal photo answers 404 to a signed-out request and to another user, the owner sees it as before, offline too, and a library photo still loads from `/storage`.
-
-### SEC-2 Photos keep their metadata, location included
-
-**Priority:** medium, before deploying · **Kind:** privacy · **Found:** 2026-11-25
-
-**What is missing.** `ExercisePhotos::add` stores the file as uploaded. The original, served until its conversions exist and kept afterwards, holds its EXIF data: a phone photo's GPS position, the device, the moment. The WebP conversions drop it.
-
-**Options.**
-- A) Re-encode the original on upload, after applying its EXIF orientation, with the image library the conversions already use: every metadata goes.
-- B) Never serve the original, only the conversions: the location stays in the file, and in the backups.
-
-**Recommended.** A, in [SEC-1](#sec-1-anyone-can-download-the-photos-of-personal-exercises)'s branch. Done when a JPEG uploaded with a GPS position (a test fixture) is stored without it.
-
-### SEC-3 No limit on a photo's pixels
-
-**Priority:** low · **Kind:** resource abuse · **Found:** 2026-11-25
-
-**What is missing.** `StoreExercisePhotoRequest` checks the type and 10 MB, not the dimensions. A PNG under 10 MB can declare 20,000 × 20,000 pixels: GD needs over 1.5 GB to convert it, and the queue worker dies at its memory limit, three times (`--tries=3`).
-
-**Recommended.** A `dimensions` rule, at most 8,000 pixels a side, on the API's upload and the admin panel's; with SEC-1.
 
 ### SEC-4 A shared phone keeps, and sends, the previous user's workouts
 
