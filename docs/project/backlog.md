@@ -32,7 +32,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
 - [SEC](#sec)
-  - [SEC-4 A shared phone keeps, and sends, the previous user's workouts](#sec-4-a-shared-phone-keeps-and-sends-the-previous-users-workouts)
   - [SEC-5 No rate limit once signed in](#sec-5-no-rate-limit-once-signed-in)
   - [SEC-6 Sign-in limited per email and address only](#sec-6-sign-in-limited-per-email-and-address-only)
   - [SEC-7 Weak password rules](#sec-7-weak-password-rules)
@@ -77,7 +76,7 @@ Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is bu
 
 Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes), [SEC-11](#sec-11-verify-the-address-at-sign-up).
 
-Before deploying: [SEC-4](#sec-4-a-shared-phone-keeps-and-sends-the-previous-users-workouts), [SEC-5](#sec-5-no-rate-limit-once-signed-in), and the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps; the other `SEC` points are hardening.
+Before deploying: [SEC-5](#sec-5-no-rate-limit-once-signed-in), and the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps; the other `SEC` points are hardening.
 
 ## OPS
 
@@ -304,18 +303,6 @@ Before deploying: [SEC-4](#sec-4-a-shared-phone-keeps-and-sends-the-previous-use
 ## SEC
 
 The points of a security review of 2026-11-25. None is exploitable while the app runs only locally (every port of `compose.yaml` listens on 127.0.0.1); they matter from the deployment ([OPS-3](#ops-3-deploy-to-the-free-server)), whose own settings are among its steps.
-
-### SEC-4 A shared phone keeps, and sends, the previous user's workouts
-
-**Priority:** medium · **Kind:** privacy, data · **Found:** 2026-11-25
-
-**What is missing.** Signing out (`forgetAccount()` in `src/api/auth.ts`) empties the query cache only. The `localStorage` keys `atleoplan.activeSession`, `atleoplan.finishedSession`, `atleoplan.pendingSessions` and `atleoplan.planDraft.*`, and the service worker's `photos` cache, stay, tied to no user. Whoever signs in next on the phone sees the previous user's workout in progress and plan drafts, and the queue sends the previous user's unsent workouts into the new account (`sendEach()` in `src/lib/pending-sessions.ts`).
-
-**Options.**
-- A) Every stored entry carries its user's id; another user's entries are ignored, and kept until their owner signs in again. Signing out empties the photos cache.
-- B) Signing out deletes them all, after a warning when workouts are still unsent.
-
-**Recommended.** A, with B's warning: an unsent workout lost is worse than one waiting. Done when A, with a workout queued, signs out and B signs in: nothing of A's is shown or sent; A signs in again and it is sent.
 
 ### SEC-5 No rate limit once signed in
 

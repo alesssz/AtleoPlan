@@ -36,9 +36,11 @@ export function useSendPending(): () => Promise<void> {
 export const QUEUE_RETRY_INTERVAL_MS = 30_000
 
 /**
- * @param enabled false until the user is known: a visitor would only get 401s
+ * @param owner the signed-in user's id, null until known: a visitor would
+ *   only get 401s. Another user is another queue, sent at once
  */
-export function usePendingSessions(enabled: boolean): void {
+export function usePendingSessions(owner: number | null): void {
+  const enabled = owner !== null
   const sendPending = useSendPending()
   const state = useSyncState()
   const stuck = state.kind === 'pending' && !state.sending
@@ -56,5 +58,5 @@ export function usePendingSessions(enabled: boolean): void {
     send()
     window.addEventListener('online', send)
     return () => window.removeEventListener('online', send)
-  }, [enabled, sendPending])
+  }, [enabled, owner, sendPending])
 }

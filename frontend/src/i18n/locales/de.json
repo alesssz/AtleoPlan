@@ -475,6 +475,11 @@
   },
   "profile": {
     "signOut": "Abmelden",
+    "signOutTitle": "Abmelden?",
+    "signOutWaiting_one": "Ein Training ist noch nicht beim Server angekommen. Es bleibt auf diesem Handy und wird gesendet, sobald du dich hier wieder anmeldest.",
+    "signOutWaiting_other": "{{count}} Trainings sind noch nicht beim Server angekommen. Sie bleiben auf diesem Handy und werden gesendet, sobald du dich hier wieder anmeldest.",
+    "signOutInProgress": "Das laufende Training bleibt auf diesem Handy, zum Fortsetzen, sobald du dich hier wieder anmeldest.",
+    "signOutStay": "Angemeldet bleiben",
     "about": "Info",
     "adminTitle": "Verwaltung",
     "adminPanel": "Admin-Bereich",

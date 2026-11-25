@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SessionInput } from '@/api/sessions'
 import { addPending, loadPending } from '@/components/workout/session-storage'
-import { fakeApi } from '@/test/auth-helpers'
+import { setDeviceOwner } from '@/lib/device-owner'
+import { fakeApi, testUser } from '@/test/auth-helpers'
 import { sendPendingSessions, sendProgress } from './pending-sessions'
 
 /** A body to queue; its content does not matter to the queue. */
@@ -40,6 +41,38 @@ describe('sendPendingSessions', () => {
     expect(report.waiting).toEqual(['w-1'])
     expect(Object.keys(loadPending())).toEqual(['w-1'])
     expect(sendProgress().sending).toBe(false)
+  })
+
+  it('sends only the queue of the user signed in', async () => {
+    addPending('ann-1', body)
+    setDeviceOwner(2)
+    const fake = fakeApi({})
+
+    const report = await sendPendingSessions()
+
+    expect(report.sent).toEqual([])
+    expect(fake).not.toHaveBeenCalled()
+    setDeviceOwner(testUser.id)
+    expect(Object.keys(loadPending())).toEqual(['ann-1'])
+  })
+
+  it('stops when someone else signs in during the round, and keeps the rest for its owner', async () => {
+    addPending('ann-1', body)
+    addPending('ann-2', body)
+    const fake = fakeApi({
+      'PUT /api/sessions/ann-1': () => {
+        // Ann signed out and Bea in while the first was on its way
+        setDeviceOwner(2)
+        return { status: 201, body: { data: { id: 'ann-1' } } }
+      },
+    })
+
+    await sendPendingSessions()
+
+    expect(fake.mock.calls.map(([path]) => path).filter(path => path.startsWith('/api/sessions/'))).toEqual(['/api/sessions/ann-1'])
+    expect(loadPending()).toEqual({})
+    setDeviceOwner(testUser.id)
+    expect(Object.keys(loadPending())).toContain('ann-2')
   })
 
   it('runs one round at a time, so two at once send each workout once', async () => {

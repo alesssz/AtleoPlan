@@ -4,16 +4,17 @@
  * (the server, and the admin panel for admins). The open tab is in the
  * address (?tab=app), so a reload or Back keeps it.
  */
-import { ExternalLink, Languages, LogOut, Palette, Server, ShieldCheck, UserRound } from 'lucide-react'
+import { ExternalLink, Languages, Palette, Server, ShieldCheck, UserRound } from 'lucide-react'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
-import { useCurrentUser, useSignOut } from '@/api/auth'
+import { useCurrentUser } from '@/api/auth'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { ServerStatus } from '@/components/ServerStatus'
 import { SettingGroup } from '@/components/SettingGroup'
 import { SettingRow } from '@/components/SettingRow'
+import { SignOutButton } from '@/components/SignOutButton'
 import { ThemeSelect } from '@/components/ThemeSelect'
 import { WorkoutPreferences } from '@/components/WorkoutPreferences'
 import { Button } from '@/components/ui/button'
@@ -37,8 +38,6 @@ export function ProfilePage() {
   const themeId = useId()
   // RequireAuth has waited for it; `?.` below only reassures TypeScript
   const { data: user } = useCurrentUser()
-  // RequireAuth then goes to /login by itself
-  const signOut = useSignOut()
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = tabFrom(searchParams.get('tab'))
   const labels: Record<ProfileTab, string> = {
@@ -71,11 +70,7 @@ export function ProfilePage() {
             <p className="truncate font-heading text-xl font-extrabold tracking-tight sm:text-2xl">{user?.name}</p>
             <p className="mt-1 truncate text-sm text-muted-foreground">{user?.email}</p>
           </div>
-          {/* Wrapped: onClick would pass mutate() the click event */}
-          <Button variant="outline" size="xl" className="relative" onClick={() => signOut.mutate()} pending={signOut.isPending}>
-            <LogOut aria-hidden="true" />
-            {t('profile.signOut')}
-          </Button>
+          <SignOutButton className="relative" />
         </section>
 
         {/* Controlled by the address. Each panel is named by its tab; in

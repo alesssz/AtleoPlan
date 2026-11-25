@@ -475,6 +475,11 @@
   },
   "profile": {
     "signOut": "Sign out",
+    "signOutTitle": "Sign out?",
+    "signOutWaiting_one": "A workout has not reached the server yet. It stays on this phone, and is sent when you sign in here again.",
+    "signOutWaiting_other": "{{count}} workouts have not reached the server yet. They stay on this phone, and are sent when you sign in here again.",
+    "signOutInProgress": "The workout in progress stays on this phone, to resume when you sign in here again.",
+    "signOutStay": "Stay signed in",
     "about": "About",
     "adminTitle": "Administration",
     "adminPanel": "Admin panel",
