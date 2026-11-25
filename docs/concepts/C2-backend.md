@@ -661,13 +661,14 @@ Browser                         Laravel (through Vite, /auth/…)         Google
 | **The client secret**, server-side only | Anyone else exchanging a `code` for the person's details |
 | **Registered redirect URIs** ([S1.11.4](../start/S1-setup.md#s1114-the-client-and-its-secret)) | Google sending the `code` elsewhere |
 | **`email_verified`** required before using the address | A Google account created with someone else's (non-Gmail) address taking over their account |
+| **An unproved account's password dropped** when Google links it | An account signed up in advance with someone else's address, waiting for its owner to move in (below) |
 | **`from` accepted only as a path** (`/plans`, never `//site` or `https://…`) | An open redirect |
 | **`session()->regenerate()`** after `Auth::login()` | Session fixation ([C2.7.2](#c272-signing-in-and-out)) |
 
 **Who signs in**, in order:
 
 1. **A linked Google account** (a `social_accounts` row with its `sub`): that user. By id, not address, which can change on Google's side.
-2. **An address that belongs to a password account:** Google is linked to it. Refusing and asking for the password would be marginally safer and clumsier for every user; `email_verified` is what makes linking safe.
+2. **An address that belongs to a password account:** Google is linked to it. Refusing and asking for the password would be marginally safer and clumsier for every user; `email_verified` is what makes linking safe. But sign-up does not verify addresses, so the account may have been made by someone else with this address, its password theirs, waiting for the owner to come with Google and fill it with plans and workouts. So when nobody proved the address before (`email_verified_at` empty), Google's proof claims the account: the password is emptied, `remember_token` replaced, the account's rows in `sessions` deleted, and `email_verified_at` set. The owner, if the password was theirs, sets it again with Forgot password, whose emailed link also counts as proof (`ResetUserPassword` fills `email_verified_at`), so a later Google sign-in keeps it. The rows are deleted rather than left to the password-hash checks, which Laravel's own `AuthenticateSession`, the admin panel's, skips for an account with no password.
 3. **A new address:** a new account without password, in the language the app was showing.
 
 Cases 2 and 3 require `email_verified`. A disabled account is refused in all three, before anything is linked.

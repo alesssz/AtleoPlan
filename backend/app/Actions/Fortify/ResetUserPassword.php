@@ -29,6 +29,9 @@ class ResetUserPassword implements ResetsUserPasswords
 
         $user->forceFill([
             'password' => Hash::make($input['password']),
+            // The emailed link proved the address, as Google does: signing in
+            // with Google later keeps this password (SignInWithSocialAccount)
+            'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
     }
 }
