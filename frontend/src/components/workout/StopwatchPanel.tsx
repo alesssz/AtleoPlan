@@ -32,8 +32,8 @@ interface StopwatchPanelProps {
   lastText: string | null
   /** Whether the countdown and the target are signalled with a sound and a vibration (Profile). */
   alarm: { sound: boolean, vibration: boolean }
-  /** Stop, by hand or at a hold's target: the time goes into the set. */
-  onStop: () => void
+  /** Stop, by hand (now) or at a hold's target (`at`, the target's moment): the time goes into the set. */
+  onStop: (at?: Date) => void
   /** Start now: the countdown is skipped. */
   onStartNow: () => void
   /** Pause (true) or Resume (false). */
@@ -123,7 +123,9 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
     }
     const timer = setTimeout(() => {
       restOver({ sound, vibration })
-      stopRef.current()
+      // Stopped at the target's moment, not the timer's: a timer may fire a
+      // millisecond early, which would write 29 s for a 30 s hold
+      stopRef.current(new Date(at))
     }, delay)
     return () => clearTimeout(timer)
   }, [stopwatch, endsAtTarget, sound, vibration])
@@ -175,7 +177,7 @@ export function StopwatchPanel({ stopwatch, exerciseName, setName, race, lastTex
               {paused ? <Play aria-hidden="true" className="fill-current" /> : <Pause aria-hidden="true" className="fill-current" />}
             </Button>
           )}
-          <Button ref={mainButton} size="xl" className="h-14 shrink-0 rounded-2xl px-5 text-lg" onClick={counting ? onStop : onStartNow}>
+          <Button ref={mainButton} size="xl" className="h-14 shrink-0 rounded-2xl px-5 text-lg" onClick={counting ? () => onStop() : onStartNow}>
             {counting ? <Square aria-hidden="true" className="fill-current" /> : <Play aria-hidden="true" className="fill-current" />}
             {counting ? t('workout.stopwatch.stop') : t('workout.stopwatch.startNow')}
           </Button>
