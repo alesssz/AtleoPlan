@@ -1,6 +1,7 @@
 /*
- * The queue of finished workouts waiting for the network. Each is sent with the
- * idempotent PUT /api/sessions/{id} until the backend has it.
+ * The queue of finished workouts waiting for the network, the signed-in
+ * user's only (deviceOwner()). Each is sent with the idempotent
+ * PUT /api/sessions/{id} until the backend has it.
  *
  * - 2xx: saved; it leaves the queue.
  * - 410: deleted elsewhere meanwhile; it leaves the queue for good.
@@ -10,6 +11,7 @@
  */
 import { sendSession } from '@/api/sessions'
 import { loadPending, removePending } from '@/components/workout/session-storage'
+import { deviceOwner } from '@/lib/device-owner'
 import { ApiError } from '@/lib/http'
 
 export interface SendReport {
@@ -121,7 +123,13 @@ export function sendPendingSessions({ timeoutMs = SEND_TIMEOUT_MS, announce = fa
 
 async function sendEach(timeoutMs: number): Promise<SendReport> {
   const report: SendReport = { sent: [], waiting: [], refused: [] }
+  const owner = deviceOwner()
   for (const [id, input] of Object.entries(loadPending())) {
+    // Signed out, or someone else signed in, while the round ran: the rest
+    // waits for its owner, and must not reach another account. One answered
+    // meanwhile stays in its owner's queue, and the idempotent PUT takes it
+    // again later
+    if (deviceOwner() !== owner) break
     try {
       await sendSession(id, input, AbortSignal.timeout(timeoutMs))
       removePending(id)

@@ -69,8 +69,8 @@ function dayFromAddress(value: string | null, draft: PlanDraft): number | null {
 interface PlanEditorProps {
   /** The plan as it is opened: saved, or new and empty. */
   initial: PlanDraft
-  /** The key of the draft kept in the browser (draft-storage.ts). */
-  storageKey: string
+  /** The key of the draft kept in the browser (draft-storage.ts); null keeps none. */
+  storageKey: string | null
   /** `?add=`'s exercise: undefined for none, null when it could not be read. */
   adding?: Exercise | null
   /** Sends the plan: POST for a new one, PUT for a saved one. */

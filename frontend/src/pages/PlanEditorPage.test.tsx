@@ -76,7 +76,7 @@ describe('PlanEditorPage', () => {
       { set_type: 'normal', target_reps_min: 8, target_reps_max: 10, target_weight_kg: 82.5, target_rpe: 8, target_duration_seconds: null, target_distance_meters: null },
     ])
     // Saved: the draft is no longer kept
-    expect(localStorage.getItem('atleoplan.planDraft.new')).toBeNull()
+    expect(localStorage.getItem('atleoplan.planDraft.new.1')).toBeNull()
 
     // Back from the plan's page goes to the list: the editor's two entries
     // (the details, the exercises) are gone from the history
@@ -270,7 +270,7 @@ describe('PlanEditorPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
 
     expect(screen.getByLabelText('Goal')).toHaveValue('Hypertrophy')
-    expect(localStorage.getItem('atleoplan.planDraft.plan-ppl')).toBeNull()
+    expect(localStorage.getItem('atleoplan.planDraft.plan-ppl.1')).toBeNull()
   })
 
   it('joins two exercises in a superset', async () => {
@@ -413,7 +413,7 @@ describe('PlanEditorPage', () => {
       ])
       // Kept as a draft, so a reload does not add it twice
       expect(router.state.location.search).toBe('?day=2')
-      expect(localStorage.getItem('atleoplan.planDraft.plan-ppl')).not.toBeNull()
+      expect(localStorage.getItem('atleoplan.planDraft.plan-ppl.1')).not.toBeNull()
 
       await userEvent.click(screen.getByRole('button', { name: 'Save' }))
       expect(await screen.findByText('the plan page')).toBeInTheDocument()
@@ -436,7 +436,7 @@ describe('PlanEditorPage', () => {
 
       expect(within(screen.getByRole('tabpanel')).queryByRole('button', { name: /^Barbell Bench Press/ })).not.toBeInTheDocument()
       expect(screen.queryByText(/added at the end of/)).not.toBeInTheDocument()
-      expect(localStorage.getItem('atleoplan.planDraft.plan-ppl')).toBeNull()
+      expect(localStorage.getItem('atleoplan.planDraft.plan-ppl.1')).toBeNull()
     })
 
     it('starts a new plan with it', async () => {
@@ -458,7 +458,7 @@ describe('PlanEditorPage', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent('The exercise could not be added. Try again from its page.')
       expect(within(screen.getByRole('tabpanel')).getAllByRole('button', { name: /^Barbell/ })).toHaveLength(1)
       expect(router.state.location.search).toBe('?day=2')
-      expect(localStorage.getItem('atleoplan.planDraft.plan-ppl')).toBeNull()
+      expect(localStorage.getItem('atleoplan.planDraft.plan-ppl.1')).toBeNull()
     })
 
     it('adds nothing to a day already full', async () => {

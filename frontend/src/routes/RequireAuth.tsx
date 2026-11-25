@@ -11,13 +11,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { usePendingSessions } from '@/lib/usePendingSessions'
 import { useServerWatch } from '@/lib/useServerWatch'
 import { useAccountPreferences } from './useAccountPreferences'
+import { useDeviceOwner } from './useDeviceOwner'
 
 export function RequireAuth() {
   const { t } = useTranslation()
   const currentUser = useCurrentUser()
   const location = useLocation()
+  useDeviceOwner(currentUser.data)
   useAccountPreferences(currentUser.data)
-  usePendingSessions(Boolean(currentUser.data))
+  usePendingSessions(currentUser.data?.id ?? null)
   useServerWatch()
 
   // Skeletons, never a spinner: the app or /login here would flash the wrong

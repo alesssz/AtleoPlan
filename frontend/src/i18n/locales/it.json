@@ -475,6 +475,11 @@
   },
   "profile": {
     "signOut": "Esci",
+    "signOutTitle": "Uscire?",
+    "signOutWaiting_one": "Un allenamento non è ancora arrivato al server. Resta su questo telefono e verrà inviato quando accederai di nuovo da qui.",
+    "signOutWaiting_other": "{{count}} allenamenti non sono ancora arrivati al server. Restano su questo telefono e verranno inviati quando accederai di nuovo da qui.",
+    "signOutInProgress": "L'allenamento in corso resta su questo telefono, da riprendere quando accederai di nuovo da qui.",
+    "signOutStay": "Resta connesso",
     "about": "Informazioni",
     "adminTitle": "Amministrazione",
     "adminPanel": "Pannello admin",

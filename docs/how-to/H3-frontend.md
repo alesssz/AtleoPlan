@@ -222,7 +222,7 @@ make fix                    # quotes and semicolons to our style
 | `make fe-preview` still shows the previous build | The page came from the old service worker; the new one took over meanwhile | Reload once more |
 | `make fe-build` fails with "Couldn't find configuration for either precaching or runtime caching" | Workbox found no file: a `glob` the forced `minimatch` breaks ([H3.7.1](#h371-a-vulnerable-package-deep-in-the-tree-overrides)) | `npm ls glob`: workbox-build's must be 14 |
 | A tab bar with no tab selected | `Tabs`' `value` matches no trigger | Validate the value read from the address |
-| The editor brings back old changes | A draft kept from an earlier visit | **Discard changes**, or clear `atleoplan.planDraft.…` |
+| The editor brings back old changes | A draft kept from an earlier visit | **Discard changes**, or clear `atleoplan.planDraft.…` (one per plan and user) |
 | `Found multiple elements with the role "button" and name "Save"` | The same control drawn twice | One of each: it confuses screen readers too |
 | `target.hasPointerCapture is not a function`, `ResizeObserver is not defined` | jsdom lacks what a Radix component calls | Stub it in `src/test/setup.ts` |
 | `"undefined" is not valid JSON` from `sentBody` | No call to that path sent a body | Check the path, and that the request was sent |

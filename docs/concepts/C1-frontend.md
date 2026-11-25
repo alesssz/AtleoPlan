@@ -148,10 +148,10 @@ frontend/
     │   │                     useStartWorkout.ts, usePrepareWorkouts.ts and ResumeBanner, shared with Home (C1.18)
     │   └── *.tsx             shared across pages: PageHeader, EmptyState, ComingSoon, SettingRow, FormField, FormBanner…
     ├── pages/              one component per route; auth-schemas.ts
-    ├── routes/             RequireAuth, RequireGuest, useAccountPreferences (C1.13)
+    ├── routes/             RequireAuth, RequireGuest, useAccountPreferences, useDeviceOwner (C1.13)
     ├── i18n/               setup, languages.ts, i18next.d.ts (typed keys), locales/{it,en,es,de}.json
     ├── lib/                framework-free helpers (http, query-client, query-persistence, form, format, week, download, alarm,
-    │                       pending-sessions, sync-state, shown-data) and app-wide hooks (useDebouncedValue, useNow,
+    │                       pending-sessions, sync-state, shown-data, device-owner) and app-wide hooks (useDebouncedValue, useNow,
     │                       useWakeLock, usePendingSessions, useSyncState, useServerWatch)
     ├── theme/              theme logic, context, provider, hook
     └── test/               setup.ts; fake API and page rendering (auth-helpers.tsx); fixtures per area
@@ -371,7 +371,7 @@ signing out ──▶ cache holds null ─────────────�
 any 401     ──▶ cache holds null ────────────────────────────────▶ RequireAuth moves to /login
 ```
 
-The forms never navigate after signing in, and no screen handles an expired session. The last line is in `src/lib/query-client.ts`. Both of the last two go through `forgetAccount()`: with the user, every other answer leaves the cache, and so the copy kept on the phone, so the next account on the device finds nothing of this one.
+The forms never navigate after signing in, and no screen handles an expired session. The last line is in `src/lib/query-client.ts`. Both of the last two go through `forgetAccount()`: with the user, every other answer leaves the cache, and so the copy kept on the phone, and the service worker's `photos` cache is deleted, so the next account on the device finds nothing of this one. A session that ends with no request failing (closed on another device, expired while the app was shut) shows only as `GET /api/user` answering 401: `useDeviceOwner()` sees the user change and removes the same ([C1.13.2](#c1132-the-guards)).
 
 **`fetchCurrentUser` distinguishes errors.** A 401 means "nobody" and returns `null`. No connection or a 5xx stays an error: it says nothing about who is signed in, and must not send anyone to `/login`.
 
@@ -388,7 +388,16 @@ Guards are parent routes in `src/routes/`.
 | Nothing, and the request failed | "Can't reach the server" and **Try again** |
 | A `User` | `<Outlet />` |
 
-It also calls `useAccountPreferences` ([C1.13.4](#c1134-preferences-on-the-account)) and `usePendingSessions` ([C1.17.5](#c1175-the-queue-of-workouts-to-send)).
+It also calls `useAccountPreferences` ([C1.13.4](#c1134-preferences-on-the-account)), `usePendingSessions` ([C1.17.5](#c1175-the-queue-of-workouts-to-send)) and `useDeviceOwner`.
+
+**`useDeviceOwner` ties the phone's storage to the user.** A phone can be shared, so what lives in `localStorage` (the workout in progress, the queue, the finished workout, the plan drafts) is kept per user: each key ends with the owner's id, `atleoplan.activeSession.12` (`lib/device-owner.ts`, `ownedKey()`).
+
+- **Set in the render, not in an effect:** the pages below read the storage in their own first render, before any effect runs.
+- **Nobody known** (signed out, still loading): reads find nothing, writes are dropped.
+- **Another user's entries** are neither shown nor sent, and stay until their owner signs in again on the device.
+- **When the user changes** from a known one to nobody or someone else, the cached answers and the `photos` cache go, as on signing out.
+
+Theme and language stay per device: they are the account's anyway once someone signs in.
 
 **`RequireGuest`** is the opposite: a signed-in user goes to the remembered address, or Home.
 
@@ -470,7 +479,7 @@ So `useUpdatePreferences` is optimistic and never writes an answer into the cach
 - **`remember: true` is always sent.** A session lasts two hours, and a phone at the gym must not ask for a password; there is no checkbox.
 - **A 419 gets a second try** (`request()`), so a sign-in page left open for hours still works.
 - **`Accept-Language`** on every request makes Laravel answer in the user's language ([C2.7.7](C2-backend.md#c277-messages-in-the-users-language)).
-- **Signing out empties the cache** except the user, which becomes `null`: the next user on this device must not see this one's data.
+- **Signing out empties the cache** except the user, which becomes `null`, and the `photos` cache: the next user on this device must not see this one's data. The workouts and drafts in `localStorage` stay under their owner's keys ([C1.13.2](#c1132-the-guards)). With workouts not yet sent, or one in progress, **Sign out** (`SignOutButton`) asks first and says they stay on this phone for the next sign-in here.
 - **`autoComplete`** (`username`, `current-password`, `new-password`) on every credential field, for password managers.
 
 ### C1.13.6 Testing a screen with the API
@@ -739,13 +748,13 @@ A day's exercises are reordered by dragging a handle (`@dnd-kit/core`, `sortable
 
 ### C1.16.4 The draft kept in the browser
 
-D1.4.8 asks for auto-saved drafts. After every change an effect writes the draft to `localStorage` under `atleoplan.planDraft.<plan id>` (`…new` for a new plan).
+D1.4.8 asks for auto-saved drafts. After every change an effect writes the draft to `localStorage` under `atleoplan.planDraft.<plan id>.<user id>` (`…new.<user id>` for a new plan).
 
 - **Reopening the editor** restores the draft with a banner; **Discard changes** and a successful save forget it.
 - **`dirty`** compares the two trees serialised with `JSON.stringify`.
 - **`localStorage`, not IndexedDB** ([D3.5.6](../design/D3-data-model.md#d356-saving-a-plan)): a draft is a few kilobytes; IndexedDB comes with the offline work, which needs it for much more.
 - **Every access is in `try`/`catch`:** a private window or full storage throws, and the editor must still work without persistence.
-- **A draft is per browser, not per account.** A saved plan follows the user; a draft does not.
+- **A draft is per browser and per account.** A saved plan follows the user to other devices; a draft stays on this one, and another user signed in here does not see it ([C1.13.2](#c1132-the-guards)).
 
 ### C1.16.5 Saving
 
@@ -916,7 +925,7 @@ WorkoutPage              /session/:id: loads the workout from the phone; none �
 | File | Holds |
 |---|---|
 | `components/workout/workout-session.ts` | Types, `startSession()`, `startFreeSession()`, `exerciseFrom()`, `swappedExercise()`, readers (clock, rest left, can a set be ticked, what comes next), the reducer, `toSessionInput()`; no React |
-| `components/workout/session-storage.ts` | The workout in progress, the queue, the finished workout, in `localStorage` |
+| `components/workout/session-storage.ts` | The workout in progress, the queue, the finished workout, in `localStorage`, per user |
 | `components/workout/finish-workout.ts`, `FinishButton.tsx` | Finishing, and its confirmation: shared by workout mode and `ResumeBanner` |
 | `components/workout/set-fields.ts` | `fieldsFor()`: a set's fields by logging type, shared by rows, header and stepper |
 | `components/workout/stepper.ts` | The stepper's arithmetic (C1.17.7) |
@@ -1010,7 +1019,7 @@ useEffect(() => {
 
 ### C1.17.5 The queue of workouts to send
 
-`session-storage.ts` keeps three `localStorage` keys:
+`session-storage.ts` keeps three `localStorage` keys per user, each ending with the user's id ([C1.13.2](#c1132-the-guards)):
 
 | Key | Holds | Written |
 |---|---|---|
@@ -1039,9 +1048,9 @@ The confirmation counts working sets (`countSets()`): "3 of 7 sets done, warm-up
 
 **Resending is harmless.** The request is a `PUT` to the workout's own UUID: the first creates, the next replace with the same content. A request whose answer was lost is sent again, and the server never holds two copies. This is why ids are made on the device.
 
-**When it retries:** `usePendingSessions(enabled)`, in `RequireAuth`, sends the queue when the signed-in app starts and on the `online` event; a round that sent something invalidates the cached lists. This is the part of offline sync ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)) a workout needs; IndexedDB and background sync come with FEAT-3; the service worker that opens the app with no network is in [C1.21](#c121-opening-with-no-network).
+**When it retries:** `usePendingSessions(owner)`, in `RequireAuth`, sends the queue when the signed-in app starts, when another user signs in, and on the `online` event; a round that sent something invalidates the cached lists. This is the part of offline sync ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)) a workout needs; IndexedDB and background sync come with FEAT-3; the service worker that opens the app with no network is in [C1.21](#c121-opening-with-no-network).
 
-**What the user sees: `SyncIndicator`** ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)), in `AppLayout` and `SideNav`. `useSyncState()` follows three things with `useSyncExternalStore`: the network (`onlineManager`), the queue (`subscribeToPending()`, called after every change here and on the `storage` event from another tab; `pendingSnapshot()` keeps the same object until the list changes), and the rounds of sending (`subscribeToSendProgress()`: whether one runs, what the last refused). `syncState()` picks one: offline first, since nothing can be done until the network returns; then refusals, which need a person; then what waits. Refusals live in memory only: every round goes over the whole queue, so the first one after the app opens finds them again. **Send** and **Try again** go through `useSendPending()`, the same round as the `online` event's. **One round at a time:** a round asked for while another runs starts after it and finds only what the first left, so two triggers at once (the server's return and the sign-in) never send a workout twice.
+**What the user sees: `SyncIndicator`** ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)), in `AppLayout` and `SideNav`. `useSyncState()` follows three things with `useSyncExternalStore`: the network (`onlineManager`), the queue (`subscribeToPending()`, called after every change here and on the `storage` event from another tab; `pendingSnapshot()` keeps the same object until the list changes), and the rounds of sending (`subscribeToSendProgress()`: whether one runs, what the last refused). `syncState()` picks one: offline first, since nothing can be done until the network returns; then refusals, which need a person; then what waits. Refusals live in memory only: every round goes over the whole queue, so the first one after the app opens finds them again. **Send** and **Try again** go through `useSendPending()`, the same round as the `online` event's. **One round at a time:** a round asked for while another runs starts after it and finds only what the first left, so two triggers at once (the server's return and the sign-in) never send a workout twice. **Only the signed-in user's queue:** a round stops when the user changes while it runs, so the rest of one user's queue never reaches another's account.
 
 **A server that does not answer** looks like being online to the browser. `request()` (`lib/http.ts`) marks the server unreachable on no answer, a time limit, or a proxy's 502, 503 or 504, and reachable again on any other answer (`isServerReachable()`, `subscribeToServer()`). `syncState()` puts it right after offline, as `unreachable`, and `ConnectionBanner`, above every page in `AppLayout`, says what happens to the workouts meanwhile. Nothing would notice the server's return, since the browser fires no `online` event: `useServerWatch()`, in `RequireAuth`, asks `GET /api/health` every 10 seconds (`SERVER_CHECK_INTERVAL_MS`) while it is away and the network is there, and when it answers again sends the queue and marks every query stale. With the server there but the queue still waiting (a round that met a 500), `usePendingSessions` tries it again every 30 seconds (`QUEUE_RETRY_INTERVAL_MS`); not while the state is `refused`, since a 4xx would fail the same way.
 
@@ -1484,7 +1493,7 @@ The production build has a service worker, made by **vite-plugin-pwa** (Workbox,
 - **What is kept:** the answers a screen would show (`shownData()`), for a week (`maxAge`): also one whose last refresh found no server, which is when the copy is needed; keeping only successful queries would drop the user and Home from the copy at the first failed refresh, and the next opening would find nothing. Not the library's searches, a new key for each word typed; not "nobody is signed in" (the user `null`): signing in with Google ends in a fresh load of the app seconds later, where that answer, restored and still fresh (`staleTime`), would send the user just signed in to /login without asking the server; not a request that failed with nothing kept, nor one a 4xx refused; not mutations: changes made offline have their own queue ([C1.17.5](#c1175-the-queue-of-workouts-to-send)).
 - **`CACHE_VERSION`** is the persister's `buster`: a copy saved under another version is dropped instead of restored. Raised by hand when an answer changes shape ([C1.12](#c112-typescript-conventions)), not tied to the build, which would drop the copy at every update, maybe at the first opening offline at the gym.
 - **Storage that fails** (blocked in a private window, a full disk) reads as empty and writes nothing: the app works online as without the copy.
-- **Signing out, or a 401,** empties the cache and so the copy ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)).
+- **Signing out, a 401, or another user,** empties the cache and so the copy ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)).
 
 **Offline, the guards do not wait.** With no network TanStack Query pauses a request instead of failing it, so `GET /api/user` would stay pending, and the guards' skeletons on screen, until the network returns. `isAwaitingUser()` (`api/auth.ts`) counts a paused request as no answer: `RequireAuth` shows "Can't reach the server", `RequireGuest` the form. When the network returns, the request resumes and the app opens by itself.
 

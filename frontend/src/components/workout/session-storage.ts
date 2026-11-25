@@ -1,10 +1,12 @@
 /*
  * Workouts in localStorage: the one in progress (written after every change),
  * the finished ones waiting to be sent, and the one just finished, for its
- * summary. Every access is wrapped: a private window or full storage throws,
- * and the workout must still run.
+ * summary. Each user's under keys of their own (deviceOwner()). Every access
+ * is wrapped: a private window or full storage throws, and the workout must
+ * still run.
  */
 import type { SessionInput } from '@/api/sessions'
+import { ownedKey } from '@/lib/device-owner'
 import type { ActiveSession } from './workout-session'
 
 /**
@@ -30,11 +32,16 @@ export interface FinishedWorkout {
 
 const FINISHED_KEY = 'atleoplan.finishedSession'
 const ACTIVE_KEY = 'atleoplan.activeSession'
-/** The key of the workouts waiting to be sent: an object, id → body. */
+/** The workouts waiting to be sent: an object, id → body. */
 const PENDING_KEY = 'atleoplan.pendingSessions'
 
-/** Reads a JSON value; null when missing or unreadable. */
-function read<T>(key: string): T | null {
+/**
+ * Reads the signed-in user's JSON value; null when missing or unreadable.
+ * @param base the key without its owner
+ */
+function read<T>(base: string): T | null {
+  const key = ownedKey(base)
+  if (key === null) return null
   try {
     const text = localStorage.getItem(key)
     return text === null ? null : (JSON.parse(text) as T)
@@ -44,8 +51,13 @@ function read<T>(key: string): T | null {
   }
 }
 
-/** Writes a JSON value; null removes the key. */
-function write(key: string, value: unknown): void {
+/**
+ * Writes the signed-in user's JSON value; null removes the key.
+ * @param base the key without its owner
+ */
+function write(base: string, value: unknown): void {
+  const key = ownedKey(base)
+  if (key === null) return
   try {
     if (value === null) localStorage.removeItem(key)
     else localStorage.setItem(key, JSON.stringify(value))
@@ -79,7 +91,7 @@ const pendingListeners = new Set<() => void>()
  */
 export function subscribeToPending(listener: () => void): () => void {
   const onStorage = (event: StorageEvent) => {
-    if (event.key === PENDING_KEY || event.key === null) listener()
+    if (event.key === null || event.key === ownedKey(PENDING_KEY)) listener()
   }
   pendingListeners.add(listener)
   window.addEventListener('storage', onStorage)
@@ -94,8 +106,9 @@ let pendingCache: { text: string | null, value: Record<string, SessionInput> } =
 /** loadPending(), but the same object until the list changes, as useSyncExternalStore needs. */
 export function pendingSnapshot(): Record<string, SessionInput> {
   let text: string | null = null
+  const key = ownedKey(PENDING_KEY)
   try {
-    text = localStorage.getItem(PENDING_KEY)
+    if (key !== null) text = localStorage.getItem(key)
   }
   catch {
     // Unreadable: as empty

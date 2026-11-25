@@ -147,14 +147,28 @@ export function useSignUp() {
   })
 }
 
+/** The service worker's cache of exercise photos (vite.config.ts). */
+const PHOTO_CACHE = 'photos'
+
 /**
  * Nobody is signed in any more: the user becomes null, which sends the guards
- * to /login, and everything else is removed, so the next user on this device
- * sees none of it, in memory or in the copy kept on the phone.
+ * to /login, and the account's data goes (forgetAccountData()).
  */
 export function forgetAccount(queryClient: QueryClient): void {
   queryClient.setQueryData(authKeys.user, null)
+  forgetAccountData(queryClient)
+}
+
+/**
+ * Removes what was kept for the account, so the next user on this device sees
+ * none of it: the cached answers, in memory and in the copy kept on the phone,
+ * and the photos, the user's own among them. The workouts and drafts in
+ * localStorage stay, under their owner's keys (deviceOwner()).
+ */
+export function forgetAccountData(queryClient: QueryClient): void {
   queryClient.removeQueries({ predicate: query => query.queryKey[0] !== authKeys.user[0] })
+  // No Cache API without a secure origin, nor in tests
+  if ('caches' in window) void caches.delete(PHOTO_CACHE).catch(() => undefined)
 }
 
 /** The cache is emptied even after an error: the user wanted out. */

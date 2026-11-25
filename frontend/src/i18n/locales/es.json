@@ -475,6 +475,11 @@
   },
   "profile": {
     "signOut": "Cerrar sesión",
+    "signOutTitle": "¿Cerrar sesión?",
+    "signOutWaiting_one": "Un entrenamiento aún no ha llegado al servidor. Se queda en este teléfono y se enviará cuando vuelvas a iniciar sesión aquí.",
+    "signOutWaiting_other": "{{count}} entrenamientos aún no han llegado al servidor. Se quedan en este teléfono y se enviarán cuando vuelvas a iniciar sesión aquí.",
+    "signOutInProgress": "El entrenamiento en curso se queda en este teléfono, para retomarlo cuando vuelvas a iniciar sesión aquí.",
+    "signOutStay": "Seguir conectado",
     "about": "Información",
     "adminTitle": "Administración",
     "adminPanel": "Panel de administración",
