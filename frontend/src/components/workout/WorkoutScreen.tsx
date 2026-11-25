@@ -394,7 +394,7 @@ export function WorkoutScreen({ initial }: WorkoutScreenProps) {
           race={isForTime(timedItem) ? { reps: Number(timedSet.reps) || null } : null}
           lastText={timedSet.last?.duration_seconds ? clock(timedSet.last.duration_seconds) : null}
           alarm={{ sound: user?.timer_sound ?? true, vibration: user?.timer_vibration ?? true }}
-          onStop={() => dispatch({ type: 'stopStopwatch', now: new Date().toISOString() })}
+          onStop={at => dispatch({ type: 'stopStopwatch', now: (at ?? new Date()).toISOString() })}
           onStartNow={() => dispatch({ type: 'skipCountdown', now: new Date().toISOString() })}
           onPause={paused => dispatch({ type: paused ? 'pauseStopwatch' : 'resumeStopwatch', now: new Date().toISOString() })}
           onCancel={() => dispatch({ type: 'cancelStopwatch' })}

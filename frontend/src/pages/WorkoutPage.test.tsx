@@ -1,6 +1,6 @@
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { SessionInput } from '@/api/sessions'
 import { loadActiveSession, loadFinished, loadPending, storeActiveSession } from '@/components/workout/session-storage'
 import { exerciseFrom, startFreeSession, startSession } from '@/components/workout/workout-session'
@@ -569,6 +569,29 @@ describe('WorkoutPage', () => {
     expect(screen.queryByRole('region', { name: 'Stopwatch' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Untick: Set 1' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Set 1, Seconds: 30' })).toBeInTheDocument()
+  })
+
+  it('writes the target even when the timer at the target fires a moment early', async () => {
+    // Every timer 50 ms early, as one may be by a millisecond
+    const realSetTimeout = globalThis.setTimeout
+    const early = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((callback: () => void, ms?: number) =>
+      realSetTimeout(callback, Math.max(0, (ms ?? 0) - 50))) as typeof setTimeout)
+    try {
+      const session = startFreeSession(new Date())
+      session.exercises = [exerciseFrom(testExercise({ id: 91, name: 'Plank', logging_type: 'time' }), [], { unit: 'kg', language: 'en', defaultRestSeconds: 90 })]
+      const set = session.exercises[0]!.sets[0]!
+      set.seconds = '30'
+      session.stopwatch = { set_id: set.id, started_at: new Date(Date.now() - 29_500).toISOString(), target: 30 }
+      storeActiveSession(session)
+      fakeApi({ 'GET /api/user': signedInAs() })
+      renderRoutes(routes, `/session/${session.id}`)
+
+      expect(await screen.findByRole('region', { name: 'Rest' }, { timeout: 3000 })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Set 1, Seconds: 30' })).toBeInTheDocument()
+    }
+    finally {
+      early.mockRestore()
+    }
   })
 
   it('stops a hold whose target passed while the app was closed, with the target as its time', async () => {
