@@ -198,7 +198,7 @@ The schema builder has no check constraints, so they are added with `DB::stateme
 
 **A table rather than a `google_id` column on `users`.** Another provider is rows, not a new column.
 
-**The provider's id, not the email.** A Google account's address can change; its `sub` cannot. The email is used once, at the first sign-in, to find an account made with a password ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)), and only when Google reports it verified.
+**The provider's id, not the email.** A Google account's address can change; its `sub` cannot. The email is used once, at the first sign-in, to find an account made with a password ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)), and only when Google reports it verified. `users.email_verified_at` says whether the address was ever proved, by Google or by a Forgot password link: linking an account where it is empty drops the password, which may be a stranger's.
 
 ---
 

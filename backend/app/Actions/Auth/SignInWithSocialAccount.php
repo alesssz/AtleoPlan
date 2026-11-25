@@ -24,6 +24,11 @@ use Laravel\Socialite\Contracts\User as OutsideUser;
  *    linked to that account, so its plans and workouts are kept. Only when
  *    Google says it has verified the address, or anyone could make a Google
  *    account with someone else's address and walk into their AtleoPlan account.
+ *    Sign-up does not verify addresses, so the account may have been made by
+ *    someone else with this address, waiting for its owner to move in. When
+ *    nobody proved the address before Google did, the password, the sessions
+ *    and the remember cookies made with it stop working: the owner, reading
+ *    that inbox, sets a password again through Forgot password.
  * 3. **A new address**: a new account, with no password, the name and email
  *    from Google and the language the app was showing. Also only with a
  *    verified address, so nobody can take an address before its owner signs up.
@@ -71,10 +76,8 @@ class SignInWithSocialAccount
             // 3. A new account
             $user ??= $this->newUser($outside, $email, $locale);
 
-            // Google has just proved what email verification would
             if ($user->email_verified_at === null) {
-                $user->email_verified_at = now();
-                $user->save();
+                $this->claim($user);
             }
 
             $user->socialAccounts()->create([
@@ -102,6 +105,26 @@ class SignInWithSocialAccount
     {
         if ($user->disabled_at !== null) {
             throw new SocialSignInRefused(SocialSignInError::Disabled);
+        }
+    }
+
+    /**
+     * Google has just proved what email verification would: the address is
+     * this person's. Whoever chose the password may not have been, so it goes,
+     * and with it every way in it opened. The sessions' rows are deleted rather
+     * than left to the checks of the password's hash, which Laravel's own
+     * AuthenticateSession, the admin panel's, skips for an account with none.
+     */
+    private function claim(User $user): void
+    {
+        $user->forceFill([
+            'password' => null,
+            'remember_token' => Str::random(60),
+            'email_verified_at' => now(),
+        ])->save();
+
+        if (config('session.driver') === 'database') {
+            DB::table(config('session.table'))->where('user_id', $user->id)->delete();
         }
     }
 

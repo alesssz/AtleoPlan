@@ -49,6 +49,21 @@ it('sets the new password with a valid token', function () {
     expect(Hash::check('a-brand-new-password', $user->fresh()->password))->toBeTrue();
 });
 
+// Signing in with Google then keeps the password: the link proved the
+// address, as Google does
+it('counts the emailed link as proof of the address', function () {
+    $user = User::factory()->unverified()->create(['email' => 'ann@example.com']);
+
+    $this->postJson('/api/auth/reset-password', [
+        'token' => Password::createToken($user),
+        'email' => 'ann@example.com',
+        'password' => 'a-brand-new-password',
+        'password_confirmation' => 'a-brand-new-password',
+    ])->assertOk();
+
+    expect($user->fresh()->email_verified_at)->not->toBeNull();
+});
+
 it('refuses a wrong token', function () {
     $user = User::factory()->create(['email' => 'ann@example.com']);
 
