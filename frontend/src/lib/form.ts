@@ -5,9 +5,7 @@
  */
 import type { TFunction } from 'i18next'
 import type { FieldValues, Path, UseFormSetError } from 'react-hook-form'
-import { ApiError } from './http'
-
-const TOO_MANY_REQUESTS_STATUS = 429
+import { ApiError, TOO_MANY_REQUESTS } from './http'
 
 export function showRequestError<T extends FieldValues>(
   error: unknown,
@@ -32,6 +30,6 @@ export function showRequestError<T extends FieldValues>(
 
   const status = error instanceof ApiError ? error.status : undefined
   if (status === 0) setError('root', { message: t('auth.errors.network') })
-  else if (status === TOO_MANY_REQUESTS_STATUS) setError('root', { message: t('auth.errors.tooMany') })
+  else if (status === TOO_MANY_REQUESTS) setError('root', { message: t('auth.errors.tooMany') })
   else setError('root', { message: t('auth.errors.unexpected') })
 }

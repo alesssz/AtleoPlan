@@ -45,10 +45,11 @@ Recipes for the Laravel API: endpoints that read and change data, a body shaped 
 2. **Policy:** `make artisan c="make:policy ExercisePolicy --model=Exercise"`, a method per action. A list uses a scope with the same rule as `view`.
 3. **Action** for the work: `make artisan c="make:class Actions/Exercises/SavePersonalExercise"`, writes in `DB::transaction()`.
 4. **Controller method:** `Gate::authorize()`, `$request->validated()`, the action, the Resource (201 on create).
-5. **Columns the request sets** must be in the model's `#[Fillable]`: `update($request->validated())` silently skips the others (a 204 with nothing saved).
-6. **New validation keys** get their text in `lang/{en,it,es,de}/validation.php` ([H2.8](#h28-messages-in-the-users-language)).
-7. **Tests, every outcome:** success (the only test that catches a stray `authorize()`), 422 per invalid field, 401 for a visitor, 403 for someone else's row and for a public one, 404. A visitor's request goes first, or in its own test: an earlier `actingAs()` signs in every later request of the test.
-8. **Prove the tests can fail:** break the rule they guard, see them fail, put it back.
+5. **A write that costs disk, a queue or many rows** (an upload, a copy, an import) gets a named limiter as well as `api`: `RateLimiter::for()` in `AppServiceProvider`, `->middleware('throttle:<name>')` on the route, a test that reaches the 429 ([C2.5.10](../concepts/C2-backend.md#c2510-rate-limits)).
+6. **Columns the request sets** must be in the model's `#[Fillable]`: `update($request->validated())` silently skips the others (a 204 with nothing saved).
+7. **New validation keys** get their text in `lang/{en,it,es,de}/validation.php` ([H2.8](#h28-messages-in-the-users-language)).
+8. **Tests, every outcome:** success (the only test that catches a stray `authorize()`), 422 per invalid field, 401 for a visitor, 403 for someone else's row and for a public one, 404. A visitor's request goes first, or in its own test: an earlier `actingAs()` signs in every later request of the test.
+9. **Prove the tests can fail:** break the rule they guard, see them fail, put it back.
 
 ---
 
@@ -57,6 +58,7 @@ Recipes for the Laravel API: endpoints that read and change data, a body shaped 
 A plan arrives whole: days, items, sets ([C2.5.6](../concepts/C2-backend.md#c256-validating-nested-data)).
 
 - **Rules for every level** with `.*`, and **`present` on every list**, so a forgotten key cannot read as "delete them all".
+- **A `max:` on every list, and `use ChecksListLengthsFirst`** in the request: a list too long is then refused before the validator writes a rule for each of its elements ([C2.5.6](../concepts/C2-backend.md#c256-validating-nested-data)).
 - **Field names for messages** with `*` in `attributes` (`'days.*.items.*.sets.*.target_reps_max'`), English included in `lang/en/validation.php`.
 - **A check Laravel has no rule for:** `make artisan c="make:rule SupersetsAreNeighbours"`, `$fail('validation.key')->translate()`.
 - **A check across tables** (values that fit the exercise's logging type) goes in the request's `after()`.

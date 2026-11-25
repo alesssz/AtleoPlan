@@ -32,7 +32,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
 - [SEC](#sec)
-  - [SEC-5 No rate limit once signed in](#sec-5-no-rate-limit-once-signed-in)
   - [SEC-6 Sign-in limited per email and address only](#sec-6-sign-in-limited-per-email-and-address-only)
   - [SEC-7 Weak password rules](#sec-7-weak-password-rules)
   - [SEC-8 Answers that reveal other users' exercises](#sec-8-answers-that-reveal-other-users-exercises)
@@ -76,7 +75,7 @@ Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is bu
 
 Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes), [SEC-11](#sec-11-verify-the-address-at-sign-up).
 
-Before deploying: [SEC-5](#sec-5-no-rate-limit-once-signed-in), and the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps; the other `SEC` points are hardening.
+Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps; the other `SEC` points are hardening.
 
 ## OPS
 
@@ -105,7 +104,7 @@ Before deploying: [SEC-5](#sec-5-no-rate-limit-once-signed-in), and the security
   - Laravel trusts Caddy as its proxy (`trustProxies()` in `bootstrap/app.php`, with the forwarded address, scheme and host) and only the production host (`trustHosts()`): otherwise every request comes from Caddy's address, so five wrong passwords lock anyone out of signing in, and one person locks every admin out of the panel's login.
   - `SESSION_SECURE_COOKIE=true`, `APP_DEBUG=false`, `LOG_LEVEL` above `debug`.
   - Headers from Caddy: HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` (not `no-referrer`: Sanctum knows a private photo's `<img>` by its `Referer`, [C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)), and a CSP with `frame-ancestors 'none'` (the inline theme script of `index.html` allowed by its hash); `/storage` with `Content-Security-Policy: default-src 'none'; sandbox`.
-  - A cap on request bodies ([SEC-5](#sec-5-no-rate-limit-once-signed-in)).
+  - A cap on request bodies (Caddy's `request_body`), well under PHP's `post_max_size`: a little over the largest upload, a 10 MB photo, until videos come ([C2.5.10](../concepts/C2-backend.md#c2510-rate-limits)).
   - A production stage of the Docker image running as a user other than root, without git and Composer.
 - Caddy forwards `/api`, `/sanctum`, `/storage` and `/auth/` to Laravel, as Vite does in development; Google's client gets the production return address, and the app is published ([S1.11.6](../start/S1-setup.md#s1116-later-when-deploying)).
 - Write the deployment section of the docs ([P1.3](P1-conventions.md#p13-documentation)).
@@ -303,14 +302,6 @@ Before deploying: [SEC-5](#sec-5-no-rate-limit-once-signed-in), and the security
 ## SEC
 
 The points of a security review of 2026-11-25. None is exploitable while the app runs only locally (every port of `compose.yaml` listens on 127.0.0.1); they matter from the deployment ([OPS-3](#ops-3-deploy-to-the-free-server)), whose own settings are among its steps.
-
-### SEC-5 No rate limit once signed in
-
-**Priority:** medium, before deploying · **Kind:** resource abuse · **Found:** 2026-11-25
-
-**What is missing.** Only signing in has a limiter (`FortifyServiceProvider`). A signed-in user can repeat without end `POST /api/exercises/{id}/duplicate` (up to 5 photos copied and converted each time), `POST /api/plans/import` (up to 420 exercises and 8,400 sets a call), `PUT /api/sessions/{new id}` (2,500 sets a call) and photo uploads: disk, database and queue grow without bound. Limits such as `max:420` are checked only after the wildcard rules are expanded for every element sent, so a body of a million entries costs a lot before being refused. Signing up and the reset email: [BE-3](#be-3-harden-the-public-sign-in-routes).
-
-**Recommended.** `RateLimiter::for('api')` by user id on the `auth:sanctum` group, and tighter named limiters for import, duplicate and photo upload; a cap on the body's size (Caddy's `request_body`, and a count checked in the import's `prepareForValidation()`). Caps per user (personal exercises, plans, photo bytes) if the limiters are not enough. Done when Pest tests see the 429s.
 
 ### SEC-6 Sign-in limited per email and address only
 

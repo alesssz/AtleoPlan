@@ -5,14 +5,14 @@
  *
  * - 2xx: saved; it leaves the queue.
  * - 410: deleted elsewhere meanwhile; it leaves the queue for good.
- * - No answer or 5xx: it stays, to try again.
+ * - No answer, 5xx or 429 (too many requests): it stays, to try again.
  * - Any other 4xx: it stays, so nothing is lost, but retrying will not help;
  *   it is reported for a person to look at.
  */
 import { sendSession } from '@/api/sessions'
 import { loadPending, removePending } from '@/components/workout/session-storage'
 import { deviceOwner } from '@/lib/device-owner'
-import { ApiError } from '@/lib/http'
+import { ApiError, TOO_MANY_REQUESTS } from '@/lib/http'
 
 export interface SendReport {
   sent: string[]
@@ -143,7 +143,7 @@ async function sendEach(timeoutMs: number): Promise<SendReport> {
         removePending(id)
         report.sent.push(id)
       }
-      else if (status === 0 || status >= 500) {
+      else if (status === 0 || status >= 500 || status === TOO_MANY_REQUESTS) {
         report.waiting.push(id)
       }
       else {

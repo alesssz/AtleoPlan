@@ -20,6 +20,7 @@ The stack's rationale is in [D2.2](../design/D2-decisions.md#d22-stack), the tab
   - [C2.5.7 The workouts' endpoints](#c257-the-workouts-endpoints)
   - [C2.5.8 A plan as a file](#c258-a-plan-as-a-file)
   - [C2.5.9 The photos of an exercise](#c259-the-photos-of-an-exercise)
+  - [C2.5.10 Rate limits](#c2510-rate-limits)
 - [C2.6 Database: migrations, models, factories, seeders](#c26-database-migrations-models-factories-seeders)
 - [C2.7 Signing in: Sanctum](#c27-signing-in-sanctum)
   - [C2.7.1 How a session works](#c271-how-a-session-works)
@@ -103,12 +104,12 @@ backend/
 │   ├── Http/
 │   │   ├── Controllers/        (C2.5)
 │   │   ├── Middleware/         SetLocaleFromRequest (C2.7.7), SignOutDisabledAccount (C2.7.9), SetPanelLocale (C2.8.1)
-│   │   ├── Requests/           Form Requests
+│   │   ├── Requests/           Form Requests; Concerns/ChecksListLengthsFirst (C2.5.6)
 │   │   └── Resources/          API Resources
 │   ├── Models/               one per table (C2.6)
 │   ├── Policies/             ExercisePolicy, PlanPolicy, WorkoutSessionPolicy (C2.5.1)
-│   ├── Providers/            AppServiceProvider, FortifyServiceProvider, Filament/AdminPanelProvider
-│   ├── Rules/                SupersetsAreNeighbours (C2.5.6)
+│   ├── Providers/            AppServiceProvider (rate limits, C2.5.10), FortifyServiceProvider, Filament/AdminPanelProvider
+│   ├── Rules/                SupersetsAreNeighbours (C2.5.6), PhotoPixels (C2.5.9)
 │   └── Support/              SearchText (D3.4.6)
 ├── bootstrap/app.php       routing, middleware, exception rendering (C2.4)
 ├── database/
@@ -130,7 +131,7 @@ The backend has no asset pipeline: the interface is in `frontend/`, and Filament
 
 ```
 Browser ─▶ Vite :5673 (Caddy in production) ─▶ FrankenPHP :8500 ─▶ public/index.php ─▶ bootstrap/app.php
-         ─▶ middleware: session and CSRF (statefulApi), Accept-Language, disabled accounts, auth:sanctum
+         ─▶ middleware: session and CSRF (statefulApi), Accept-Language, disabled accounts, auth:sanctum, throttle
          ─▶ route ─▶ Form Request ─▶ controller (policy, action) ─▶ API Resource ─▶ JSON
 ```
 
@@ -143,7 +144,7 @@ Browser ─▶ Vite :5673 (Caddy in production) ─▶ FrankenPHP :8500 ─▶ p
 
 ## C2.5 Routes and controllers
 
-All of `routes/api.php` except `/health` is behind `auth:sanctum`; `routes/web.php` holds the Google sign-in routes (they need the session).
+All of `routes/api.php` except `/health` is behind `auth:sanctum` and a rate limit per user ([C2.5.10](#c2510-rate-limits)); `routes/web.php` holds the Google sign-in routes (they need the session).
 
 Every endpoint has the same shape ([P1.2](../project/P1-conventions.md#p12-code)): `Gate::authorize()`, a Form Request, an action, an API Resource. Three controllers cover the range:
 
@@ -367,6 +368,8 @@ Errors name the exact place (`days.0.items.2.sets.1.target_reps_max`); `lang/*/v
 
 **One abstract request, two endpoints.** `StorePlanRequest` and `UpdatePlanRequest` extend `PlanRequest`, which leaves `planId()` to them: the URL's plan on update, the id sent on create.
 
+**Lists are counted before the rules run** (`Concerns\ChecksListLengthsFirst`, in every request with `.*` rules). The validator turns each `.*` rule into one rule per element sent, and reads `max:` only afterwards; `distinct` then compares each element with all the others. A body of a million sets would cost seconds and gigabytes before its refusal. The trait's `prepareForValidation()` reads the request's own rules, and counts every list whose rules have `array` and `max:`, outer lists first, so a list inside one already too long is never walked. Past its `max:` the request is refused with that rule's message, on the list's own key (`days.1.items`). Hence **every list rule has a `max:`**, `ids` of the photos' order included.
+
 **Three traps:**
 
 - **`unique` and `exists` are skipped once an earlier rule of the field fails.** A day id `"day-1"` fails `uuid` and the `unique` query never runs; otherwise Postgres would raise "invalid input syntax for type uuid". Rule order matters: `uuid` before `unique`.
@@ -506,6 +509,22 @@ The stored name is `photo.<extension>` (`usingFileName()`), the extension guesse
 **Bulk conversions.** `queue:listen` boots Laravel per job: fine for one photo, slow for the import's 1,746. `QUEUE_CONVERSIONS_BY_DEFAULT=false` runs conversions inside the command instead; the Makefile's `ARTISAN_NOW` sets it for `make exercises-import` and `make exercises-thumbnails` (`media-library:regenerate --only-missing`, about 5 minutes for the imported photos).
 
 **GD** is the image driver (`install-php-extensions gd` in the image): reads JPEG, PNG and WebP, writes WebP; no HEIC (D2.5).
+
+### C2.5.10 Rate limits
+
+Signing in has its own limit ([C2.7.4](#c274-slowing-down-password-guessing)). Once signed in, the limiters are in `AppServiceProvider::configureRateLimiting()`, keyed **by user**: one account cannot slow the others, and several people behind one address (a gym's Wi-Fi) do not share a count.
+
+| Limiter | Routes | Limit | Why |
+|---|---|---|---|
+| `api` | every route of the `auth:sanctum` group | 180 a minute | well above a person's use: Home and a plan's read-ahead make a dozen requests at once |
+| `photo-files` | `GET /api/exercises/{id}/photos/{photo}/{size}`, in place of `api` | 600 a minute | the read-ahead asks for both sizes of every photo of a plan at once |
+| `uploads` | photo upload, Duplicate as mine | 30 a minute and 500 a day, together | each copies and converts photos: disk and queue are what an abuse would fill |
+| `imports` | `POST /api/plans/import` | 20 an hour | each up to 420 exercises and 8,400 sets |
+
+- **Two limits of one limiter have two keys** (`minute:12`, `day:12`), or they would share one count.
+- **A refused body counts too:** the limit runs before the Form Request.
+- **Past a limit, 429** with `Retry-After`. The app treats it as "not now": the queue of workouts tries again later instead of reporting a refusal, a screen keeps the data it has (`shownData()`, [C1.17.5](C1-frontend.md#c1175-the-queue-of-workouts-to-send)), and a form says to wait a minute.
+- **Not limited here:** how much one account may keep (personal exercises, plans, bytes of photos), to add if the limits are not enough; the size of a body, which PHP caps at `post_max_size` (110 MB, room for videos) and Caddy will cap lower in production. Lists inside a body are counted before validation ([C2.5.6](#c256-validating-nested-data)).
 
 ---
 

@@ -8,6 +8,10 @@ describe('shownData', () => {
     expect(shownData({ data: 'plan', error: new ApiError(502, 'Bad Gateway') })).toBe('plan')
   })
 
+  it('keeps it when the server said only "not now"', () => {
+    expect(shownData({ data: 'plan', error: new ApiError(429, 'Too Many Attempts.') })).toBe('plan')
+  })
+
   it('drops it when the server said it is gone or not yours', () => {
     expect(shownData({ data: 'plan', error: new ApiError(404, 'Not Found') })).toBeUndefined()
     expect(shownData({ data: 'plan', error: new ApiError(403, 'Forbidden') })).toBeUndefined()

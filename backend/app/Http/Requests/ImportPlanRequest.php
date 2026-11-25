@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Actions\Plans\ExportPlan;
 use App\Enums\LoggingType;
 use App\Enums\MuscleRole;
+use App\Http\Requests\Concerns\ChecksListLengthsFirst;
 use App\Rules\SupersetsAreNeighbours;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,8 @@ use Illuminate\Validation\Rule;
  */
 class ImportPlanRequest extends FormRequest
 {
+    use ChecksListLengthsFirst;
+
     /**
      * @return array<string, array<int, mixed>>
      */

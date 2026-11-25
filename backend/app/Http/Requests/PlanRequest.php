@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\SetType;
+use App\Http\Requests\Concerns\ChecksListLengthsFirst;
 use App\Rules\SupersetsAreNeighbours;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
@@ -54,6 +55,8 @@ use Illuminate\Validation\Rules\Unique;
  */
 abstract class PlanRequest extends FormRequest
 {
+    use ChecksListLengthsFirst;
+
     /**
      * The plan whose days and items the request may name by id; null when
      * every id sent must be new.

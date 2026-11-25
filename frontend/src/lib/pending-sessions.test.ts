@@ -10,22 +10,24 @@ const body = { exercises: [] } as unknown as SessionInput
 
 describe('sendPendingSessions', () => {
   it('takes off the queue what the backend has or will never take, and keeps the rest', async () => {
-    for (const id of ['saved', 'gone', 'offline', 'down', 'refused']) addPending(id, body)
+    for (const id of ['saved', 'gone', 'offline', 'down', 'limited', 'refused']) addPending(id, body)
     fakeApi({
       'PUT /api/sessions/saved': { status: 201, body: { data: { id: 'saved' } } },
       'PUT /api/sessions/gone': { status: 410, body: { message: 'This workout was deleted.' } },
       'PUT /api/sessions/offline': 'network',
       'PUT /api/sessions/down': { status: 503 },
+      'PUT /api/sessions/limited': { status: 429, body: { message: 'Too Many Attempts.' } },
       'PUT /api/sessions/refused': { status: 422, body: { message: 'Invalid.', errors: {} } },
     })
 
     const report = await sendPendingSessions()
 
     expect(report.sent).toEqual(['saved', 'gone'])
-    expect(report.waiting).toEqual(['offline', 'down'])
+    // The rate limit says "not now": tried again, never shown as refused
+    expect(report.waiting).toEqual(['offline', 'down', 'limited'])
     expect(report.refused).toEqual([{ id: 'refused', status: 422 }])
     // Nothing is lost: what was not taken stays, refused included
-    expect(Object.keys(loadPending())).toEqual(['offline', 'down', 'refused'])
+    expect(Object.keys(loadPending())).toEqual(['offline', 'down', 'limited', 'refused'])
   })
 
   it('gives up on a request that hangs, keeps the workout, and ends the round', async () => {
