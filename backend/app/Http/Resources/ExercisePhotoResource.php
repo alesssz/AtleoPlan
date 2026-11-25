@@ -7,17 +7,25 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
- * One photo of an exercise:
+ * One photo of an exercise, of the library:
  *
  *     { "id": 12, "url": "/storage/12/conversions/0-large.webp",
  *       "thumb_url": "/storage/12/conversions/0-thumb.webp" }
+ *
+ * or of the user's own, which is private (ExercisePhotos) and served by
+ * ExercisePhotoController::show():
+ *
+ *     { "id": 31, "url": "/api/exercises/7/photos/31/large",
+ *       "thumb_url": "/api/exercises/7/photos/31/thumb" }
  *
  * - `url`, for the exercise's page: the `large` conversion, at most 1600 px;
  * - `thumb_url`, for lists and workout mode: the `thumb`, at most 400 px.
  *
  * Conversions are queued (Exercise::registerMediaConversions()); until one
  * exists, its address is the original's, so the app shows the photo at once,
- * only heavier for a few seconds.
+ * only heavier for a few seconds. A new address once it exists, so the
+ * service worker, which keeps a photo for good, never keeps the original in
+ * its place.
  *
  * @mixin Media
  */
@@ -41,8 +49,17 @@ class ExercisePhotoResource extends JsonResource
     private function conversionUrl(string $conversion): string
     {
         $photo = $this->resource;
+        $made = $photo->hasGeneratedConversion($conversion);
 
-        return $photo->hasGeneratedConversion($conversion) ? $photo->getUrl($conversion) : $photo->getUrl();
+        if ($photo->disk === 'public') {
+            return $made ? $photo->getUrl($conversion) : $photo->getUrl();
+        }
+
+        return route('exercises.photos.show', [
+            'exercise' => $photo->model_id,
+            'photo' => $photo->id,
+            'size' => $made ? $conversion : 'original',
+        ]);
     }
 
     /**

@@ -14,6 +14,7 @@ return [
     // The messages of the exercise's photos (StoreExercisePhotoRequest,
     // ReorderExercisePhotosRequest), checks of our own
     'too_many_photos' => 'An exercise can have at most :max photos.',
+    'photo_too_large' => 'The photo is too large: at most :max megapixels.',
     'photo_order' => 'The order must list every photo of the exercise once.',
 
     // How each field is called inside a message

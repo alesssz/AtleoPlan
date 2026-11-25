@@ -95,7 +95,7 @@ backend/
 │   │   ├── Auth/               SignInWithSocialAccount (C2.7.8)
 │   │   ├── Users/              ChangeUserAccess (C2.8.3)
 │   │   └── Fortify/            CreateNewUser, ResetUserPassword (C2.7)
-│   ├── Console/Commands/     exercises:import, :import-extra, :translate, :correct-logging-types (C2.14)
+│   ├── Console/Commands/     exercises:import, :import-extra, :translate, :correct-logging-types (C2.14), :private-photos (C2.5.9)
 │   ├── Enums/                Locale, Theme, WeightUnit, LoggingType, MuscleRole, SetType (D3.2.4); SocialProvider,
 │   │                         SocialSignInError; ImportOutcome, CorrectionOutcome
 │   ├── Exceptions/           SocialSignInRefused (C2.7.8)
@@ -243,7 +243,7 @@ Actions are tested directly (`SavePersonalExerciseTest.php`) and reused: `Import
 }
 ```
 
-**Photos are paths, not URLs.** medialibrary builds URLs from `APP_URL`, which inside the container is not the browser's address. `ExercisePhotoResource` sends the path, which works wherever the React app is served (its server forwards `/storage`) and keeps photos on the app's origin for the offline cache. `public/storage` is the `storage:link` symlink.
+**Photos are paths, not URLs.** medialibrary builds URLs from `APP_URL`, which inside the container is not the browser's address. `ExercisePhotoResource` sends the path, which works wherever the React app is served (its server forwards `/storage` and `/api`) and keeps photos on the app's origin for the offline cache. `public/storage` is the `storage:link` symlink. The photos of a user's own exercise are private and come from the API instead: `/api/exercises/7/photos/31/large` ([C2.5.9](#c259-the-photos-of-an-exercise)).
 
 **Input** (`StoreExerciseRequest`): `name` (required, ≤ 100), `aliases`, `instructions` (lists of strings), `description`, `logging_type`, `equipment_id`, `youtube_url` (YouTube only), `muscles` (list of `{ "id": 6, "role": "primary" }`). `UpdateExerciseRequest` adds `sometimes` to each field; `muscles`, when sent, is the complete list.
 
@@ -456,9 +456,20 @@ Export and import ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)): `Ex
 
 [D2.5](../design/D2-decisions.md#d25-photos-and-videos), [D1.4.5](../design/D1-ui.md#d145-exercise-editor): photos of personal exercises uploaded from the app, their copies, Duplicate as mine. Public exercises' photos are managed in the panel ([C2.8.2](#c282-the-exercise-library-screen)).
 
-**Storage:** medialibrary collection `photos` (the first is the cover) on the `public` disk (`storage/app/public/<media id>/`), served at `/storage/…`. Conversions are queued, so an upload answers at once and the `queue` container makes the copies.
+**Storage:** medialibrary collection `photos` (the first is the cover). Conversions are queued, so an upload answers at once and the `queue` container makes the copies. Two disks (`ExercisePhotos::diskFor()`):
 
-**Emptying the database leaves the files:** `migrate:fresh` drops the rows with no model event, and the next photos would get the same ids, so the same folders. `make fresh` and `make reset` then run `media-library:clean --skip-conversions`, which deletes every folder of the disk that no `media` row owns: after `migrate:fresh`, all of them. The `public` disk holds nothing else, or that would go too.
+| Exercise | Disk, folder | Served |
+|---|---|---|
+| Public, the library | `public`, `storage/app/public/<media id>/` | At `/storage/…`, to anyone, by the web server |
+| A user's own | `private_media`, `storage/app/private/media/<media id>/` | By `GET /api/exercises/{id}/photos/{photo}/{size}`, to its owner only |
+
+**Why private:** a user's photo may show their body or their home, and a public file's address is a counting id and a fixed name (`/storage/31/photo.jpg`): a loop downloads them all. The route answers 404, not 403, to anyone else, so whether someone's exercise has photos does not show; 401 to a visitor. A soft-deleted exercise's photos are still served (`withTrashed()`), as plans and history show it. The file goes with `Cache-Control: private`, so no cache between the server and the browser keeps it, and `nosniff`.
+
+**How an `<img>` gets in:** the photo is on the app's origin, so the browser sends the session cookie with it, and the page's address as `Referer`, by which Sanctum treats the request as the app's and reads the session ([C2.7](#c27-signing-in-sanctum)). A `Referrer-Policy` of `no-referrer` would make every private photo a 401; the default, `strict-origin-when-cross-origin`, sends it within the origin.
+
+**Photos uploaded while they were public** move with `make photos-private` (`exercises:private-photos`, `ExercisePhotos::makePrivate()`): each folder is copied to the private disk and the row's `disk` changed, so the id, the order and the app's addresses stay. Running it again finds nothing.
+
+**Emptying the database leaves the files:** `migrate:fresh` drops the rows with no model event, and the next photos would get the same ids, so the same folders. `make fresh` and `make reset` then run `media-library:clean --skip-conversions`, which deletes every folder of a disk that no `media` row owns: after `migrate:fresh`, all of them. With no rows it knows only the default disk, `public`, so it runs a second time naming `private_media`. Neither disk holds anything else, or that would go too: hence `private_media`'s own folder rather than the `local` disk, where Livewire keeps the admin panel's uploads.
 
 | Conversion (`Exercise::registerMediaConversions()`) | Size | For |
 |---|---|---|
@@ -467,7 +478,7 @@ Export and import ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)): `Ex
 
 `Fit::Max` keeps proportions and never enlarges. The original stays on disk ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)).
 
-**`ExercisePhotoResource`:** `id`, `url` (`large`), `thumb_url`. Until a conversion exists its address is the original's, so the photo shows at once; an upload's own answer is always that case.
+**`ExercisePhotoResource`:** `id`, `url` (`large`), `thumb_url`: `/storage/…` paths for the library, the route's for a user's own. Until a conversion exists its address is the original's (`…/original`), so the photo shows at once; an upload's own answer is always that case. A new address once it exists, so the service worker never keeps the original in its place.
 
 **Endpoints**, on the user's own exercises (`ExercisePolicy::update()`):
 
@@ -476,6 +487,7 @@ Export and import ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)): `Ex
 | `POST /api/exercises/{id}/photos` | multipart, field `photo` | 201, the photo |
 | `PUT /api/exercises/{id}/photos` | `{ "ids": [14, 12, 13] }`, every photo once, cover first | 200, the photos in order |
 | `DELETE /api/exercises/{id}/photos/{photo}` | | 204; 404 for another exercise's photo |
+| `GET /api/exercises/{id}/photos/{photo}/{size}` | `size`: `thumb`, `large`, `original` | The file; 404 to anyone who may not see the exercise, for another exercise's photo, and for a copy not made yet (`ExercisePolicy::view()`) |
 | `POST /api/exercises/{id}/duplicate` | | 201, the copy (`ExercisePolicy::duplicate()`) |
 
 **Rules** (`StoreExercisePhotoRequest`, `ReorderExercisePhotosRequest`, the action `ExercisePhotos`):
@@ -483,12 +495,13 @@ Export and import ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)): `Ex
 | Rule | Message (422 on the field) |
 |---|---|
 | `File::image()->types(['jpg', 'jpeg', 'png', 'webp'])->max(10 * 1024)`: checked by content | Laravel's `image`, `mimes`, `max.file` |
+| At most 50 megapixels (`PhotoPixels`, also on the panel's field): a PNG of a few megabytes can declare 20,000 × 20,000 pixels, which GD needs gigabytes to open; `getimagesize()` reads only the header | `validation.photo_too_large` |
 | At most 5 photos, in `after()` | `validation.too_many_photos` |
 | The order lists exactly the exercise's photos (`present`, since `[]` is the right order for none) | `validation.photo_order` |
 
-The stored name is `photo.<extension>` (`usingFileName()`), the extension guessed from content; `IMG_4032.JPG` says nothing. `Media::setNewOrder($ids)` reorders; `$media->delete()` removes row and files.
+The stored name is `photo.<extension>` (`usingFileName()`), the extension guessed from content; `IMG_4032.JPG` says nothing. The stored file is the photo drawn again by GD (`ExercisePhotos::withoutMetadata()`, JPEG and WebP at quality 90), which writes no metadata: a phone's photo carries its GPS position, and the original is kept. Loading applies the Exif orientation first, so the pixels stand as the phone showed them. The admin panel's uploads, the library's, keep theirs. `Media::setNewOrder($ids)` reorders; `$media->delete()` removes row and files.
 
-**Duplicate as mine** (`DuplicateExercise`): a new exercise owned by the user, texts in the request's language only (falling back to English, [D2.4](../design/D2-decisions.md#d24-languages)), logging type, equipment, video link, muscles with roles, and each photo copied as a new file (`$media->copy($copy, 'photos')`), so the copy is independent of the public exercise. Import columns are not copied.
+**Duplicate as mine** (`DuplicateExercise`): a new exercise owned by the user, texts in the request's language only (falling back to English, [D2.4](../design/D2-decisions.md#d24-languages)), logging type, equipment, video link, muscles with roles, and each photo copied as a new file onto the private disk (`$media->copy($copy, 'photos', ExercisePhotos::diskFor($copy))`), so the copy is independent of the public exercise and as private as any of the user's own. Import columns are not copied.
 
 **Bulk conversions.** `queue:listen` boots Laravel per job: fine for one photo, slow for the import's 1,746. `QUEUE_CONVERSIONS_BY_DEFAULT=false` runs conversions inside the command instead; the Makefile's `ARTISAN_NOW` sets it for `make exercises-import` and `make exercises-thumbnails` (`media-library:regenerate --only-missing`, about 5 minutes for the imported photos).
 

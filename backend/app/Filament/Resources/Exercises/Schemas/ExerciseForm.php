@@ -8,6 +8,7 @@ use App\Enums\LoggingType;
 use App\Models\Equipment;
 use App\Models\Exercise;
 use App\Models\Muscle;
+use App\Rules\PhotoPixels;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -89,6 +90,7 @@ class ExerciseForm
                             ->image()
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                             ->maxSize(10 * 1024)
+                            ->rule(new PhotoPixels)
                             ->conversion('thumb')
                             ->panelLayout('grid')
                             ->helperText(__('admin.exercises.photos_help')),

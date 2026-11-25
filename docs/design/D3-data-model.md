@@ -272,7 +272,7 @@ The primary key is `(exercise_id, muscle_id)`: a muscle appears once per exercis
 
 ### D3.4.4 Photos and videos
 
-They live in spatie/laravel-medialibrary's `media` table, in the collections `photos` and `videos`, not in columns of `exercises`. Its `order_column` holds the order chosen in the editor; the first photo is the cover. Each photo's file is on the `public` disk in `storage/app/public/<media id>/`, and its two WebP copies, `thumb` (400 px) and `large` (1600 px), in `<media id>/conversions/`; the row's `generated_conversions` says which copies exist ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)).
+They live in spatie/laravel-medialibrary's `media` table, in the collections `photos` and `videos`, not in columns of `exercises`. Its `order_column` holds the order chosen in the editor; the first photo is the cover. Each photo's file is in a folder named after its id: on the `public` disk (`storage/app/public/<media id>/`) for the library, on `private_media` (`storage/app/private/media/<media id>/`) for a user's own exercise, which nobody else may see; the row's `disk` says which. Its two WebP copies, `thumb` (400 px) and `large` (1600 px), in `<media id>/conversions/`; the row's `generated_conversions` says which copies exist ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)).
 
 - The limits of [D2.5](D2-decisions.md#d25-photos-and-videos) (2 videos, 5 photos, sizes) are checked when uploading, not by the database.
 - A soft-deleted exercise **keeps its files**: medialibrary removes them only on `forceDelete()`.

@@ -45,6 +45,7 @@ return [
     'superset_size' => 'Una superserie deve avere almeno due esercizi.',
     'photo_order' => 'L\'ordine deve elencare una volta ogni foto dell\'esercizio.',
     'too_many_photos' => 'Un esercizio può avere al massimo :max foto.',
+    'photo_too_large' => 'La foto è troppo grande: al massimo :max megapixel.',
     'unique' => 'Questo valore di :attribute è già in uso.',
     'uploaded' => 'Il caricamento di :attribute non è riuscito.',
     'url' => 'Il campo :attribute deve essere un indirizzo web valido.',

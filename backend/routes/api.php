@@ -32,6 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'store']);
     Route::put('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'reorder']);
     Route::delete('/exercises/{exercise}/photos/{photo}', [ExercisePhotoController::class, 'destroy'])->whereNumber('photo');
+    // The file of a personal exercise's photo, which is on no public disk
+    Route::get('/exercises/{exercise}/photos/{photo}/{size}', [ExercisePhotoController::class, 'show'])
+        ->whereNumber('photo')->whereIn('size', ['thumb', 'large', 'original'])->withTrashed()
+        ->name('exercises.photos.show');
 
     // The workout plans
     Route::apiResource('plans', PlanController::class);

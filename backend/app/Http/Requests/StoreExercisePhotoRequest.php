@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Actions\Exercises\ExercisePhotos;
 use App\Models\Exercise;
+use App\Rules\PhotoPixels;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\File;
 use Illuminate\Validation\Validator;
@@ -11,7 +12,8 @@ use Illuminate\Validation\Validator;
 /**
  * POST /api/exercises/{exercise}/photos: one photo, multipart field `photo`.
  *
- * JPEG, PNG or WebP, at most 10 MB, at most ExercisePhotos::MAX per exercise.
+ * JPEG, PNG or WebP, at most 10 MB and ExercisePhotos::MAX_PIXELS, at most
+ * ExercisePhotos::MAX per exercise.
  * No HEIC: GD cannot read it, and an iPhone's browser sends a JPEG unless the
  * form asks for HEIC.
  *
@@ -27,7 +29,7 @@ class StoreExercisePhotoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'photo' => ['required', File::image()->types(['jpg', 'jpeg', 'png', 'webp'])->max(10 * 1024)],
+            'photo' => ['required', File::image()->types(['jpg', 'jpeg', 'png', 'webp'])->max(10 * 1024), new PhotoPixels],
         ];
     }
 

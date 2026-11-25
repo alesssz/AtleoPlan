@@ -90,13 +90,15 @@ Before buying a domain or opening store accounts, the name is checked against do
 | | Accepted upload | Stored after processing |
 |---|---|---|
 | **Video** (phase 2) | Up to **30 s** and **100 MB**; mp4, mov (iPhone), webm | 720p, H.264, no audio, about 2 Mbit/s (about **8 MB for 30 s**), plus a poster image. The original is deleted. |
-| **Photo** | Up to **10 MB**; jpg, png, webp | The original, plus two WebP copies: at most 1600 px for the exercise's page, at most 400 px for lists and workout mode |
+| **Photo** | Up to **10 MB** and **50 megapixels**; jpg, png, webp | The original, drawn again without its metadata, plus two WebP copies: at most 1600 px for the exercise's page, at most 400 px for lists and workout mode |
 | **Per exercise** | At most **2 videos and 5 photos** | |
 
 Why these numbers: two or three reps are enough to show how an exercise is done (10–15 s), so 30 s leaves room. 100 MB covers 30 s of 4K from an iPhone. The server converts every video (a queue job running ffmpeg), also because the HEVC videos of iPhones do not play in every browser. Media are handled with spatie/laravel-medialibrary.
 
 **Photos** ([C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)):
 - **The original is kept.** medialibrary always keeps the file uploaded, and its copies are files beside it. Keeping it lets the copies be made again if their sizes change (`make exercises-thumbnails`, `media-library:regenerate`); the app never shows it once the copies exist. At most 50 MB per exercise, on a 200 GB disk.
+- **A user's own photos are private.** They may show a body or a home. The library's are public files under `/storage`; a personal exercise's are on a disk with no address, and the API gives them to their owner only. A public file's address is a counting id and a fixed name: anyone could download them all.
+- **No metadata.** A phone's photo records where it was taken, the device and the moment. A user's photo is drawn again on upload, which drops all of it; the pixels limit keeps that, and the copies, within the server's memory.
 - **No HEIC.** GD, the image library of the Docker image, writes WebP but cannot read HEIC, and Imagick with libheif would make the image heavier. An iPhone's browser sends a JPEG anyway when the form does not ask for HEIC, so nobody uploading from a phone notices.
 
 The imported photos take 98.7 MB; their small copies 20.7 MB (about 12 KB each instead of 56), and the lists load those.
@@ -107,7 +109,7 @@ The imported photos take 98.7 MB; their small copies 20.7 MB (about 12 KB each i
 
 - **Now:** files are stored on the disk of the server that runs the app ([D2.6](#d26-hosting)): free, simple, and 200 GB are far more than needed (the imported photos take 98 MB; a thousand videos about 8 GB).
 - **Later**, with real users: Cloudflare R2 (10 GB free) on a **dedicated Cloudflare account**, so the app's storage, quota and costs stay separate and the app can be handed over on its own. Switching is a change of `FILESYSTEM_DISK` in `.env`, not of the code.
-- Files on the server's disk need **backups**, planned with the deployment.
+- Files on the server's disk need **backups**, planned with the deployment: both disks, the library's and the users' own.
 
 ---
 

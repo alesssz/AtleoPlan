@@ -38,6 +38,18 @@ return [
             'report' => false,
         ],
 
+        // The photos of personal exercises: no address of their own, served
+        // to their owner by ExercisePhotoController::show(); the library's
+        // stay on `public`. A folder of its own, since media-library:clean
+        // deletes every folder of a disk that no media row owns
+        'private_media' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/media'),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

@@ -6,7 +6,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer vendor migrate fresh reset tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct exercises-thumbnails exercises-translate plans-demo \
+        artisan composer vendor migrate fresh reset tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct photos-private exercises-thumbnails exercises-translate plans-demo \
         node-version dev phone fe-install fe-build fe-preview \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit github-check toc toc-check \
         branch sync push merge
@@ -130,12 +130,14 @@ migrate: ## Run the new migrations
 
 # The photos go with their rows: left behind, the next photos would reuse
 # their ids, and so their folders. media-library:clean deletes every folder
-# of the public disk that no media row owns, which after migrate:fresh is all
-# of them; the public disk holds nothing else.
+# of a disk that no media row owns, which after migrate:fresh is all of them;
+# neither disk holds anything else. With no rows it knows of no disk but
+# `public`, so the private one, of the users' own photos, is named.
 fresh: ## Empty the development database and its photos, then seed it: test account, muscles, equipment (asks first; yes=1 skips the question)
 	$(call confirm,$(FRESH_WARNING))
 	$(ARTISAN) migrate:fresh --seed
 	$(ARTISAN) media-library:clean --skip-conversions --quiet
+	$(ARTISAN) media-library:clean '' '' private_media --skip-conversions --quiet
 	@echo "✔ Database seeded, photos removed. The library: make exercises-import"
 
 reset: ## As a new clone: fresh, then the exercise library imported again with its photos (asks first; yes=1 skips the question)
@@ -202,6 +204,11 @@ exercises-extra: ## Add the extra exercises (calisthenics) to the library, then 
 # reps of their sets in plans and workouts become seconds.
 exercises-correct: ## Correct the logging types the import guessed wrong (Plank as time); safe to run again
 	$(ARTISAN) exercises:correct-logging-types
+
+# Once, for a database whose users' photos were uploaded before they were
+# private; new ones are private already.
+photos-private: ## Move the photos of users' own exercises off the public disk; safe to run again
+	$(ARTISAN) exercises:private-photos
 
 exercises-thumbnails: ## Make the missing small and large copies of the exercises' photos; safe to run again
 	$(ARTISAN_NOW) media-library:regenerate --only-missing
