@@ -240,7 +240,7 @@ The frame, the query cache and component state survive navigation between screen
 
 **The `src/api/` pattern.** One file per resource: the response types, the cache keys, plain `fetchX` functions (usable outside React), `xQuery()` options where a hook and code outside it share a key (`planQuery()`, `lastSetsQuery()`, used by Start and the reading ahead of [C1.18.2](#c1182-starting-from-home-one-hook-for-two-pages)), and the hooks. `health.ts` is the smallest.
 
-**Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). **The data wins over the error:** a refresh that fails leaves the query in `error` with its last answer, which `shownData()` (`lib/shown-data.ts`) still gives, so a screen shows a message only with nothing to show. Not after a 4xx: a 404 or a 403 says the thing is gone or not the user's, and showing it would lead to changes that fail. A request that runs while content is already on screen shows a smaller sign: [C1.20](#c120-showing-that-something-is-loading).
+**Every component that reads server data handles three states:** loading (a skeleton, never a full-page spinner), error (a message and **Retry**), and success ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)). **The data wins over the error:** a refresh that fails leaves the query in `error` with its last answer, which `shownData()` (`lib/shown-data.ts`) still gives, so a screen shows a message only with nothing to show. Not after a 4xx: a 404 or a 403 says the thing is gone or not the user's, and showing it would lead to changes that fail. A 429 is not one of them: the server's rate limit ([C2.5.10](C2-backend.md#c2510-rate-limits)) says only "not now". A request that runs while content is already on screen shows a smaller sign: [C1.20](#c120-showing-that-something-is-loading).
 
 ---
 
@@ -1041,6 +1041,7 @@ The confirmation counts working sets (`countSets()`): "3 of 7 sets done, warm-up
 | 2xx | saved (201 first time, 200 after) | leaves |
 | 410 Gone | deleted elsewhere meanwhile ([C2.5.7](C2-backend.md#c257-the-workouts-endpoints)) | leaves: resending will never work |
 | none (offline), 5xx | network or server down | stays, retried later |
+| 429 | the server's rate limit ([C2.5.10](C2-backend.md#c2510-rate-limits)) | stays, retried later: not a refusal of the workout |
 | other 4xx (403, 422) | refused | stays, so nothing is lost, and is reported by `SyncIndicator` |
 | none within 30 s | a request hanging on a weak network | stays, retried later |
 

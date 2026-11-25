@@ -3,14 +3,15 @@
  * "error" while keeping the last answer: with the server unreachable, the
  * screen opened before must still show it, as it does offline.
  */
-import { ApiError } from './http'
+import { ApiError, TOO_MANY_REQUESTS } from './http'
 
 /**
  * The last answer, unless the failure says it no longer holds: a 4xx (404,
  * 403) means the thing is gone or not the user's, and showing it would lead to
- * changes that fail.
+ * changes that fail. Not a 429, which says only "not now".
  */
 export function shownData<T>(query: { data: T | undefined, error: unknown }): T | undefined {
-  const refused = query.error instanceof ApiError && query.error.status >= 400 && query.error.status < 500
+  const status = query.error instanceof ApiError ? query.error.status : 0
+  const refused = status >= 400 && status < 500 && status !== TOO_MANY_REQUESTS
   return refused ? undefined : query.data
 }

@@ -20,7 +20,9 @@ use Illuminate\Support\Facades\Route;
 // shown on Profile (frontend/src/api/health.ts)
 Route::get('/health', fn () => response()->json(['status' => 'ok']))->name('health');
 
-Route::middleware('auth:sanctum')->group(function () {
+// Limits per user (AppServiceProvider::configureRateLimiting()): `api` on
+// every route, tighter ones where a request costs disk or many rows
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/user', [CurrentUserController::class, 'show']);
     Route::patch('/user/preferences', [CurrentUserController::class, 'updatePreferences']);
 
@@ -28,13 +30,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/muscles', [MuscleController::class, 'index']);
     Route::get('/equipment', [EquipmentController::class, 'index']);
     Route::apiResource('exercises', ExerciseController::class);
-    Route::post('/exercises/{exercise}/duplicate', [ExerciseController::class, 'duplicate']);
-    Route::post('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'store']);
+    Route::post('/exercises/{exercise}/duplicate', [ExerciseController::class, 'duplicate'])->middleware('throttle:uploads');
+    Route::post('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'store'])->middleware('throttle:uploads');
     Route::put('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'reorder']);
     Route::delete('/exercises/{exercise}/photos/{photo}', [ExercisePhotoController::class, 'destroy'])->whereNumber('photo');
-    // The file of a personal exercise's photo, which is on no public disk
+    // The file of a personal exercise's photo, which is on no public disk. Its
+    // own limit: a plan's read-ahead asks for all its photos at once
     Route::get('/exercises/{exercise}/photos/{photo}/{size}', [ExercisePhotoController::class, 'show'])
         ->whereNumber('photo')->whereIn('size', ['thumb', 'large', 'original'])->withTrashed()
+        ->withoutMiddleware('throttle:api')->middleware('throttle:photo-files')
         ->name('exercises.photos.show');
 
     // The workout plans
@@ -43,7 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/plans/{plan}/archive', [PlanController::class, 'archive']);
     Route::post('/plans/{plan}/unarchive', [PlanController::class, 'unarchive']);
     Route::get('/plans/{plan}/export', [PlanController::class, 'export']);
-    Route::post('/plans/import', [PlanController::class, 'import']);
+    Route::post('/plans/import', [PlanController::class, 'import'])->middleware('throttle:imports');
 
     // The workouts. No POST: saving is a PUT to the session's own UUID, made on
     // the phone. whereUuid() also keeps 'last-sets' from being read as a

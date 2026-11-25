@@ -21,6 +21,9 @@ export interface RequestOptions {
   signal?: AbortSignal
 }
 
+/** The server's rate limit: a refusal for now, not of what was sent. */
+export const TOO_MANY_REQUESTS = 429
+
 /** A status of 400 and above, or 0 when no answer came (offline, server down). */
 export class ApiError extends Error {
   readonly status: number

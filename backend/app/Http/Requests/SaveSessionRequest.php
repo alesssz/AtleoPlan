@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\LoggingType;
 use App\Enums\SetType;
+use App\Http\Requests\Concerns\ChecksListLengthsFirst;
 use App\Models\Exercise;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
@@ -53,6 +54,8 @@ use Illuminate\Validation\Validator;
  */
 class SaveSessionRequest extends FormRequest
 {
+    use ChecksListLengthsFirst;
+
     /**
      * The fields each way of logging must fill.
      *

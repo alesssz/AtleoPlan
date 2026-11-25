@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\LoggingType;
 use App\Enums\MuscleRole;
+use App\Http\Requests\Concerns\ChecksListLengthsFirst;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,6 +27,8 @@ use Illuminate\Validation\Rule;
  */
 class StoreExerciseRequest extends FormRequest
 {
+    use ChecksListLengthsFirst;
+
     /**
      * @return array<string, array<int, mixed>>
      */

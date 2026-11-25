@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Actions\Exercises\ExercisePhotos;
+use App\Http\Requests\Concerns\ChecksListLengthsFirst;
 use App\Models\Exercise;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -14,6 +16,8 @@ use Illuminate\Validation\Validator;
  */
 class ReorderExercisePhotosRequest extends FormRequest
 {
+    use ChecksListLengthsFirst;
+
     /**
      * `present`, not `required`: an empty list is the right order for an
      * exercise with no photos.
@@ -23,7 +27,7 @@ class ReorderExercisePhotosRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ids' => ['present', 'array'],
+            'ids' => ['present', 'array', 'max:'.ExercisePhotos::MAX],
             'ids.*' => ['integer', 'distinct'],
         ];
     }
