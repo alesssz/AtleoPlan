@@ -32,7 +32,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
 - [SEC](#sec)
-  - [SEC-9 Update webauthn-lib](#sec-9-update-webauthn-lib)
   - [SEC-10 The exercise library's download is not pinned](#sec-10-the-exercise-librarys-download-is-not-pinned)
   - [SEC-11 Verify the address at sign-up](#sec-11-verify-the-address-at-sign-up)
 - [DATA](#data)
@@ -299,14 +298,6 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 ## SEC
 
 The points of a security review of 2026-11-25. None is exploitable while the app runs only locally (every port of `compose.yaml` listens on 127.0.0.1); they matter from the deployment ([OPS-3](#ops-3-deploy-to-the-free-server)), whose own settings are among its steps.
-
-### SEC-9 Update webauthn-lib
-
-**Priority:** low · **Kind:** dependencies · **Found:** 2026-11-25
-
-**What is missing.** `composer audit` reports six advisories on `web-auth/webauthn-lib` 5.3.12, required by `laravel/passkeys` through Fortify. Passkeys are not enabled (`config/fortify.php`), so the code concerned does not run.
-
-**Recommended.** `composer update web-auth/webauthn-lib` (5.3.17 or later), then `composer audit` clean and `make check`.
 
 ### SEC-10 The exercise library's download is not pinned
 
