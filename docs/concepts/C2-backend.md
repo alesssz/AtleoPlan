@@ -106,8 +106,10 @@ backend/
 │   │   ├── Controllers/        (C2.5)
 │   │   ├── Middleware/         SetLocaleFromRequest (C2.7.7), SignOutDisabledAccount (C2.7.9), SetPanelLocale (C2.8.1)
 │   │   ├── Requests/           Form Requests; Concerns/ChecksListLengthsFirst (C2.5.6)
-│   │   └── Resources/          API Resources
+│   │   ├── Resources/          API Resources
+│   │   └── Responses/          ResetLinkRequestedResponse (C2.7.5)
 │   ├── Models/               one per table (C2.6)
+│   ├── Notifications/        ResetPasswordEmail (C2.7.5)
 │   ├── Policies/             ExercisePolicy, PlanPolicy, WorkoutSessionPolicy (C2.5.1)
 │   ├── Providers/            AppServiceProvider (rate limits, C2.5.10), FortifyServiceProvider, Filament/AdminPanelProvider
 │   ├── Rules/                SupersetsAreNeighbours (C2.5.6), PhotoPixels (C2.5.9)
@@ -588,7 +590,7 @@ Browser (localhost:5673)                        Laravel, through Vite's proxy
 | `POST /api/auth/register` | Signs up, then in, and emails the confirmation link ([C2.7.10](#c2710-confirming-the-address)) | 201; 422; 429 |
 | `POST /api/auth/login` | Signs in | 200; 422; 429 |
 | `POST /api/auth/logout` | Signs out | 204 |
-| `POST /api/auth/forgot-password` | Sends the email | 200; 422 unknown email; 429 |
+| `POST /api/auth/forgot-password` | Sends the email | 200, whether the address has an account or not; 422 not an address; 429 |
 | `POST /api/auth/reset-password` | Sets the new password | 200; 422 wrong token; 429 |
 | `GET /api/user` (ours) | Who is signed in, with `email_verified` | 200; 401 |
 | `POST /api/user/verification-email` (ours) | Sends the confirmation link again | 204; 401; 429 |
@@ -661,7 +663,7 @@ ResetPassword::createUrlUsing(fn (User $user, string $token): string => sprintf(
 - **signs the user out everywhere** (`EndSessions`: every row of `sessions`, and a new remember token, so no "remember me" cookie starts another). A reset is how a stolen password, or an account someone else signed up with this address, is taken back; their sessions must not outlive it;
 - **confirms the address,** since the token came through it, as the confirmation link would have.
 
-**Known limit:** an unknown email gets a 422, so this form (like sign-up) reveals who has an account: [BE-3](../project/backlog.md#be-3-harden-the-public-sign-in-routes).
+**Asking does not tell who has an account.** Fortify answers a sent email with a 200, an address with no account with a 422, and an account asked for less than a minute ago (the broker sends one email a minute) with another 422. All three now get the same 200 and the same message, "If an account uses this email, we have sent it a link…" (`ResetLinkRequestedResponse`, bound to both of Fortify's responses in `FortifyServiceProvider::register()`). Nor does the time: the broker takes at least 200 ms either way (`Timebox`), and the email goes through the queue (`ResetPasswordEmail`, from `User::sendPasswordResetNotification()`), as waiting for the mail server would make a known address answer later. Only an input that is not an address is a 422. Sign-up still tells: [BE-7](../project/backlog.md#be-7-sign-up-says-that-an-address-is-taken).
 
 ### C2.7.6 Fortify or by hand
 
@@ -678,7 +680,7 @@ The five controller methods are short to write; the difference is who answers fo
 | `lang/{it,es,de}/auth.php`, `passwords.php` | Sign-in and password reset |
 | `lang/{it,es,de}/validation.php` | Validation messages for the rules in use, and field names |
 | `lang/{it,es,de}.json` | The sentences of the password and confirmation emails, keyed by the English text |
-| `lang/en/auth.php`, `validation.php` | Only additions (the disabled-account message, English field names such as `muscles.*.role`), merged over Laravel's own by key |
+| `lang/en/auth.php`, `passwords.php`, `validation.php` | Only additions and changes (the disabled-account message, the reset link's neutral answer, English field names such as `muscles.*.role`), merged over Laravel's own by key |
 
 - **Responses** use the request's language: the React app sends `Accept-Language` on every call, and `SetLocaleFromRequest` applies it.
 - **Emails** use the account's language (`User` implements `HasLocalePreference`), since they may be read later on another device.
@@ -777,7 +779,7 @@ GET  /api/user ───────────▶ { …, "email_verified": tru
 - **Sending it again:** `POST /api/user/verification-email`, 6 an hour per user (`verification-emails`, [C2.5.10](#c2510-rate-limits)); nothing is sent for an address already confirmed, with the same 204.
 - **Accounts made before this** count as confirmed from their creation (migration `count_existing_accounts_as_verified`); only development data existed.
 - **`EndSessions` assumes the `database` session driver,** the app's; with another, it would only change the remember token.
-- **Sign-up still says that an address is taken** ([BE-3](../project/backlog.md#be-3-harden-the-public-sign-in-routes)). Someone who finds their address taken uses Forgot password, which confirms it and signs the other person out, or Continue with Google.
+- **Sign-up still says that an address is taken** ([BE-7](../project/backlog.md#be-7-sign-up-says-that-an-address-is-taken)). Someone who finds their address taken uses Forgot password, which confirms it and signs the other person out, or Continue with Google.
 
 ---
 
