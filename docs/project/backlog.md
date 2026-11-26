@@ -27,6 +27,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-11 Videos of an exercise](#feat-11-videos-of-an-exercise)
   - [FEAT-12 Choose the sound at the end of a rest or a timed set](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set)
   - [FEAT-13 The volume of the sound](#feat-13-the-volume-of-the-sound)
+  - [FEAT-20 A plan's duration, and a notice when it is ending](#feat-20-a-plans-duration-and-a-notice-when-it-is-ending)
 - [BE](#be)
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
@@ -66,7 +67,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile), [FEAT-20](#feat-20-a-plans-duration-and-a-notice-when-it-is-ending). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
 Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps.
 
@@ -261,6 +262,30 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 - B) The volume kept in `localStorage`, per phone: right if the same account trains with a phone and a tablet, but the only preference that would not follow the account.
 
 **Recommended.** A, with FEAT-12. The gain is relative to the system volume: the slider can make the beep quieter or louder than today, never louder than the phone allows, and an iPhone in silent mode may mute it; the preference's hint says so.
+
+### FEAT-20 A plan's duration, and a notice when it is ending
+
+**Priority:** low · **Kind:** feature · **Found:** 2026-11-26
+
+**What is missing.** A plan is usually built to be followed for a set time: one month, two, three. Nothing records it, so nothing says when it is time to move on. Wanted, on each plan and both optional, never a constraint:
+- **a duration** in weeks, shown with its months when it is a multiple of four: "8 weeks (2 months)";
+- **a start date**, a day without a time.
+
+With both, Home says when the plan is nearing its end, and offers three ways on: **ignore** the notice, **extend** the plan a week at a time, or **close** it to move to another. Without a duration nothing changes: no notice, no count of weeks.
+
+**Where.** `plans` ([D3.5.1](../design/D3-data-model.md#d351-plans)), two nullable columns, with `PlanRequest`, `PlanResource` and the frontend types; the plan editor for the two fields ([D1.4.8](../design/D1-ui.md#d148-plan-editor)); Plan details to show them ([D1.4.7](../design/D1-ui.md#d147-plan-details)); Home's active-plan card for the notice ([D1.4.2](../design/D1-ui.md#d142-home), `HomeSummary`); the plan file, which carries the duration but not the start ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)).
+
+**Decided.**
+- **`duration_weeks`** (1 to 52) and **`starts_on`** (a date). Weeks, since extensions are in weeks; the editor offers 4, 8 and 12 weeks and any other number. The end is the start plus the weeks, 8 weeks being 56 days, a little under two calendar months.
+- **The end is compared with today,** not with the last workout: a plan left behind must still say it is over.
+- **The start fills itself** at the first workout done with a plan that has a duration and no start yet, as a plan is often set active days before it begins. It can be set or changed in the editor at any time, a future date included, for a plan that starts next Monday.
+- **Taken up again:** setting active a plan whose end has passed asks "Start again from today?", which moves the start; no leaves it.
+- **The notice** shows on Home's card from the plan's last week, and after the end until a choice is made: "Week 8 of 8 · started 5 October". Plan details shows "Week 3 of 8" all along.
+- **Ignore** is remembered on the server for that plan (a `duration_notice_dismissed_at`), so another device does not show it again; it returns once the plan is extended and the new end nears.
+- **Extend** adds weeks to the duration (+1, +2, +4), and the start stays.
+- **Close** archives the plan, which also leaves it no longer active ([C2.5.5](../concepts/C2-backend.md#c255-the-plans-endpoints)), then opens the plan list to pick or make the next.
+
+**Done when** a plan of 4 weeks started 3 weeks and 2 days ago shows the notice on Home; one without a duration never does; the first workout of a plan with a duration and no start sets the start to that day; Extend by 2 weeks hides the notice until the new last week; Ignore hides it on every device; Close archives the plan and opens the list; setting active an ended plan asks to start again; and the duration survives Export and Import.
 
 ## BE
 
