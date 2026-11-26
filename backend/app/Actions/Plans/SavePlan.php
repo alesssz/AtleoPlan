@@ -29,6 +29,9 @@ use Illuminate\Support\Facades\DB;
  */
 class SavePlan
 {
+    /** 9,000 values a statement. */
+    private const SETS_PER_INSERT = 1000;
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -94,7 +97,7 @@ class SavePlan
         // Any row not sent is deleted at the end
         $keptDayIds = [];
         $keptItemIds = [];
-        // Written at the end in one query
+        // Written at the end, a few queries in all
         $sets = [];
 
         foreach (array_values($days) as $dayPosition => $dayData) {
@@ -132,7 +135,11 @@ class SavePlan
         $plan->days()->whereNotIn('id', $keptDayIds)->delete();
 
         PlanSet::query()->whereIn('plan_item_id', $keptItemIds)->delete();
-        PlanSet::query()->insert($sets);
+        // Postgres takes at most 65,535 values a statement, and the largest
+        // plan allowed has 8,400 sets of 9 columns
+        foreach (array_chunk($sets, self::SETS_PER_INSERT) as $chunk) {
+            PlanSet::query()->insert($chunk);
+        }
     }
 
     /**

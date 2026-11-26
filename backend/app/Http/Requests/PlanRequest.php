@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\SetType;
 use App\Http\Requests\Concerns\ChecksListLengthsFirst;
+use App\Http\Requests\Concerns\LowercasesIds;
 use App\Rules\SupersetsAreNeighbours;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
@@ -55,13 +56,25 @@ use Illuminate\Validation\Rules\Unique;
  */
 abstract class PlanRequest extends FormRequest
 {
-    use ChecksListLengthsFirst;
+    use ChecksListLengthsFirst {
+        prepareForValidation as refuseListsTooLong;
+    }
+    use LowercasesIds;
 
     /**
      * The plan whose days and items the request may name by id; null when
      * every id sent must be new.
      */
     abstract protected function planId(): ?string;
+
+    /**
+     * The lists counted first, so a body too long is never walked.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->refuseListsTooLong();
+        $this->lowercaseIds('id', 'days.*.id', 'days.*.items.*.id');
+    }
 
     /**
      * @return array<string, array<int, mixed>>
