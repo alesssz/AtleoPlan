@@ -165,7 +165,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - **Confirm your email:** after signing up with a password, and at every sign-in until it is done, the app shows only this screen: "We sent a link to ann@example.com", **I've confirmed it**, **Send the link again**, and **Sign out** for a mistyped address. The link works in any browser, expires after 60 minutes, and opens the sign-in page with "Address confirmed" (or, signed in already, the app). Continue with Google and a password reset confirm the address too.
 - **Staying signed in:** always on, with no checkbox: a phone at the gym must not ask for a password.
 - **A password** has at least 10 characters, with no rule of digits or symbols; in production one seen in a data leak is refused, with a message under the field.
-- **Forgot password** by email, in the language of the account: its link opens `/reset-password`, works once, and expires after 60 minutes.
+- **Forgot password** by email, in the language of the account: its link opens `/reset-password`, works once, and expires after 60 minutes. The form answers the same whether the address has an account or not: "If an account uses this email, the link is on its way".
 - **Coming back:** after signing in, the user lands on the page they were trying to open.
 - **Server unreachable:** "Can't reach the server" and **Try again**, never the sign-in form: the user may well be signed in.
 - **Onboarding**, three skippable steps: language (preset from the browser), units (kg/lb), goal (strength, hypertrophy, general fitness), then start from a template plan or from scratch.

@@ -134,7 +134,7 @@ The owner's account has two-factor authentication, private email addresses with 
 - **A Dependabot alert, or a failed Dependabot run:** a package in use has a known vulnerability and no compatible fix was proposed, usually because the fix is a major version its parents do not accept. `make audit` shows which; [H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides) is the way through, on a `chore/…` branch: who brings the package, whether it reaches the app or only the tooling, an `overrides` checked by hand, and **Dismiss** with a reason for what cannot be fixed. Never `npm audit fix --force`.
 - **An open secret alert:** the secret is revoked first, then removed. Push protection stops the known kinds only.
 - **A report through Private vulnerability reporting:** answered in the **Security** tab; the fix goes on a `fix/…` branch like any other.
-- **Deploying** ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)): with the code public, the app's own hardening matters more: `APP_DEBUG=false`, secrets only in the server's environment, and [BE-3](backlog.md#be-3-harden-the-public-sign-in-routes).
+- **Deploying** ([OPS-3](backlog.md#ops-3-deploy-to-the-free-server)): with the code public, the app's own hardening matters more: `APP_DEBUG=false`, secrets only in the server's environment, and [BE-7](backlog.md#be-7-sign-up-says-that-an-address-is-taken).
 
 ---
 

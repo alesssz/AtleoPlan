@@ -528,7 +528,7 @@
       "title": "Forgot your password?",
       "description": "Enter your email and we'll send you a link to choose a new one.",
       "submit": "Send the link",
-      "sent": "Done: check your inbox for the link."
+      "sent": "If an account uses this email, the link is on its way: check your inbox, and the spam folder too."
     },
     "resetPassword": {
       "eyebrow": "Almost there",

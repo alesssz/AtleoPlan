@@ -528,7 +528,7 @@
       "title": "Passwort vergessen?",
       "description": "Gib deine E-Mail-Adresse ein, und wir senden dir einen Link, um ein neues zu wählen.",
       "submit": "Link senden",
-      "sent": "Erledigt: Den Link findest du in deinem Postfach."
+      "sent": "Wenn ein Konto diese E-Mail-Adresse nutzt, ist der Link unterwegs: Schau in dein Postfach, auch in den Spam-Ordner."
     },
     "resetPassword": {
       "eyebrow": "Fast geschafft",

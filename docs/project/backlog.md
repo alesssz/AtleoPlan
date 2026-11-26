@@ -29,9 +29,9 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-13 The volume of the sound](#feat-13-the-volume-of-the-sound)
   - [FEAT-20 A plan's duration, and a notice when it is ending](#feat-20-a-plans-duration-and-a-notice-when-it-is-ending)
 - [BE](#be)
-  - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
+  - [BE-7 Sign-up says that an address is taken](#be-7-sign-up-says-that-an-address-is-taken)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
 
@@ -67,7 +67,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile), [FEAT-20](#feat-20-a-plans-duration-and-a-notice-when-it-is-ending). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile), [FEAT-20](#feat-20-a-plans-duration-and-a-notice-when-it-is-ending). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-7](#be-7-sign-up-says-that-an-address-is-taken).
 
 Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps.
 
@@ -289,18 +289,6 @@ With both, Home says when the plan is nearing its end, and offers three ways on:
 
 ## BE
 
-### BE-3 Harden the public sign-in routes
-
-**Priority:** low until the app is public · **Kind:** security · **Found:** 2026-11-05
-
-**What is missing.** Signing up and asking for a reset email reveal whether an address has an account, by their answers. Their rate limits are there ([C2.7.4](../concepts/C2-backend.md#c274-slowing-down-password-guessing)).
-
-**Options.**
-- A) The same answer to a known and an unknown email when asking for a reset.
-- B) Leave as it is until the app is public.
-
-**Recommended.** A before opening to other users (phase 2); until then the app is not deployed, so nothing is exposed. Signing up will still reveal that an email is taken, unless it moves to verifying the address by email first.
-
 ### BE-5 A plan at the largest size allowed cannot be saved
 
 **Priority:** low · **Kind:** robustness · **Found:** 2026-11-25
@@ -316,6 +304,18 @@ With both, Home says when the plan is nearing its end, and offers three ways on:
 **What is missing.** Postgres compares `uuid` columns ignoring case; the lookups in PHP of `SavePlan` and `SaveWorkoutSession` (`$existing->get($id)`, `distinct`) do not. An id already there, sent again in capitals, misses the lookup, is inserted again and hits the primary key. Only the sender's own rows are concerned.
 
 **Recommended.** Lowercase every id in the Form Requests' `prepareForValidation()`.
+
+### BE-7 Sign-up says that an address is taken
+
+**Priority:** low until the app is public · **Kind:** security · **Found:** 2026-11-26
+
+**What is missing.** Signing up with an address that has an account answers 422 "The email has already been taken", so anyone can learn who uses the app, one address at a time (30 a minute per address, [C2.7.4](../concepts/C2-backend.md#c274-slowing-down-password-guessing)). Asking for a reset no longer tells ([C2.7.5](../concepts/C2-backend.md#c275-forgot-password)).
+
+**Options.**
+- A) Sign-up answers an address already taken as a new one: the same 201 and "Confirm your email" screen, with no account made and nobody signed in; the address's owner gets an email instead, "Someone tried to sign up with your address: if it was you, sign in, or reset your password". Possible now that a new account must confirm its address ([C2.7.10](../concepts/C2-backend.md#c2710-confirming-the-address)). The screen must then work without a session, and someone who mistyped their own address waits for an email that goes to its owner.
+- B) Leave it: the limit per address slows a list down, and many apps answer the same way.
+
+**Recommended.** A before opening the app to other users (phase 2); until then it is not deployed, so nothing is exposed. Done when signing up with a known address and with a new one give the same answer, the owner gets the email, and no session or account is made for the known one.
 
 ## DATA
 

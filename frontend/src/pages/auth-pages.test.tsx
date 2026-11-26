@@ -267,21 +267,22 @@ describe('ForgotPasswordPage', () => {
     await userEvent.type(await screen.findByLabelText('Email'), 'ann@example.com')
     await userEvent.click(screen.getByRole('button', { name: 'Send the link' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent('check your inbox')
+    // Worded for an address with no account too: the server answers both alike
+    expect(await screen.findByText(/If an account uses this email, the link is on its way/)).toBeInTheDocument()
     expect(sentBody(fake, '/api/auth/forgot-password')).toEqual({ email: 'ann@example.com' })
   })
 
-  it('shows an unknown email under the field', async () => {
+  it('shows the server\'s message under the field', async () => {
     fakeApi({
       'GET /api/user': visitor,
-      'POST /api/auth/forgot-password': { status: 422, body: { message: 'Invalid', errors: { email: ['Not found.'] } } },
+      'POST /api/auth/forgot-password': { status: 422, body: { message: 'Invalid', errors: { email: ['The email field must be a valid email address.'] } } },
     })
     renderRoutes(routes, '/forgot-password')
 
-    await userEvent.type(await screen.findByLabelText('Email'), 'nobody@example.com')
+    await userEvent.type(await screen.findByLabelText('Email'), 'ann@example.com')
     await userEvent.click(screen.getByRole('button', { name: 'Send the link' }))
 
-    expect(await screen.findByText('Not found.')).toBeInTheDocument()
+    expect(await screen.findByText('The email field must be a valid email address.')).toBeInTheDocument()
   })
 })
 

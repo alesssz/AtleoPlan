@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Responses\ResetLinkRequestedResponse;
 use App\Models\User;
 use App\Support\ActionEmail;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Fortify;
 
 /**
@@ -33,6 +36,14 @@ class FortifyServiceProvider extends ServiceProvider
     public const AUTH_REQUESTS_PER_MINUTE = 30;
 
     public const AUTH_REQUESTS_PER_HOUR = 300;
+
+    public function register(): void
+    {
+        // One answer to "forgot password", whether the address has an account
+        // or not
+        $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, ResetLinkRequestedResponse::class);
+        $this->app->bind(FailedPasswordResetLinkRequestResponse::class, ResetLinkRequestedResponse::class);
+    }
 
     public function boot(): void
     {

@@ -528,7 +528,7 @@
       "title": "Password dimenticata?",
       "description": "Inserisci la tua email e ti invieremo un link per sceglierne una nuova.",
       "submit": "Invia il link",
-      "sent": "Fatto: controlla la posta per trovare il link."
+      "sent": "Se un account usa questa email, il link è in arrivo: controlla la posta, anche nello spam."
     },
     "resetPassword": {
       "eyebrow": "Ci siamo quasi",

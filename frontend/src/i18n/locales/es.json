@@ -528,7 +528,7 @@
       "title": "¿Has olvidado tu contraseña?",
       "description": "Introduce tu correo y te enviaremos un enlace para elegir una nueva.",
       "submit": "Enviar el enlace",
-      "sent": "Hecho: busca el enlace en tu correo."
+      "sent": "Si hay una cuenta con este correo, el enlace está en camino: revisa tu correo, y también la carpeta de spam."
     },
     "resetPassword": {
       "eyebrow": "Ya casi está",

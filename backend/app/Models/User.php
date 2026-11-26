@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\Locale;
 use App\Enums\Theme;
 use App\Enums\WeightUnit;
+use App\Notifications\ResetPasswordEmail;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -115,5 +116,16 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference,
     public function preferredLocale(): ?string
     {
         return $this->locale?->value;
+    }
+
+    /**
+     * Through the queue (ResetPasswordEmail), so that asking for a reset
+     * answers as fast for a known address as for an unknown one.
+     *
+     * @param  string  $token
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordEmail($token));
     }
 }
