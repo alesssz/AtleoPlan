@@ -6,6 +6,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 use Spatie\Translatable\Facades\Translatable;
 
 class AppServiceProvider extends ServiceProvider
@@ -34,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
     /** Plan imports, each up to 420 exercises and 8,400 sets. */
     public const IMPORTS_PER_HOUR = 20;
 
+    /** A password's shortest length, at sign-up and reset alike. */
+    public const PASSWORD_MIN_LENGTH = 10;
+
     public function register(): void
     {
         //
@@ -47,6 +51,16 @@ class AppServiceProvider extends ServiceProvider
         Translatable::fallback(fallbackLocale: 'en', fallbackAny: true);
 
         $this->configureRateLimiting();
+
+        // Length over rules of letters and symbols, which make passwords
+        // harder to remember, not to guess. In production, also not one seen
+        // in a data leak: Have I Been Pwned is asked by range, so only the
+        // first five characters of the password's SHA-1 leave the server, and
+        // an answer that does not come lets the password through. Not in
+        // development or tests, which would depend on the network
+        Password::defaults(fn () => $this->app->isProduction()
+            ? Password::min(self::PASSWORD_MIN_LENGTH)->uncompromised()
+            : Password::min(self::PASSWORD_MIN_LENGTH));
     }
 
     /**

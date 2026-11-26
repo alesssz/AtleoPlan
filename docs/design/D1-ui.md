@@ -163,6 +163,7 @@ Fifteen screens, each with its purpose, content and actions. Workout mode (D1.4.
 - **Sign in / Sign up:** email and password; signing up also asks for a name and to repeat the password.
 - **Continue with Google,** under both forms ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)). A new address gets an account with no password (Forgot password can set one later), in the language the app was showing. An address already registered with a password is linked to Google, its plans kept, but only when Google has verified the address. A refusal or a Cancel on Google's page comes back to the sign-in page with a message: cancelled, not verified, account disabled, or something went wrong. **Continue with Apple** waits for phase 2: the App Store requires it once an app offers any social sign-in, and AtleoPlan is a web app for now.
 - **Staying signed in:** always on, with no checkbox: a phone at the gym must not ask for a password.
+- **A password** has at least 10 characters, with no rule of digits or symbols; in production one seen in a data leak is refused, with a message under the field.
 - **Forgot password** by email, in the language of the account: its link opens `/reset-password`, works once, and expires after 60 minutes.
 - **Coming back:** after signing in, the user lands on the page they were trying to open.
 - **Server unreachable:** "Can't reach the server" and **Try again**, never the sign-in form: the user may well be signed in.

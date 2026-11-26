@@ -622,6 +622,12 @@ Fortify::authenticateUsing(function (Request $request) {
 
 `app/Actions/Fortify/CreateNewUser.php`: name, email (unique), password (`Password::default()`), and an optional `locale` (`Rule::enum(Locale::class)`), defaulting to the request's language, so emails to a new account go out in the language the app was showing.
 
+**What a password must be** is set once, in `AppServiceProvider` (`Password::defaults()`), and shared by sign-up and reset (`PasswordValidationRules`):
+
+- **At least 10 characters, no rules of letters, digits or symbols.** Length is what makes a password hard to guess; composition rules make it hard to remember, and people meet them with `Password1!`.
+- **In production, not one seen in a data leak** (`uncompromised()`): Have I Been Pwned is asked for a range, so only the first five characters of the password's SHA-1 leave the server. If it does not answer, the password goes through: an outage elsewhere must not stop sign-ups. Not in development and tests, which would depend on the network; the tests fake the answer in a production environment.
+- **Existing passwords are not checked again:** the rules apply when a password is set.
+
 ### C2.7.4 Slowing down password guessing
 
 Two limits, both in `FortifyServiceProvider`, past which the answer is 429:

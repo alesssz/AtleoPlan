@@ -7,7 +7,7 @@ import type { TFunction } from 'i18next'
 import { z } from 'zod'
 
 /** Shortest password accepted; the same as the backend's Password::default(). */
-const PASSWORD_MIN_LENGTH = 8
+const PASSWORD_MIN_LENGTH = 10
 
 function emailField(t: TFunction) {
   return z.email({ error: t('auth.errors.email') })

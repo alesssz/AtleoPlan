@@ -431,7 +431,7 @@ signIn.mutate(values, {
 
 **4. Server refusals: `showRequestError`** (`src/lib/form.ts`). A message about a visible field goes under it; anything else goes to `errors.root`, shown by `FormBanner`: no connection, throttling, or an error on a field that is not on screen (the email in the reset link).
 
-**Validated twice.** The browser's check is for speed and language; the server's is the one that counts. The rules match: `PASSWORD_MIN_LENGTH` here, `Password::default()` there.
+**Validated twice.** The browser's check is for speed and language; the server's is the one that counts. The rules match: `PASSWORD_MIN_LENGTH` here, `Password::defaults()` there (10 characters, [C2.7.3](C2-backend.md#c273-signing-up)). Whether a password was in a data leak only the server can say: its message arrives under the field.
 
 `FormField` links label, 48 px input and error through `htmlFor`, `aria-invalid` and `aria-describedby`.
 
