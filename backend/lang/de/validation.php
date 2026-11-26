@@ -36,6 +36,9 @@ return [
         'string' => 'Das Feld :attribute muss mindestens :min Zeichen haben.',
     ],
     'numeric' => 'Das Feld :attribute muss eine Zahl sein.',
+    'password' => [
+        'uncompromised' => 'Dieses :attribute ist in einem Datenleck aufgetaucht: Wähle bitte ein anderes.',
+    ],
     'present' => 'Das Feld :attribute muss vorhanden sein.',
     'regex' => 'Das Format von :attribute ist ungültig.',
     'required' => 'Das Feld :attribute ist erforderlich.',

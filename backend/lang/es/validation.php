@@ -36,6 +36,9 @@ return [
         'string' => 'El campo :attribute debe tener al menos :min caracteres.',
     ],
     'numeric' => 'El campo :attribute debe ser un número.',
+    'password' => [
+        'uncompromised' => 'Esta :attribute ha aparecido en una filtración de datos: elige otra.',
+    ],
     'present' => 'El campo :attribute debe estar presente.',
     'regex' => 'El formato de :attribute no es válido.',
     'required' => 'El campo :attribute es obligatorio.',

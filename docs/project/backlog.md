@@ -32,7 +32,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
 - [SEC](#sec)
-  - [SEC-7 Weak password rules](#sec-7-weak-password-rules)
   - [SEC-8 Answers that reveal other users' exercises](#sec-8-answers-that-reveal-other-users-exercises)
   - [SEC-9 Update webauthn-lib](#sec-9-update-webauthn-lib)
   - [SEC-10 The exercise library's download is not pinned](#sec-10-the-exercise-librarys-download-is-not-pinned)
@@ -301,14 +300,6 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 ## SEC
 
 The points of a security review of 2026-11-25. None is exploitable while the app runs only locally (every port of `compose.yaml` listens on 127.0.0.1); they matter from the deployment ([OPS-3](#ops-3-deploy-to-the-free-server)), whose own settings are among its steps.
-
-### SEC-7 Weak password rules
-
-**Priority:** low · **Kind:** passwords · **Found:** 2026-11-25
-
-**What is missing.** `PasswordValidationRules` uses `Password::default()`, and `Password::defaults()` is never set: 8 characters, nothing else.
-
-**Recommended.** `Password::defaults()` in `AppServiceProvider`: at least 10 characters, and `uncompromised()` in production (Have I Been Pwned's range API: only the start of the password's hash leaves the server). Sign-up and reset share it.
 
 ### SEC-8 Answers that reveal other users' exercises
 
