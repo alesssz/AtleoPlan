@@ -26,7 +26,9 @@ return [
 
     'domain' => null,
 
-    'middleware' => ['web'],
+    // A limit on every route of Fortify's, the password confirmation it
+    // registers for nothing in the app included (FortifyServiceProvider)
+    'middleware' => ['web', 'throttle:fortify'],
 
     // Defined in FortifyServiceProvider
     'limiters' => [

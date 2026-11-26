@@ -583,11 +583,11 @@ Browser (localhost:5673)                        Laravel, through Vite's proxy
 
 | Method and path | What it does | Answers |
 |---|---|---|
-| `POST /api/auth/register` | Signs up, then in | 201 |
+| `POST /api/auth/register` | Signs up, then in | 201; 422; 429 |
 | `POST /api/auth/login` | Signs in | 200; 422; 429 |
 | `POST /api/auth/logout` | Signs out | 204 |
-| `POST /api/auth/forgot-password` | Sends the email | 200; 422 unknown email |
-| `POST /api/auth/reset-password` | Sets the new password | 200; 422 wrong token |
+| `POST /api/auth/forgot-password` | Sends the email | 200; 422 unknown email; 429 |
+| `POST /api/auth/reset-password` | Sets the new password | 200; 422 wrong token; 429 |
 | `GET /api/user` (ours) | Who is signed in | 200; 401 |
 | `GET /auth/google/redirect` (ours, browser visit) | Off to Google ([C2.7.8](#c278-signing-in-with-google)) | 302 |
 | `GET /auth/google/callback` (ours, browser visit) | Back from Google: signs in, links or creates the user | 302 into the app, or `/login?error=…` |
@@ -624,7 +624,14 @@ Fortify::authenticateUsing(function (Request $request) {
 
 ### C2.7.4 Slowing down password guessing
 
-Five attempts a minute per email **and** IP, then 429 (`RateLimiter::for('login', …)` in `FortifyServiceProvider`, named in `config/fortify.php`). Keying on both means an attacker cannot lock someone out by trying their email from elsewhere.
+Two limits, both in `FortifyServiceProvider`, past which the answer is 429:
+
+| Limiter | On | Limit | Against |
+|---|---|---|---|
+| `login` (`fortify.limiters`) | signing in | 5 a minute per email **and** address | guessing one account's password. Keyed on both, so nobody can lock someone out by trying their email from elsewhere |
+| `fortify` (`fortify.middleware`) | every Fortify route | 30 a minute and 300 an hour per address, or per user once signed in | one address trying a few passwords on each of many accounts, and signing up or asking for reset emails without end |
+
+**Per user once signed in** is for `POST /api/auth/user/confirm-password`, which Fortify registers whatever the features, and nothing in the app uses: someone holding a stolen session could guess the password there, from any address. The limit runs after `auth` on those routes, so the user is known. A shared address (a gym's Wi-Fi, a carrier's) shares the per-address count; 30 a minute leaves room for many people signing in at once.
 
 ### C2.7.5 Forgot password
 
