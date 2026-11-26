@@ -24,6 +24,11 @@ class FortifyServiceProvider extends ServiceProvider
     /** Per email and IP address. */
     private const LOGIN_ATTEMPTS_PER_MINUTE = 5;
 
+    /** Requests to any of Fortify's routes, per address, or per user once signed in. */
+    public const AUTH_REQUESTS_PER_MINUTE = 30;
+
+    public const AUTH_REQUESTS_PER_HOUR = 300;
+
     public function boot(): void
     {
         Fortify::createUsersUsing(CreateNewUser::class);
@@ -53,6 +58,21 @@ class FortifyServiceProvider extends ServiceProvider
             $throttleKey = Str::transliterate(Str::lower((string) $request->input('email')).'|'.$request->ip());
 
             return Limit::perMinute(self::LOGIN_ATTEMPTS_PER_MINUTE)->by($throttleKey);
+        });
+
+        // On every Fortify route (config/fortify.php's middleware). By address:
+        // one address could otherwise try 5 passwords a minute on each of any
+        // number of accounts, and sign up or ask for reset emails without
+        // end. By user once signed in, for confirming the password: a stolen
+        // session can be used from any address. Each limit has its own key,
+        // or the two would share one count
+        RateLimiter::for('fortify', function (Request $request) {
+            $by = (string) ($request->user()?->getAuthIdentifier() ?? $request->ip());
+
+            return [
+                Limit::perMinute(self::AUTH_REQUESTS_PER_MINUTE)->by('minute:'.$by),
+                Limit::perHour(self::AUTH_REQUESTS_PER_HOUR)->by('hour:'.$by),
+            ];
         });
 
         // The reset link opens the React screen (src/pages/ResetPasswordPage.tsx),

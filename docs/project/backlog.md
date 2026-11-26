@@ -32,7 +32,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
 - [SEC](#sec)
-  - [SEC-6 Sign-in limited per email and address only](#sec-6-sign-in-limited-per-email-and-address-only)
   - [SEC-7 Weak password rules](#sec-7-weak-password-rules)
   - [SEC-8 Answers that reveal other users' exercises](#sec-8-answers-that-reveal-other-users-exercises)
   - [SEC-9 Update webauthn-lib](#sec-9-update-webauthn-lib)
@@ -101,7 +100,7 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 - Set up backups of the database and of the media on the server's disk, both disks: the library's and the users' own ([D2.5](../design/D2-decisions.md#d25-photos-and-videos)).
 - A reset for production, as `make fresh` is locally (the database emptied, the media disk with it, since one without the other is broken), behind a stronger guard: the project's name typed, `APP_ENV=production` checked, a dump of the database and an archive of the media disk taken first; run on the server.
 - Security settings, none of which development needs:
-  - Laravel trusts Caddy as its proxy (`trustProxies()` in `bootstrap/app.php`, with the forwarded address, scheme and host) and only the production host (`trustHosts()`): otherwise every request comes from Caddy's address, so five wrong passwords lock anyone out of signing in, and one person locks every admin out of the panel's login.
+  - Laravel trusts Caddy as its proxy (`trustProxies()` in `bootstrap/app.php`, with the forwarded address, scheme and host) and only the production host (`trustHosts()`): otherwise every request comes from Caddy's address, so five wrong passwords lock anyone out of signing in, 30 requests a minute to the sign-in routes stop everybody's ([C2.7.4](../concepts/C2-backend.md#c274-slowing-down-password-guessing)), and one person locks every admin out of the panel's login.
   - `SESSION_SECURE_COOKIE=true`, `APP_DEBUG=false`, `LOG_LEVEL` above `debug`.
   - Headers from Caddy: HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` (not `no-referrer`: Sanctum knows a private photo's `<img>` by its `Referer`, [C2.5.9](../concepts/C2-backend.md#c259-the-photos-of-an-exercise)), and a CSP with `frame-ancestors 'none'` (the inline theme script of `index.html` allowed by its hash); `/storage` with `Content-Security-Policy: default-src 'none'; sandbox`.
   - A cap on request bodies (Caddy's `request_body`), well under PHP's `post_max_size`: a little over the largest upload, a 10 MB photo, until videos come ([C2.5.10](../concepts/C2-backend.md#c2510-rate-limits)).
@@ -275,10 +274,10 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 
 **Priority:** low until the app is public · **Kind:** security · **Found:** 2026-11-05
 
-**What is missing.** Signing in has a rate limit ([C2.7.4](../concepts/C2-backend.md#c274-slowing-down-password-guessing)). Signing up and asking for a reset email have none, beyond one email per address per minute. Both also reveal whether an address has an account, by their answers.
+**What is missing.** Signing up and asking for a reset email reveal whether an address has an account, by their answers. Their rate limits are there ([C2.7.4](../concepts/C2-backend.md#c274-slowing-down-password-guessing)).
 
 **Options.**
-- A) Rate limits on both routes, and the same answer to a known and an unknown email when asking for a reset.
+- A) The same answer to a known and an unknown email when asking for a reset.
 - B) Leave as it is until the app is public.
 
 **Recommended.** A before opening to other users (phase 2); until then the app is not deployed, so nothing is exposed. Signing up will still reveal that an email is taken, unless it moves to verifying the address by email first.
@@ -302,14 +301,6 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 ## SEC
 
 The points of a security review of 2026-11-25. None is exploitable while the app runs only locally (every port of `compose.yaml` listens on 127.0.0.1); they matter from the deployment ([OPS-3](#ops-3-deploy-to-the-free-server)), whose own settings are among its steps.
-
-### SEC-6 Sign-in limited per email and address only
-
-**Priority:** low, before deploying · **Kind:** password guessing · **Found:** 2026-11-25
-
-**What is missing.** The `login` limiter is keyed on email and IP: one address can try 5 passwords a minute on each of any number of accounts. `POST /api/auth/user/confirm-password`, registered by Fortify and used by nothing in the app, has no limit: someone holding a stolen session can guess its password at full speed.
-
-**Recommended.** Two limits on sign-in, by email and IP and by IP alone; the confirm-password route throttled, or not registered.
 
 ### SEC-7 Weak password rules
 
