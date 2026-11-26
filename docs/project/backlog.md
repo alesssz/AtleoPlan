@@ -32,7 +32,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
 - [SEC](#sec)
-  - [SEC-10 The exercise library's download is not pinned](#sec-10-the-exercise-librarys-download-is-not-pinned)
   - [SEC-11 Verify the address at sign-up](#sec-11-verify-the-address-at-sign-up)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
@@ -298,14 +297,6 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 ## SEC
 
 The points of a security review of 2026-11-25. None is exploitable while the app runs only locally (every port of `compose.yaml` listens on 127.0.0.1); they matter from the deployment ([OPS-3](#ops-3-deploy-to-the-free-server)), whose own settings are among its steps.
-
-### SEC-10 The exercise library's download is not pinned
-
-**Priority:** low · **Kind:** supply chain · **Found:** 2026-11-25
-
-**What is missing.** `make exercises-import` clones free-exercise-db at its latest commit, unchecked, and `ImportFreeExercise` joins the image names of its JSON into paths unchecked. A compromised upstream could change the library, or reach outside its folder with `../` (only images are accepted).
-
-**Recommended.** A pinned commit (`git checkout <sha>` after the clone, raised by hand); image names with `..` or a leading `/` refused.
 
 ### SEC-11 Verify the address at sign-up
 

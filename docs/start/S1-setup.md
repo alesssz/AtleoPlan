@@ -183,7 +183,7 @@ Run from the repository root. Backend commands use `docker compose exec backend 
 | Any artisan command | `docker compose exec backend php artisan <command>` |
 | Run the migrations | `docker compose exec backend php artisan migrate` |
 | Empty the database and rebuild it, with test data (the photos stay: `make fresh` removes them too) | `docker compose exec backend php artisan migrate:fresh --seed` |
-| Fill the public exercise library (after a fresh database too) | `make exercises-import`: the first time it also clones free-exercise-db into `backend/storage/app/` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
+| Fill the public exercise library (after a fresh database too) | `make exercises-import`: the first time it also downloads free-exercise-db into `backend/storage/app/`, at a pinned commit ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Add the extra exercises (calisthenics) to a library imported before them | `make exercises-extra` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Correct the logging types the import guessed wrong (Plank as time) in a library imported before the list | `make exercises-correct` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |
 | Make the small and large copies of photos added before they existed | `make exercises-thumbnails` ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)) |

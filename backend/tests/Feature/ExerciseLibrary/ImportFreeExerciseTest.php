@@ -216,6 +216,31 @@ it('adds the photos on a later run to an exercise that has none yet', function (
         ->and(Exercise::sole()->getMedia('photos'))->toHaveCount(2);
 });
 
+it('refuses an image outside the dataset\'s folder, saving nothing', function (string $image) {
+    $path = writeDataset([sourceExercise()]);
+    // A file the server can read, beside the dataset
+    File::put($path.'/secret.jpg', base64_decode(TINY_JPEG));
+    File::ensureDirectoryExists($path.'/exercises/Linked');
+    symlink($path.'/secret.jpg', $path.'/exercises/Linked/0.jpg');
+
+    $import = fn () => app(ImportFreeExercise::class)->import(sourceExercise(['images' => ['Barbell_Bench_Press/0.jpg', $image]]), $path.'/exercises');
+
+    expect($import)->toThrow(InvalidArgumentException::class, "Image \"{$image}\" is outside the dataset's folder.")
+        ->and(Exercise::count())->toBe(0);
+})->with([
+    'up and out' => '../secret.jpg',
+    'out and back in' => 'Barbell_Bench_Press/../../secret.jpg',
+    'a link to elsewhere' => 'Linked/0.jpg',
+]);
+
+it('skips an image that is not there, wherever its name points', function () {
+    $path = writeDataset([sourceExercise()]);
+
+    $result = app(ImportFreeExercise::class)->import(sourceExercise(['images' => ['/etc/missing.jpg', 'Barbell_Bench_Press/0.jpg', '../missing.jpg']]), $path.'/exercises');
+
+    expect($result->photosAdded)->toBe(1);
+});
+
 // --- The command ----------------------------------------------------------------
 
 it('imports the whole dataset and prints a summary', function () {

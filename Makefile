@@ -6,7 +6,7 @@
 SHELL := bash
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup urls start up down down-v build restart ps logs shell \
-        artisan composer vendor migrate fresh reset tinker routes clear psql test-db db-dump db-restore reference-data exercises-import exercises-extra exercises-correct photos-private exercises-thumbnails exercises-translate plans-demo \
+        artisan composer vendor migrate fresh reset tinker routes clear psql test-db db-dump db-restore reference-data free-exercise-db exercises-import exercises-extra exercises-correct photos-private exercises-thumbnails exercises-translate plans-demo \
         node-version dev phone fe-install fe-build fe-preview \
         test pint pint-check lint lint-fix typecheck fe-test fix check audit github-check toc toc-check \
         branch sync push merge
@@ -175,18 +175,32 @@ db-restore: ## Replace the development database with a dump: make db-restore f=b
 	$(DC) exec -T postgres psql -U atleoplan -q -v ON_ERROR_STOP=1 atleoplan < $(f) > /dev/null
 	@echo "✔ Restored $(f)"
 
-# The public exercise library. The dataset is cloned once into
-# backend/storage/app/, which Git ignores. The translation runs last and keeps
-# the languages an exercise already has, so it never undoes a manual correction.
+# The public exercise library. The dataset is downloaded into
+# backend/storage/app/, which Git ignores, at a commit chosen by hand: what its
+# repository holds later is not imported until someone has read it and raised
+# FREE_EXERCISE_DB_COMMIT. A fetch by hash cannot bring other content. The
+# translation runs last and keeps the languages an exercise already has, so it
+# never undoes a manual correction.
 FREE_EXERCISE_DB := backend/storage/app/free-exercise-db
+FREE_EXERCISE_DB_COMMIT := f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5
 
 # The seeders upsert, so setup and exercises-import run this every time.
 reference-data: ## Muscles and equipment, the lists the library points to; safe to run again
 	$(ARTISAN) db:seed --class=MuscleSeeder
 	$(ARTISAN) db:seed --class=EquipmentSeeder
 
-exercises-import: ## Fill the public exercise library from free-exercise-db (downloads it the first time) and the extra exercises, then translate it: make exercises-import o="--limit=5"
-	@test -d $(FREE_EXERCISE_DB) || git clone --depth 1 https://github.com/yuhonas/free-exercise-db.git $(FREE_EXERCISE_DB)
+# The dataset at FREE_EXERCISE_DB_COMMIT: downloaded the first time, moved to it
+# when the commit is raised, left alone otherwise. Only a .git inside the folder
+# counts: without one, `git -C` would read this repository's HEAD.
+free-exercise-db:
+	@if [ ! -d $(FREE_EXERCISE_DB)/.git ] || [ "$$(git -C $(FREE_EXERCISE_DB) rev-parse HEAD)" != "$(FREE_EXERCISE_DB_COMMIT)" ]; then \
+		echo "Downloading free-exercise-db at $(FREE_EXERCISE_DB_COMMIT)..."; \
+		{ [ -d $(FREE_EXERCISE_DB)/.git ] || git init -q $(FREE_EXERCISE_DB); } \
+		&& git -C $(FREE_EXERCISE_DB) fetch -q --depth 1 https://github.com/yuhonas/free-exercise-db.git $(FREE_EXERCISE_DB_COMMIT) \
+		&& git -C $(FREE_EXERCISE_DB) -c advice.detachedHead=false checkout -q --force FETCH_HEAD; \
+	fi
+
+exercises-import: free-exercise-db ## Fill the public exercise library from free-exercise-db (downloads it the first time) and the extra exercises, then translate it: make exercises-import o="--limit=5"
 	$(MAKE) --no-print-directory reference-data
 	$(ARTISAN_NOW) exercises:import $(o)
 	$(ARTISAN) exercises:correct-logging-types

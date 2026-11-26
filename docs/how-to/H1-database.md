@@ -172,7 +172,7 @@ A factory used as a column's value creates the linked row only when the test giv
 
 ## H1.8 The exercise library's data
 
-The public library is built by four commands ([C2.14](../concepts/C2-backend.md#c214-artisan-commands-of-our-own)); `make exercises-import` runs them in order, after downloading free-exercise-db into `backend/storage/app/free-exercise-db` the first time.
+The public library is built by four commands ([C2.14](../concepts/C2-backend.md#c214-artisan-commands-of-our-own)); `make exercises-import` runs them in order, after downloading free-exercise-db into `backend/storage/app/free-exercise-db` at the commit pinned in the `Makefile` ([C2.14.3](../concepts/C2-backend.md#c2143-the-free-exercise-db-import)).
 
 | Task | Command |
 |---|---|
@@ -186,6 +186,8 @@ The public library is built by four commands ([C2.14](../concepts/C2-backend.md#
 **Add an extra exercise:** an entry in `backend/database/data/extra-exercises.json` (id starting with `AtleoPlan_`, the dataset's shape, `loggingType` stated), its translation in `exercise-translations/{it,es,de}.json`, then `make exercises-extra`. `ImportExtraExercisesTest` reads the real files, so an unknown muscle, a misspelt logging type or a missing translation fails `make test`.
 
 **Correct a logging type:** an entry in `backend/database/data/logging-type-corrections.json` with `id`, `from`, `to` and `why`, then `make exercises-correct`. An exercise already used in a plan or a workout gets its sets converted too, from reps to seconds; one whose sets have a weight, or a correction other than to `time`, is left alone and named in the summary ([C2.14.6](../concepts/C2-backend.md#c2146-the-logging-types-corrected-after-the-import)).
+
+**Move to a newer free-exercise-db:** read what changed upstream since the pinned commit (`https://github.com/yuhonas/free-exercise-db/compare/<pinned>...main`), above all `dist/exercises.json` and any file that is not a JPEG; then set `FREE_EXERCISE_DB_COMMIT` in the `Makefile` to the new hash and run `make exercises-import o="--update"`. New exercises need their translations ([C2.14.4](../concepts/C2-backend.md#c2144-the-translation-of-the-library)).
 
 **Fix a translation:** edit the entry in `exercise-translations/<lang>.json` (one step for each English step), then `make exercises-translate o="--locale=it --force"`.
 
@@ -210,7 +212,8 @@ The public library is built by four commands ([C2.14](../concepts/C2-backend.md#
 | `08006`, connection refused, host "postgres" unknown | Postgres is not running | `make up`, `make ps` |
 | Tinker does not see a change | It keeps the code it loaded | `exit`, `make tinker` |
 | `Unknown equipment "body only"` for every exercise | The import ran on a database without the reference data | `make reference-data` (`make exercises-import` runs it) |
-| `free-exercise-db not found` | The dataset is not downloaded, or `--path` is wrong | `make exercises-import` clones it |
+| `free-exercise-db not found` | The dataset is not downloaded, or `--path` is wrong | `make exercises-import` downloads it |
+| `Image "…" is outside the dataset's folder` | An image name of the dataset leads out of `exercises/` (`../`, a link) | Do not import that commit: go back to the pinned one, and read what changed upstream |
 
 ---
 
