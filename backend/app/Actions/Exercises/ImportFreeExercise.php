@@ -47,6 +47,10 @@ use InvalidArgumentException;
  *   `machine_translated`.
  * - **Photos are added when the exercise has none**, also on a later run: an
  *   import stopped halfway completes its photos the next time.
+ * - **An image must be a file inside the dataset's folder.** The names come
+ *   from someone else's repository: one that leads out of it (`../`, a link
+ *   to elsewhere) fails the exercise before anything is written, or any file
+ *   the server can read could be copied into the public library.
  */
 class ImportFreeExercise
 {
@@ -71,10 +75,13 @@ class ImportFreeExercise
      * @param  bool  $withPhotos  false imports the texts only
      *
      * @throws InvalidArgumentException when a muscle or a kind of equipment is
-     *                                  not in our lists (the command reports it and goes on)
+     *                                  not in our lists, or an image is outside
+     *                                  `$imagesPath` (the command reports it and goes on)
      */
     public function import(array $row, string $imagesPath, bool $update = false, bool $withPhotos = true): ImportResult
     {
+        $photos = $withPhotos ? $this->photoFiles($row['images'] ?? [], $imagesPath) : [];
+
         $exercise = Exercise::withTrashed()->where('external_id', $row['id'])->first();
 
         // Deleted by an admin: their choice wins over the source
@@ -94,7 +101,7 @@ class ImportFreeExercise
         }
 
         // Outside the transaction: a rollback could not remove files
-        $photosAdded = $withPhotos ? $this->attachPhotos($exercise, $row['images'] ?? [], $imagesPath) : 0;
+        $photosAdded = $this->attachPhotos($exercise, $photos);
 
         return new ImportResult($outcome, $photosAdded);
     }
@@ -227,31 +234,50 @@ class ImportFreeExercise
     }
 
     /**
-     * In the source's order, the first being the cover, and only when the
-     * exercise has none yet. The files are copied, not moved, so a second run
-     * still finds them; a missing file is skipped.
+     * The images' files, in the source's order; a missing one is skipped.
+     * Each is resolved, links and `..` included, and must still be inside
+     * `$imagesPath`.
      *
      * @param  list<string>  $images  such as "3_4_Sit-Up/0.jpg"
+     * @return list<string>
+     *
+     * @throws InvalidArgumentException when one leads outside the folder
      */
-    private function attachPhotos(Exercise $exercise, array $images, string $imagesPath): int
+    private function photoFiles(array $images, string $imagesPath): array
+    {
+        $root = realpath($imagesPath);
+        $files = [];
+        foreach ($images as $image) {
+            $file = realpath(rtrim($imagesPath, '/\\').DIRECTORY_SEPARATOR.$image);
+            if ($file === false || ! is_file($file)) {
+                continue;
+            }
+            if ($root === false || ! str_starts_with($file, $root.DIRECTORY_SEPARATOR)) {
+                throw new InvalidArgumentException("Image \"{$image}\" is outside the dataset's folder.");
+            }
+            $files[] = $file;
+        }
+
+        return $files;
+    }
+
+    /**
+     * The first being the cover, and only when the exercise has none yet. The
+     * files are copied, not moved, so a second run still finds them.
+     *
+     * @param  list<string>  $files  from photoFiles()
+     */
+    private function attachPhotos(Exercise $exercise, array $files): int
     {
         // A previous run attached them, or an admin did
         if ($exercise->getMedia('photos')->isNotEmpty()) {
             return 0;
         }
 
-        $added = 0;
-        foreach ($images as $image) {
-            $file = rtrim($imagesPath, '/\\').DIRECTORY_SEPARATOR.$image;
-
-            if (! is_file($file)) {
-                continue;
-            }
-
+        foreach ($files as $file) {
             $exercise->addMedia($file)->preservingOriginal()->toMediaCollection('photos');
-            $added++;
         }
 
-        return $added;
+        return count($files);
     }
 }

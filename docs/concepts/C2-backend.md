@@ -915,7 +915,9 @@ Through `$this->artisan()` (output and exit code), on a small dataset written to
 
 ### C2.14.3 The free-exercise-db import
 
-**Source.** [free-exercise-db](https://github.com/yuhonas/free-exercise-db), public domain: `dist/exercises.json` with 876 exercises and `exercises/<id>/0.jpg`, `1.jpg`, 1,746 photos (start and end position, 98 MB). `make exercises-import` clones it once into `backend/storage/app/free-exercise-db` (git-ignored).
+**Source.** [free-exercise-db](https://github.com/yuhonas/free-exercise-db), public domain: `dist/exercises.json` with 876 exercises and `exercises/<id>/0.jpg`, `1.jpg`, 1,746 photos (start and end position, 98 MB). `make exercises-import` downloads it into `backend/storage/app/free-exercise-db` (git-ignored) at the commit named by `FREE_EXERCISE_DB_COMMIT` in the `Makefile`, and moves the folder to that commit when it changes.
+
+**A pinned commit, raised by hand.** The dataset is someone else's repository: a change there, or a compromised account, would reach the library at the next import. A fetch by hash brings exactly that commit's content, so nothing changes until someone has read the new commits and raised the hash ([H1.8](../how-to/H1-database.md#h18-the-exercise-librarys-data)). **Image names are checked too:** each is resolved (`realpath()`, so `..` and links are followed) and must be a file inside `exercises/`; one that leads out fails its exercise before anything is written, as any file the server can read would otherwise be copied into the public library.
 
 **Mapping** (`ImportFreeExercise`):
 
@@ -926,7 +928,7 @@ Through `$this->artisan()` (output and exit code), on a small dataset written to
 | `level`, `category` | `level`, `category` | Kept, not shown yet |
 | `equipment` (`e-z curl bar`, or null) | `equipment_id` | By slug: `Str::slug('e-z curl bar')` is `EquipmentSeeder`'s `e-z-curl-bar` |
 | `primaryMuscles`, `secondaryMuscles` | `exercise_muscle` with role | By slug; a muscle in both lists stays primary |
-| `images` | the `photos` collection, in order | The first is the cover |
+| `images` | the `photos` collection, in order | The first is the cover; a missing file is skipped, one outside `exercises/` fails the exercise |
 | (none) | `logging_type` | Guessed: stretching and cardio → time; body only or no equipment → reps; else weight and reps (637 / 137 / 102). Known wrong guesses are corrected afterwards (C2.14.6) |
 | `force`, `mechanic` | not kept | [D3.4.7](../design/D3-data-model.md#d347-what-is-not-in-the-table) |
 
