@@ -218,6 +218,16 @@ it('asks for the values that fit how the exercise is logged, and only those', fu
     'distance, with nothing' => [LoggingType::Distance, ['weight_kg' => null, 'reps' => null], ['distance_meters']],
 ]);
 
+it('checks no values against someone else\'s exercise, which it does not find', function () {
+    $theirs = Exercise::factory()->personal()->create(['logging_type' => LoggingType::Distance]);
+    $body = phoneSession($theirs);
+
+    // Reps and a weight on a distance exercise: errors had it been the user's
+    $this->actingAs(User::factory()->create())->putJson('/api/sessions/'.phoneId(), $body)
+        ->assertUnprocessable()
+        ->assertOnlyJsonValidationErrors(['exercises.0.exercise_id']);
+});
+
 it('takes the seconds of a set done as fast as possible, beside its reps', function () {
     $pushup = Exercise::factory()->create(['logging_type' => LoggingType::Reps]);
     $body = phoneSession($pushup);

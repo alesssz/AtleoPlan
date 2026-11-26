@@ -2,9 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Exercise;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route as RouteDefinition;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Translatable\Facades\Translatable;
@@ -51,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
         Translatable::fallback(fallbackLocale: 'en', fallbackAny: true);
 
         $this->configureRateLimiting();
+        $this->bindExercises();
 
         // Length over rules of letters and symbols, which make passwords
         // harder to remember, not to guess. In production, also not one seen
@@ -61,6 +67,29 @@ class AppServiceProvider extends ServiceProvider
         Password::defaults(fn () => $this->app->isProduction()
             ? Password::min(self::PASSWORD_MIN_LENGTH)->uncompromised()
             : Password::min(self::PASSWORD_MIN_LENGTH));
+    }
+
+    /**
+     * `{exercise}` finds only what the user may see: someone else's personal
+     * exercise is a 404, as one that does not exist. Ids are sequential, so a
+     * 403 would tell which personal exercises there are, and a Form Request
+     * would check a body against one (its photos, say) before the policy
+     * refused it. A route with withTrashed() finds deleted ones too. Here, not
+     * in routes/api.php: a cached route file does not run its bind() calls.
+     */
+    private function bindExercises(): void
+    {
+        Route::bind('exercise', function (string $id, RouteDefinition $route): Exercise {
+            $user = request()->user();
+            // Not a number: a 404, not a database error
+            if ($user === null || filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+                throw (new ModelNotFoundException)->setModel(Exercise::class, [$id]);
+            }
+
+            return Exercise::visibleTo($user)
+                ->when($route->allowsTrashedBindings(), fn (Builder $query) => $query->withTrashed())
+                ->findOrFail($id);
+        });
     }
 
     /**

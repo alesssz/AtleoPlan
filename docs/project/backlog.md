@@ -32,7 +32,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
 - [SEC](#sec)
-  - [SEC-8 Answers that reveal other users' exercises](#sec-8-answers-that-reveal-other-users-exercises)
   - [SEC-9 Update webauthn-lib](#sec-9-update-webauthn-lib)
   - [SEC-10 The exercise library's download is not pinned](#sec-10-the-exercise-librarys-download-is-not-pinned)
   - [SEC-11 Verify the address at sign-up](#sec-11-verify-the-address-at-sign-up)
@@ -300,14 +299,6 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 ## SEC
 
 The points of a security review of 2026-11-25. None is exploitable while the app runs only locally (every port of `compose.yaml` listens on 127.0.0.1); they matter from the deployment ([OPS-3](#ops-3-deploy-to-the-free-server)), whose own settings are among its steps.
-
-### SEC-8 Answers that reveal other users' exercises
-
-**Priority:** low · **Kind:** information leak · **Found:** 2026-11-25
-
-**What is missing.** Another user's personal exercise is never shown, but some answers tell that it exists. `SaveSessionRequest::after()` reads exercises without the owner's condition, so a set's value errors come back for someone else's exercise and not for a missing one, telling its logging type too; `GET /api/exercises/{id}` answers 403 for someone else's and 404 for a missing one; the photo Form Requests validate (count, ids) before the policy runs. Never a name or a content.
-
-**Recommended.** `after()` skips an exercise whose `exists` failed; the photo requests authorize first; 404 for an exercise the user cannot see.
 
 ### SEC-9 Update webauthn-lib
 

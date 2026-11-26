@@ -2,8 +2,9 @@
 
 /**
  * GET, POST, PATCH and DELETE on /api/exercises: reading one exercise,
- * creating, changing and deleting personal ones, with every refusal of
- * ExercisePolicy: someone else's exercise, and a public one, admins included.
+ * creating, changing and deleting personal ones, with every refusal: someone
+ * else's exercise is not found, a public one is refused by ExercisePolicy,
+ * admins included.
  *
  * The list has its own file, ExerciseListTest.php; the rules of saving
  * (languages, muscles) are tested without HTTP in SavePersonalExerciseTest.php.
@@ -95,22 +96,28 @@ it('shows my own exercise', function () {
         ->assertJsonPath('data.equipment', null);
 });
 
-it('refuses someone else\'s personal exercise', function () {
+it('answers someone else\'s personal exercise as one that does not exist', function () {
     $exercise = Exercise::factory()->personal()->create();
+    $me = User::factory()->create();
 
-    $this->actingAs(User::factory()->create())
-        ->getJson("/api/exercises/{$exercise->id}")
-        ->assertForbidden();
+    $theirs = $this->actingAs($me)->getJson("/api/exercises/{$exercise->id}")->assertNotFound();
+    $none = $this->actingAs($me)->getJson('/api/exercises/999')->assertNotFound();
+
+    // The same words, but for the id asked
+    expect(str_replace((string) $exercise->id, '999', $theirs->json('message')))->toBe($none->json('message'));
+    // Nor does a body checked against it say more
+    $this->actingAs($me)->patchJson("/api/exercises/{$exercise->id}", ['name' => ''])->assertNotFound();
+    $this->actingAs($me)->postJson("/api/exercises/{$exercise->id}/duplicate")->assertNotFound();
 });
 
-it('answers 404 for a deleted exercise or one that does not exist', function () {
+it('answers 404 for a deleted exercise, and for an id that is no number', function (string $id) {
     $me = User::factory()->create();
     $exercise = Exercise::factory()->for($me, 'owner')->create();
     $exercise->delete();
 
     $this->actingAs($me)->getJson("/api/exercises/{$exercise->id}")->assertNotFound();
-    $this->actingAs($me)->getJson('/api/exercises/999')->assertNotFound();
-});
+    $this->actingAs($me)->getJson("/api/exercises/{$id}")->assertNotFound();
+})->with(['letters' => 'abc', 'zero' => '0', 'beyond a bigint' => '99999999999999999999']);
 
 // --- Creating -------------------------------------------------------------
 
@@ -225,12 +232,12 @@ it('changes my exercise, only in the fields sent', function () {
         ->assertJsonPath('data.description', 'Presa larga.');
 });
 
-it('refuses to change someone else\'s exercise', function () {
+it('does not find someone else\'s exercise to change', function () {
     $exercise = Exercise::factory()->personal()->create(['name' => ['en' => 'Theirs']]);
 
     $this->actingAs(User::factory()->create())
         ->patchJson("/api/exercises/{$exercise->id}", ['name' => 'Mine now'])
-        ->assertForbidden();
+        ->assertNotFound();
 
     expect($exercise->fresh()->name)->toBe('Theirs');
 });
@@ -265,16 +272,16 @@ it('deletes my exercise, keeping the row for plans and history', function () {
     $this->assertSoftDeleted($exercise);
 });
 
-it('refuses to delete someone else\'s exercise or a public one', function (Closure $makeExercise) {
+it('refuses to delete someone else\'s exercise or a public one', function (Closure $makeExercise, int $status) {
     $exercise = $makeExercise();
 
     $this->actingAs(User::factory()->admin()->create())
         ->deleteJson("/api/exercises/{$exercise->id}")
-        ->assertForbidden();
+        ->assertStatus($status);
 
     $this->assertNotSoftDeleted($exercise);
 })->with([
     // Closures, so the rows are created after the database is reset
-    'someone else\'s' => [fn () => Exercise::factory()->personal()->create()],
-    'a public one' => [fn () => Exercise::factory()->create()],
+    'someone else\'s, not found' => [fn () => Exercise::factory()->personal()->create(), 404],
+    'a public one' => [fn () => Exercise::factory()->create(), 403],
 ]);

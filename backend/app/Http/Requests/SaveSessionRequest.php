@@ -140,9 +140,11 @@ class SaveSessionRequest extends FormRequest
                 return;
             }
 
-            // One query. The rules may have failed, so only integers reach it
+            // One query. The rules may have failed, so only integers reach it,
+            // and only exercises the user may see: errors on the values of
+            // someone else's would tell that it exists, and how it is logged
             $ids = collect($exercises)->pluck('exercise_id')->filter(fn ($id) => is_int($id))->unique();
-            $loggingTypes = Exercise::withTrashed()->whereIn('id', $ids)->pluck('logging_type', 'id');
+            $loggingTypes = Exercise::withTrashed()->visibleTo($this->user())->whereIn('id', $ids)->pluck('logging_type', 'id');
 
             foreach ($exercises as $e => $exercise) {
                 $type = is_array($exercise) ? $loggingTypes->get($exercise['exercise_id'] ?? null) : null;

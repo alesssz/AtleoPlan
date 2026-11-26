@@ -163,7 +163,7 @@ Every endpoint has the same shape ([P1.2](../project/P1-conventions.md#p12-code)
 
 **Lists do not ask row by row.** `Exercise::visibleTo($user)` applies the `view` rule in SQL ([C2.6](#c26-database-migrations-models-factories-seeders)); the tests check that both agree.
 
-**403, not 404, for someone else's row:** exercise ids are sequential and their existence is no secret; plans and workouts, with UUIDs, answer the same way.
+**404 for someone else's exercise, 403 for someone else's plan or workout.** Exercise ids are sequential: a 403 would tell which personal exercises exist, and a Form Request would check a body against one (its photos) before the policy refused it. So `{exercise}` is bound in `AppServiceProvider::bindExercises()` through `visibleTo()`: someone else's exercise is not found, before any rule runs, with the same answer as an id that does not exist; an id that is no number is a 404 too. A public exercise is found, and its refusals stay 403. Plans and workouts have UUIDs, which no one can guess, and keep the 403. `SaveSessionRequest` checks set values only against exercises the user may see, for the same reason.
 
 ### C2.5.2 Lists: filters and pages
 
@@ -216,10 +216,10 @@ Actions are tested directly (`SavePersonalExerciseTest.php`) and reused: `Import
 | `GET /api/muscles` | The 17 muscle groups, by name | 200 |
 | `GET /api/equipment` | The 12 kinds of equipment, by name | 200 |
 | `GET /api/exercises` | Public exercises and mine, by name, 50 per page. `filter[search]` (name and aliases), `filter[muscle]` (primary, comma-separated slugs), `filter[equipment]` (slugs), `filter[source]` (`mine`, `public`); `page`, `per_page` (≤ 100) | 200; 422; 400 unknown filter |
-| `GET /api/exercises/{id}` | One exercise | 200; 403; 404 |
+| `GET /api/exercises/{id}` | One exercise | 200; 404, someone else's too |
 | `POST /api/exercises` | Creates a personal exercise | 201; 422 |
-| `PATCH /api/exercises/{id}` | Changes mine, only the fields sent | 200; 403; 422 |
-| `DELETE /api/exercises/{id}` | Soft-deletes mine | 204; 403 |
+| `PATCH /api/exercises/{id}` | Changes mine, only the fields sent | 200; 404 someone else's; 422; 403 public |
+| `DELETE /api/exercises/{id}` | Soft-deletes mine | 204; 404 someone else's; 403 public |
 
 **`ExerciseResource`:**
 
@@ -466,7 +466,7 @@ Export and import ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)): `Ex
 | Public, the library | `public`, `storage/app/public/<media id>/` | At `/storage/…`, to anyone, by the web server |
 | A user's own | `private_media`, `storage/app/private/media/<media id>/` | By `GET /api/exercises/{id}/photos/{photo}/{size}`, to its owner only |
 
-**Why private:** a user's photo may show their body or their home, and a public file's address is a counting id and a fixed name (`/storage/31/photo.jpg`): a loop downloads them all. The route answers 404, not 403, to anyone else, so whether someone's exercise has photos does not show; 401 to a visitor. A soft-deleted exercise's photos are still served (`withTrashed()`), as plans and history show it. The file goes with `Cache-Control: private`, so no cache between the server and the browser keeps it, and `nosniff`.
+**Why private:** a user's photo may show their body or their home, and a public file's address is a counting id and a fixed name (`/storage/31/photo.jpg`): a loop downloads them all. Someone else's exercise is a 404 on every route ([C2.5.1](#c251-permissions-policies)), so whether it has photos does not show; 401 to a visitor. A soft-deleted exercise's photos are still served (`withTrashed()`), as plans and history show it. The file goes with `Cache-Control: private`, so no cache between the server and the browser keeps it, and `nosniff`.
 
 **How an `<img>` gets in:** the photo is on the app's origin, so the browser sends the session cookie with it, and the page's address as `Referer`, by which Sanctum treats the request as the app's and reads the session ([C2.7](#c27-signing-in-sanctum)). A `Referrer-Policy` of `no-referrer` would make every private photo a 401; the default, `strict-origin-when-cross-origin`, sends it within the origin.
 
@@ -483,15 +483,15 @@ Export and import ([D3.5.8](../design/D3-data-model.md#d358-the-plan-file)): `Ex
 
 **`ExercisePhotoResource`:** `id`, `url` (`large`), `thumb_url`: `/storage/…` paths for the library, the route's for a user's own. Until a conversion exists its address is the original's (`…/original`), so the photo shows at once; an upload's own answer is always that case. A new address once it exists, so the service worker never keeps the original in its place.
 
-**Endpoints**, on the user's own exercises (`ExercisePolicy::update()`):
+**Endpoints**, on the user's own exercises (`ExercisePolicy::update()`); someone else's is a 404, a public one a 403:
 
 | Route | Body | Answer |
 |---|---|---|
 | `POST /api/exercises/{id}/photos` | multipart, field `photo` | 201, the photo |
 | `PUT /api/exercises/{id}/photos` | `{ "ids": [14, 12, 13] }`, every photo once, cover first | 200, the photos in order |
 | `DELETE /api/exercises/{id}/photos/{photo}` | | 204; 404 for another exercise's photo |
-| `GET /api/exercises/{id}/photos/{photo}/{size}` | `size`: `thumb`, `large`, `original` | The file; 404 to anyone who may not see the exercise, for another exercise's photo, and for a copy not made yet (`ExercisePolicy::view()`) |
-| `POST /api/exercises/{id}/duplicate` | | 201, the copy (`ExercisePolicy::duplicate()`) |
+| `GET /api/exercises/{id}/photos/{photo}/{size}` | `size`: `thumb`, `large`, `original` | The file; 404 to anyone who may not see the exercise, for another exercise's photo, and for a copy not made yet |
+| `POST /api/exercises/{id}/duplicate` | | 201, the copy; 403 for one's own (`ExercisePolicy::duplicate()`) |
 
 **Rules** (`StoreExercisePhotoRequest`, `ReorderExercisePhotosRequest`, the action `ExercisePhotos`):
 
