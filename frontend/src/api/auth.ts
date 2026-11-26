@@ -1,6 +1,6 @@
 /*
- * The account: who is signed in, signing in, up and out, password reset and
- * preferences. /api/auth/* are Fortify's routes, /api/user the app's.
+ * The account: who is signed in, signing in, up and out, confirming the
+ * address, password reset and preferences. /api/auth/* are Fortify's routes, /api/user the app's.
  *
  * "Who is signed in" is one piece of server data, authKeys.user: the User, or
  * null for a visitor. The guards (src/routes/) read it; signing in and out
@@ -16,6 +16,11 @@ export interface User {
   id: number
   name: string
   email: string
+  /**
+   * False until the link of the confirmation email is opened: the server
+   * refuses the rest of the API, and RequireAuth shows only VerifyEmailPage.
+   */
+  email_verified: boolean
   is_admin: boolean
   /**
    * The admin panel's address, for Profile's link; null for non-admins. The
@@ -177,6 +182,16 @@ export function useSignOut() {
   return useMutation({
     mutationFn: () => request<void>('/api/auth/logout', { method: 'POST' }),
     onSettled: () => forgetAccount(queryClient),
+  })
+}
+
+/**
+ * "Send the link again". The server sends nothing for an address already
+ * confirmed, and answers the same.
+ */
+export function useSendVerificationEmail() {
+  return useMutation({
+    mutationFn: () => request<void>('/api/user/verification-email', { method: 'POST' }),
   })
 }
 

@@ -16,6 +16,7 @@ use App\Models\Plan;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
@@ -142,8 +143,8 @@ describe('back from Google', function () {
         expect(User::count())->toBe(1);
     });
 
-    it('links Google to an account that already has this address, keeping its plans', function () {
-        $user = User::factory()->unverified()->create(['email' => 'ann@example.com']);
+    it('links Google to an account that already has this address, keeping its plans and password', function () {
+        $user = User::factory()->create(['email' => 'ann@example.com']);
         Plan::factory()->for($user)->create();
         // The password's hash before: it must not change
         $passwordHash = $user->password;
@@ -155,10 +156,26 @@ describe('back from Google', function () {
         $user->refresh();
         expect($user->password)->toBe($passwordHash)
             ->and($user->plans()->count())->toBe(1)
-            // Google has shown the address is theirs
-            ->and($user->email_verified_at)->not->toBeNull()
             ->and($user->socialAccounts()->count())->toBe(1)
             ->and(User::count())->toBe(1);
+    });
+
+    it('takes an unconfirmed account back from whoever chose its password', function () {
+        // Signed up with Ann's address by someone else, still signed in somewhere
+        $user = User::factory()->unverified()->create(['email' => 'ann@example.com', 'remember_token' => 'theirs']);
+        DB::table('sessions')->insert(['id' => 'theirs', 'user_id' => $user->id, 'payload' => '', 'last_activity' => now()->timestamp]);
+        Socialite::fake('google', googlePerson());
+
+        $this->get('/auth/google/callback')->assertRedirect(frontend('/'));
+
+        $this->assertAuthenticatedAs($user);
+        $user->refresh();
+        // Google has shown the address is Ann's; the password and the
+        // sessions were someone's who never proved it
+        expect($user->email_verified_at)->not->toBeNull()
+            ->and($user->password)->toBeNull()
+            ->and($user->remember_token)->not->toBe('theirs')
+            ->and(DB::table('sessions')->where('id', 'theirs')->exists())->toBeFalse();
     });
 
     it('refuses an address Google has not verified, and links nothing', function () {

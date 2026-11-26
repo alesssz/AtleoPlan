@@ -161,7 +161,7 @@ The schema builder has no check constraints, so they are added with `DB::stateme
 
 ## D3.3 Users and preferences
 
-**What it stands for.** One row per account. Laravel's default columns (`id`, `name`, `email`, `email_verified_at`, `password`, `remember_token`, timestamps: [C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)) are kept; `password` is nullable, since an account created with Google has none until one is set with Forgot password ([D3.3.1](#d331-social_accounts)). The columns added:
+**What it stands for.** One row per account. Laravel's default columns (`id`, `name`, `email`, `email_verified_at`, `password`, `remember_token`, timestamps: [C2.7](../concepts/C2-backend.md#c27-signing-in-sanctum)) are kept; `password` is nullable, since an account created with Google has none until one is set with Forgot password ([D3.3.1](#d331-social_accounts)). `email_verified_at` is set by the confirmation link, by Google, or by a password reset; until then the account can use nothing but its own settings ([C2.7.10](../concepts/C2-backend.md#c2710-confirming-the-address)). The columns added:
 
 | Column | Type | Default | What it is for |
 |---|---|---|---|

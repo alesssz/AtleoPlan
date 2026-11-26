@@ -1,10 +1,13 @@
 /*
  * The frame of the sign-in screens: no navigation, the logo above a card.
+ * A route's page goes in the card, or `children` where no route decides
+ * (RequireAuth's "Confirm your email").
  */
+import type { ReactNode } from 'react'
 import { Outlet } from 'react-router'
 import { BrandMark, Wordmark } from '@/components/brand/Brand'
 
-export function AuthLayout() {
+export function AuthLayout({ children }: { children?: ReactNode }) {
   return (
     // Spacing kept modest, so the sign-in form fits a laptop's screen
     // without scrolling
@@ -15,7 +18,7 @@ export function AuthLayout() {
       </div>
 
       <div className="border-glow w-full max-w-md rounded-3xl p-6 sm:p-8">
-        <Outlet />
+        {children ?? <Outlet />}
       </div>
     </main>
   )

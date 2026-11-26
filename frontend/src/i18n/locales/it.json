@@ -540,6 +540,19 @@
       "invalidText": "Manca qualcosa. Richiedine uno nuovo e aprilo dall'email.",
       "askAgain": "Richiedi un nuovo link"
     },
+    "verifyEmail": {
+      "eyebrow": "Ultimo passo",
+      "title": "Conferma la tua email",
+      "description": "Abbiamo mandato un link a {{email}}. Aprilo per iniziare a usare AtleoPlan.",
+      "check": "L'ho confermata",
+      "sendAgain": "Manda di nuovo il link",
+      "sent": "Inviato: controlla la posta, anche nello spam.",
+      "notYet": "Non è ancora confermata. Apri il link nell'email, poi riprova.",
+      "wrongAddress": "Indirizzo sbagliato? Esci e crea di nuovo l'account con quello giusto.",
+      "signOut": "Esci",
+      "done": "Indirizzo confermato. Accedi per iniziare.",
+      "failed": "Questo link è scaduto o non funziona. Accedi e chiedine uno nuovo."
+    },
     "google": {
       "continue": "Continua con Google",
       "or": "oppure",

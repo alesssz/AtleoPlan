@@ -120,6 +120,20 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts')
   })
 
+  it('says the address is confirmed, coming from the email\'s link', async () => {
+    fakeApi({ 'GET /api/user': visitor })
+    renderRoutes(routes, '/login?verify=done')
+
+    expect(await screen.findByText('Address confirmed. Sign in to start.')).toBeInTheDocument()
+  })
+
+  it('says when the email\'s link did not work', async () => {
+    fakeApi({ 'GET /api/user': visitor })
+    renderRoutes(routes, '/login?verify=failed')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('This link has expired or doesn\'t work.')
+  })
+
   it('speaks the user\'s language', async () => {
     await i18n.changeLanguage('it')
     fakeApi({ 'GET /api/user': visitor })

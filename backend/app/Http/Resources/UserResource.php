@@ -24,6 +24,8 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            // false: the app shows only "Confirm your email"
+            'email_verified' => $this->hasVerifiedEmail(),
             'is_admin' => $this->is_admin,
             // Profile links to the panel only when this is set
             'admin_url' => $this->is_admin ? config('app.admin_url') : null,

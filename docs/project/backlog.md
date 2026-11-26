@@ -31,8 +31,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [BE-3 Harden the public sign-in routes](#be-3-harden-the-public-sign-in-routes)
   - [BE-5 A plan at the largest size allowed cannot be saved](#be-5-a-plan-at-the-largest-size-allowed-cannot-be-saved)
   - [BE-6 A UUID in capitals fails with a 500](#be-6-a-uuid-in-capitals-fails-with-a-500)
-- [SEC](#sec)
-  - [SEC-11 Verify the address at sign-up](#sec-11-verify-the-address-at-sign-up)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
 
@@ -68,9 +66,9 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
 
-Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes), [SEC-11](#sec-11-verify-the-address-at-sign-up).
+Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-3](#be-3-harden-the-public-sign-in-routes).
 
-Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps; the other `SEC` points are hardening.
+Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-server)'s steps.
 
 ## OPS
 
@@ -293,18 +291,6 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 **What is missing.** Postgres compares `uuid` columns ignoring case; the lookups in PHP of `SavePlan` and `SaveWorkoutSession` (`$existing->get($id)`, `distinct`) do not. An id already there, sent again in capitals, misses the lookup, is inserted again and hits the primary key. Only the sender's own rows are concerned.
 
 **Recommended.** Lowercase every id in the Form Requests' `prepareForValidation()`.
-
-## SEC
-
-The points of a security review of 2026-11-25. None is exploitable while the app runs only locally (every port of `compose.yaml` listens on 127.0.0.1); they matter from the deployment ([OPS-3](#ops-3-deploy-to-the-free-server)), whose own settings are among its steps.
-
-### SEC-11 Verify the address at sign-up
-
-**Priority:** low until the app is public · **Kind:** accounts · **Found:** 2026-11-25
-
-**What is missing.** Sign-up accepts an address nobody proved. Signing in with Google takes such an account back from whoever chose its password ([C2.7.8](../concepts/C2-backend.md#c278-signing-in-with-google)), but an account can still be made in someone else's name, and sign-up tells whether an address is taken ([BE-3](#be-3-harden-the-public-sign-in-routes)).
-
-**Recommended.** Fortify's email verification (`Features::emailVerification()`, `MustVerifyEmail`), the app limited until the link is opened; with BE-3, before opening to other users.
 
 ## DATA
 

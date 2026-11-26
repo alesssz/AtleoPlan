@@ -24,6 +24,10 @@ use Laravel\Socialite\Contracts\User as OutsideUser;
  *    linked to that account, so its plans and workouts are kept. Only when
  *    Google says it has verified the address, or anyone could make a Google
  *    account with someone else's address and walk into their AtleoPlan account.
+ *    If the account had not confirmed its address, its password was chosen by
+ *    someone who never proved it theirs, maybe not this person: the password
+ *    goes and every session ends (one can be set again through Forgot
+ *    password).
  * 3. **A new address**: a new account, with no password, the name and email
  *    from Google and the language the app was showing. Also only with a
  *    verified address, so nobody can take an address before its owner signs up.
@@ -32,6 +36,8 @@ use Laravel\Socialite\Contracts\User as OutsideUser;
  */
 class SignInWithSocialAccount
 {
+    public function __construct(private EndSessions $endSessions) {}
+
     /**
      * @param  Locale  $locale  a new account's language
      *
@@ -71,9 +77,13 @@ class SignInWithSocialAccount
             // 3. A new account
             $user ??= $this->newUser($outside, $email, $locale);
 
-            // Google has just proved what email verification would
+            // Google has just proved what the confirmation link would
             if ($user->email_verified_at === null) {
                 $user->email_verified_at = now();
+                if ($user->password !== null) {
+                    $user->password = null;
+                    $this->endSessions->handle($user);
+                }
                 $user->save();
             }
 

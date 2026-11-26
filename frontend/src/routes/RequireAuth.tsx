@@ -6,9 +6,11 @@
 import { useTranslation } from 'react-i18next'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { isAwaitingUser, useCurrentUser } from '@/api/auth'
+import { AuthLayout } from '@/components/layout/AuthLayout'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePendingSessions } from '@/lib/usePendingSessions'
+import { VerifyEmailPage } from '@/pages/VerifyEmailPage'
 import { useServerWatch } from '@/lib/useServerWatch'
 import { useAccountPreferences } from './useAccountPreferences'
 import { useDeviceOwner } from './useDeviceOwner'
@@ -52,6 +54,17 @@ export function RequireAuth() {
           {t('server.retry')}
         </Button>
       </main>
+    )
+  }
+
+  // Whatever the address asked for: the server refuses every page until the
+  // address is confirmed. `false` only, so a user kept from before the field
+  // existed is not stopped while the app asks again
+  if (currentUser.data.email_verified === false) {
+    return (
+      <AuthLayout>
+        <VerifyEmailPage user={currentUser.data} />
+      </AuthLayout>
     )
   }
 

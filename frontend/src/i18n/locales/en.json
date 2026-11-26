@@ -540,6 +540,19 @@
       "invalidText": "Something is missing from it. Ask for a new one and open it from the email.",
       "askAgain": "Ask for a new link"
     },
+    "verifyEmail": {
+      "eyebrow": "One last step",
+      "title": "Confirm your email",
+      "description": "We sent a link to {{email}}. Open it to start using AtleoPlan.",
+      "check": "I've confirmed it",
+      "sendAgain": "Send the link again",
+      "sent": "Sent: check your inbox, and the spam folder too.",
+      "notYet": "Not confirmed yet. Open the link in the email, then try again.",
+      "wrongAddress": "Wrong address? Sign out and create the account again with the right one.",
+      "signOut": "Sign out",
+      "done": "Address confirmed. Sign in to start.",
+      "failed": "This link has expired or doesn't work. Sign in and ask for a new one."
+    },
     "google": {
       "continue": "Continue with Google",
       "or": "or",

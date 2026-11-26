@@ -14,6 +14,7 @@ export const testUser: User = {
   id: 1,
   name: 'Ann',
   email: 'ann@example.com',
+  email_verified: true,
   is_admin: false,
   admin_url: null,
   locale: 'en',

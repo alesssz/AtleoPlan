@@ -540,6 +540,19 @@
       "invalidText": "Etwas fehlt darin. Fordere einen neuen an und öffne ihn aus der E-Mail.",
       "askAgain": "Neuen Link anfordern"
     },
+    "verifyEmail": {
+      "eyebrow": "Ein letzter Schritt",
+      "title": "Bestätige deine E-Mail-Adresse",
+      "description": "Wir haben einen Link an {{email}} geschickt. Öffne ihn, um mit AtleoPlan loszulegen.",
+      "check": "Ich habe sie bestätigt",
+      "sendAgain": "Link erneut senden",
+      "sent": "Gesendet: Schau in dein Postfach, auch in den Spam-Ordner.",
+      "notYet": "Noch nicht bestätigt. Öffne den Link in der E-Mail und versuch es dann noch einmal.",
+      "wrongAddress": "Falsche Adresse? Melde dich ab und erstelle das Konto mit der richtigen neu.",
+      "signOut": "Abmelden",
+      "done": "Adresse bestätigt. Melde dich an, um loszulegen.",
+      "failed": "Dieser Link ist abgelaufen oder funktioniert nicht. Melde dich an und fordere einen neuen an."
+    },
     "google": {
       "continue": "Weiter mit Google",
       "or": "oder",

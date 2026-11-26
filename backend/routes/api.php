@@ -7,6 +7,7 @@
  */
 
 use App\Http\Controllers\CurrentUserController;
+use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ExerciseController;
 use App\Http\Controllers\ExercisePhotoController;
@@ -23,41 +24,46 @@ Route::get('/health', fn () => response()->json(['status' => 'ok']))->name('heal
 // Limits per user (AppServiceProvider::configureRateLimiting()): `api` on
 // every route, tighter ones where a request costs disk or many rows
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    // Open before the address is confirmed: what "Confirm your email" needs
     Route::get('/user', [CurrentUserController::class, 'show']);
     Route::patch('/user/preferences', [CurrentUserController::class, 'updatePreferences']);
+    Route::post('/user/verification-email', [EmailVerificationController::class, 'send'])->middleware('throttle:verification-emails');
 
-    // The exercise library
-    Route::get('/muscles', [MuscleController::class, 'index']);
-    Route::get('/equipment', [EquipmentController::class, 'index']);
-    Route::apiResource('exercises', ExerciseController::class);
-    Route::post('/exercises/{exercise}/duplicate', [ExerciseController::class, 'duplicate'])->middleware('throttle:uploads');
-    Route::post('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'store'])->middleware('throttle:uploads');
-    Route::put('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'reorder']);
-    Route::delete('/exercises/{exercise}/photos/{photo}', [ExercisePhotoController::class, 'destroy'])->whereNumber('photo');
-    // The file of a personal exercise's photo, which is on no public disk. Its
-    // own limit: a plan's read-ahead asks for all its photos at once
-    Route::get('/exercises/{exercise}/photos/{photo}/{size}', [ExercisePhotoController::class, 'show'])
-        ->whereNumber('photo')->whereIn('size', ['thumb', 'large', 'original'])->withTrashed()
-        ->withoutMiddleware('throttle:api')->middleware('throttle:photo-files')
-        ->name('exercises.photos.show');
+    // Everything else waits for it: 403 until then (EmailVerificationController)
+    Route::middleware('verified')->group(function () {
+        // The exercise library
+        Route::get('/muscles', [MuscleController::class, 'index']);
+        Route::get('/equipment', [EquipmentController::class, 'index']);
+        Route::apiResource('exercises', ExerciseController::class);
+        Route::post('/exercises/{exercise}/duplicate', [ExerciseController::class, 'duplicate'])->middleware('throttle:uploads');
+        Route::post('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'store'])->middleware('throttle:uploads');
+        Route::put('/exercises/{exercise}/photos', [ExercisePhotoController::class, 'reorder']);
+        Route::delete('/exercises/{exercise}/photos/{photo}', [ExercisePhotoController::class, 'destroy'])->whereNumber('photo');
+        // The file of a personal exercise's photo, which is on no public disk. Its
+        // own limit: a plan's read-ahead asks for all its photos at once
+        Route::get('/exercises/{exercise}/photos/{photo}/{size}', [ExercisePhotoController::class, 'show'])
+            ->whereNumber('photo')->whereIn('size', ['thumb', 'large', 'original'])->withTrashed()
+            ->withoutMiddleware('throttle:api')->middleware('throttle:photo-files')
+            ->name('exercises.photos.show');
 
-    // The workout plans
-    Route::apiResource('plans', PlanController::class);
-    Route::post('/plans/{plan}/activate', [PlanController::class, 'activate']);
-    Route::post('/plans/{plan}/archive', [PlanController::class, 'archive']);
-    Route::post('/plans/{plan}/unarchive', [PlanController::class, 'unarchive']);
-    Route::get('/plans/{plan}/export', [PlanController::class, 'export']);
-    Route::post('/plans/import', [PlanController::class, 'import'])->middleware('throttle:imports');
+        // The workout plans
+        Route::apiResource('plans', PlanController::class);
+        Route::post('/plans/{plan}/activate', [PlanController::class, 'activate']);
+        Route::post('/plans/{plan}/archive', [PlanController::class, 'archive']);
+        Route::post('/plans/{plan}/unarchive', [PlanController::class, 'unarchive']);
+        Route::get('/plans/{plan}/export', [PlanController::class, 'export']);
+        Route::post('/plans/import', [PlanController::class, 'import'])->middleware('throttle:imports');
 
-    // The workouts. No POST: saving is a PUT to the session's own UUID, made on
-    // the phone. whereUuid() also keeps 'last-sets' from being read as a
-    // session's id
-    Route::get('/sessions', [WorkoutSessionController::class, 'index']);
-    Route::get('/sessions/last-sets', [WorkoutSessionController::class, 'lastSets']);
-    Route::get('/sessions/calendar', [WorkoutSessionController::class, 'calendar']);
-    Route::get('/sessions/{session}', [WorkoutSessionController::class, 'show'])->whereUuid('session');
-    Route::put('/sessions/{session}', [WorkoutSessionController::class, 'save'])->whereUuid('session');
-    Route::delete('/sessions/{session}', [WorkoutSessionController::class, 'destroy'])->whereUuid('session');
+        // The workouts. No POST: saving is a PUT to the session's own UUID, made on
+        // the phone. whereUuid() also keeps 'last-sets' from being read as a
+        // session's id
+        Route::get('/sessions', [WorkoutSessionController::class, 'index']);
+        Route::get('/sessions/last-sets', [WorkoutSessionController::class, 'lastSets']);
+        Route::get('/sessions/calendar', [WorkoutSessionController::class, 'calendar']);
+        Route::get('/sessions/{session}', [WorkoutSessionController::class, 'show'])->whereUuid('session');
+        Route::put('/sessions/{session}', [WorkoutSessionController::class, 'save'])->whereUuid('session');
+        Route::delete('/sessions/{session}', [WorkoutSessionController::class, 'destroy'])->whereUuid('session');
 
-    Route::get('/home', [HomeController::class, 'show']);
+        Route::get('/home', [HomeController::class, 'show']);
+    });
 });
