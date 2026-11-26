@@ -6,6 +6,7 @@
  * every refusal of PlanRequest and PlanPolicy.
  */
 
+use App\Actions\Plans\SavePlan;
 use App\Enums\SetType;
 use App\Models\Exercise;
 use App\Models\Plan;
@@ -350,4 +351,43 @@ it('refuses to save someone else\'s plan', function () {
         ->assertForbidden();
 
     expect($theirs->fresh()->name)->toBe('Theirs');
+});
+
+// --- At the limits ------------------------------------------------------------
+
+it('saves the largest plan allowed: 14 days of 30 exercises of 20 sets', function () {
+    $user = User::factory()->create();
+    $exercise = Exercise::factory()->create();
+    $set = ['set_type' => 'normal', 'target_reps_min' => 8, 'target_reps_max' => 10, 'target_weight_kg' => 60, 'target_rpe' => 8];
+    $item = fn () => ['id' => deviceId(), 'exercise_id' => $exercise->id, 'sets' => array_fill(0, 20, $set)];
+    $day = fn (int $n) => ['id' => deviceId(), 'name' => "Day {$n}", 'items' => array_map(fn () => $item(), range(1, 30))];
+    $data = ['name' => 'Everything', 'days' => array_map($day, range(1, 14))];
+    $save = app(SavePlan::class);
+
+    // Through the action: the request's validation of 8,400 sets takes
+    // seconds, and is not what fails. 8,400 sets of 9 columns are more
+    // values than Postgres takes in one statement
+    $plan = $save->create($user, $data);
+    $save->update($plan, [...$data, 'version' => 1]);
+
+    expect(PlanSet::count())->toBe(8400)
+        ->and(PlanItem::count())->toBe(420);
+});
+
+it('takes back its own ids sent in capitals, as Postgres compares them', function () {
+    $user = User::factory()->create();
+    [$bench, $row] = Exercise::factory()->count(2)->create();
+    $body = editorBody($bench, $row);
+    $this->actingAs($user)->postJson('/api/plans', $body)->assertCreated();
+
+    $shouting = [...$body, 'version' => 1, 'id' => Str::upper($body['id'])];
+    $shouting['days'][0]['id'] = Str::upper($body['days'][0]['id']);
+    $shouting['days'][0]['items'][0]['id'] = Str::upper($body['days'][0]['items'][0]['id']);
+
+    $this->actingAs($user)->putJson("/api/plans/{$body['id']}", $shouting)
+        ->assertOk()
+        ->assertJsonPath('data.days.0.id', $body['days'][0]['id'])
+        ->assertJsonPath('data.days.0.items.0.id', $body['days'][0]['items'][0]['id']);
+
+    expect(PlanDay::count())->toBe(1)->and(PlanItem::count())->toBe(2);
 });

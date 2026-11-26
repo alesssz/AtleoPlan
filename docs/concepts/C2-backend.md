@@ -331,7 +331,7 @@ PUT /api/plans/0192…f20  { version: 3, name, days: [ … ] }
    ├─ read the version, locking the row ........ 4 > 3: changed elsewhere
    ├─ the plan's fields, version 5
    ├─ days and items: matched by UUID .......... updated, created, or (not sent) deleted
-   ├─ sets: all deleted, all inserted .......... 2 queries
+   ├─ sets: all deleted, all inserted .......... 1,000 a statement: 2 queries, 10 for the largest plan
    └─ commit
 → 200 { data: the plan, meta: { changed_elsewhere: true } }
 ```
@@ -372,6 +372,10 @@ Errors name the exact place (`days.0.items.2.sets.1.target_reps_max`); `lang/*/v
 **One abstract request, two endpoints.** `StorePlanRequest` and `UpdatePlanRequest` extend `PlanRequest`, which leaves `planId()` to them: the URL's plan on update, the id sent on create.
 
 **Lists are counted before the rules run** (`Concerns\ChecksListLengthsFirst`, in every request with `.*` rules). The validator turns each `.*` rule into one rule per element sent, and reads `max:` only afterwards; `distinct` then compares each element with all the others. A body of a million sets would cost seconds and gigabytes before its refusal. The trait's `prepareForValidation()` reads the request's own rules, and counts every list whose rules have `array` and `max:`, outer lists first, so a list inside one already too long is never walked. Past its `max:` the request is refused with that rule's message, on the list's own key (`days.1.items`). Hence **every list rule has a `max:`**, `ids` of the photos' order included.
+
+**UUIDs are lowercased before the rules** (`Concerns\LowercasesIds`, in `PlanRequest` and `SaveSessionRequest`, after the lists are counted). Postgres compares `uuid` columns ignoring case and returns them in lowercase; PHP compares strings exactly. An id sent again in capitals would miss the rows read for the save (`keyBy('id')`), be inserted a second time and hit the primary key: a 500. Both requests use the list trait too, so their own `prepareForValidation()` calls its method under another name (`use ChecksListLengthsFirst { prepareForValidation as refuseListsTooLong; }`).
+
+**The largest plan allowed** (14 days, 30 exercises, 20 sets: 8,400 sets) saves, its sets inserted 1,000 a statement, as Postgres takes at most 65,535 values in one. Its validation takes seconds, the validator's own cost for some 70,000 field-rule pairs: [BE-8](../project/backlog.md#be-8-validating-the-largest-plan-takes-seconds).
 
 **Three traps:**
 

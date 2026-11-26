@@ -115,6 +115,28 @@ it('changes nothing when the same workout arrives again', function () {
         ->and(LoggedSet::count())->toBe(2);
 });
 
+it('takes back its own ids sent in capitals, as Postgres compares them', function () {
+    $user = User::factory()->create();
+    $plan = Plan::factory()->for($user)->has(PlanDay::factory()->has(PlanItem::factory(), 'items'), 'days')->create();
+    $item = $plan->days[0]->items[0];
+    $id = phoneId();
+    $body = phoneSession($item->exercise);
+    $this->actingAs($user)->putJson("/api/sessions/{$id}", $body)->assertCreated();
+
+    // The same workout again, its ids in capitals, now linked to the plan's item
+    $shouting = $body;
+    $shouting['exercises'][0]['id'] = Str::upper($body['exercises'][0]['id']);
+    $shouting['exercises'][0]['sets'][0]['id'] = Str::upper($body['exercises'][0]['sets'][0]['id']);
+    $shouting['exercises'][0]['plan_item_id'] = Str::upper($item->id);
+
+    $this->actingAs($user)->putJson('/api/sessions/'.Str::upper($id), $shouting)
+        ->assertOk()
+        ->assertJsonPath('data.exercises.0.id', $body['exercises'][0]['id'])
+        ->assertJsonPath('data.exercises.0.plan_item_id', $item->id);
+
+    expect(SessionExercise::count())->toBe(1)->and(LoggedSet::count())->toBe(2);
+});
+
 it('refuses the UUID of another user\'s workout', function () {
     $theirs = WorkoutSession::factory()->create();
 
