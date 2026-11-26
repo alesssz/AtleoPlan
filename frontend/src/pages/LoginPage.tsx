@@ -1,12 +1,13 @@
 /*
  * Signing in does not navigate: the mutation updates the current user and
  * RequireGuest moves on. A failed Google sign-in comes back here with
- * `?error=…`.
+ * `?error=…`, the link of the confirmation email with `?verify=done` or
+ * `?verify=failed` (when signed in already, RequireGuest goes on into the app).
  */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { useSignIn } from '@/api/auth'
 import { FormBanner } from '@/components/FormBanner'
 import { FormField } from '@/components/FormField'
@@ -22,6 +23,8 @@ export function LoginPage() {
   // ResetPasswordPage leaves a note in the router's state
   const location = useLocation()
   const passwordChanged = (location.state as { passwordChanged?: boolean } | null)?.passwordChanged === true
+  const [searchParams] = useSearchParams()
+  const verify = searchParams.get('verify')
 
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema(t)),
@@ -44,6 +47,8 @@ export function LoginPage() {
       {/* noValidate: the messages come from the schema, translated */}
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
         {passwordChanged && <FormBanner variant="success">{t('auth.resetPassword.done')}</FormBanner>}
+        {verify === 'done' && <FormBanner variant="success">{t('auth.verifyEmail.done')}</FormBanner>}
+        {verify === 'failed' && <FormBanner variant="error">{t('auth.verifyEmail.failed')}</FormBanner>}
         {errors.root?.message && <FormBanner variant="error">{errors.root.message}</FormBanner>}
         <GoogleSignInError />
 

@@ -1,12 +1,15 @@
 {
+    "Confirm your email address": "Bestätige deine E-Mail-Adresse",
+    "One tap, and your AtleoPlan account is ready.": "Ein Tipp, und dein AtleoPlan-Konto ist bereit.",
+    "One last step": "Ein letzter Schritt",
+    "Welcome to AtleoPlan! Confirm that :email is your address to start planning and logging your workouts.": "Willkommen bei AtleoPlan! Bestätige, dass :email deine Adresse ist, um deine Trainings zu planen und festzuhalten.",
+    "Confirm the address": "Adresse bestätigen",
+    "The link works for :count minutes. If you did not create an account, ignore this email: nothing will be done with your address.": "Der Link gilt :count Minuten. Wenn du kein Konto erstellt hast, ignoriere diese E-Mail: Mit deiner Adresse passiert nichts.",
     "Reset your password": "Setze dein Passwort zurück",
-    "You are receiving this email because we received a password reset request for your account.": "Du erhältst diese E-Mail, weil für dein Konto das Zurücksetzen des Passworts angefordert wurde.",
-    "Reset Password": "Passwort zurücksetzen",
-    "This password reset link will expire in :count minutes.": "Dieser Link läuft in :count Minuten ab.",
-    "If you did not request a password reset, no further action is required.": "Wenn du das nicht angefordert hast, musst du nichts tun.",
-    "Whoops!": "Hoppla!",
-    "Hello!": "Hallo!",
-    "Regards,": "Viele Grüße,",
-    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": "Wenn die Schaltfläche \":actionText\" nicht funktioniert, kopiere diese Adresse\nin deinen Browser:",
-    "All rights reserved.": "Alle Rechte vorbehalten."
+    "Choose a new password for your AtleoPlan account.": "Wähle ein neues Passwort für dein AtleoPlan-Konto.",
+    "Forgot your password?": "Passwort vergessen?",
+    "Choose a new password": "Wähle ein neues Passwort",
+    "Someone, hopefully you, asked to choose a new password for the AtleoPlan account of :email.": "Jemand, hoffentlich du, hat darum gebeten, ein neues Passwort für das AtleoPlan-Konto von :email festzulegen.",
+    "The link works once and for :count minutes. If you did not ask for it, ignore this email: your password stays as it is.": "Der Link funktioniert einmal und :count Minuten lang. Wenn du ihn nicht angefordert hast, ignoriere diese E-Mail: Dein Passwort bleibt, wie es ist.",
+    "If the button does not work, open this address:": "Wenn die Schaltfläche nicht funktioniert, öffne diese Adresse:"
 }

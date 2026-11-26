@@ -32,7 +32,7 @@ Recipes for the Laravel API: endpoints that read and change data, a body shaped 
 
 1. **Resource:** `make artisan c="make:resource MuscleResource"`. Relations through `whenLoaded()`, counts through `whenCounted()`, exact decimals as strings.
 2. **Controller:** `make artisan c="make:controller MuscleController"`, or `--api --model=Exercise` for the five resource methods.
-3. **Route** in `routes/api.php`, inside the `auth:sanctum` group.
+3. **Route** in `routes/api.php`, inside the `verified` group, within `auth:sanctum`: only what the "Confirm your email" screen needs stays outside it ([C2.7.10](../concepts/C2-backend.md#c2710-confirming-the-address)).
 4. **A list:** the query's rules as scopes on the model; filters through `QueryBuilder` with `allowedFilters()` (anything else is a 400); a Form Request for the values (`per_page`, the filters'); relations eager-loaded for the page ([C2.5.2](../concepts/C2-backend.md#c252-lists-filters-and-pages)).
 5. **Look at the JSON** before the frontend does: `make artisan c="route:list --path=api"`, then in tinker `(new MuscleResource($muscle))->response()->getContent()`.
 6. **Test:** a visitor gets 401, the list is the user's (`visibleTo`), the language follows `Accept-Language`, the query count does not grow with the rows.
@@ -120,10 +120,12 @@ Bulk work that would start Laravel once per job (`queue:listen`) runs inside the
 | `lang/{it,es,de}/validation.php` | A message per rule, the field names in `attributes`, our own keys |
 | `lang/en/validation.php` | Only our additions: keys of our own rules, English names of fields inside lists |
 | `lang/{it,es,de}/auth.php`, `passwords.php` | Sign-in and password reset |
-| `lang/{it,es,de}.json` | Sentences keyed by their English text (the password email) |
+| `lang/{it,es,de}.json` | Sentences keyed by their English text (the confirmation and password emails) |
 | `lang/{en,it,es,de}/admin.php` | The admin panel's labels |
 
 A missing message shows in English; `LanguageTest` lists the keys it checks. Try one in tinker: `app()->setLocale('it'); echo __('auth.failed');`.
+
+**A new email with a button** looks like the others through `ActionEmail::make()` ([C2.7.7](../concepts/C2-backend.md#c277-messages-in-the-users-language)): the notification's `toMail()` returns it, with each text through `__()` and its translation in the three `.json` files. To see it, render it in tinker and open the file in a browser: `echo $notification->toMail($user)->render();`; then send it for real and look in Mailpit.
 
 ---
 

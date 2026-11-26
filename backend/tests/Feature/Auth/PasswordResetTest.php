@@ -21,7 +21,7 @@ it('emails a link that opens the React screen', function () {
     $this->postJson('/api/auth/forgot-password', ['email' => 'ann+gym@example.com'])->assertOk();
 
     Notification::assertSentTo($user, ResetPassword::class, function (ResetPassword $notification) use ($user) {
-        $url = $notification->toMail($user)->actionUrl;
+        $url = $notification->toMail($user)->viewData['url'];
 
         return str_starts_with($url, 'http://localhost:5673/reset-password?token=')
             // The + must survive in the link

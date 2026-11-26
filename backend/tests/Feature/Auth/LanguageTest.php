@@ -74,8 +74,9 @@ it('writes the password email in the language of the account, whatever the reque
 
     expect($sent->getOriginalMessage()->getSubject())->toBe('Reimposta la password')
         ->and($html)
-        ->toContain('Ciao!')
-        ->toContain('A presto,')
-        ->not->toContain('Regards')
-        ->not->toContain('trouble clicking');
+        ->toContain('lang="it"')
+        ->toContain('Scegli una nuova password')
+        ->toContain('Il link funziona una sola volta e per 60 minuti.')
+        ->not->toContain('Someone')
+        ->not->toContain('If the button');
 });

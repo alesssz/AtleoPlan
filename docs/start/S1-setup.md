@@ -125,7 +125,7 @@ It is idempotent: the seeders write with `updateOrCreate()`, and what is already
 
 **How to check:** `make psql`, then `select count(*) from muscles;` gives 17, and `select count(*) from equipment;` gives 12.
 
-**The first account.** The database starts empty: register at http://localhost:5673/register, after `make dev`. For an admin, which also opens the panel at http://localhost:8500/admin (or Profile → About → Administration in the app), `make artisan c="db:seed"` creates `test@example.com`, password `password`; or make an existing account an admin, a Google one included ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament), [C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
+**The first account.** The database starts empty: register at http://localhost:5673/register, after `make dev`, then open the confirmation link that arrives in Mailpit. For an admin, which also opens the panel at http://localhost:8500/admin (or Profile → About → Administration in the app), `make artisan c="db:seed"` creates `test@example.com`, password `password`; or make an existing account an admin, a Google one included ([C2.8](../concepts/C2-backend.md#c28-admin-panel-filament), [C2.8.4](../concepts/C2-backend.md#c284-the-way-in-a-link-and-google-on-the-panels-login)). Emails, such as "reset your password", appear in Mailpit, at http://localhost:8525.
 
 ---
 

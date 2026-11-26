@@ -386,7 +386,10 @@ Guards are parent routes in `src/routes/`.
 | Still waiting | Skeletons ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)): rendering either the app or `/login` would flash the wrong one |
 | `null` | `<Navigate to="/login" />`, the address kept in the router's `state` |
 | Nothing, and the request failed | "Can't reach the server" and **Try again** |
+| A `User` whose `email_verified` is `false` | `VerifyEmailPage` in `AuthLayout`, whatever the address: the server refuses every page until the address is confirmed ([C2.7.10](C2-backend.md#c2710-confirming-the-address)) |
 | A `User` | `<Outlet />` |
+
+**"Confirm your email"** (`pages/VerifyEmailPage.tsx`) is not a route: the address stays, so the page asked for opens once the account is confirmed. The email's link often opens in another browser, so the screen asks `GET /api/user` again on **I've confirmed it** and when the app returns to the front (TanStack Query's refetch on focus); **Send the link again** (`useSendVerificationEmail()`) and **Sign out**, for a mistyped address, are the other ways out. Only `false` stops: a user kept on the phone from before the field existed passes while the app asks again. The link ends on `/login?verify=done` or `=failed`, which `LoginPage` shows as a `FormBanner`.
 
 It also calls `useAccountPreferences` ([C1.13.4](#c1134-preferences-on-the-account)), `usePendingSessions` ([C1.17.5](#c1175-the-queue-of-workouts-to-send)) and `useDeviceOwner`.
 
@@ -500,7 +503,7 @@ The server does the OAuth exchange ([C2.7.8](C2-backend.md#c278-signing-in-with-
 - **Vite forwards `/auth/`** to Laravel, so the whole journey stays on `localhost:5673`, the address registered with Google and the one the cookies belong to.
 - **The link carries** the app's language (for a new account) and `from`, the page `RequireAuth` remembered. Router `state` does not survive a trip to another site, so `from` travels through Laravel's session and Laravel redirects straight to it.
 - **Back signed in,** the app boots normally: `GET /api/user` finds the session ([C1.13.1](#c1131-the-one-idea-who-is-signed-in-is-server-data)).
-- **Back with an error,** the address is `/login?error=unverified`: `GoogleSignInError` reads it and shows the sentence in a `FormBanner`; unknown codes show the general one.
+- **Back with an error,** the address is `/login?error=unverified` (Google did not vouch for the address, not to be confused with `?verify=`, the confirmation email's): `GoogleSignInError` reads it and shows the sentence in a `FormBanner`; unknown codes show the general one.
 - **The wait:** `Button`'s `pending` does not work with `asChild` ([C1.20](#c120-showing-that-something-is-loading)), so the component swaps the "G" for a spinner and sets `aria-busy` itself; a `pageshow` listener resets it when Back restores the page from the bfcache.
 
 ### C1.13.8 The link to the admin panel

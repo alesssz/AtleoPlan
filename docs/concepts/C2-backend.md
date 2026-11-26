@@ -32,6 +32,7 @@ The stack's rationale is in [D2.2](../design/D2-decisions.md#d22-stack), the tab
   - [C2.7.7 Messages in the user's language](#c277-messages-in-the-users-language)
   - [C2.7.8 Signing in with Google](#c278-signing-in-with-google)
   - [C2.7.9 A disabled account is signed out at once](#c279-a-disabled-account-is-signed-out-at-once)
+  - [C2.7.10 Confirming the address](#c2710-confirming-the-address)
 - [C2.8 Admin panel: Filament](#c28-admin-panel-filament)
   - [C2.8.1 The panel's language](#c281-the-panels-language)
   - [C2.8.2 The exercise library screen](#c282-the-exercise-library-screen)
@@ -93,7 +94,7 @@ backend/
 │   │   │                       SavePublicExercise (C2.8.2); ImportFreeExercise, TranslateExercise, CorrectLoggingType (C2.14)
 │   │   ├── Plans/              SavePlan (C2.5.5); ExportPlan, ImportPlan (C2.5.8)
 │   │   ├── Workouts/           SaveWorkoutSession, FindLastSets, HomeSummary (C2.5.7)
-│   │   ├── Auth/               SignInWithSocialAccount (C2.7.8)
+│   │   ├── Auth/               SignInWithSocialAccount (C2.7.8), EndSessions (C2.7.10)
 │   │   ├── Users/              ChangeUserAccess (C2.8.3)
 │   │   └── Fortify/            CreateNewUser, ResetUserPassword (C2.7)
 │   ├── Console/Commands/     exercises:import, :import-extra, :translate, :correct-logging-types (C2.14), :private-photos (C2.5.9)
@@ -110,13 +111,13 @@ backend/
 │   ├── Policies/             ExercisePolicy, PlanPolicy, WorkoutSessionPolicy (C2.5.1)
 │   ├── Providers/            AppServiceProvider (rate limits, C2.5.10), FortifyServiceProvider, Filament/AdminPanelProvider
 │   ├── Rules/                SupersetsAreNeighbours (C2.5.6), PhotoPixels (C2.5.9)
-│   └── Support/              SearchText (D3.4.6)
+│   └── Support/              SearchText (D3.4.6), ActionEmail (C2.7.7)
 ├── bootstrap/app.php       routing, middleware, exception rendering (C2.4)
 ├── database/
 │   ├── data/                 exercise-translations/, extra-exercises.json, logging-type-corrections.json (C2.14)
 │   └── migrations/, factories/, seeders/
 ├── lang/                   validation, auth, password and admin texts per language (C2.7.7, C2.8.1)
-├── resources/views/        filament/google-sign-in.blade.php (C2.8.4)
+├── resources/views/        filament/google-sign-in.blade.php (C2.8.4); emails/action, the emails' layout (C2.7.7)
 ├── routes/
 │   ├── api.php               the JSON API under /api (C2.5)
 │   └── web.php               Google sign-in routes
@@ -144,7 +145,7 @@ Browser ─▶ Vite :5673 (Caddy in production) ─▶ FrankenPHP :8500 ─▶ p
 
 ## C2.5 Routes and controllers
 
-All of `routes/api.php` except `/health` is behind `auth:sanctum` and a rate limit per user ([C2.5.10](#c2510-rate-limits)); `routes/web.php` holds the Google sign-in routes (they need the session).
+All of `routes/api.php` except `/health` is behind `auth:sanctum` and a rate limit per user ([C2.5.10](#c2510-rate-limits)), and all but the account's own routes behind `verified`, a confirmed address ([C2.7.10](#c2710-confirming-the-address)); `routes/web.php` holds the browser visits: the Google sign-in routes, which need the session, and the confirmation email's link.
 
 Every endpoint has the same shape ([P1.2](../project/P1-conventions.md#p12-code)): `Gate::authorize()`, a Form Request, an action, an API Resource. Three controllers cover the range:
 
@@ -520,6 +521,7 @@ Signing in has its own limit ([C2.7.4](#c274-slowing-down-password-guessing)). O
 | `photo-files` | `GET /api/exercises/{id}/photos/{photo}/{size}`, in place of `api` | 600 a minute | the read-ahead asks for both sizes of every photo of a plan at once |
 | `uploads` | photo upload, Duplicate as mine | 30 a minute and 500 a day, together | each copies and converts photos: disk and queue are what an abuse would fill |
 | `imports` | `POST /api/plans/import` | 20 an hour | each up to 420 exercises and 8,400 sets |
+| `verification-emails` | `POST /api/user/verification-email` | 6 an hour | each is an email sent |
 
 - **Two limits of one limiter have two keys** (`minute:12`, `day:12`), or they would share one count.
 - **A refused body counts too:** the limit runs before the Form Request.
@@ -583,12 +585,14 @@ Browser (localhost:5673)                        Laravel, through Vite's proxy
 
 | Method and path | What it does | Answers |
 |---|---|---|
-| `POST /api/auth/register` | Signs up, then in | 201; 422; 429 |
+| `POST /api/auth/register` | Signs up, then in, and emails the confirmation link ([C2.7.10](#c2710-confirming-the-address)) | 201; 422; 429 |
 | `POST /api/auth/login` | Signs in | 200; 422; 429 |
 | `POST /api/auth/logout` | Signs out | 204 |
 | `POST /api/auth/forgot-password` | Sends the email | 200; 422 unknown email; 429 |
 | `POST /api/auth/reset-password` | Sets the new password | 200; 422 wrong token; 429 |
-| `GET /api/user` (ours) | Who is signed in | 200; 401 |
+| `GET /api/user` (ours) | Who is signed in, with `email_verified` | 200; 401 |
+| `POST /api/user/verification-email` (ours) | Sends the confirmation link again | 204; 401; 429 |
+| `GET /auth/verify-email/{id}/{hash}` (ours, browser visit) | The emailed link: confirms the address | 302 to `/login?verify=done` or `=failed` |
 | `GET /auth/google/redirect` (ours, browser visit) | Off to Google ([C2.7.8](#c278-signing-in-with-google)) | 302 |
 | `GET /auth/google/callback` (ours, browser visit) | Back from Google: signs in, links or creates the user | 302 into the app, or `/login?error=…` |
 | `PATCH /api/user/preferences` (ours) | Language, theme, unit, default rest (0–600 s), weight step (0.25–50, ≤ 2 decimals), timer sound, vibration, countdown (0–30 s), `show_rpe`; only the fields sent | 204; 422 |
@@ -620,7 +624,7 @@ Fortify::authenticateUsing(function (Request $request) {
 
 ### C2.7.3 Signing up
 
-`app/Actions/Fortify/CreateNewUser.php`: name, email (unique), password (`Password::default()`), and an optional `locale` (`Rule::enum(Locale::class)`), defaulting to the request's language, so emails to a new account go out in the language the app was showing.
+`app/Actions/Fortify/CreateNewUser.php`: name, email (unique), password (`Password::default()`), and an optional `locale` (`Rule::enum(Locale::class)`), defaulting to the request's language, so emails to a new account go out in the language the app was showing. The new account is signed in but cannot use the app until its address is confirmed ([C2.7.10](#c2710-confirming-the-address)).
 
 **What a password must be** is set once, in `AppServiceProvider` (`Password::defaults()`), and shared by sign-up and reset (`PasswordValidationRules`):
 
@@ -652,11 +656,16 @@ ResetPassword::createUrlUsing(fn (User $user, string $token): string => sprintf(
 ));
 ```
 
+**A reset also** (`ResetUserPassword`):
+
+- **signs the user out everywhere** (`EndSessions`: every row of `sessions`, and a new remember token, so no "remember me" cookie starts another). A reset is how a stolen password, or an account someone else signed up with this address, is taken back; their sessions must not outlive it;
+- **confirms the address,** since the token came through it, as the confirmation link would have.
+
 **Known limit:** an unknown email gets a 422, so this form (like sign-up) reveals who has an account: [BE-3](../project/backlog.md#be-3-harden-the-public-sign-in-routes).
 
 ### C2.7.6 Fortify or by hand
 
-The five controller methods are short to write; the difference is who answers for the details. With Fortify, session regeneration, lowercased emails on every path, remember-me tokens, reset events and security fixes come with the package, and two-factor or email verification is one line in `features`. What is app-specific (disabled accounts, the account language, the React reset link) fits the hooks Fortify leaves open (`authenticateUsing`, actions, `createUrlUsing`). By hand would be the better choice only for an unusual sign-in flow.
+The five controller methods are short to write; the difference is who answers for the details. With Fortify, session regeneration, lowercased emails on every path, remember-me tokens, reset events and security fixes come with the package, and two-factor is one line in `features`. Email verification is not Fortify's here: its link needs the session of the browser that signed up ([C2.7.10](#c2710-confirming-the-address)). What is app-specific (disabled accounts, the account language, the React reset link) fits the hooks Fortify leaves open (`authenticateUsing`, actions, `createUrlUsing`). By hand would be the better choice only for an unusual sign-in flow.
 
 **Set aside:** Breeze and Jetstream generate Blade or Inertia screens, and the screens are React; Passport is an OAuth server, more than this needs ([D2.2](../design/D2-decisions.md#d22-stack)).
 
@@ -668,11 +677,14 @@ The five controller methods are short to write; the difference is who answers fo
 |---|---|
 | `lang/{it,es,de}/auth.php`, `passwords.php` | Sign-in and password reset |
 | `lang/{it,es,de}/validation.php` | Validation messages for the rules in use, and field names |
-| `lang/{it,es,de}.json` | The password email's sentences, keyed by the English text |
+| `lang/{it,es,de}.json` | The sentences of the password and confirmation emails, keyed by the English text |
 | `lang/en/auth.php`, `validation.php` | Only additions (the disabled-account message, English field names such as `muscles.*.role`), merged over Laravel's own by key |
 
 - **Responses** use the request's language: the React app sends `Accept-Language` on every call, and `SetLocaleFromRequest` applies it.
 - **Emails** use the account's language (`User` implements `HasLocalePreference`), since they may be read later on another device.
+- **The emails' look is the app's,** not Laravel's default layout: dark, the logo above a card, one lime button, the address in full below for a client that shows no button. `ActionEmail::make()` (`app/Support/`) builds the `MailMessage` from a subject, an inbox preview line, an eyebrow, a title, a sentence naming the account's address (which the HTML highlights), the button and a closing note; `resources/views/emails/action.blade.php` draws it and `action-text.blade.php` is the plain-text part. `FortifyServiceProvider::configureEmails()` gives both emails their texts (`VerifyEmail::toMailUsing()`, `ResetPassword::toMailUsing()`).
+  - **Tables and inline styles only,** as mail clients drop `<style>` and most layout CSS; each dark background is also a one-colour gradient, which Gmail's dark mode does not recolour; a fixed-width table for Outlook, which ignores `max-width`. No web font: the system's sans-serif.
+  - **The logo** is `frontend/public/email-logo.png` (112 px, shown at 56), on the app's address like the links: mail clients do not show SVG. It is the mark of `components/brand/Brand.tsx`, drawn by Chrome: a page holding that SVG at 112 px, then `"Google Chrome" --headless=new --default-background-color=00000000 --window-size=112,112 --screenshot=email-logo.png page.html`.
 - **A new validation rule** adds its message to the three `validation.php` files; `tests/Feature/Auth/LanguageTest.php` lists the keys it checks. Without a translation the English message shows.
 - **Fields inside lists** are named with `*` in `attributes` (`'muscles.*.role' => 'ruolo del muscolo'`); otherwise the message reads "Il campo muscles.0.role è obbligatorio".
 
@@ -715,7 +727,7 @@ Browser                         Laravel (through Vite, /auth/…)         Google
 2. **An address that belongs to a password account:** Google is linked to it. Refusing and asking for the password would be marginally safer and clumsier for every user; `email_verified` is what makes linking safe.
 3. **A new address:** a new account without password, in the language the app was showing.
 
-Cases 2 and 3 require `email_verified`. A disabled account is refused in all three, before anything is linked.
+Cases 2 and 3 require `email_verified`, and confirm the address on AtleoPlan's side too. In case 2, if the account had not confirmed its address, its password was chosen by someone who never proved the address theirs, maybe not this person: the password is removed and every session ends (`EndSessions`); Forgot password sets a new one. A disabled account is refused in all three, before anything is linked.
 
 **From the admin panel** (`?to=admin`) the journey ends on the panel, or its login page with the error ([C2.8.4](#c284-the-way-in-a-link-and-google-on-the-panels-login)).
 
@@ -742,6 +754,30 @@ Disabling an account in the panel ([C2.8.3](#c283-the-users-screen)) sets `users
 **It must run before authentication.** Laravel sorts route middleware by a priority list, and a middleware missing from it runs after all listed ones: merely appended, this one would run after `auth:sanctum` had admitted the user. `bootstrap/app.php` therefore adds it with `prependToPriorityList(AuthenticatesRequests::class, SignOutDisabledAccount::class)`. Checking the resulting order: [H2.6](../how-to/H2-backend.md#h26-an-admin-screen).
 
 **Why not delete the user's sessions on Disable:** the middleware also covers sessions outside the `sessions` table (tests, other drivers), needs nothing to happen at Disable, and holds whatever sets the column, tinker or a database client included.
+
+### C2.7.10 Confirming the address
+
+An account signed up with a password must open a link sent to its address before it can use the app; until then anyone could make an account in someone else's name. Accounts made with Google are confirmed already (Google vouches, [C2.7.8](#c278-signing-in-with-google)), and so is an address whose password was reset ([C2.7.5](#c275-forgot-password)).
+
+```
+POST /api/auth/register ──▶ account created, signed in; Registered → VerifyEmail sent
+GET  /api/user ───────────▶ { …, "email_verified": false }: the app shows only "Confirm your email"
+GET  /api/plans ──────────▶ 403 "Your email address is not verified."
+the email's link, in any browser
+GET  /auth/verify-email/7/3f2a…?expires=…&signature=… ──▶ email_verified_at set
+                                                     ◀── 302 /login?verify=done
+GET  /api/user ───────────▶ { …, "email_verified": true }: the app opens
+```
+
+- **`User` implements `MustVerifyEmail`.** Laravel sends `VerifyEmail` on `Registered` (which Fortify fires), in the account's language ([C2.7.7](#c277-messages-in-the-users-language)).
+- **`verified` on every API route but three** (`routes/api.php`): `GET /api/user`, `PATCH /api/user/preferences` and `POST /api/user/verification-email`, what the "Confirm your email" screen needs. A 403 otherwise, so no data can be read or written before the address is confirmed.
+- **The link works without a session** (`EmailVerificationController::verify()`, in `web.php`). Fortify's would need the session of the browser that signed up, and a phone's mail app opens links in its own browser, while an app installed on an iPhone keeps its own cookies. The link is enough proof: it is signed, expires after 60 minutes (`auth.verification.expire`), carries the address's SHA-1, and went to that address.
+- **The link is on the React app's address** (`VerifyEmail::createUrlUsing()`, `FortifyServiceProvider`), as the reset link is, and Vite forwards `/auth/` ([C1.13.7](C1-frontend.md#c1137-continue-with-google)). Behind the proxy Laravel does not see the browser's host, so the signature covers the path and query only (`absolute: false`, `hasValidRelativeSignature()`).
+- **It always ends on `/login`:** `?verify=done`, or `?verify=failed` for an expired, altered or unknown link. A browser already signed in goes on into the app (`RequireGuest`). A second click is `done` and changes nothing.
+- **Sending it again:** `POST /api/user/verification-email`, 6 an hour per user (`verification-emails`, [C2.5.10](#c2510-rate-limits)); nothing is sent for an address already confirmed, with the same 204.
+- **Accounts made before this** count as confirmed from their creation (migration `count_existing_accounts_as_verified`); only development data existed.
+- **`EndSessions` assumes the `database` session driver,** the app's; with another, it would only change the remember token.
+- **Sign-up still says that an address is taken** ([BE-3](../project/backlog.md#be-3-harden-the-public-sign-in-routes)). Someone who finds their address taken uses Forgot password, which confirms it and signs the other person out, or Continue with Google.
 
 ---
 

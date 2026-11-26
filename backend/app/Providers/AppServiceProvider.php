@@ -40,6 +40,9 @@ class AppServiceProvider extends ServiceProvider
     /** Plan imports, each up to 420 exercises and 8,400 sets. */
     public const IMPORTS_PER_HOUR = 20;
 
+    /** "Send the link again" on "Confirm your email": each is an email sent. */
+    public const VERIFICATION_EMAILS_PER_HOUR = 6;
+
     /** A password's shortest length, at sign-up and reset alike. */
     public const PASSWORD_MIN_LENGTH = 10;
 
@@ -112,5 +115,7 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         RateLimiter::for('imports', fn (Request $request) => Limit::perHour(self::IMPORTS_PER_HOUR)->by($by($request)));
+
+        RateLimiter::for('verification-emails', fn (Request $request) => Limit::perHour(self::VERIFICATION_EMAILS_PER_HOUR)->by($by($request)));
     }
 }

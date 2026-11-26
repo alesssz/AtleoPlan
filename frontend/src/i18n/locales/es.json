@@ -540,6 +540,19 @@
       "invalidText": "Le falta algo. Pide uno nuevo y ábrelo desde el correo.",
       "askAgain": "Pedir un nuevo enlace"
     },
+    "verifyEmail": {
+      "eyebrow": "Último paso",
+      "title": "Confirma tu correo",
+      "description": "Hemos enviado un enlace a {{email}}. Ábrelo para empezar a usar AtleoPlan.",
+      "check": "Ya lo he confirmado",
+      "sendAgain": "Enviar el enlace de nuevo",
+      "sent": "Enviado: revisa tu correo, y también la carpeta de spam.",
+      "notYet": "Todavía no está confirmado. Abre el enlace del correo y vuelve a intentarlo.",
+      "wrongAddress": "¿Dirección equivocada? Cierra sesión y crea la cuenta de nuevo con la correcta.",
+      "signOut": "Cerrar sesión",
+      "done": "Dirección confirmada. Inicia sesión para empezar.",
+      "failed": "Este enlace ha caducado o no funciona. Inicia sesión y pide uno nuevo."
+    },
     "google": {
       "continue": "Continuar con Google",
       "or": "o",
