@@ -7,7 +7,6 @@ use App\Http\Requests\ReorderExercisePhotosRequest;
 use App\Http\Requests\StoreExercisePhotoRequest;
 use App\Http\Resources\ExercisePhotoResource;
 use App\Models\Exercise;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -67,15 +66,16 @@ class ExercisePhotoController extends Controller
      * session cookie goes with it. A soft-deleted exercise's too, as plans
      * and history still show it.
      *
-     * 404 rather than 403 when the exercise is not the user's, or whether
-     * someone else's exercise has photos would show. A conversion not made
-     * yet is a 404 as well: ExercisePhotoResource sends `original` until then.
+     * Someone else's exercise is already a 404 (the binding of `{exercise}`,
+     * AppServiceProvider), so whether it has photos does not show. A
+     * conversion not made yet is a 404 as well: ExercisePhotoResource sends
+     * `original` until then.
      *
      * @param  string  $size  thumb, large or original (the route allows no other)
      */
-    public function show(Request $request, Exercise $exercise, Media $photo, string $size): BinaryFileResponse
+    public function show(Exercise $exercise, Media $photo, string $size): BinaryFileResponse
     {
-        abort_unless($request->user()->can('view', $exercise), 404);
+        Gate::authorize('view', $exercise);
         $this->ensureItsPhoto($exercise, $photo);
 
         $conversion = $size === 'original' ? '' : $size;

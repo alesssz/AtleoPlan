@@ -42,13 +42,13 @@ Recipes for the Laravel API: endpoints that read and change data, a body shaped 
 ## H2.3 An endpoint that changes data
 
 1. **Form Request:** `make artisan c="make:request StoreExerciseRequest"`. **Delete the generated `authorize()`**: it returns `false`, which turns every request into a 403, and runs before the rules. A partial update extends the store request and adds `sometimes` to each field (`UpdateExerciseRequest`).
-2. **Policy:** `make artisan c="make:policy ExercisePolicy --model=Exercise"`, a method per action. A list uses a scope with the same rule as `view`.
+2. **Policy:** `make artisan c="make:policy ExercisePolicy --model=Exercise"`, a method per action. A list uses a scope with the same rule as `view`. Private rows with counting ids are also bound through that scope (`Route::bind()` in `AppServiceProvider`, as `bindExercises()`), so someone else's is a 404 before the Form Request reads the body.
 3. **Action** for the work: `make artisan c="make:class Actions/Exercises/SavePersonalExercise"`, writes in `DB::transaction()`.
 4. **Controller method:** `Gate::authorize()`, `$request->validated()`, the action, the Resource (201 on create).
 5. **A write that costs disk, a queue or many rows** (an upload, a copy, an import) gets a named limiter as well as `api`: `RateLimiter::for()` in `AppServiceProvider`, `->middleware('throttle:<name>')` on the route, a test that reaches the 429 ([C2.5.10](../concepts/C2-backend.md#c2510-rate-limits)).
 6. **Columns the request sets** must be in the model's `#[Fillable]`: `update($request->validated())` silently skips the others (a 204 with nothing saved).
 7. **New validation keys** get their text in `lang/{en,it,es,de}/validation.php` ([H2.8](#h28-messages-in-the-users-language)).
-8. **Tests, every outcome:** success (the only test that catches a stray `authorize()`), 422 per invalid field, 401 for a visitor, 403 for someone else's row and for a public one, 404. A visitor's request goes first, or in its own test: an earlier `actingAs()` signs in every later request of the test.
+8. **Tests, every outcome:** success (the only test that catches a stray `authorize()`), 422 per invalid field, 401 for a visitor, 403 for someone else's row (404 when it is bound through a scope) and for a public one, 404. A visitor's request goes first, or in its own test: an earlier `actingAs()` signs in every later request of the test.
 9. **Prove the tests can fail:** break the rule they guard, see them fail, put it back.
 
 ---

@@ -210,16 +210,23 @@ describe('ordering and removing', function () {
 });
 
 describe('who may', function () {
-    it('refuses someone else\'s exercise and a public one', function (string $whose) {
-        $exercise = $whose === 'public'
-            ? Exercise::factory()->create()
-            : Exercise::factory()->for(User::factory(), 'owner')->create();
+    it('refuses a public exercise', function () {
+        $exercise = Exercise::factory()->create();
 
         // The policy says no to adding and to ordering (an empty list, valid
         // for an exercise with no photos, so the request reaches the policy)
         uploadPhoto($exercise)->assertForbidden();
         $this->putJson("/api/exercises/{$exercise->id}/photos", ['ids' => []])->assertForbidden();
-    })->with(['public', 'someone else\'s']);
+    });
+
+    it('does not find someone else\'s exercise, before looking at the body', function () {
+        $exercise = Exercise::factory()->for(User::factory(), 'owner')->create();
+
+        // Bodies that would fail the rules: a 422 would say the exercise exists
+        uploadPhoto($exercise, UploadedFile::fake()->create('notes.txt'))->assertNotFound();
+        $this->putJson("/api/exercises/{$exercise->id}/photos", ['ids' => [1, 2]])->assertNotFound();
+        $this->deleteJson("/api/exercises/{$exercise->id}/photos/1")->assertNotFound();
+    });
 
     it('answers 401 to a visitor', function () {
         auth()->logout();
