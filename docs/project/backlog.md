@@ -62,7 +62,7 @@ This page is not a numbered section of the docs: it changes all the time, and it
 
 ## Road to the MVP
 
-Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built except for one point: [FEAT-3](#feat-3-workout-mode-and-home), working offline. The exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history are in place; the tables are in [D3. Data model](../design/D3-data-model.md).
+Phase 1 ([D1.8](../design/D1-ui.md#d18-release-phases-and-open-questions)) is built: the exercise library, sign-in (Google included), the admin panel, the plans, workout mode, Home, the summary and history, and offline the app, its screens already seen, the workouts and the preferences; the tables are in [D3. Data model](../design/D3-data-model.md). What remains of working offline is postponed: [FEAT-3](#feat-3-workout-mode-and-home).
 
 Refinements of what exists, not blocking the MVP: [UI-2](#ui-2-plan-editor-on-a-wide-screen-the-library-beside-the-plan), [FEAT-5](#feat-5-new-records-during-a-workout), [FEAT-6](#feat-6-edit-a-past-workout), [FEAT-7](#feat-7-an-exercises-own-history), [FEAT-10](#feat-10-google-on-profile), [FEAT-20](#feat-20-a-plans-duration-and-a-notice-when-it-is-ending). Workout mode from use in the gym: [FEAT-12](#feat-12-choose-the-sound-at-the-end-of-a-rest-or-a-timed-set), [FEAT-13](#feat-13-the-volume-of-the-sound). Phase 2: [FEAT-11](#feat-11-videos-of-an-exercise), [BE-7](#be-7-sign-up-says-that-an-address-is-taken).
 
@@ -143,11 +143,21 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 
 ### FEAT-3 Workout mode and Home
 
-**Priority:** high · **Kind:** feature · **Found:** 2026-11-05
+**Priority:** low, postponed · **Kind:** feature · **Found:** 2026-11-05
 
-**Done.** The workout tables and API ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)), workout mode ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)) and Home ([C1.18](../concepts/C1-frontend.md#c118-home)); finished workouts are already queued on the phone and retried when the app opens and when the network returns; the service worker opens the app with no network, and the query cache kept in IndexedDB for a week opens the screens already seen, and Start works from the active plan, its last sets and its photos read ahead; `SyncIndicator` shows what waits and what the server refused ([C1.21](../concepts/C1-frontend.md#c121-opening-with-no-network)). Live records are tracked in [FEAT-5](#feat-5-new-records-during-a-workout); Home's recent records wait for Progress (phase 2).
+**Done.** The workout tables and API ([C2.5.7](../concepts/C2-backend.md#c257-the-workouts-endpoints)), workout mode ([C1.17](../concepts/C1-frontend.md#c117-workout-mode)) and Home ([C1.18](../concepts/C1-frontend.md#c118-home)); finished workouts are already queued on the phone and retried when the app opens and when the network returns, and preferences changed offline wait beside them ([C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)); the service worker opens the app with no network, and the query cache kept in IndexedDB for a week opens the screens already seen, and Start works from the active plan, its last sets and its photos read ahead; `SyncIndicator` shows what waits and what the server refused ([C1.21](../concepts/C1-frontend.md#c121-opening-with-no-network)). Live records are tracked in [FEAT-5](#feat-5-new-records-during-a-workout); Home's recent records wait for Progress (phase 2).
 
-**What is missing.** **Working offline** ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)): the other changes made offline (plans, exercises), counted by `SyncIndicator` ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)) with the workouts and the preferences, which already wait on the phone ([C1.13.4](../concepts/C1-frontend.md#c1134-preferences-on-the-account)); the queue of workouts, today in `localStorage` ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)), moved to IndexedDB if it grows, and sent by the service worker in the background (Background Sync, where the browser has it); a notification when a rest ends with the app in the background.
+**What is missing**, of working offline ([D2.7](../design/D2-decisions.md#d27-offline-and-sync)):
+- **The other changes made offline** (plans, exercises), counted by `SyncIndicator` ([D1.6](../design/D1-ui.md#d16-states-and-edge-cases)) with the workouts and the preferences.
+- **Sending with the app closed.** The queue of workouts, in `localStorage` ([C1.17.5](../concepts/C1-frontend.md#c1175-the-queue-of-workouts-to-send)), goes when the app opens. Sent by the service worker instead (Background Sync), a workout would leave with the app closed.
+- **A notification when a rest ends** with the app in the background.
+
+**Postponed on 2026-11-27**, the last two, for what they cost against what they give:
+- **Background Sync exists in Chrome and Edge only:** Safari, every iPhone, and Firefox have none, so there nothing would change. It needs a hand-written service worker (`injectManifest` in place of Workbox's `generateSW`), and the service worker cannot read the `XSRF-TOKEN` cookie Laravel asks for, but through the Cookie Store API, Chromium's too. The smaller way, Workbox's `BackgroundSyncPlugin` on `PUT /api/sessions/…`, replays a failed request from the worker, Chromium only, and a replay after the CSRF token changed is refused (419), leaving it to the app's queue anyway.
+- **IndexedDB is not needed yet:** a queued workout is a few tens of kilobytes, and `localStorage` holds hundreds; moving would make every read of the queue asynchronous, indicator and banner included.
+- **The notification:** a timer in a page in the background is throttled, and the scheduled local notifications browsers once tried are gone. Reliable, iPhones included, it is a Web Push from the server at the rest's end (VAPID keys, a subscription per device, a scheduled job).
+
+**Recommended.** Take them up when the app has users on Android who lose workouts left in the queue (Background Sync), or when the rest's end is missed in use (the notification); the other changes offline when someone edits plans with no network.
 
 ### FEAT-5 New records during a workout
 
