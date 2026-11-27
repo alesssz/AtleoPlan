@@ -50,7 +50,8 @@ export function ConnectionBanner({ className }: { className?: string }) {
   else if (state.kind === 'unreachable') {
     message = { tone: 'waiting', icon: <ServerOff aria-hidden="true" className="size-4" />, text: t('sync.unreachableBanner') }
   }
-  else if (progress.announcing && state.kind === 'pending') {
+  // Workouts only: preferences go along without a word
+  else if (progress.announcing && state.kind === 'pending' && state.waiting > 0) {
     message = { tone: 'sending', icon: <Spinner className="size-4" />, text: t('sync.sendingBanner', { count: state.waiting }) }
   }
   else if (savedNow !== null) {

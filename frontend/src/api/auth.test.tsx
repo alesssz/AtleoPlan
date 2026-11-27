@@ -55,14 +55,17 @@ describe('useUpdatePreferences', () => {
   })
 
   it('keeps both of two changes close together, whatever the answers say', async () => {
-    // What the server has saved. The language's request is held until
-    // finishFirst(), as on a slow network
+    // What the server has saved. The first request, the language's, is held
+    // until finishFirst(), as on a slow network; the second carries both
+    // changes, as both still wait on the phone
     const saved = { ...testUser }
     let finishFirst = () => {}
+    let patches = 0
     const fake = vi.fn(async (_path: string, init?: RequestInit) => {
       if (init?.method === 'PATCH') {
         const change = JSON.parse(String(init.body)) as Partial<User>
-        if ('locale' in change) {
+        patches += 1
+        if (patches === 1) {
           await new Promise<void>((resolve) => {
             finishFirst = resolve
           })

@@ -1,24 +1,27 @@
 /*
- * Sends the queued workouts when the app opens, whenever the browser comes
- * back online, and every 30 seconds while they wait with a server that
- * answers. Mounted once, in RequireAuth, so it runs on every page.
+ * Sends what waits (changed preferences, finished workouts) when the app
+ * opens, whenever the browser comes back online, and every 30 seconds while
+ * something waits with a server that answers. Mounted once, in RequireAuth,
+ * so it runs on every page.
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect } from 'react'
 import { useSyncState } from './useSyncState'
 import { homeKeys } from '@/api/home'
 import { sessionKeys } from '@/api/sessions'
+import { sendPendingPreferences } from './pending-preferences'
 import { sendPendingSessions } from './pending-sessions'
 
 /**
- * Sends the queue now and, when something left it, marks history and Home
- * stale. For the rounds the user learns of only from ConnectionBanner: the
- * indicator's Send and Try again, the opening, the network's or the server's
- * return.
+ * Sends what waits now: the preferences changed on this phone, then the
+ * workouts; when a workout left the queue, marks history and Home stale. For
+ * the rounds the user learns of only from ConnectionBanner: the indicator's
+ * Send and Try again, the opening, the network's or the server's return.
  */
 export function useSendPending(): () => Promise<void> {
   const queryClient = useQueryClient()
   return useCallback(async () => {
+    await sendPendingPreferences()
     const report = await sendPendingSessions({ announce: true })
     if (report.sent.length > 0) {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.all })

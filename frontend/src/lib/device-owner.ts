@@ -24,8 +24,9 @@ export function setDeviceOwner(id: number | null): void {
 /**
  * The key of an entry for the user signed in now: "atleoplan.activeSession.12".
  * @param base the key without its owner, such as "atleoplan.activeSession"
+ * @param id another user's, for a user just read and not yet the owner
  * @returns null when nobody is signed in
  */
-export function ownedKey(base: string): string | null {
-  return owner === null ? null : `${base}.${owner}`
+export function ownedKey(base: string, id: number | null = owner): string | null {
+  return id === null ? null : `${base}.${id}`
 }

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { SessionInput } from '@/api/sessions'
 import { addPending, loadPending } from '@/components/workout/session-storage'
 import { request } from '@/lib/http'
+import { addPendingPreferences, loadPendingPreferences } from '@/lib/pending-preferences'
 import { sendPendingSessions } from '@/lib/pending-sessions'
 import { fakeApi, renderRoutes, type FakeAnswer } from '@/test/auth-helpers'
 import { ConnectionBanner } from './ConnectionBanner'
@@ -74,7 +75,7 @@ describe('SyncIndicator', () => {
     // outcome of a try
     await userEvent.click(screen.getByRole('button', { name: 'Server offline' }))
     const dialog = await screen.findByRole('dialog', { name: 'Not sent yet' })
-    expect(within(dialog).getByText('No workouts waiting.')).toBeInTheDocument()
+    expect(within(dialog).getByText('Nothing waiting.')).toBeInTheDocument()
 
     fakeApi({ 'GET /api/health': { status: 200, body: { status: 'ok' } } })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Check again now' }))
@@ -110,6 +111,34 @@ describe('SyncIndicator', () => {
     expect(within(dialog).getByText('Day A – Push')).toBeInTheDocument()
     expect(within(dialog).queryByRole('button', { name: 'Send now' })).not.toBeInTheDocument()
     expect(within(dialog).queryByRole('button', { name: 'Check again now' })).not.toBeInTheDocument()
+  })
+
+  it('counts the preferences changed on this phone as one change, beside the workouts, and sends them too', async () => {
+    addPending('w-1', body)
+    addPendingPreferences({ theme: 'light', weight_unit: 'lb' })
+    const fake = fakeApi({ 'PUT /api/sessions/w-1': saved, 'PATCH /api/user/preferences': { status: 204 } })
+    renderRoutes(routes, '/')
+
+    await userEvent.click(screen.getByRole('button', { name: '2 changes to send' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Not sent yet' })
+    expect(within(dialog).getByText('Settings')).toBeInTheDocument()
+    expect(within(dialog).getByText('Day A – Push')).toBeInTheDocument()
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Send now' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(loadPendingPreferences()).toEqual({})
+    expect(fake.mock.calls.some(([path]) => path === '/api/user/preferences')).toBe(true)
+  })
+
+  it('lists preferences waiting alone, offline too', async () => {
+    addPendingPreferences({ theme: 'light' })
+    onlineManager.setOnline(false)
+    renderRoutes(routes, '/')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Offline, 1 change to send' }))
+
+    expect(within(await screen.findByRole('dialog', { name: 'Not sent yet' })).getByText('Settings')).toBeInTheDocument()
   })
 
   it('follows the queue as it changes, from another page or tab', () => {

@@ -1,7 +1,8 @@
 /*
  * What SyncIndicator shows (D1.6): nothing, offline, the server unreachable,
- * changes waiting, or workouts the server refused. Today the changes are the finished workouts'
- * queue (pending-sessions.ts).
+ * changes waiting, or workouts the server refused. The changes are the
+ * finished workouts' queue (pending-sessions.ts) and the preferences changed
+ * on this phone (pending-preferences.ts), which count as one.
  */
 import type { SessionInput } from '@/api/sessions'
 import type { SendProgress } from './pending-sessions'
@@ -20,11 +21,15 @@ export interface RefusedWorkout {
   input: SessionInput
 }
 
+/**
+ * `waiting` counts the workouts, which ConnectionBanner names; `settings`
+ * says whether preferences wait too.
+ */
 export type SyncState
   = | { kind: 'synced' }
-    | { kind: 'offline', waiting: number, queued: QueuedWorkout[] }
-    | { kind: 'unreachable', waiting: number, queued: QueuedWorkout[] }
-    | { kind: 'pending', waiting: number, queued: QueuedWorkout[], sending: boolean }
+    | { kind: 'offline', waiting: number, queued: QueuedWorkout[], settings: boolean }
+    | { kind: 'unreachable', waiting: number, queued: QueuedWorkout[], settings: boolean }
+    | { kind: 'pending', waiting: number, queued: QueuedWorkout[], settings: boolean, sending: boolean }
     | { kind: 'refused', workouts: RefusedWorkout[], sending: boolean }
 
 /**
@@ -32,21 +37,22 @@ export type SyncState
  * done about the rest until it does; then refusals, which need a person; then
  * what is waiting.
  * @param reachable whether the last request had Laravel's answer (http.ts)
+ * @param settings whether preferences changed on this phone wait to be sent
  */
-export function syncState(online: boolean, reachable: boolean, pending: Record<string, SessionInput>, progress: Pick<SendProgress, 'sending' | 'refused'>): SyncState {
+export function syncState(online: boolean, reachable: boolean, pending: Record<string, SessionInput>, progress: Pick<SendProgress, 'sending' | 'refused'>, settings = false): SyncState {
   // Oldest first, as they were done
   const queued = Object.entries(pending)
     .map(([id, input]) => ({ id, input }))
     .sort((a, b) => a.input.started_at.localeCompare(b.input.started_at))
   const waiting = queued.length
-  if (!online) return { kind: 'offline', waiting, queued }
-  if (!reachable) return { kind: 'unreachable', waiting, queued }
+  if (!online) return { kind: 'offline', waiting, queued, settings }
+  if (!reachable) return { kind: 'unreachable', waiting, queued, settings }
   // A refusal whose workout left the queue since (deleted from its summary) is over
   const workouts = progress.refused.flatMap(({ id, status }) => {
     const input = pending[id]
     return input ? [{ id, status, input }] : []
   })
   if (workouts.length > 0) return { kind: 'refused', workouts, sending: progress.sending }
-  if (waiting > 0) return { kind: 'pending', waiting, queued, sending: progress.sending }
+  if (waiting > 0 || settings) return { kind: 'pending', waiting, queued, settings, sending: progress.sending }
   return { kind: 'synced' }
 }

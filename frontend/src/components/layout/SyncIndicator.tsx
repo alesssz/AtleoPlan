@@ -1,9 +1,10 @@
 /*
  * What waits to reach the server (D1.6): nothing when everything is there;
- * Offline or Server offline, with how many workouts wait; the changes
- * waiting; or what the server refused. With workouts waiting a tap lists
- * them, with what can be tried (send now, ask the server again); a tap on a
- * refusal shows which and why. Beside the logo on phones, under the
+ * Offline or Server offline, with how many changes wait; the changes
+ * waiting; or what the server refused. The changes are the finished workouts
+ * and, as one, the preferences changed on this phone. With changes waiting a
+ * tap lists them, with what can be tried (send now, ask the server again); a
+ * tap on a refusal shows which and why. Beside the logo on phones, under the
  * navigation from 640 px.
  */
 import { CircleAlert, CloudOff, CloudUpload, ServerOff } from 'lucide-react'
@@ -18,6 +19,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { loadPending } from '@/components/workout/session-storage'
 import { formatClockTime, formatDuration, formatLongDate } from '@/lib/format'
 import { isServerReachable } from '@/lib/http'
+import { preferencesWaiting } from '@/lib/pending-preferences'
 import type { RefusedWorkout } from '@/lib/sync-state'
 import { QUEUE_RETRY_INTERVAL_MS, useSendPending } from '@/lib/usePendingSessions'
 import { SERVER_CHECK_INTERVAL_MS } from '@/lib/useServerWatch'
@@ -62,17 +64,19 @@ export function SyncIndicator({ place = 'bar', className }: SyncIndicatorProps) 
     if (what === 'check') await fetchHealth().catch(() => undefined)
     else await sendPending()
     setTrying(false)
-    const failed = what === 'check' ? !isServerReachable() : Object.keys(loadPending()).length > 0
+    const failed = what === 'check' ? !isServerReachable() : Object.keys(loadPending()).length > 0 || preferencesWaiting()
     if (failed) setFailedTry(new Date())
   }
 
+  // The workouts, and the preferences as one change
+  const count = state.kind === 'synced' || state.kind === 'refused' ? 0 : state.waiting + (state.settings ? 1 : 0)
   // Offline with nothing waiting: nothing to list nor to try
-  const opensList = state.kind === 'unreachable' || state.kind === 'pending' || (state.kind === 'offline' && state.waiting > 0)
+  const opensList = state.kind === 'unreachable' || state.kind === 'pending' || (state.kind === 'offline' && count > 0)
 
   return (
     // Always there, even empty, so a screen reader hears the changes
     <div role="status" className={cn('flex items-center', className)}>
-      {state.kind === 'offline' && state.waiting === 0 && (
+      {state.kind === 'offline' && count === 0 && (
         <p title={t('sync.offlineHint')} className={cn(pill, TONES.waiting)}>
           <CloudOff aria-hidden="true" />
           <span className={text}>{t('sync.offline')}</span>
@@ -90,9 +94,9 @@ export function SyncIndicator({ place = 'bar', className }: SyncIndicatorProps) 
               {/* The spinner, not `pending`, which would lock the list while sending */}
               {state.kind === 'pending' && (state.sending ? <Spinner /> : <CloudUpload aria-hidden="true" />)}
               <span className={text}>
-                {state.kind === 'offline' ? t('sync.offline') : state.kind === 'unreachable' ? t('sync.unreachable') : t('sync.pending', { count: state.waiting })}
+                {state.kind === 'offline' ? t('sync.offline') : state.kind === 'unreachable' ? t('sync.unreachable') : t('sync.pending', { count })}
               </span>
-              {state.kind !== 'pending' && <WaitingCount count={state.waiting} className={text} />}
+              {state.kind !== 'pending' && <WaitingCount count={count} className={text} />}
             </Button>
           </DialogTrigger>
           <DialogContent closeLabel={t('common.close')} className="flex flex-col gap-4 sm:max-w-lg">
@@ -102,9 +106,15 @@ export function SyncIndicator({ place = 'bar', className }: SyncIndicatorProps) 
                 {state.kind === 'offline' ? t('sync.waitingOffline') : state.kind === 'unreachable' ? t('sync.waitingUnreachable') : t('sync.waitingPending')}
               </DialogDescription>
             </DialogHeader>
-            {state.queued.length > 0
+            {count > 0
               ? (
                   <ul className="flex flex-col gap-3">
+                    {state.settings && (
+                      <li className="rounded-2xl border bg-muted/40 p-4">
+                        <p className="font-semibold">{t('sync.settingsRow')}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{t('sync.settingsNote')}</p>
+                      </li>
+                    )}
                     {state.queued.map(workout => <WorkoutRow key={workout.id} input={workout.input} />)}
                   </ul>
                 )
@@ -163,7 +173,7 @@ export function SyncIndicator({ place = 'bar', className }: SyncIndicatorProps) 
 }
 
 /**
- * How many workouts wait, as a small number: the whole text would not fit
+ * How many changes wait, as a small number: the whole text would not fit
  * beside the logo on a phone. Read out whole.
  */
 function WaitingCount({ count, className }: { count: number, className?: string }) {
