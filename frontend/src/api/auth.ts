@@ -9,6 +9,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient, type UseQueryResult } from '@tanstack/react-query'
 import type { Language } from '@/i18n/languages'
 import { ApiError, ensureCsrfCookie, request } from '@/lib/http'
+import { addPendingPreferences, loadPendingPreferences, sendPendingPreferences } from '@/lib/pending-preferences'
 import type { Theme } from '@/theme/theme'
 
 /** As sent by the backend's UserResource. */
@@ -91,12 +92,16 @@ const UPDATE_PREFERENCES_KEY = ['updatePreferences']
 /**
  * A 401 is the answer "nobody" and becomes null, which the guards expect. Any
  * other error stays one: no network must not look like being signed out.
+ *
+ * The preferences changed on this phone and not sent yet go over the server's
+ * values (pending-preferences.ts). By the user's own id: the first read after
+ * opening comes before RequireAuth knows who owns the phone.
  * @throws ApiError on anything but a 401
  */
 export async function fetchCurrentUser(signal?: AbortSignal): Promise<User | null> {
   try {
     const answer = await request<{ data: User }>('/api/user', { signal })
-    return answer.data
+    return { ...answer.data, ...loadPendingPreferences(answer.data.id) }
   }
   catch (error) {
     if (error instanceof ApiError && error.status === 401) return null
@@ -210,8 +215,9 @@ export function useResetPassword() {
 
 /**
  * Optimistic: the change goes into the cache at once and useAccountPreferences
- * applies it. A failed save is not undone; the account's value returns on the
- * next reload.
+ * applies it. It is kept on the phone before it is sent, with any change still
+ * waiting (pending-preferences.ts): with no network or no server it waits for
+ * the queue's next round, and survives a reload meanwhile. It never fails.
  *
  * The server's answers are never written into the cache: with two changes close
  * together, the second answer can carry the old value of the first. The user is
@@ -221,7 +227,13 @@ export function useUpdatePreferences() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationKey: UPDATE_PREFERENCES_KEY,
-    mutationFn: (data: PreferencesData) => request<void>('/api/user/preferences', { method: 'PATCH', body: data }),
+    // At once, also offline: the change must reach the phone's storage now,
+    // not when the network returns
+    networkMode: 'always',
+    mutationFn: async (data: PreferencesData) => {
+      addPendingPreferences(data)
+      await sendPendingPreferences()
+    },
     onMutate: async (data) => {
       // A read on its way may hold the old values and land after this change
       await queryClient.cancelQueries({ queryKey: authKeys.user })

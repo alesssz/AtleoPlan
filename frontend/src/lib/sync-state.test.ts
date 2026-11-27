@@ -14,13 +14,13 @@ describe('syncState', () => {
   })
 
   it('says offline, whatever waits, since nothing can be done about it', () => {
-    expect(syncState(false, true, {}, idle)).toEqual({ kind: 'offline', waiting: 0, queued: [] })
-    expect(syncState(false, true, { a: body }, { sending: false, refused: [{ id: 'a', status: 422 }] })).toEqual({ kind: 'offline', waiting: 1, queued: [{ id: 'a', input: body }] })
+    expect(syncState(false, true, {}, idle)).toEqual({ kind: 'offline', waiting: 0, queued: [], settings: false })
+    expect(syncState(false, true, { a: body }, { sending: false, refused: [{ id: 'a', status: 422 }] })).toEqual({ kind: 'offline', waiting: 1, queued: [{ id: 'a', input: body }], settings: false })
   })
 
   it('counts what waits online, and whether it is being sent', () => {
-    expect(syncState(true, true, { a: body, b: body }, idle)).toEqual({ kind: 'pending', waiting: 2, queued: [{ id: 'a', input: body }, { id: 'b', input: body }], sending: false })
-    expect(syncState(true, true, { a: body }, { sending: true, refused: [] })).toEqual({ kind: 'pending', waiting: 1, queued: [{ id: 'a', input: body }], sending: true })
+    expect(syncState(true, true, { a: body, b: body }, idle)).toEqual({ kind: 'pending', waiting: 2, queued: [{ id: 'a', input: body }, { id: 'b', input: body }], settings: false, sending: false })
+    expect(syncState(true, true, { a: body }, { sending: true, refused: [] })).toEqual({ kind: 'pending', waiting: 1, queued: [{ id: 'a', input: body }], settings: false, sending: true })
   })
 
   it('puts refused workouts first, with their bodies', () => {
@@ -33,7 +33,13 @@ describe('syncState', () => {
   })
 
   it('treats a server that does not answer as offline, with what waits', () => {
-    expect(syncState(true, false, { a: body }, idle)).toEqual({ kind: 'unreachable', waiting: 1, queued: [{ id: 'a', input: body }] })
-    expect(syncState(false, false, {}, idle)).toEqual({ kind: 'offline', waiting: 0, queued: [] })
+    expect(syncState(true, false, { a: body }, idle)).toEqual({ kind: 'unreachable', waiting: 1, queued: [{ id: 'a', input: body }], settings: false })
+    expect(syncState(false, false, {}, idle)).toEqual({ kind: 'offline', waiting: 0, queued: [], settings: false })
+  })
+
+  it('counts preferences changed on this phone as something waiting, with no workout', () => {
+    expect(syncState(true, true, {}, idle, true)).toEqual({ kind: 'pending', waiting: 0, queued: [], settings: true, sending: false })
+    expect(syncState(false, true, {}, idle, true)).toEqual({ kind: 'offline', waiting: 0, queued: [], settings: true })
+    expect(syncState(true, false, { a: body }, idle, true)).toEqual({ kind: 'unreachable', waiting: 1, queued: [{ id: 'a', input: body }], settings: true })
   })
 })

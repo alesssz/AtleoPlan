@@ -6,7 +6,8 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { storeActiveSession } from '@/components/workout/session-storage'
 import { startFreeSession } from '@/components/workout/workout-session'
-import { fakeApi, renderRoutes, signedInAs, testUser, visitor } from '@/test/auth-helpers'
+import { loadPendingPreferences } from '@/lib/pending-preferences'
+import { fakeApi, renderRoutes, signedInAs, testUser, visitor, type FakeAnswer } from '@/test/auth-helpers'
 import { RequireAuth } from '@/routes/RequireAuth'
 import { RequireGuest } from '@/routes/RequireGuest'
 import { ProfilePage } from './ProfilePage'
@@ -172,6 +173,37 @@ describe('ProfilePage', () => {
     await waitFor(() => expect(rpe).toHaveAttribute('aria-checked', 'true'))
 
     expect(preferencesSent(fake)).toEqual([{ default_rest_seconds: 120 }, { countdown_seconds: 10 }, { weight_step: '1.25' }, { timer_sound: false }, { show_rpe: true }])
+  })
+
+  it('keeps a preference changed with no network, after a reload too, and sends it when the network returns', async () => {
+    let patchAnswer: FakeAnswer | 'network' = 'network'
+    // The server never had the change: it answers with the account as it was
+    const fake = fakeApi({
+      'GET /api/user': signedInAs(),
+      'GET /api/health': health,
+      'PATCH /api/user/preferences': () => {
+        if (patchAnswer === 'network') throw new TypeError('Failed to fetch')
+        return patchAnswer
+      },
+    })
+    renderRoutes(routes, '/profile')
+    const user = userEvent.setup()
+
+    const sound = within(await screen.findByRole('tabpanel', { name: 'Workout' })).getByRole('switch', { name: 'Sound' })
+    await user.click(sound)
+    await waitFor(() => expect(sound).toHaveAttribute('aria-checked', 'false'))
+
+    // The app opened again, its cache gone: the server's value, and the change over it
+    cleanup()
+    renderRoutes(routes, '/profile')
+    const again = within(await screen.findByRole('tabpanel', { name: 'Workout' })).getByRole('switch', { name: 'Sound' })
+    expect(again).toHaveAttribute('aria-checked', 'false')
+
+    patchAnswer = { status: 204 }
+    window.dispatchEvent(new Event('online'))
+
+    await waitFor(() => expect(preferencesSent(fake).at(-1)).toEqual({ timer_sound: false }))
+    await waitFor(() => expect(loadPendingPreferences()).toEqual({}))
   })
 
   it('changes the unit with the step that suits it', async () => {
