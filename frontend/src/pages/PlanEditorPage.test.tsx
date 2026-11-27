@@ -208,6 +208,23 @@ describe('PlanEditorPage', () => {
     expect(screen.getByLabelText('Set 3, Reps')).toHaveAttribute('aria-invalid', 'true')
   })
 
+  it('asks to wait when saving too often, and keeps the changes', async () => {
+    fakeApi({
+      'GET /api/user': signedInAs(),
+      'GET /api/plans/plan-ppl': savedPlan,
+      'PUT /api/plans/plan-ppl': { status: 429, body: { message: 'Too Many Attempts.' } },
+    })
+    renderRoutes(routes, '/plans/plan-ppl/edit')
+    const user = userEvent.setup()
+
+    await user.clear(await screen.findByLabelText('Name'))
+    await user.type(screen.getByLabelText('Name'), 'PPL v2')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Too many attempts. Wait a minute and try again.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toHaveValue('PPL v2')
+  })
+
   it('saves a plan again with its version and its ids', async () => {
     const fake = fakeApi({
       'GET /api/user': signedInAs(),

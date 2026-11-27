@@ -30,7 +30,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
   - [FEAT-20 A plan's duration, and a notice when it is ending](#feat-20-a-plans-duration-and-a-notice-when-it-is-ending)
 - [BE](#be)
   - [BE-7 Sign-up says that an address is taken](#be-7-sign-up-says-that-an-address-is-taken)
-  - [BE-8 Validating the largest plan takes seconds](#be-8-validating-the-largest-plan-takes-seconds)
 - [DATA](#data)
   - [DATA-4 Weighted holds and carries have no fitting logging type](#data-4-weighted-holds-and-carries-have-no-fitting-logging-type)
 
@@ -299,19 +298,6 @@ With both, Home says when the plan is nearing its end, and offers three ways on:
 - B) Leave it: the limit per address slows a list down, and many apps answer the same way.
 
 **Recommended.** A before opening the app to other users (phase 2); until then it is not deployed, so nothing is exposed. Done when signing up with a known address and with a new one give the same answer, the owner gets the email, and no session or account is made for the known one.
-
-### BE-8 Validating the largest plan takes seconds
-
-**Priority:** low · **Kind:** performance, abuse · **Found:** 2026-11-26
-
-**What is missing.** A plan at the limits of `PlanRequest` (14 days × 30 exercises × 20 sets, 8,400 sets) is validated in about 5 seconds locally, against half a second to save it ([C2.5.6](../concepts/C2-backend.md#c256-validating-nested-data)). Measured: 2.3 s for the plain rules alone, the validator's own cost of some 70,000 field-rule pairs; about as much again for `required_with` and `gte` between two fields; the rest for 855 queries, one `exists` per exercise and one `unique` per day and item id. No real plan comes near it, but an account may save plans 180 times a minute (`api`, [C2.5.10](../concepts/C2-backend.md#c2510-rate-limits)), so a script could keep the server busy. The import of a plan file has the same limits.
-
-**Options.**
-- A) A limiter of its own on saving and importing a plan, a few a minute per user: the editor saves on demand, never in a loop.
-- B) Lower limits: 10 sets per exercise, not 20, halves the cost; to check against the plans people write.
-- C) The sets validated by hand in `after()`, one loop over the sets, and the ids and exercises checked with one query each (`whereIn`): fast, but the messages per field and their names come by hand.
-
-**Recommended.** A now, small and enough against abuse; C only if a real plan is ever slow to save.
 
 ## DATA
 
