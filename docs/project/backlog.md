@@ -12,7 +12,6 @@ This page is not a numbered section of the docs: it changes all the time, and it
 - [OPS](#ops)
   - [OPS-2 Check that the AtleoPlan name is free](#ops-2-check-that-the-atleoplan-name-is-free)
   - [OPS-3 Deploy to the free server](#ops-3-deploy-to-the-free-server)
-  - [OPS-5 Drop the minimatch override](#ops-5-drop-the-minimatch-override)
   - [OPS-6 Drop the glob override](#ops-6-drop-the-glob-override)
   - [OPS-8 Vite's proxy hides the browser's host from Laravel](#ops-8-vites-proxy-hides-the-browsers-host-from-laravel)
 - [UI](#ui)
@@ -103,21 +102,13 @@ Before deploying: the security settings among [OPS-3](#ops-3-deploy-to-the-free-
 
 **Recommended.** Keep the local stack close to the production one (same Docker images, Postgres rather than SQLite), so that deploying is a configuration step and not a rewrite.
 
-### OPS-5 Drop the minimatch override
-
-**Priority:** low · **Kind:** dependencies · **Found:** 2026-11-13
-
-**What is missing.** `frontend/package.json` forces `minimatch` 11 with `overrides`, for a vulnerability fixed only there, while `eslint`, `typescript-eslint` and `shadcn` (through `ts-morph`) still ask for 10 ([H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)). An override is a version nobody upstream tested with; it should not outlive its reason.
-
-**Recommended.** After updating those packages, remove `overrides` and the `"//"` note, `npm install`, `npm ls minimatch`: when no 10.x is left, the override goes, in a `chore/…` branch with `make check`.
-
 ### OPS-6 Drop the glob override
 
 **Priority:** low · **Kind:** dependencies · **Found:** 2026-11-17
 
-**What is missing.** `frontend/package.json` forces `workbox-build`'s `glob` to 14: its own range, `^11.0.1`, finds no file with the forced `minimatch` 11 ([H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)), and 11 has an advisory fixed only in 14. Build time only, but a version `workbox-build` was not tested with.
+**What is missing.** `frontend/package.json` forces `workbox-build`'s `glob` to 14 ([H3.7.1](../how-to/H3-frontend.md#h371-a-vulnerable-package-deep-in-the-tree-overrides)): its own range, `^11.0.1`, has an advisory (GHSA-3g3m-2fjr-6pw4) and brings `minimatch` 10, which has another (GHSA-g3hv-75wg-m249); 14 fixes both. Build time only, but a version `workbox-build` was not tested with. Checked on 2026-11-27: `workbox-build` 7.4.1, the latest, still asks for `^11.0.1`.
 
-**Recommended.** When `workbox-build` (through `vite-plugin-pwa`) accepts `glob` 14, remove the scoped override and its line in the `"//"` note, `npm install`, `npm ls glob`, then `make fe-build` must still list the precached files; in a `chore/…` branch with `make check`.
+**Recommended.** When `workbox-build` (through `vite-plugin-pwa`) accepts `glob` 14, remove the override and the `"//"` note, `npm install`, `npm ls glob minimatch`, then `make fe-build` must still list the precached files; in a `chore/…` branch with `make check`.
 
 ### OPS-8 Vite's proxy hides the browser's host from Laravel
 

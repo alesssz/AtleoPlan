@@ -204,9 +204,11 @@ A single setting by hand, e.g. `gh api repos/alesssz/AtleoPlan/actions/permissio
 
 ```json
 "auditIgnore": {
-  "GHSA-fc5q-39xc-vjpf": "picomatch, high: only in development and build tools (Vite, Vitest, ESLint, Rollup, Workbox, shadcn), never in the app's bundle; the ReDoS needs a crafted glob pattern, and ours come from config files; no patched version exists"
+  "GHSA-xxxx-xxxx-xxxx": "the package and severity; why it cannot reach production, and why it cannot be fixed"
 }
 ```
+
+It is empty.
 
 ```sh
 make audit                       # Composer's audit, then this script

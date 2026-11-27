@@ -109,16 +109,16 @@ When an advisory is in a transitive dependency whose parents do not accept the f
 
 1. **Find it:** `npm audit`, `npm ls <package>` (npm counts every package on the path; `npm audit --json` shows the advisories themselves in `via`).
 2. **Weigh it:** is it reachable in production, or only in development tools?
-3. **Force the fixed version** in `package.json`, with the reason in a `"//"` field (JSON has no comments):
+3. **Force the fixed version** in `package.json`, with the reason in a `"//"` field (JSON has no comments), scoped to the parent that needs it when one does:
    ```json
-   "overrides": { "minimatch": "^11.0.8" }
+   "overrides": { "workbox-build": { "glob": "^14.0.2" } }
    ```
    Then `npm install`, `npm ls <package>`, `npm audit`, and read the lockfile's diff.
-4. **Prove it still works:** `npm run lint && npm run typecheck && npx vitest run && npm run build`, and the tools that use the package on what they use it for (ESLint selects its files with `minimatch`: `npx eslint . --format json` must still list them).
+4. **Prove it still works:** `npm run lint && npm run typecheck && npx vitest run && npm run build`, and the tools that use the package on what they use it for (Workbox selects the files to precache with `glob`: `make fe-build` must still list them).
 5. **An advisory with no fix** that is not reachable in production is dismissed on GitHub as "risk is tolerable", with a note.
-6. **Plan the removal:** a backlog entry ([OPS-5](../project/backlog.md#ops-5-drop-the-minimatch-override), [OPS-6](../project/backlog.md#ops-6-drop-the-glob-override)) to drop the override once the parents accept the fixed version.
+6. **Plan the removal:** a backlog entry ([OPS-6](../project/backlog.md#ops-6-drop-the-glob-override)) to drop the override once the parents accept the fixed version. Then update the parents, remove the override, `npm install`, and look at what comes back with `npm ls <package>`: an old major version under another parent is fine when no advisory covers it (`gh api /advisories/<GHSA id>` gives the ranges affected).
 
-**An override also binds the packages added later.** `glob` 11, asked for by `workbox-build`, finds no file at all with the forced `minimatch` 11, and `npm install` says nothing: the build failed with "Couldn't find configuration for either precaching or runtime caching". Hence a second override, scoped to the one parent, `"workbox-build": { "glob": "^14.0.2" }`: `glob` 14 is built on `minimatch` 11, and also fixes an advisory of 11. After adding a package, `npm ls minimatch` shows whether it brings a new user of the forced version.
+**A global override also binds the packages added later.** A `minimatch` forced to 11 for every package makes `glob` 11, under `workbox-build`, find no file at all, and `npm install` says nothing: the build fails with "Couldn't find configuration for either precaching or runtime caching". Hence overrides scoped to their parent, as the project's one is.
 
 ---
 
@@ -220,7 +220,7 @@ make fix                    # quotes and semicolons to our style
 | Photos 404 on `/storage/…` | No `public/storage` link on this computer | `make artisan c="storage:link"` |
 | A page scrolls sideways on a phone, though the long names are truncated | A `grid` with no column template below `sm:`: its one column grows to the widest item | `grid-cols-1`, so the column is `minmax(0, 1fr)` |
 | `make fe-preview` still shows the previous build | The page came from the old service worker; the new one took over meanwhile | Reload once more |
-| `make fe-build` fails with "Couldn't find configuration for either precaching or runtime caching" | Workbox found no file: a `glob` the forced `minimatch` breaks ([H3.7.1](#h371-a-vulnerable-package-deep-in-the-tree-overrides)) | `npm ls glob`: workbox-build's must be 14 |
+| `make fe-build` fails with "Couldn't find configuration for either precaching or runtime caching" | Workbox found no file: its `glob` under a `minimatch` forced for every package ([H3.7.1](#h371-a-vulnerable-package-deep-in-the-tree-overrides)) | `npm ls glob minimatch`: workbox-build's `glob` must be 14, and no override of `minimatch` for every package |
 | A tab bar with no tab selected | `Tabs`' `value` matches no trigger | Validate the value read from the address |
 | The editor brings back old changes | A draft kept from an earlier visit | **Discard changes**, or clear `atleoplan.planDraft.…` (one per plan and user) |
 | `Found multiple elements with the role "button" and name "Save"` | The same control drawn twice | One of each: it confuses screen readers too |
