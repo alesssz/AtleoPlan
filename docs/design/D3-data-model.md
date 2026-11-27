@@ -458,7 +458,7 @@ The body is built by the plan editor ([C1.16.5](../concepts/C1-frontend.md#c1165
 
 The two levels differ on purpose. Days and items **keep their UUIDs** across saves, because sessions reference them: a session done last week stays linked to the same `plan_items` row after its reps change. Nothing references `plan_sets`, so rewriting them is simpler than diffing them, which is why their id is a plain `bigint`.
 
-**The editor's draft is kept on the device**, not in the database, per user: in `localStorage` ([C1.16.4](../concepts/C1-frontend.md#c1164-the-draft-kept-in-the-browser)), moving to IndexedDB with the offline work of FEAT-3. "Discard changes" ([D1.4.8](D1-ui.md#d148-plan-editor)) goes back to the last saved version, the row in `plans`. A draft therefore does not follow the user from desktop to phone; a saved plan does.
+**The editor's draft is kept on the device**, not in the database, per user: in `localStorage` ([C1.16.4](../concepts/C1-frontend.md#c1164-the-draft-kept-in-the-browser)), enough for a draft of a few kilobytes. "Discard changes" ([D1.4.8](D1-ui.md#d148-plan-editor)) goes back to the last saved version, the row in `plans`. A draft therefore does not follow the user from desktop to phone; a saved plan does.
 
 ### D3.5.7 When a plan is changed in two places
 
