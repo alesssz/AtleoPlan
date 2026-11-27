@@ -263,8 +263,8 @@ Photos and Duplicate as mine: [C2.5.9](#c259-the-photos-of-an-exercise).
 |---|---|---|
 | `GET /api/plans` | Plans in use: the active one first, then by last change, each with `days_count` and `last_used_at` (the start of its latest finished workout, a `withMax()` subquery). `?archived=1`: the archived ones | 200; 422 |
 | `GET /api/plans/{id}` | The whole plan: days, items, sets | 200; 403; 404, also for a non-UUID |
-| `POST /api/plans` | Creates a whole plan | 201; 200 when the same id is sent again; 422 |
-| `PUT /api/plans/{id}` | Saves the whole plan | 200 with `meta.changed_elsewhere`; 403; 422 |
+| `POST /api/plans` | Creates a whole plan | 201; 200 when the same id is sent again; 422; 429 |
+| `PUT /api/plans/{id}` | Saves the whole plan | 200 with `meta.changed_elsewhere`; 403; 422; 429 |
 | `DELETE /api/plans/{id}` | Deletes it with its days, items and sets | 204; 403 |
 | `POST /api/plans/{id}/activate` | Makes it the active plan | 200; 403 someone else's or archived |
 | `POST /api/plans/{id}/archive` | Archives it; if active, no plan is active any more | 200; 403 |
@@ -375,7 +375,7 @@ Errors name the exact place (`days.0.items.2.sets.1.target_reps_max`); `lang/*/v
 
 **UUIDs are lowercased before the rules** (`Concerns\LowercasesIds`, in `PlanRequest` and `SaveSessionRequest`, after the lists are counted). Postgres compares `uuid` columns ignoring case and returns them in lowercase; PHP compares strings exactly. An id sent again in capitals would miss the rows read for the save (`keyBy('id')`), be inserted a second time and hit the primary key: a 500. Both requests use the list trait too, so their own `prepareForValidation()` calls its method under another name (`use ChecksListLengthsFirst { prepareForValidation as refuseListsTooLong; }`).
 
-**The largest plan allowed** (14 days, 30 exercises, 20 sets: 8,400 sets) saves, its sets inserted 1,000 a statement, as Postgres takes at most 65,535 values in one. Its validation takes seconds, the validator's own cost for some 70,000 field-rule pairs: [BE-8](../project/backlog.md#be-8-validating-the-largest-plan-takes-seconds).
+**The largest plan allowed** (14 days, 30 exercises, 20 sets: 8,400 sets) saves, its sets inserted 1,000 a statement, as Postgres takes at most 65,535 values in one. Its validation takes about five seconds locally, against half a second to save it: half is the validator's own cost for some 70,000 field-rule pairs, the rest the rules between two fields (`required_with`, `gte`) and a query per exercise, day and item id. No real plan comes near it, so the answer is a limit of its own on creating and saving plans, 10 a minute ([C2.5.10](#c2510-rate-limits)), rather than validation written by hand: without it, an account could keep the server busy at 180 requests a minute. The import has its own, 20 an hour.
 
 **Three traps:**
 
@@ -527,6 +527,7 @@ Signing in has its own limit ([C2.7.4](#c274-slowing-down-password-guessing)). O
 | `photo-files` | `GET /api/exercises/{id}/photos/{photo}/{size}`, in place of `api` | 600 a minute | the read-ahead asks for both sizes of every photo of a plan at once |
 | `uploads` | photo upload, Duplicate as mine | 30 a minute and 500 a day, together | each copies and converts photos: disk and queue are what an abuse would fill |
 | `imports` | `POST /api/plans/import` | 20 an hour | each up to 420 exercises and 8,400 sets |
+| `plan-saves` | `POST /api/plans`, `PUT /api/plans/{id}` (`middlewareFor()` on the resource) | 10 a minute | the editor saves on demand; the largest plan takes seconds to validate ([C2.5.6](#c256-validating-nested-data)) |
 | `verification-emails` | `POST /api/user/verification-email` | 6 an hour | each is an email sent |
 
 - **Two limits of one limiter have two keys** (`minute:12`, `day:12`), or they would share one count.

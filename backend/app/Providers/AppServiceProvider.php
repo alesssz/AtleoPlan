@@ -40,6 +40,12 @@ class AppServiceProvider extends ServiceProvider
     /** Plan imports, each up to 420 exercises and 8,400 sets. */
     public const IMPORTS_PER_HOUR = 20;
 
+    /**
+     * Plans created or saved. The editor saves on demand, never in a loop;
+     * the largest plan allowed takes seconds to validate.
+     */
+    public const PLAN_SAVES_PER_MINUTE = 10;
+
     /** "Send the link again" on "Confirm your email": each is an email sent. */
     public const VERIFICATION_EMAILS_PER_HOUR = 6;
 
@@ -115,6 +121,8 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         RateLimiter::for('imports', fn (Request $request) => Limit::perHour(self::IMPORTS_PER_HOUR)->by($by($request)));
+
+        RateLimiter::for('plan-saves', fn (Request $request) => Limit::perMinute(self::PLAN_SAVES_PER_MINUTE)->by($by($request)));
 
         RateLimiter::for('verification-emails', fn (Request $request) => Limit::perHour(self::VERIFICATION_EMAILS_PER_HOUR)->by($by($request)));
     }

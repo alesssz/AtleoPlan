@@ -47,7 +47,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             ->name('exercises.photos.show');
 
         // The workout plans
-        Route::apiResource('plans', PlanController::class);
+        Route::apiResource('plans', PlanController::class)->middlewareFor(['store', 'update'], 'throttle:plan-saves');
         Route::post('/plans/{plan}/activate', [PlanController::class, 'activate']);
         Route::post('/plans/{plan}/archive', [PlanController::class, 'archive']);
         Route::post('/plans/{plan}/unarchive', [PlanController::class, 'unarchive']);

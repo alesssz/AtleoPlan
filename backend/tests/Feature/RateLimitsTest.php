@@ -7,6 +7,7 @@
  */
 
 use App\Models\Exercise;
+use App\Models\Plan;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -74,6 +75,26 @@ describe('the limits', function () {
             ->toBe([[AppServiceProvider::UPLOADS_PER_MINUTE, 60], [AppServiceProvider::UPLOADS_PER_DAY, 86400]])
             // Two counts, not one shared
             ->and($limits[0]->key)->not->toBe($limits[1]->key);
+    });
+
+    it('limits creating and saving plans together, per user', function () {
+        $ann = User::factory()->create();
+        $plan = Plan::factory()->for($ann)->create();
+
+        // Refused bodies count too: the limit comes before the rules
+        for ($i = 0; $i < AppServiceProvider::PLAN_SAVES_PER_MINUTE - 1; $i++) {
+            $this->actingAs($ann)->postJson('/api/plans', [])->assertUnprocessable();
+        }
+        $this->actingAs($ann)->putJson("/api/plans/{$plan->id}", [])->assertUnprocessable();
+
+        $this->actingAs($ann)->postJson('/api/plans', [])->assertTooManyRequests();
+        $this->actingAs($ann)->putJson("/api/plans/{$plan->id}", [])->assertTooManyRequests();
+        // Reading is not counted, nor is another account
+        $this->actingAs($ann)->getJson("/api/plans/{$plan->id}")->assertOk();
+        $this->actingAs(User::factory()->create())->postJson('/api/plans', [])->assertUnprocessable();
+        // A minute later it is over
+        $this->travel(61)->seconds();
+        $this->actingAs($ann)->postJson('/api/plans', [])->assertUnprocessable();
     });
 
     it('limits plan imports per hour', function () {

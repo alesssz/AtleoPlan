@@ -17,7 +17,7 @@ import type { Exercise } from '@/api/exercises'
 import type { PlanInput, PlanSaved } from '@/api/plans'
 import { FormBanner } from '@/components/FormBanner'
 import { Button } from '@/components/ui/button'
-import { ApiError } from '@/lib/http'
+import { ApiError, TOO_MANY_REQUESTS } from '@/lib/http'
 import { clearDraft, loadDraft, storeDraft } from '../draft-storage'
 import { dayLetter, draftField, draftReducer, toPlanInput, validateDraft, type DraftErrors, type PlanDraft } from '../plan-draft'
 import { EditorDays } from './EditorDays'
@@ -228,6 +228,10 @@ export function PlanEditor({ initial, storageKey, adding, save, onSaved, submitL
         }
         showErrors(fromServer)
         setFailure(t('plans.editor.invalid'))
+      }
+      // Kept, as any failure: the draft is still here to save in a minute
+      else if (error instanceof ApiError && error.status === TOO_MANY_REQUESTS) {
+        setFailure(t('auth.errors.tooMany'))
       }
       else {
         setFailure(t('plans.editor.saveError'))
